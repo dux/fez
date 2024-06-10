@@ -1,5 +1,5 @@
 // component to render google fonts icons
-$.cde('ui-icon', class extends window.BaseCde {
+Cde('ui-icon', class extends window.BaseCde {
   // default node name is div
   static nodeName = 'span'
 

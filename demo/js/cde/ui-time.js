@@ -1,4 +1,6 @@
-$.cde('ui-time', class extends BaseCde {
+// no jQuery
+
+Cde('ui-time', class extends BaseCde {
   static nodeName = 'div'
 
   static style = `
@@ -17,15 +19,15 @@ $.cde('ui-time', class extends BaseCde {
   }
 
   updateTime() {
-    this.$root.find('.time').html(new Date())
+    this.root.querySelector('.time').innerHTML = new Date()
   }
 
   refresh() {
-    this.$root.css('border-color', this.getRandomColor())
+    this.root.style.borderColor = this.getRandomColor()
   }
 
   connect() {
-    this.root.innerHTML = `${this.attrs.city}: <span class="time">${new Date()}</span> &mdash; <button onclick="$.cde(this).refresh()">refresh</button>`
+    this.root.innerHTML = `${this.attrs.city}: <span class="time">${new Date()}</span> &mdash; <button onclick="Cde(this).refresh()">refresh</button>`
     this.setInterval(this.updateTime, 1000)
   }
 })

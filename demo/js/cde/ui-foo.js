@@ -1,4 +1,4 @@
-$.cde('ui-foo', class extends window.BaseCde {
+Cde('ui-foo', class extends window.BaseCde {
   once() {
     console.log('first ui-foo node attached (demo for once)')
   }
@@ -39,9 +39,9 @@ $.cde('ui-foo', class extends window.BaseCde {
     this.html(`
       ${this.htmlData} (${this.color}): ${JSON.stringify(this.attrs)}
       &sdot;
-      <button onclick="$.cde(this).time()">click for css</button>
+      <button onclick="Cde(this).time()">click for css</button>
       &sdot;
-      <button onclick="$.cde(this, 'ui-foo').connect()">refresh</button>
+      <button onclick="Cde(this, 'ui-foo').connect()">refresh</button>
       &sdot;
       <button onclick="$$.$root.remove()">x</button>
       &sdot;

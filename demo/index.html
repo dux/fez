@@ -1,7 +1,7 @@
 <html>
   <head>
     <title>CDE demo</title>
-    <script src="./js/jquery.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="../lib/cde.js"></script>
     <script src="./js/cde/ui-box.js"></script>
     <script src="./js/cde/ui-foo.js"></script>
@@ -32,10 +32,10 @@
     <ui-box title="Box compomnet title"><p>Box data</p></ui-box>
     <hr />
     <ui-icon name="home"></ui-icon>
-    <ui-icon name="settings" color="blue" onclick="alert($.cde(this).color)" id="blue-icon"></ui-icon>
+    <ui-icon name="settings" color="blue" onclick="alert(Cde(this).color)" id="blue-icon"></ui-icon>
     <ui-icon color="red">delete</ui-icon>
 
-    <input type="range" min="24" max="100" value="24" class="slider" id="myRange" oninput="$.cde('#blue-icon').setSize(this.value)" />
+    <input type="range" min="24" max="100" value="24" class="slider" id="myRange" oninput="Cde('#blue-icon').setSize(this.value)" />
 
     <button onclick="if (name = prompt('Icon name')) { $(this).before('<ui-icon>'+name+'</ui-icon>') }">add icon</button>
 

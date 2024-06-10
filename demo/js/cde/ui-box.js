@@ -1,4 +1,4 @@
-$.cde('ui-box', class extends window.BaseCde {
+Cde('ui-box', class extends window.BaseCde {
   static style() {
     // demo for inline style, just define style tag
     return `

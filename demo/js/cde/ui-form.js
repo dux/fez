@@ -1,5 +1,5 @@
 // render form
-$.cde('ui-form', class extends window.BaseCde {
+Cde('ui-form', class extends window.BaseCde {
   static nodeName = 'form'
 
   get data() {
