@@ -1,0 +1,65 @@
+<html>
+  <head>
+    <title>CDE demo</title>
+    <script src="./js/jquery.js"></script>
+    <script src="../lib/cde.js"></script>
+    <script src="./js/cde/ui-box.js"></script>
+    <script src="./js/cde/ui-foo.js"></script>
+    <script src="./js/cde/ui-icon.js"></script>
+    <script src="./js/cde/ui-form.js"></script>
+    <script src="./js/cde/ui-time.js"></script>
+    <style>
+      div.cde {
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>CDE demo</h1>
+
+    <ui-foo foo="bar"><div>demo <b>1</b>:</div></ui-foo>
+    <ui-foo foo="bar">demo <b>2</b>:</ui-foo>
+    <ui-foo foo="123" baz="bar">demo <b>3</b>:</ui-foo>
+
+    <div id="spawnTarget" class="mb-1"></div>
+
+    <div class="mb-1">
+      <button onclick="$('#spawnTarget').append(`<ui-foo class='mb-1' foo=${parseInt(Math.random()*1000)}>spawned:</ui-foo>`)">spawn</button>
+    </div>
+
+    <h3>Ticker log - when node detached no tick, when node refreshed, no duplicate processes</h3>
+    <div id="log" class="mb-1"></div>
+    <ui-box title="Box compomnet title"><p>Box data</p></ui-box>
+    <hr />
+    <ui-icon name="home"></ui-icon>
+    <ui-icon name="settings" color="blue" onclick="alert($.cde(this).color)" id="blue-icon"></ui-icon>
+    <ui-icon color="red">delete</ui-icon>
+
+    <input type="range" min="24" max="100" value="24" class="slider" id="myRange" oninput="$.cde('#blue-icon').setSize(this.value)" />
+
+    <button onclick="if (name = prompt('Icon name')) { $(this).before('<ui-icon>'+name+'</ui-icon>') }">add icon</button>
+
+    <ui-form target="/api" style="border: 2px solid red; padding: 1px 10px; margin: 10px 0;">
+      <p>
+        <input type="text" name="name" value="Dux" />
+      </p>
+      <p>
+        <select name="num">
+          <option>one</option>
+          <option>two</option>
+          <option>three</option>
+        </select>
+      </p>
+      <p>
+        <button>Submit</button>
+      </p>
+    </ui-form>
+
+    <div id="form-log"></div>
+
+    <hr />
+
+    <ui-time city="Zagreb"></ui-time>
+
+  </body>
+</html>
