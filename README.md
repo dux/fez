@@ -75,7 +75,7 @@ If you understand how this works, you know CDE. I am sorry it is this simple.
 
 ###### JS
 ```js
-$.cde('ui-time', class extends BaseCde {
+$.cde('ui-time', class extends window.BaseCde {
   // default node name is DIV, fell free to change.
   // Why native node name, in this case "<ui-time" is not used is explained in FAQ.
   static nodeName = 'div'
@@ -93,7 +93,7 @@ $.cde('ui-time', class extends BaseCde {
     }
   `
 
-  // plain JS function ti render time
+  // plain JS function to get random color
   getRandomColor() {
     const colors = ['red', 'blue', 'green', 'teal', 'black', 'magenta']
     return colors[Math.floor(Math.random() * colors.length)]
