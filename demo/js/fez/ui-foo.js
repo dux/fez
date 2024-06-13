@@ -1,4 +1,4 @@
-Fez('ui-foo', class extends window.FezBaze {
+Fez('ui-foo', class extends window.FezBase {
   once() {
     console.log('first ui-foo node attached (demo for once)')
   }

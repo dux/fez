@@ -14,7 +14,7 @@ This article, [Web Components Will Replace Your Frontend Framework](https://www.
 
 ## How it works
 
-* define your custom component - `Fez('ui-foo', class UiFoo extends FezBaze)`
+* define your custom component - `Fez('ui-foo', class UiFoo extends FezBase)`
 * add HTML - `<ui-foo bar="baz" id="node1"></ui-foo>`
   * lib will call `node1.fez.connect()` when node is added to DOM and connect your component to dom.
 
@@ -69,7 +69,7 @@ If you understand how this works, you know FEZ. I am sorry it is this simple.
 
 ###### JS
 ```js
-Fez('ui-time', class extends window.FezBaze {
+Fez('ui-time', class extends window.FezBase {
   // default node name is DIV, fell free to change.
   // Why native node name, in this case "<ui-time" is not used is explained in FAQ.
   static nodeName = 'div'
@@ -142,7 +142,7 @@ Do not forget nesting is supported in CSS now, you do not need scss and similar 
 #### Examples
 
 ```js
-Fez('ui-foo', class extends window.FezBaze {
+Fez('ui-foo', class extends window.FezBase {
   static style = `color: blue;`
 
   // or
@@ -199,7 +199,7 @@ Example: Dialog controller
 ```
 
 ```js
-Fez('ui-dialog', class extends FezBaze {
+Fez('ui-dialog', class extends FezBase {
   close() {
     ...
   }

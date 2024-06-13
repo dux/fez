@@ -1,6 +1,6 @@
 // no jQuery
 
-Fez('ui-time', class extends FezBaze {
+Fez('ui-time', class extends FezBase {
   static nodeName = 'div'
 
   static style = `

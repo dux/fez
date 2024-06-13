@@ -1,4 +1,4 @@
-Fez('ui-box', class extends window.FezBaze {
+Fez('ui-box', class extends window.FezBase {
   static style() {
     // demo for inline style, just define style tag
     return `
