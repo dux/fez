@@ -1,21 +1,21 @@
 <html>
   <head>
-    <title>CDE demo</title>
+    <title>FEZ demo</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="../lib/cde.js"></script>
-    <script src="./js/cde/ui-box.js"></script>
-    <script src="./js/cde/ui-foo.js"></script>
-    <script src="./js/cde/ui-icon.js"></script>
-    <script src="./js/cde/ui-form.js"></script>
-    <script src="./js/cde/ui-time.js"></script>
+    <script src="../lib/fez.js"></script>
+    <script src="./js/fez/ui-box.js"></script>
+    <script src="./js/fez/ui-foo.js"></script>
+    <script src="./js/fez/ui-icon.js"></script>
+    <script src="./js/fez/ui-form.js"></script>
+    <script src="./js/fez/ui-time.js"></script>
     <style>
-      div.cde {
+      div.fez {
         margin: 10px 0;
       }
     </style>
   </head>
   <body>
-    <h1>CDE demo</h1>
+    <h1>FEZ demo</h1>
 
     <ui-foo foo="bar"><div>demo <b>1</b>:</div></ui-foo>
     <ui-foo foo="bar">demo <b>2</b>:</ui-foo>
@@ -32,10 +32,10 @@
     <ui-box title="Box compomnet title"><p>Box data</p></ui-box>
     <hr />
     <ui-icon name="home"></ui-icon>
-    <ui-icon name="settings" color="blue" onclick="alert(Cde(this).color)" id="blue-icon"></ui-icon>
+    <ui-icon name="settings" color="blue" onclick="alert(Fez(this).color)" id="blue-icon"></ui-icon>
     <ui-icon color="red">delete</ui-icon>
 
-    <input type="range" min="24" max="100" value="24" class="slider" id="myRange" oninput="Cde('#blue-icon').setSize(this.value)" />
+    <input type="range" min="24" max="100" value="24" class="slider" id="myRange" oninput="Fez('#blue-icon').setSize(this.value)" />
 
     <button onclick="if (name = prompt('Icon name')) { $(this).before('<ui-icon>'+name+'</ui-icon>') }">add icon</button>
 

@@ -1,6 +1,6 @@
 // no jQuery
 
-Cde('ui-time', class extends BaseCde {
+Fez('ui-time', class extends FezBaze {
   static nodeName = 'div'
 
   static style = `
@@ -27,7 +27,7 @@ Cde('ui-time', class extends BaseCde {
   }
 
   connect() {
-    this.root.innerHTML = `${this.attrs.city}: <span class="time">${new Date()}</span> &mdash; <button onclick="Cde(this).refresh()">refresh</button>`
+    this.root.innerHTML = `${this.attrs.city}: <span class="time">${new Date()}</span> &mdash; <button onclick="Fez(this).refresh()">refresh</button>`
     this.setInterval(this.updateTime, 1000)
   }
 })

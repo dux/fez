@@ -1,5 +1,5 @@
 // render form
-Cde('ui-form', class extends window.BaseCde {
+Fez('ui-form', class extends window.FezBaze {
   static nodeName = 'form'
 
   get data() {

@@ -1,10 +1,12 @@
-# CDE - Custom DOM Elements
+<img src="public/fez.webp" align="right" />
 
-CDE is a small library that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
+# FEZ - Custom DOM Elements
+
+FEZ is a small library that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
 
 It uses minimal abstraction. You will learn to use it in 3 minutes, just look at example, it includes all you need to know.
 
-Basically, it is logical variant of [lit.js](https://lit.dev/) or [Rails Stimulus](https://stimulus.hotwired.dev/). CDE uses native DOM instead of shadow DOM, has an easy-to-debug and "hack" interface, and tries to be as close to vanilla JS as possible. If you need TypeScript support, Shadow DOM, or a stronger community, use Lit.
+Basically, it is logical variant of [lit.js](https://lit.dev/) or [Rails Stimulus](https://stimulus.hotwired.dev/). FEZ uses native DOM instead of shadow DOM, has an easy-to-debug and "hack" interface, and tries to be as close to vanilla JS as possible. If you need TypeScript support, Shadow DOM, or a stronger community, use Lit.
 
 It replaces modern JS frameworks by using native Autonomous Custom Elements to create new HTML tags. This has been supported for years in [all major browsers](https://caniuse.com/custom-elementsv1).
 
@@ -12,9 +14,9 @@ This article, [Web Components Will Replace Your Frontend Framework](https://www.
 
 ## How it works
 
-* define your custom component - `Cde('ui-foo', class UiFoo extends BaseCde)`
+* define your custom component - `Fez('ui-foo', class UiFoo extends FezBaze)`
 * add HTML - `<ui-foo bar="baz" id="node1"></ui-foo>`
-  * lib will call `node1.cde.connect()` when node is added to DOM and connect your component to dom.
+  * lib will call `node1.fez.connect()` when node is added to DOM and connect your component to dom.
 
 That is all.
 
@@ -49,13 +51,13 @@ All examples are avaliable on [jsitor](https://jsitor.com/QoResUvMc).
 
 This component explains all basic concepts.
 
-If you understand how this works, you know CDE. I am sorry it is this simple.
+If you understand how this works, you know FEZ. I am sorry it is this simple.
 
 * you add custom dom nodes as simple HTML tags. You can pass args too.
 * you can set your desired node name via `nodeName` static method, defaults to `div`.
 * you can define custom style with modern features.
 * when tag (node) is added to HTML DOM
-  * `Cde` component is created and `connect()` is called
+  * `Fez` component is created and `connect()` is called
   * `this.setInterval(...)` loops only if node is attached to doom.
     Clears itself once node is detached from DOM.
   * this is all, now you are free to do whatever you want.
@@ -67,13 +69,13 @@ If you understand how this works, you know CDE. I am sorry it is this simple.
 
 ###### JS
 ```js
-Cde('ui-time', class extends window.BaseCde {
+Fez('ui-time', class extends window.FezBaze {
   // default node name is DIV, fell free to change.
   // Why native node name, in this case "<ui-time" is not used is explained in FAQ.
   static nodeName = 'div'
 
   // when element is used for the first, global element style will be injected in document head
-  // style will nave id="cde-style-ui-time"
+  // style will nave id="fez-style-ui-time"
   static style = `
     border: 5px solid green;
     border-radius: 10px;
@@ -103,16 +105,16 @@ Cde('ui-time', class extends window.BaseCde {
   }
 
   connect() {
-    // Cde(this) will return pointer to first root CDE component.
-    // If you want to target specific one by name, add it as second argument -> Cde(this, 'ui-time2')
+    // Fez(this) will return pointer to first root FEZ component.
+    // If you want to target specific one by name, add it as second argument -> Fez(this, 'ui-time2')
     this.root.innerHTML = `
       ${this.attrs.city}:
       <span class="time">${new Date()}</span>
       &mdash;
-      <button onclick="Cde(this).refresh()">refresh</button>
+      <button onclick="Fez(this).refresh()">refresh</button>
     `
 
-    // use CDE internal setInterval, It is auto cleared when node is removed from DOM.
+    // use FEZ internal setInterval, It is auto cleared when node is removed from DOM.
     this.setInterval(this.updateTime, 1000)
   }
 })
@@ -120,13 +122,13 @@ Cde('ui-time', class extends window.BaseCde {
 
 ## More in detail
 
-### when cde init runs
+### when fez init runs
 
 * attaches HTML DOM  to`this.root`
 * jQuery wrapped root node will be available via `this.$root`
-* classes `cde` and `cde-ui-foo` will be aded to root.
-* adds pointer to instance object to `cde` property (`<div class="cde cde-ui-foo" onclick="console.log(this.cde)"`)
-  * in parent nodes access it via `Cde(this)` with optional tag name `Cde(this, 'ui-foo')`. It will look for closest CDE node.
+* classes `fez` and `fez-ui-foo` will be aded to root.
+* adds pointer to instance object to `fez` property (`<div class="fez fez-ui-foo" onclick="console.log(this.fez)"`)
+  * in parent nodes access it via `Fez(this)` with optional tag name `Fez(this, 'ui-foo')`. It will look for closest FEZ node.
 * creates object for node attributes, accessible via `this.attrs`. `<ui-foo name="Split">` -> `this.attrs.name`
 
 ### style()
@@ -140,7 +142,7 @@ Do not forget nesting is supported in CSS now, you do not need scss and similar 
 #### Examples
 
 ```js
-Cde('ui-foo', class extends window.BaseCde {
+Fez('ui-foo', class extends window.FezBaze {
   static style = `color: blue;`
 
   // or
@@ -152,7 +154,7 @@ Cde('ui-foo', class extends window.BaseCde {
       color: red;
     }
 
-    .cde-ui-foo {
+    .fez-ui-foo {
       color: blue;
 
       button {
@@ -170,8 +172,8 @@ Cde('ui-foo', class extends window.BaseCde {
 ```html
 <html>
   <head>
-    <style id="cde-style-ui-foo">
-    .cde-ui-foo {
+    <style id="fez-style-ui-foo">
+    .fez-ui-foo {
       color: blue;
     }
     </style>
@@ -182,11 +184,11 @@ Cde('ui-foo', class extends window.BaseCde {
 
 ### forms
 
-There is CDE instance helper method `this.formData()`, that will get form data for a current or closest form.
+There is FEZ instance helper method `this.formData()`, that will get form data for a current or closest form.
 
 You can pass node DOM refrence, for a form you want to capture data from.
 
-### how to call custom CDE node from the outside, anywhere in HTML
+### how to call custom FEZ node from the outside, anywhere in HTML
 
 Inside `connect()`, you have pointer to `this`. Pass it anywhere you need, even store in window.
 
@@ -197,7 +199,7 @@ Example: Dialog controller
 ```
 
 ```js
-Cde('ui-dialog', class extends BaseCde {
+Fez('ui-dialog', class extends FezBaze {
   close() {
     ...
   }
@@ -211,8 +213,8 @@ Cde('ui-dialog', class extends BaseCde {
 // close dialog window, from anywhere
 Dialog.close()
 
-// you can load via Cde + node selector
-Cde('#main-dialog').close()
+// you can load via Fez + node selector
+Fez('#main-dialog').close()
 ```
 
 

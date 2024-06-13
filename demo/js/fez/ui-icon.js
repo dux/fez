@@ -1,5 +1,5 @@
 // component to render google fonts icons
-Cde('ui-icon', class extends window.BaseCde {
+Fez('ui-icon', class extends window.FezBaze {
   // default node name is div
   static nodeName = 'span'
 

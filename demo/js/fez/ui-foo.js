@@ -1,4 +1,4 @@
-Cde('ui-foo', class extends window.BaseCde {
+Fez('ui-foo', class extends window.FezBaze {
   once() {
     console.log('first ui-foo node attached (demo for once)')
   }
@@ -26,7 +26,7 @@ Cde('ui-foo', class extends window.BaseCde {
     // demo for interval, that is cleared when node is detached
     this.setInterval(
       () => {
-        this.$root.find('.cde-target-info').html(`${this.tick++} &sdot; ${this.rand}`)
+        this.$root.find('.fez-target-info').html(`${this.tick++} &sdot; ${this.rand}`)
         const log = $('#log')
         if (log.html().length > 200) {
           log.html('')
@@ -39,13 +39,13 @@ Cde('ui-foo', class extends window.BaseCde {
     this.html(`
       ${this.htmlData} (${this.color}): ${JSON.stringify(this.attrs)}
       &sdot;
-      <button onclick="Cde(this).time()">click for css</button>
+      <button onclick="Fez(this).time()">click for css</button>
       &sdot;
-      <button onclick="Cde(this, 'ui-foo').connect()">refresh</button>
+      <button onclick="Fez(this, 'ui-foo').connect()">refresh</button>
       &sdot;
       <button onclick="$$.$root.remove()">x</button>
       &sdot;
-      <span class="cde-target-info"></span>
+      <span class="fez-target-info"></span>
     `)
   }
 })

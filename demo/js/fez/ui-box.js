@@ -1,4 +1,4 @@
-Cde('ui-box', class extends window.BaseCde {
+Fez('ui-box', class extends window.FezBaze {
   static style() {
     // demo for inline style, just define style tag
     return `
