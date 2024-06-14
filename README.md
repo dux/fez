@@ -252,3 +252,17 @@ Moves all child nodes from one node to another node.
     const tmpNode = this.slot(node1, node2)
   }
 ```
+
+#### html(htmlString)
+
+Inject htmlString as innerHTML and replace $$. with local pointer.
+
+```js
+  ping() => {
+    alert('Pinged!')
+  }
+
+  connect() => {
+    this.html(`<div><span onclick="$$.ping()">`)
+  }
+```
