@@ -219,50 +219,54 @@ Fez('#main-dialog').close()
 
 ### helper functions
 
-#### klass.getAttributes(node)
+* #### this.klass
 
-Gets node attributes as object
+  Pointer to object class constructor, default `FezBase`
 
-```js
-  connect() => {
-    const currentAttrs = this.klass.getAttributes(this.root)
-  }
-```
+* #### this.klass.getAttributes(node)
 
-#### attrCopy(attr1, artr2, ...)
+  Gets node attributes as object
 
-Copies atrributes from attribute object to root as node attributes. If attribute is false, it is skipped.
+  ```js
+    connect() => {
+      const currentAttrs = this.klass.getAttributes(this.root)
+    }
+  ```
 
-```js
-  connect() => {
-    this.attrCopy('href', 'onclick', 'style', 'target')
-  }
-```
+* #### this.attrCopy(attr1, artr2, ...)
 
-#### slot(source, target = null)
+  Copies atrributes from attribute object to root as node attributes. If attribute is false, it is skipped.
 
-Moves all child nodes from one node to another node.
+  ```js
+    connect() => {
+      this.attrCopy('href', 'onclick', 'style', 'target')
+    }
+  ```
 
-```js
-  connect() => {
-    // move all current child nodes to tmpNode
-    const tmpNode = this.slot(this)
+* #### this.slot(source, target = null)
 
-    // move all child nodes from node1 to node2
-    const tmpNode = this.slot(node1, node2)
-  }
-```
+  Moves all child nodes from one node to another node.
 
-#### html(htmlString)
+  ```js
+    connect() => {
+      // move all current child nodes to tmpNode
+      const tmpNode = this.slot(this)
 
-Inject htmlString as innerHTML and replace $$. with local pointer.
+      // move all child nodes from node1 to node2
+      const tmpNode = this.slot(node1, node2)
+    }
+  ```
 
-```js
-  ping() => {
-    alert('Pinged!')
-  }
+* #### this.html(htmlString)
 
-  connect() => {
-    this.html(`<div><span onclick="$$.ping()">`)
-  }
-```
+  Inject htmlString as innerHTML and replace $$. with local pointer.
+
+  ```js
+    ping() => {
+      alert('Pinged!')
+    }
+
+    connect() => {
+      this.html(`<div><span onclick="$$.ping()">`)
+    }
+  ```
