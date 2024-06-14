@@ -43,6 +43,41 @@ There is on drawback too. If it works in Vannila JS, it will work here to.
 
 It great in combination with another wide ude JS libs, as jQuery, Zepto, underscore of loDash.
 
+## Full available interface
+
+```js
+Fez('foo-bar', class extends FezBase {
+  // set element style, set as property or method
+  static style() { ... }
+  static style = ``` ... ```
+
+  // set element node name, set as property or method, defaults to DIV
+  static nodeName = 'span'
+  static nodeName(node) { ... }
+
+  connect() {
+    // internal, get unique ID for a string, poor mans MD5
+    const uid = this.class.fnv1('some string')
+
+    // copy attributes from attr hash to root node
+    this.copyAttributes('href', 'onclick', 'style')
+
+    // internal, check if node is attached
+    this.isAttached()
+
+    // copy all child nodes from source to target, without target returns tm node
+    this.slot(someNode, tmpRoot)
+    const tmpRoot = this.slot(self.root)
+
+    // interval that runes only while node is attached
+    this.setInterval(func, tick) { ... }
+
+    // for get closest form data as object
+    this.formData(optionalDomNode)
+  }
+})
+```
+
 ## Examples
 
 All examples are avaliable on [jsitor](https://jsitor.com/QoResUvMc).
@@ -76,7 +111,7 @@ Fez('ui-time', class extends window.FezBase {
 
   // when element is used for the first, global element style will be injected in document head
   // style will nave id="fez-style-ui-time"
-  static style = `
+  static css(`
     border: 5px solid green;
     border-radius: 10px;
     padding: 10px;
@@ -85,7 +120,7 @@ Fez('ui-time', class extends window.FezBase {
     button {
       font-size: 16px;
     }
-  `
+  `)
 
   // plain JS function to get random color
   getRandomColor() {
@@ -217,33 +252,57 @@ Dialog.close()
 Fez('#main-dialog').close()
 ```
 
-### helper functions
+## static helper functions
 
-* #### this.klass
+* ### Fez.find(selectorOrNode, 'optional-tag-name')
 
-  Pointer to object class constructor, default `FezBase`
+Finds first closest Fez node.
 
-* #### this.klass.getAttributes(node)
+* ### this.class.getAttributes(node)
 
   Gets node attributes as object
 
   ```js
     connect() => {
-      const currentAttrs = this.klass.getAttributes(this.root)
+      const currentAttrs = this.class.getAttributes(this.root)
     }
   ```
 
-* #### this.attrCopy(attr1, artr2, ...)
+* ### this.class.css(text)
+
+  Static `css()` method adds css globaly, to `document.body`.
+
+## instance attributes
+
+* ### this.props
+
+  List of given node attributes is converted to props object
+
+* ### this.root
+
+  Pointer to Fez root node.
+
+* ### this.$root
+
+  jQuery wrapped root, if jQuery is present.
+
+## instance functions
+
+* ### this.connect(root, props)
+
+  Called after DOM node is connected to Fez instance.
+
+* ### this.copy(attr1, artr2, ...)
 
   Copies atrributes from attribute object to root as node attributes. If attribute is false, it is skipped.
 
   ```js
     connect() => {
-      this.attrCopy('href', 'onclick', 'style', 'target')
+      this.copy('href', 'onclick', 'style', 'target')
     }
   ```
 
-* #### this.slot(source, target = null)
+* ### this.slot(source, target = null)
 
   Moves all child nodes from one node to another node.
 
@@ -257,9 +316,12 @@ Fez('#main-dialog').close()
     }
   ```
 
-* #### this.html(htmlString)
+* ### this.html(htmlString)
 
-  Inject htmlString as innerHTML and replace $$. with local pointer.
+  Inject htmlString as root node innerHTML
+
+  * replace `$$.` with local pointer.
+  * replaces `<slot />` with given root
 
   ```js
     ping() => {
@@ -267,6 +329,35 @@ Fez('#main-dialog').close()
     }
 
     connect() => {
-      this.html(`<div><span onclick="$$.ping()">`)
+      this.html`<div>
+        <span onclick="$$.ping()">
+        <slot />
+      </span>`
     }
   ```
+
+* ### this.css(text)
+
+  Uses [goober](https://goober.js.org/) to render inline css.
+  Same as React styled-components, it returns class that encapsulates given style.
+
+  ```js
+  const className = this.css(`
+    color: red;
+      &.blue {
+        color: blue;
+      }
+    }`
+  )
+  ```
+
+* ### this.prop(name)
+
+  Get single property. It will first look on original root node, if not found it will look for attribute.
+
+  ```js
+  const onClickFunction = this.prop('onclick')
+  const idString = this.prop('id')
+  ```
+
+
