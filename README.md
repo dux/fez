@@ -217,4 +217,38 @@ Dialog.close()
 Fez('#main-dialog').close()
 ```
 
+### helper functions
 
+#### klass.getAttributes(node)
+
+Gets node attributes as object
+
+```js
+  connect() => {
+    const currentAttrs = this.klass.getAttributes(this.root)
+  }
+```
+
+#### attrCopy(attr1, artr2, ...)
+
+Copies atrributes from attribute object to root as node attributes. If attribute is false, it is skipped.
+
+```js
+  connect() => {
+    this.attrCopy('href', 'onclick', 'style', 'target')
+  }
+```
+
+#### slot(source, target = null)
+
+Moves all child nodes from one node to another node.
+
+```js
+  connect() => {
+    // move all current child nodes to tmpNode
+    const tmpNode = this.slot(this)
+
+    // move all child nodes from node1 to node2
+    const tmpNode = this.slot(node1, node2)
+  }
+```
