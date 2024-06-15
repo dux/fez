@@ -23,10 +23,10 @@ That is all.
 ## What can it do?
 
 * It can create and define Custom HTML tags
-* it can style components using modern CSS, you do not need SCSS any more.
-  CSS variables and nesting is fully supported in major browsers.
+* it can style components using SCSS [goober](https://goober.js.org/).
+* it has all needed helper methods as once(), scssToClass(), formData(), setInterval() that triggers only while node is connected, etc
 * It has garbage collector, just add tags to HTML and destroy as you which.
-* It supports CSS animations, but you have to add them yourself in css.
+* It supports CSS animations, but you have to add them yourself in css :). No beautifull support as once can find in Svelte.
 
 ## Wheat it does not do?
 
