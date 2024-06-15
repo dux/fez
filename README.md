@@ -58,7 +58,7 @@ Fez.globalCss(`
 
 Fez('foo-bar', class extends FezBase {
   // add local fez node css
-  static css = Fez.css(`...`)
+  static css = `...`
 
   // set element node name, set as property or method, defaults to DIV
   static nodeName = 'span'
@@ -69,7 +69,7 @@ Fez('foo-bar', class extends FezBase {
 
   connect(rootNode, props) {
     // compile local scss and get class name
-    this.css(`...`)
+    const cssClass = this.css(`...`)
 
     // internal, get unique ID for a string, poor mans MD5
     const uid = this.class.fnv1('some string')
