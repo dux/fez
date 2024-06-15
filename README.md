@@ -46,21 +46,36 @@ It great in combination with another wide ude JS libs, as jQuery, Zepto, undersc
 ## Full available interface
 
 ```js
+// add global css
+Fez.globalCss(`
+  .some-class {
+    color: red;
+    .foo { ... }
+  }
+  ...
+`)
+
 Fez('foo-bar', class extends FezBase {
-  // set element style, set as property or method
-  static style() { ... }
-  static style = ``` ... ```
+  // add local fez node css
+  static css = Fez.css(`...`)
 
   // set element node name, set as property or method, defaults to DIV
   static nodeName = 'span'
   static nodeName(node) { ... }
 
-  connect() {
+  foo() {
+    alert('bar')
+  }
+
+  connect(rootNode, props) {
+    // compile local scss and get class name
+    this.css(`...`)
+
     // internal, get unique ID for a string, poor mans MD5
     const uid = this.class.fnv1('some string')
 
     // copy attributes from attr hash to root node
-    this.copyAttributes('href', 'onclick', 'style')
+    this.copy('href', 'onclick', 'style')
 
     // internal, check if node is attached
     this.isAttached()
@@ -74,6 +89,20 @@ Fez('foo-bar', class extends FezBase {
 
     // for get closest form data as object
     this.formData(optionalDomNode)
+
+    // get single oringial root node property or attribute
+    this.prop('onclick')
+
+    // simple component build with html() helper
+    // $$ references local instance
+    // <slot></slot> will pass original slot data
+    this.html(`
+      <div>
+        <h2>${props.title}</h2>
+        <slot></slot>
+        <button onclick="$$.foo()">click me</button>
+      </div>
+    `)
   }
 })
 ```
@@ -336,10 +365,12 @@ Finds first closest Fez node.
     }
   ```
 
-* ### this.css(text)
+* ### this.css(text, optionalAddToRoot)
 
   Uses [goober](https://goober.js.org/) to render inline css.
   Same as React styled-components, it returns class that encapsulates given style.
+
+  Pass second argument as true, to attach class to root node.
 
   ```js
   const className = this.css(`
