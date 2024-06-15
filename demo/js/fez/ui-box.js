@@ -1,26 +1,20 @@
 Fez('ui-box', class extends window.FezBase {
-  static style() {
-    // demo for inline style, just define style tag
-    return `
-      border: 2px solid #aaa;
-      border-radius: 4px;
-      padding: 0 10px;
-      background-color: #eee;
+ // demo for inline style
+  static css = `
+    border: 2px solid #aaa;
+    border-radius: 4px;
+    padding: 0 10px;
+    background-color: #eee;
 
-      h3 {
-        color: red;
-      }
-    `
-  }
+    h3 {
+      color: red;
+    }
+  `
 
   connect() {
-    const self = this
-    window.requestAnimationFrame(()=>{
-      // console.log(self.root)
-      self.html(`
-        <h3>${self.attrs.title || 'no title'}</h3>
-        ${self.$root.html()}
-      `)
-    })
+    this.html(`
+      <h3>${this.props.title || 'no title'}</h3>
+      <slot></slot>
+    `)
   }
 })

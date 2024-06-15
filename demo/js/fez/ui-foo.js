@@ -1,8 +1,4 @@
 Fez('ui-foo', class extends window.FezBase {
-  once() {
-    console.log('first ui-foo node attached (demo for once)')
-  }
-
   get rand() {
     return parseInt(Math.random() * 1000)
   }
@@ -37,7 +33,7 @@ Fez('ui-foo', class extends window.FezBase {
     )
 
     this.html(`
-      ${this.htmlData} (${this.color}): ${JSON.stringify(this.attrs)}
+      ${this.htmlData} (${this.color}): ${JSON.stringify(this.props)}
       &sdot;
       <button onclick="Fez(this).time()">click for css</button>
       &sdot;

@@ -24,7 +24,8 @@ That is all.
 
 * It can create and define Custom HTML tags
 * it can style components using SCSS [goober](https://goober.js.org/).
-* it has all needed helper methods as once(), scssToClass(), formData(), setInterval() that triggers only while node is connected, etc
+* it has all needed helper methods as scssToClass(), formData(), setInterval() that triggers only while node is connected, etc
+* it can fill slots and call local methods easily
 * It has garbage collector, just add tags to HTML and destroy as you which.
 * It supports CSS animations, but you have to add them yourself in css :). No beautifull support as once can find in Svelte.
 
@@ -63,9 +64,8 @@ Fez('foo-bar', class extends FezBase {
   static nodeName = 'span'
   static nodeName(node) { ... }
 
-  foo() {
-    alert('bar')
-  }
+  // generic instance method
+  foo() { alert('bar') }
 
   connect(rootNode, props) {
     // compile local scss and get class name
@@ -80,7 +80,7 @@ Fez('foo-bar', class extends FezBase {
     // internal, check if node is attached
     this.isAttached()
 
-    // copy all child nodes from source to target, without target returns tm node
+    // copy all child nodes from source to target. without target, returns tmp node
     this.slot(someNode, tmpRoot)
     const tmpRoot = this.slot(self.root)
 
@@ -172,7 +172,7 @@ Fez('ui-time', class extends window.FezBase {
     // Fez(this) will return pointer to first root FEZ component.
     // If you want to target specific one by name, add it as second argument -> Fez(this, 'ui-time2')
     this.root.innerHTML = `
-      ${this.attrs.city}:
+      ${this.props.city}:
       <span class="time">${new Date()}</span>
       &mdash;
       <button onclick="Fez(this).refresh()">refresh</button>
@@ -193,7 +193,7 @@ Fez('ui-time', class extends window.FezBase {
 * classes `fez` and `fez-ui-foo` will be aded to root.
 * adds pointer to instance object to `fez` property (`<div class="fez fez-ui-foo" onclick="console.log(this.fez)"`)
   * in parent nodes access it via `Fez(this)` with optional tag name `Fez(this, 'ui-foo')`. It will look for closest FEZ node.
-* creates object for node attributes, accessible via `this.attrs`. `<ui-foo name="Split">` -> `this.attrs.name`
+* creates object for node attributes, accessible via `this.props`. `<ui-foo name="Split">` -> `this.props.name`
 
 ### style()
 

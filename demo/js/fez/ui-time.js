@@ -27,7 +27,7 @@ Fez('ui-time', class extends FezBase {
   }
 
   connect() {
-    this.root.innerHTML = `${this.attrs.city}: <span class="time">${new Date()}</span> &mdash; <button onclick="Fez(this).refresh()">refresh</button>`
+    this.root.innerHTML = `${this.props.city}: <span class="time">${new Date()}</span> &mdash; <button onclick="Fez(this).refresh()">refresh</button>`
     this.setInterval(this.updateTime, 1000)
   }
 })
