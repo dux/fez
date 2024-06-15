@@ -9,12 +9,12 @@ Fez('ui-form', class extends FezBase {
     margin: 15px 0;
   `
 
-  connect() {
-    this.root.onsubmit = this.submit
-  }
-
   submit(e) {
     e.preventDefault()
     alert(JSON.stringify(this.formData()))
+  }
+
+  connect() {
+    this.root.onsubmit = this.submit
   }
 })

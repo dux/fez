@@ -3,7 +3,7 @@
 Fez('ui-time', class extends FezBase {
   static nodeName = 'div'
 
-  static style = `
+  static css = `
     border: 5px solid green;
     border-radius: 10px;
     padding: 10px;
@@ -19,7 +19,7 @@ Fez('ui-time', class extends FezBase {
   }
 
   updateTime() {
-    this.root.querySelector('.time').innerHTML = new Date()
+    this.val('.time', new Date())
   }
 
   refresh() {
@@ -27,7 +27,12 @@ Fez('ui-time', class extends FezBase {
   }
 
   connect() {
-    this.root.innerHTML = `${this.props.city}: <span class="time">${new Date()}</span> &mdash; <button onclick="Fez(this).refresh()">refresh</button>`
     this.setInterval(this.updateTime, 1000)
+
+    this.html(`
+      ${this.props.city}: <span class="time">${new Date()}</span>
+      &mdash;
+      <button onclick="Fez(this).refresh()">refresh</button>
+    `)
   }
 })

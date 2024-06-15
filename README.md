@@ -2,9 +2,15 @@
 
 # FEZ - Custom DOM Elements
 
-FEZ is a small library that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
+FEZ is a small opinionated library that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
+
+## Why opinionated?
+
+Uses [goober](https://goober.js.org/) to parse scss and [mustache](http://github.com/janl/mustache.js) to render templates. Latest version of libs is baked in Fez distro.
 
 It uses minimal abstraction. You will learn to use it in 3 minutes, just look at example, it includes all you need to know.
+
+## Litte more details
 
 Basically, it is logical variant of [lit.js](https://lit.dev/) or [Rails Stimulus](https://stimulus.hotwired.dev/). FEZ uses native DOM instead of shadow DOM, has an easy-to-debug and "hack" interface, and tries to be as close to vanilla JS as possible. If you need TypeScript support, Shadow DOM, or a stronger community, use Lit.
 
@@ -57,22 +63,17 @@ Fez.globalCss(`
 `)
 
 Fez('foo-bar', class extends FezBase {
-  // add local fez node css
-  static css = `...`
+  // set element style, set as property or method
+  static style() { .. }
+  static style = ` scss string... `
 
   // set element node name, set as property or method, defaults to DIV
   static nodeName = 'span'
   static nodeName(node) { ... }
 
-  // generic instance method
-  foo() { alert('bar') }
-
-  connect(rootNode, props) {
-    // compile local scss and get class name
-    const cssClass = this.css(`...`)
-
+  connect() {
     // internal, get unique ID for a string, poor mans MD5
-    const uid = this.class.fnv1('some string')
+    const uid = this.klass.fnv1('some string')
 
     // copy attributes from attr hash to root node
     this.copy('href', 'onclick', 'style')
@@ -80,28 +81,30 @@ Fez('foo-bar', class extends FezBase {
     // internal, check if node is attached
     this.isAttached()
 
-    // copy all child nodes from source to target. without target, returns tmp node
+    // copy all child nodes from source to target, without target returns tm node
     this.slot(someNode, tmpRoot)
     const tmpRoot = this.slot(self.root)
 
     // interval that runes only while node is attached
     this.setInterval(func, tick) { ... }
 
-    // for get closest form data as object
-    this.formData(optionalDomNode)
+    // get closest form data as object
+    this.formData()
 
-    // get single oringial root node property or attribute
-    this.prop('onclick')
+    // get generated css class (uses gobber.js)
+    const localCssClass = this.css(text)
 
-    // simple component build with html() helper
-    // $$ references local instance
-    // <slot></slot> will pass original slot data
+    // render string via mustache and attaches html to root
+    // to return rendered string only, use renderString(text, context)
     this.html(`
-      <div>
-        <h2>${props.title}</h2>
-        <slot></slot>
-        <button onclick="$$.foo()">click me</button>
-      </div>
+      <ul>
+        {{#list}}
+          <li>
+            <input type="text" onkeyup="$$.list[{{num}}].name = this.value" value="{{ name }}" class="i1" />
+          </li>
+        {{/list}}
+      </ul>
+      <span class="btn" onclick="$$.getData()">read</span>
     `)
   }
 })
@@ -171,11 +174,11 @@ Fez('ui-time', class extends window.FezBase {
   connect() {
     // Fez(this) will return pointer to first root FEZ component.
     // If you want to target specific one by name, add it as second argument -> Fez(this, 'ui-time2')
-    this.root.innerHTML = `
+    this.html`
       ${this.props.city}:
       <span class="time">${new Date()}</span>
       &mdash;
-      <button onclick="Fez(this).refresh()">refresh</button>
+      <button onclick="$$.refresh()">refresh</button>
     `
 
     // use FEZ internal setInterval, It is auto cleared when node is removed from DOM.
@@ -353,17 +356,31 @@ Finds first closest Fez node.
   * replaces `<slot />` with given root
 
   ```js
-    ping() => {
-      alert('Pinged!')
+    getData() => {
+      alert('data!')
     }
 
     connect() => {
-      this.html`<div>
-        <span onclick="$$.ping()">
-        <slot />
-      </span>`
+      this.html`
+        <ul>
+          {{#list}}
+            <li>
+              <input type="text" onkeyup="$$.list[{{num}}].name = this.value" value="{{ name }}" class="i1" />
+            </li>
+          {{/list}}
+        </ul>
+        <span class="btn" onclick="$$.getData()">read</span>
+      `
     }
   ```
+
+* ### this.renderString(text, context or this)
+
+  Same as `this.html()` but
+
+  * it does not render slot
+  * returns string instead attaching to `this.root`.
+
 
 * ### this.css(text, optionalAddToRoot)
 
