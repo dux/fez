@@ -40,6 +40,16 @@ Fez('ui-mform', class extends FezBase {
     alert(JSON.stringify(this.list, null, 2))
   }
 
+  addRow() {
+    this.list ||= []
+
+    const data = {name: '', sname: ''}
+    data.num = this.list.length
+
+    this.list.push(data)
+    this.render()
+  }
+
   render() {
     this.html(`
       <table>
@@ -57,15 +67,5 @@ Fez('ui-mform', class extends FezBase {
       <span class="btn" onclick="$$.addRow()">add row</span>
       <span class="btn" onclick="$$.getData()">read</span>
     `)
-  }
-
-  addRow() {
-    this.list ||= []
-
-    const data = {name: '', sname: ''}
-    data.num = this.list.length
-
-    this.list.push(data)
-    this.render()
   }
 })
