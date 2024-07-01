@@ -95,7 +95,7 @@ Fez('foo-bar', class extends FezBase {
     const localCssClass = this.css(text)
 
     // render string via mustache and attaches html to root
-    // to return rendered string only, use renderString(text, context)
+    // to return rendered string only, use parse(text, context)
     this.html(`
       <ul>
         {{#list}}
@@ -374,7 +374,7 @@ Finds first closest Fez node.
     }
   ```
 
-* ### this.renderString(text, context or this)
+* ### this.parse(text, context or this)
 
   Same as `this.html()` but
 
