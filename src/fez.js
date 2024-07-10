@@ -1,11 +1,11 @@
 // tremplateing
-import Handlebars from './handlebars' // dust JS ?
+import renderStache from './lib/stache'
 
 // morph dom from one state to another
-import Morphdom from './morphdom'
+import Morphdom from './lib/morphdom'
 
 // inline scss
-import Gobber from './gobber'
+import Gobber from './lib/gobber'
 
 // Fez('foo-bar', class extends FezBase {
 //   # set element style, set as property or method
@@ -191,7 +191,19 @@ class FezBase {
     }
 
     text = text.replaceAll('$$.', this.fezHtmlRoot.replaceAll('"', '&quot;'))
-    text = Handlebars.compile(text)(this)
+
+    if (text.includes('{{')) {
+      try {
+        text = renderStache(text, this)
+      } catch(error) {
+        const opts = Object.keys(this)
+          .filter(key => typeof this[key] != 'function' && !['$root', '__int','fezName','oldRoot','root','props'].includes(key))
+          .reduce((newObj, key) => { newObj[key] = this[key]; return newObj;}, {});
+        console.error(`Fez stache template error in "${this.fezName}"`, error)
+        console.log(JSON.stringify(opts, null, 2))
+        console.log(text)
+      }
+    }
 
     // https://jsbin.com/semacow/1/edit?html,js,output
     // text = """
@@ -546,17 +558,6 @@ Fez.morphdom = (target, newNode, opts = {}) => {
 
   Morphdom(target, newNode, opts)
 }
-
-Fez.handlebars = Handlebars
-Fez.handlebars.registerHelper('attr', function(name) {
-  return this[0].getAttribute(name)
-})
-Fez.handlebars.registerHelper('eq', function(arg1, arg2, options) {
-  return (arg1 == arg2) ? options.fn(this) : options.inverse(this)
-})
-Fez.handlebars.registerHelper('unless', function(arg, options) {
-  return !arg ? options.fn(this) : options.inverse(this)
-})
 
 window.Fez = Fez
 window.FezBase = FezBase

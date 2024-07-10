@@ -1,0 +1,13 @@
+{
+  "name": "fez",
+  "version": "0.0.2",
+  "description": "Runtime custom dom elements",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "stache": "node test/stache.js"
+  },
+  "dependencies": {
+  }
+}
+
