@@ -4,7 +4,7 @@ import renderStache from './lib/stache'
 // morph dom from one state to another
 import Morphdom from './lib/morphdom'
 
-// inline scss
+// js runtime scss
 import Gobber from './lib/gobber'
 
 // Fez('foo-bar', class extends FezBase {
