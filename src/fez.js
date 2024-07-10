@@ -201,12 +201,7 @@ class FezBase {
       try {
         text = renderStache(text, this)
       } catch(error) {
-        const opts = Object.keys(this)
-          .filter(key => typeof this[key] != 'function' && !['$root', '__int','fezName','oldRoot','root','props'].includes(key))
-          .reduce((newObj, key) => { newObj[key] = this[key]; return newObj;}, {});
         console.error(`Fez stache template error in "${this.fezName}"`, error)
-        console.log(JSON.stringify(opts, null, 2))
-        console.log(text)
       }
     }
 
