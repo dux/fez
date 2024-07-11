@@ -501,5 +501,13 @@ Fez.morphdom = (target, newNode, opts = {}) => {
   Morphdom(target, newNode, opts)
 }
 
+Fez.htmlEscape = (text) => {
+  return text
+    .replaceAll("'", '&apos;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+}
+
 window.Fez = Fez
 window.FezBase = FezBase

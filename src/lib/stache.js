@@ -11,9 +11,33 @@ export default function renderStache(tpl, context) {
 
     let func = `
       let _strings = [], _sequence = [], _values = [];
+
+      function htmlEscape(text) {
+        if (typeof text === 'string') {
+          return text
+            .replaceAll("'", '&apos;')
+            .replaceAll('"', '&quot;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+        } else {
+          return text
+        }
+      }
+
       _sequence.push('${
         source.trim().replace(NEW_LINES_RE, '\\n').replace(TEMPLATE_RE, (all, code) => {
-          if (code.startsWith('each')) {
+          // {{#if -> {{#if
+          code = code.replace(/^[#:]/, '')
+
+          if (code.startsWith('each') || code.startsWith('for')) {
+            // support fro #for
+            const parts = code.split(/\s+/)
+            if (parts.shift() === 'for') {
+              const list = parts.pop()
+              parts.pop()
+              code = `each ${list} as ${parts.join(' ')}`
+            }
+
             let loop = EACH_RE.exec(code);
             if (loop) {
                 loop[1] = monkey(loop[1])
@@ -33,12 +57,21 @@ export default function renderStache(tpl, context) {
             }
           } else if (code === 'else') {
             return `');\n } else { _sequence.push('` // eslint-disable-line quotes
-          } else if (code === '/each') {
+          } else if (code === '/each' || code === '/for') {
             return `');\n }); _sequence.push('` // eslint-disable-line quotes
           } else if (code === '/if') {
             return `');\n } _sequence.push('` // eslint-disable-line quotes
           }
-          return `');\n _strings.push(_sequence.join(''));\n _sequence = [];\n _values.push(${monkey(code)});\n _sequence.push('`;
+
+          // support for @html -> {{@html raw}} -> same as in svelte
+          const codeParts = code.split(/^\@html\s+/)
+          if (codeParts[1]) {
+            code = monkey(codeParts[1])
+          } else {
+            code = `htmlEscape(${monkey(code)})`
+          }
+
+          return `');\n _strings.push(_sequence.join(''));\n _sequence = [];\n _values.push(${code});\n _sequence.push('`;
         })
       }');
       _strings.push(_sequence.join(''));
