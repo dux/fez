@@ -7,7 +7,7 @@
   "scripts": {
     "stache": "node test/stache.js"
   },
-  "dependencies": {
+  "devDependencies": {
+    "esbuild": "0.23.0"
   }
 }
-
