@@ -2,60 +2,13 @@
 import renderStache from './lib/stache'
 
 // morph dom from one state to another
-import Morphdom from './lib/morphdom'
+import { Idiomorph } from './lib/idiomorph'
 
 // runtime scss
 import Gobber from './lib/gobber'
 
 // HTML node builder
 import parseNode from './lib/n'
-
-// Fez('foo-bar', class extends FezBase {
-//   # set element style, set as property or method
-//   static style() { .. }
-//   static style = ```
-
-//   # set element node name, set as property or method, defaults to DIV
-//   static nodeName = 'span'
-//   static nodeName(node) { ... }
-
-//   connect() {
-//     # internal, get unique ID for a string, poor mans MD5
-//     const uid = this.klass.fnv1('some string')
-
-//     # copy attributes from attr hash to root node
-//     this.copy('href', 'onclick', 'style')
-
-//     # internal, check if node is attached
-//     this.isAttached()
-
-//     # copy all child nodes from source to target, without target returns tm node
-//     this.slot(someNode, tmpRoot)
-//     const tmpRoot = this.slot(self.root)
-
-//     # interval that runes only while node is attached
-//     this.setInterval(func, tick) { ... }
-
-//     # get closest form data as object
-//     this.formData()
-
-//     # get generated css class (uses gobber.js)
-//     const localCssClass = this.css(text)
-
-//     # render string via mustache and attaches html to root
-//     # to return rendered string only, use parse(text, context)
-//     this.html(`
-//       <ul>
-//         {{#list}}
-//           <li>
-//             <input type="text" onkeyup="$$.list[{{num}}].name = this.value" value="{{ name }}" class="i1" />
-//           </li>
-//         {{/list}}
-//       </ul>
-//       <span class="btn" onclick="$$.getData()">read</span>
-//     `)
-//   }
-// })
 
 class FezBase {
   static __objects = []
@@ -205,21 +158,7 @@ class FezBase {
       }
     }
 
-    // https://jsbin.com/semacow/1/edit?html,js,output
-    // text = """
-    //   <ul>
-    //     #{
-    //       if list[1]
-    //         "<li>exists</li>"
-    //     }
-    //     #{
-    //      for el, i in list
-    //        "<li>{el} - #{i}</li>"
-    //     }
-    //   </ul>
-    // """
-    // escape artefacts
-    text = text.replaceAll('>,<', "><").replace(/\s*undefined\s*/g, '')
+    // text = text.replaceAll('>,<', "><").replace(/\s*undefined\s*/g, '')
 
     return text
   }
@@ -230,6 +169,10 @@ class FezBase {
   // this.html('...loading')
   // this.html('.images', '...loading')
   html(target, body) {
+    if (!target) {
+      target = this.class.html
+    }
+
     if (typeof body == 'undefined') {
       body = target
       target = this.root
@@ -348,6 +291,10 @@ class FezBase {
 
   fezRegister() {
     if (this.class.css) {
+      if (typeof this.class.css == 'function') {
+        this.class.css = this.class.css(this)
+      }
+
       if (this.class.css.includes(':')) {
         this.class.css = Fez.css(this.class.css)
       }
@@ -424,13 +371,20 @@ const Fez = (name, klass) => {
       object.connect(object.props)
       klass.__objects.push(object)
 
+      if (klass.html) {
+        if (typeof klass.html == 'function') {
+          klass.html = klass.html(this)
+        }
+        object.html()
+      }
+
       if (object.onPropsChange) {
         observer.observe(newNode, {attributes:true})
       }
     }
   }
 
-  function fastBind(n) {
+  function checkFastBind(n) {
     return typeof klass.fastBind === 'function' ? klass.fastBind(n) : klass.fastBind
   }
 
@@ -448,7 +402,7 @@ const Fez = (name, klass) => {
       // in that case, we need to wait for another tick to get content
       // this solution looks like it is not efficient, because it slow renders fez components that do not have and are not intended to have body, but by testing this looks like it is not effecting render performance
       // if you want to force fast render, add static fastBind = true
-      if (this.firstChild || fastBind(this)) {
+      if (this.firstChild || checkFastBind(this)) {
         Fez.info(`fast bind: ${name}`)
         connect.bind(this)()
       } else {
@@ -498,7 +452,8 @@ Fez.morphdom = (target, newNode, opts = {}) => {
     opts.childrenOnly = true
   }
 
-  Morphdom(target, newNode, opts)
+  // Morphdom(target, newNode, opts)
+  Idiomorph.morph(target, newNode, { morphStyle: 'innerHTML'})
 }
 
 Fez.htmlEscape = (text) => {

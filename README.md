@@ -2,21 +2,25 @@
 
 # FEZ - Custom DOM Elements
 
-FEZ is a small opinionated library that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
+FEZ is a small library (17kb unziped) that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
 
-## Why opinionated?
+It uses
 
-Uses [goober](https://goober.js.org/) to parse scss and [mustache](http://github.com/janl/mustache.js) to render templates. Latest version of libs is baked in Fez distro.
+* [Goober](https://goober.js.org/) to enable runtime SCSS (similar to styled components)
+* [Stache](https://github.com/ryanmorr/stache) to render templates (similar/same to Svelte templates)
+* [Idiomorph](https://github.com/bigskysoftware/idiomorph) to morph DOM from one state to another (as React or Stimulus/Turbo does it)
+
+Latest version of libs are baked in Fez distro.
 
 It uses minimal abstraction. You will learn to use it in 3 minutes, just look at example, it includes all you need to know.
 
 ## Litte more details
 
-Basically, it is logical variant of [lit.js](https://lit.dev/) or [Rails Stimulus](https://stimulus.hotwired.dev/). FEZ uses native DOM instead of shadow DOM, has an easy-to-debug and "hack" interface, and tries to be as close to vanilla JS as possible. If you need TypeScript support, Shadow DOM, or a stronger community, use Lit.
+Basically, it is logical variant of [lit.js](https://lit.dev/) or [Rails Stimulus](https://stimulus.hotwired.dev/). FEZ uses native DOM instead of shadow DOM, has an easy-to-debug and "hack" interface. It also tries to be as close to vanilla JS as possible. If you need TypeScript support, Shadow DOM, or a stronger community, use Lit.
 
 It replaces modern JS frameworks by using native Autonomous Custom Elements to create new HTML tags. This has been supported for years in [all major browsers](https://caniuse.com/custom-elementsv1).
 
-This article, [Web Components Will Replace Your Frontend Framework](https://www.dannymoerkerke.com/blog/web-components-will-replace-your-frontend-framework/), is from 2019. Join the future, ditch React, Anguar and other never defined, allways "evolving" monstrositoes. Vanilla is the way.
+This article, [Web Components Will Replace Your Frontend Framework](https://www.dannymoerkerke.com/blog/web-components-will-replace-your-frontend-framework/), is from 2019. Join the future, ditch React, Angular and other never defined, always "evolving" monstrosities. Vanilla is the way :)
 
 ## How it works
 
@@ -28,18 +32,19 @@ That is all.
 
 ## What can it do?
 
-* It can create and define Custom HTML tags
-* it can style components using SCSS [goober](https://goober.js.org/).
-* it has all needed helper methods as scssToClass(), formData(), setInterval() that triggers only while node is connected, etc
-* it can fill slots and call local methods easily
+* It can create and define Custom HTML tags, libs main feature
+* it can style components using SCSS, using [goober](https://goober.js.org/).
+* it has fuw useful built in helper methods as formData(), setInterval() that triggers only while node is connected, etc
+* it has <slot /> support
 * It has garbage collector, just add tags to HTML and destroy as you which.
-* It supports CSS animations, but you have to add them yourself in css :). No beautifull support as once can find in Svelte.
+* It will close "HTML invalid" inline items before rendering `<fez-icon name="gear" />` -> `<fez-icon name="gear"></fez-icon>`
+* it has built in pub-sub, where only connected nodes will be able to publish and receive subs.
+* It morphs DOM on `this.html(...)`, same as `React`.
+* upon `connect()`, it will convert custom DOM nodes to plain HTML tags, for easy and accurate styling. Example: `<fez-btn href="/foo" title="Bar" />` -> `<a class="btn btn-empty" href="/foo">Bar</a>`
 
-## Wheat it does not do?
+## What it does not do?
 
-It has no build in routing. All else, you can easily do. Works great with any server side rendering or libs like [HTMLX](https://htmx.org/).
-
-It has no global store, but do you really need it?.
+* It has no build in routing. This is lib for building DOM components. Works great with any server side rendering or libs like [HTMLX](https://htmx.org/) or even React or Angular. Fez is great way to continue working on legacy JS apps that are too complicated to migrate. Just write new components in Fez.
 
 ## Why?
 
@@ -57,6 +62,7 @@ It great in combination with another wide ude JS libs, as jQuery, Zepto, undersc
 Fez.globalCss(`
   .some-class {
     color: red;
+    &.foo { ... }
     .foo { ... }
   }
   ...
@@ -64,14 +70,21 @@ Fez.globalCss(`
 
 Fez('foo-bar', class extends FezBase {
   // set element style, set as property or method
-  static style() { .. }
-  static style = ` scss string... `
+  static css() { .. }
+  static css = ` scss string... `
 
   // set element node name, set as property or method, defaults to DIV
+  // why? because Fez converts fez components to plain HTML
   static nodeName = 'span'
   static nodeName(node) { ... }
 
-  connect() {
+  // unless node has no innerHTML on initialization, bind will be set to slow (fastBind = false)
+  // if you are using components that to not use innerHTML and slots, enable fast bind (fastBind = true_
+  // <fez-icon name="gear" />
+  static fastBind = false
+  static fastBind(node) { ... }
+
+  connect(props) {
     // internal, get unique ID for a string, poor mans MD5
     const uid = this.klass.fnv1('some string')
 
@@ -85,25 +98,49 @@ Fez('foo-bar', class extends FezBase {
     this.slot(someNode, tmpRoot)
     const tmpRoot = this.slot(self.root)
 
-    // interval that runes only while node is attached
+    // clasic interval, that rune only while node is attached
     this.setInterval(func, tick) { ... }
 
-    // get closest form data as object
+    // get closest form data, as object
     this.formData()
 
     // get generated css class (uses gobber.js)
     const localCssClass = this.css(text)
 
-    // render string via mustache and attaches html to root
-    // to return rendered string only, use parse(text, context)
+    // mounted DOM node root
+    this.root
+
+    // mounted DOM node root wrapped in $, only if jQuery is available
+    this.$root
+
+    // node properties as Object
+    this.props
+
+    // gets single attribute or property
+    this.prop('onclick')
+
+    // shortcut for this.root.querySelector(selector)
+    this.find(selector)
+
+    // gets value for FORM fields or node innerHTML
+    this.val(selector)
+
+    // gets root childNodes. pass function to loop forEach on selection
+    this.childNodes(func)
+
+    // render template and attach result dom to root. uses Idiomorph for DOM morph
     this.html(`
-      <ul>
-        {{#list}}
-          <li>
-            <input type="text" onkeyup="$$.list[{{num}}].name = this.value" value="{{ name }}" class="i1" />
-          </li>
-        {{/list}}
-      </ul>
+      {{if @list}}
+        <ul>
+          {{#each this.list as name, index}} // runs in node scope
+          {{#each @list as name, index}}
+          {{#for name, i in @list} // you can use for loop
+            <li>
+              <input onkeyup="$$.list[{{ index }}].name = this.value" value="{{ name }}" /> // $$ will point to fez instance
+            </li>
+          {{/list}}
+        </ul>
+      {{/if}}
       <span class="btn" onclick="$$.getData()">read</span>
     `)
   }
@@ -168,18 +205,18 @@ Fez('ui-time', class extends window.FezBase {
 
   // update border color, with random color
   refresh() {
-    this.$root.css('border-color', this.getRandomColor())
+    $(this.root).css('border-color', this.getRandomColor())
   }
 
   connect() {
     // Fez(this) will return pointer to first root FEZ component.
     // If you want to target specific one by name, add it as second argument -> Fez(this, 'ui-time2')
-    this.html`
-      ${this.props.city}:
-      <span class="time">${new Date()}</span>
+    this.html(`
+      {{ @props.city }}:
+      <span class="time">{{ new Date() }}</span>
       &mdash;
       <button onclick="$$.refresh()">refresh</button>
-    `
+    `)
 
     // use FEZ internal setInterval, It is auto cleared when node is removed from DOM.
     this.setInterval(this.updateTime, 1000)
@@ -192,11 +229,11 @@ Fez('ui-time', class extends window.FezBase {
 ### when fez init runs
 
 * attaches HTML DOM  to`this.root`
-* jQuery wrapped root node will be available via `this.$root`
+* renames root node from original name to `static nodeName() // default DIV`
 * classes `fez` and `fez-ui-foo` will be aded to root.
 * adds pointer to instance object to `fez` property (`<div class="fez fez-ui-foo" onclick="console.log(this.fez)"`)
   * in parent nodes access it via `Fez(this)` with optional tag name `Fez(this, 'ui-foo')`. It will look for closest FEZ node.
-* creates object for node attributes, accessible via `this.props`. `<ui-foo name="Split">` -> `this.props.name`
+* creates object for node attributes, accessible via `this.props`. `<ui-foo name="Split">` -> `this.props.name == 'Split'`
 
 ### style()
 
@@ -209,29 +246,12 @@ Do not forget nesting is supported in CSS now, you do not need scss and similar 
 #### Examples
 
 ```js
+// adds global css
+Fez.globalCss(`...`)
+
 Fez('ui-foo', class extends window.FezBase {
-  static style = `color: blue;`
-
-  // or
-  static style() { return `color: blue;` }
-
-  // or use this if you want to inject global styles
-  static style = `<style>
-    html {
-      color: red;
-    }
-
-    .fez-ui-foo {
-      color: blue;
-
-      button {
-        font-size: 20px;
-        font-family: var(--button-font);
-      }
-    }
-  <style>`
-
-  // ...
+  // local css
+  static css = `color: blue;`
 }
 ```
 
@@ -272,6 +292,7 @@ Fez('ui-dialog', class extends FezBase {
   }
 
   connect() {
+    // makes dialog globally available
     window.Dialog = this
   }
 })
@@ -289,16 +310,6 @@ Fez('#main-dialog').close()
 * ### Fez.find(selectorOrNode, 'optional-tag-name')
 
 Finds first closest Fez node.
-
-* ### this.class.getAttributes(node)
-
-  Gets node attributes as object
-
-  ```js
-    connect() => {
-      const currentAttrs = this.class.getAttributes(this.root)
-    }
-  ```
 
 * ### this.class.css(text)
 
