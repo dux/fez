@@ -268,7 +268,7 @@ class FezBase {
 
     target.querySelectorAll('*[fez-this]').forEach((n)=>{
       let value = n.getAttribute('fez-this').replace(/[^\w\.\[\]]/, '')
-      eval(`this.${value} = n`)
+      this[value] = n
     })
 
     target.querySelectorAll('*[fez-use]').forEach((n)=>{

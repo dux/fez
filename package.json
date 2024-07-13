@@ -8,6 +8,9 @@
     "stache": "node test/stache.js"
   },
   "devDependencies": {
-    "esbuild": "0.23.0"
+    "coffeescript": "^2.7.0",
+    "esbuild": "0.23.0",
+    "esbuild-coffeescript": "^2.2.0",
+    "glob-cli": "^1.0.0"
   }
 }
