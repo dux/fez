@@ -384,7 +384,7 @@ const Fez = (name, klass) => {
     }
   }
 
-  function checkFastBind(n) {
+  function forceFastRender(n) {
     return typeof klass.fastBind === 'function' ? klass.fastBind(n) : klass.fastBind
   }
 
@@ -401,8 +401,8 @@ const Fez = (name, klass) => {
       // when we render nested fez components, and under Svelte, sometimes node innerHTML is empty, but it should not be
       // in that case, we need to wait for another tick to get content
       // this solution looks like it is not efficient, because it slow renders fez components that do not have and are not intended to have body, but by testing this looks like it is not effecting render performance
-      // if you want to force fast render, add static fastBind = true
-      if (this.firstChild || checkFastBind(this)) {
+      // if you want to force fast render, add static fastBind = true or check
+      if (this.firstChild || forceFastRender(this)) {
         Fez.info(`fast bind: ${name}`)
         connect.bind(this)()
       } else {

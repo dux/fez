@@ -79,9 +79,9 @@ Fez('foo-bar', class extends FezBase {
   static nodeName(node) { ... }
 
   // unless node has no innerHTML on initialization, bind will be set to slow (fastBind = false)
-  // if you are using components that to not use innerHTML and slots, enable fast bind (fastBind = true_
+  // if you are using components that to not use innerHTML and slots, enable fast bind (fastBind = true)
   // <fez-icon name="gear" />
-  static fastBind = false
+  static fastBind = true
   static fastBind(node) { ... }
 
   connect(props) {
