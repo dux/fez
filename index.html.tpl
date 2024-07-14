@@ -44,10 +44,13 @@
   <script>hljs.highlightAll();</script>
 </head>
 <body>
+  <img src="./demo/fez.webp" style="height: 128px; float: right; margin-bottom: -100px;" />
   <h1>
     Fez demo components
     &sdot;
     <a target="playground" href="https://jsitor.com/QoResUvMc">playground</a>
+    &sdot;
+    <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
   <%= fez('box') %>
@@ -56,6 +59,8 @@
   <%= fez('icon') %>
   <%= fez('pubsub') %>
   <%= fez('list') %>
+  <%= fez('tabs') %>
+  <%= fez('todo') %>
 </body>
 </html>
 

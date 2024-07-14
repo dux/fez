@@ -1,0 +1,29 @@
+Features alternative node builder and nested components
+
+<ui-tabs>
+  <div title="Foo">first tab</div>
+  <div title="Bar">
+    <p>second tab</p>
+
+    <br />
+
+    <ui-tabs>
+      <div title="Foo nested 2">first tab</div>
+      <div title="Bar">
+        <p>second tab</p>
+
+        <ui-tabs>
+          <div title="Foo nested 3">first tab</div>
+          <div title="Bar nested 3">
+            <p>second tab</p>
+          </div>
+        </ui-tabs>
+      </div>
+    </ui-tabs>
+  </div>
+  <div title="Baz">
+    <h4>image tab</h4>
+    <img src="./demo/fez.webp" />
+  </div>
+</ui-tabs>
+

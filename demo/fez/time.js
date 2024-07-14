@@ -32,6 +32,8 @@ Fez('ui-time', class extends FezBase {
       <br />
       <br />
       <button onclick="Fez(this).refresh()">refresh color</button>
+      &sdot;
+      <button onclick="$$.refresh()">refresh color alt</button>
     `)
   }
 })

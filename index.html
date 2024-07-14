@@ -13,10 +13,13 @@
   <script>hljs.highlightAll();</script>
 </head>
 <body>
+  <img src="./demo/fez.webp" style="height: 128px; float: right; margin-bottom: -100px;" />
   <h1>
     Fez demo components
     &sdot;
     <a target="playground" href="https://jsitor.com/QoResUvMc">playground</a>
+    &sdot;
+    <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
   
@@ -201,6 +204,8 @@ Fez('ui-time', class extends FezBase {
       &lt;br />
       &lt;br />
       &lt;button onclick="Fez(this).refresh()">refresh color&lt;/button>
+      &sdot;
+      &lt;button onclick="$$.refresh()">refresh color alt&lt;/button>
     `)
   }
 })
@@ -224,7 +229,10 @@ Fez('ui-time', class extends FezBase {
 
       <div class="flex">
         <div>
-<input type="range" min="24" max="100" value="24" class="slider" id="myRange" oninput="Fez('#blue-icon').setSize(this.value)" />
+<input
+  type="range" min="24" max="100" value="24" class="slider" id="myRange"
+  oninput="Fez('#blue-icon').setSize(this.value)"
+/>
 
 <br /><br />
 
@@ -276,7 +284,10 @@ Fez('ui-icon', class extends FezBase {
 </code></pre>
 
 <pre><code class="language-html">
-&lt;input type="range" min="24" max="100" value="24" class="slider" id="myRange" oninput="Fez('#blue-icon').setSize(this.value)" />
+&lt;input
+  type="range" min="24" max="100" value="24" class="slider" id="myRange"
+  oninput="Fez('#blue-icon').setSize(this.value)"
+/>
 
 &lt;br />&lt;br />
 
@@ -303,7 +314,10 @@ Fez('ui-icon', class extends FezBase {
 <button onclick="Fez.publish('ping', Math.random())">ping from anywhere</button>
 &sdot;
 Fast ping:
-<button onclick="clearInterval(window.fastPing); window.fastPing = setInterval(()=>Fez.publish('ping', Math.random()), 10);">START</button>
+<button onclick="
+  clearInterval(window.fastPing);
+  window.fastPing = setInterval(()=>Fez.publish('ping', Math.random()), 10);"
+>START</button>
 &sdot;
 <button onclick="clearInterval(window.fastPing)">END</button>
 
@@ -358,7 +372,10 @@ Fez('ui-pubsub', class extends FezBase {
 &lt;button onclick="Fez.publish('ping', Math.random())">ping from anywhere&lt;/button>
 &sdot;
 Fast ping:
-&lt;button onclick="clearInterval(window.fastPing); window.fastPing = setInterval(()=>Fez.publish('ping', Math.random()), 10);">START&lt;/button>
+&lt;button onclick="
+  clearInterval(window.fastPing);
+  window.fastPing = setInterval(()=>Fez.publish('ping', Math.random()), 10);"
+>START&lt;/button>
 &sdot;
 &lt;button onclick="clearInterval(window.fastPing)">END&lt;/button>
 
@@ -461,6 +478,232 @@ Fez('ui-list', class extends FezBase {
 <pre><code class="language-html">
 &lt;ui-list>red,green,blue&lt;/ui-list>
 &lt;ui-list>&lt;/ui-list>
+
+</code></pre>
+        </div>
+      </div>
+    
+  
+      <script src="./demo/fez/tabs.js"></script>
+      <h2>
+        ui-tabs
+        &sdot;
+        <small>Features alternative node builder and nested components</small>
+      </h2>
+
+      <div class="flex">
+        <div>
+<ui-tabs>
+  <div title="Foo">first tab</div>
+  <div title="Bar">
+    <p>second tab</p>
+
+    <br />
+
+    <ui-tabs>
+      <div title="Foo nested 2">first tab</div>
+      <div title="Bar">
+        <p>second tab</p>
+
+        <ui-tabs>
+          <div title="Foo nested 3">first tab</div>
+          <div title="Bar nested 3">
+            <p>second tab</p>
+          </div>
+        </ui-tabs>
+      </div>
+    </ui-tabs>
+  </div>
+  <div title="Baz">
+    <h4>image tab</h4>
+    <img src="./demo/fez.webp" />
+  </div>
+</ui-tabs>
+
+
+        </div>
+        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+Fez('ui-tabs', class extends FezBase {
+  static css = `
+    --tabs-border: 1px solid #ccc;
+
+    .header {
+      margin-bottom: -2px;
+      position: relative;
+      z-index: 1;
+
+      & > span {
+        border: var(--tabs-border);
+        padding: 8px 15px;
+        display: inline-block;
+        border-radius: 8px 8px 0 0;
+        margin-right: -1px;
+        background: #eee;
+        cursor: pointer;
+
+        &.active {
+          background-color: #fff;
+          border-bottom: none;
+        }
+      }
+    }
+
+    .body {
+      border: var(--tabs-border);
+      padding: 8px 15px;
+      background: #fff;
+
+      & > div {
+        display: none;
+
+        &.active {
+          display: block;
+        }
+      }
+    }
+  `;
+
+  activate(num) {
+    this.active = parseInt(num)
+    const target = this.$root.find(`> div > div.header > span.tab-title-${num}`)
+    target.parent().find('> *').removeClass('active')
+    target.addClass('active')
+    this.tabs[num].parent().find('> *').removeClass('active')
+    this.tabs[num].addClass('active')
+  }
+
+  connect(props) {
+    this.tabs = this.childNodes().map(n => $(n));
+
+    this.html([
+      this.n('div.header', this.tabs.map((tab, index) =>
+        this.n(`span.tab-title-${index}`, tab.attr('title'), { onclick: `$$.activate(${index})` })
+      )),
+      this.n('.body', '&lt;slot />')
+    ]);
+
+    this.activate(0)
+  }
+})
+
+
+</code></pre>
+
+<pre><code class="language-html">
+&lt;ui-tabs>
+  &lt;div title="Foo">first tab&lt;/div>
+  &lt;div title="Bar">
+    &lt;p>second tab&lt;/p>
+
+    &lt;br />
+
+    &lt;ui-tabs>
+      &lt;div title="Foo nested 2">first tab&lt;/div>
+      &lt;div title="Bar">
+        &lt;p>second tab&lt;/p>
+
+        &lt;ui-tabs>
+          &lt;div title="Foo nested 3">first tab&lt;/div>
+          &lt;div title="Bar nested 3">
+            &lt;p>second tab&lt;/p>
+          &lt;/div>
+        &lt;/ui-tabs>
+      &lt;/div>
+    &lt;/ui-tabs>
+  &lt;/div>
+  &lt;div title="Baz">
+    &lt;h4>image tab&lt;/h4>
+    &lt;img src="./demo/fez.webp" />
+  &lt;/div>
+&lt;/ui-tabs>
+
+
+</code></pre>
+        </div>
+      </div>
+    
+  
+      <script src="./demo/fez/todo.js"></script>
+      <h2>
+        ui-todo
+        &sdot;
+        <small>Todo app demo, <a href="https://todomvc.com/" target="mvc">ToDo MVC candidate</a> (<a href="https://github.com/tastejs/todomvc/tree/master/examples/react/src">React</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/vue/src">Vue</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/angular/src">Angular</a>)</small>
+      </h2>
+
+      <div class="flex">
+        <div>
+<ui-todo></ui-todo>
+
+        </div>
+        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+Fez('ui-todo', class extends FezBase {
+  static html = `
+    &lt;h3>Tasks&lt;/h3>
+    {{#if !@tasks[0]}}
+      &lt;p>No tasks found&lt;/p>
+    {{/if}}
+    {{#for task, index in @tasks}}
+      &lt;p>
+        &lt;input type="text" name="" value="{{ task.name }}" onkeyup="$$.setName({{ index }}, this.value)" />
+        &sdot;
+        &lt;input
+          type="checkbox"
+          name=""
+          {{ task.done ? 'checked=""' : '' }}
+          onclick="$$.toggleComplete({{ index }})"
+        />
+        &sdot;
+        &lt;button onclick="$$.removeTask({{ index }})">&times;&lt;/button>
+      &lt;/p>
+    {{/for}}
+    &lt;p>
+      &lt;button onclick="$$.addTask()">add task&lt;/button>
+      &sdot;
+      &lt;button onclick="$$.clearCompleted()">clear completed&lt;/button>
+    &lt;/p>
+    &lt;pre class="code">{{ JSON.stringify(this.tasks, null, 2) }}&lt;/pre>
+  `
+
+  toggleComplete(index) {
+    const task = this.tasks[index]
+    task.done = !task.done
+    this.html()
+  }
+
+  clearCompleted() {
+    this.tasks = this.tasks.filter((t) => !t.done)
+    this.html()
+  }
+
+  removeTask(index) {
+    this.tasks = this.tasks.filter((_, i) => i !== index);
+    this.html()
+  }
+
+  setName(index, name) {
+    this.tasks[index].name = name
+    this.html()
+  }
+
+  addTask() {
+    let name = prompt('Task name', 'some task')
+    this.tasks.push({name: name})
+    this.html()
+  }
+
+  connect() {
+    this.tasks = [
+      {name: 'First task'},
+      {name: 'Second task'},
+      {name: 'Third task', done: true },
+    ]
+  }
+})
+
+</code></pre>
+
+<pre><code class="language-html">
+&lt;ui-todo>&lt;/ui-todo>
 
 </code></pre>
         </div>
