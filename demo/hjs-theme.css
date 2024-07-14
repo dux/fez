@@ -1,0 +1,82 @@
+/* Cyberpunk Theme *//*
+:root {
+  --selection: rgba(255, 100, 200, 0.35);
+  --background: #242424;
+  --text: #ffffff;
+  --string: #67fca8;
+  --number: #44ead9;
+  --title: #9e4ee8;
+  --built_in: #ea5452;
+  --keyword: #bc368b;
+  --function: #e552ea;
+  --params: #508be5;
+  --comment: #7f7f7f;
+}*/
+
+/* Dark Orange Theme */
+:root {
+  --selection: rgba(224, 146, 58, 0.35);
+  --background: #242424;
+  --text: #ffffff;
+  --string: #67b26d;
+  --number: #e8a04e;
+  --title: #9e4ee8;
+  --built_in: #e25158;
+  --keyword: #e5b742;
+  --function: #e0923a;
+  --params: #508be5;
+  --comment: #7f7f7f;
+}
+
+pre code {
+  display: block;
+  overflow-x: auto;
+  padding: 1px 15px;
+  background: var(--background);
+  -webkit-text-size-adjust: none;
+  border-radius: 5px;
+  font-size: 14px;
+  line-height: 19px;
+}
+
+pre code *::selection,
+.hljs::selection {
+  background: var(--selection) !important;
+}
+
+.hljs {
+  color: var(--text);
+}
+
+.hljs-string {
+  color: var(--string);
+}
+
+.hljs-number {
+  color: var(--number) !important;
+}
+
+.hljs-title {
+  color: var(--title) !important;
+}
+
+.hljs-built_in {
+  color: var(--built_in) !important;
+}
+
+.hljs-keyword {
+  color: var(--keyword) !important;
+}
+
+.hljs-function > .hljs-keyword {
+  color: var(--function) !important;
+  font-style: italic;
+}
+
+.hljs-params {
+  color: var(--params);
+}
+
+.hljs-comment {
+  color: var(--comment);
+}

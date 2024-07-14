@@ -1,9 +1,15 @@
-Fez('ui-box', class extends window.FezBase {
+Fez.globalCss(`
+  .fez-ui-box {
+    border: 2px solid #aaa;
+  }
+`)
+
+Fez('ui-box', class extends FezBase {
  // demo for inline style
   static css = `
-    border: 2px solid #aaa;
     border-radius: 4px;
-    padding: 0 10px;
+    padding: 1px 20px;
+    margin-bottom: 20px;
     background-color: #eee;
 
     h3 {
@@ -14,7 +20,7 @@ Fez('ui-box', class extends window.FezBase {
   connect() {
     this.html(`
       <h3>${this.props.title || 'no title'}</h3>
-      <slot></slot>
+      <slot />
     `)
   }
 })

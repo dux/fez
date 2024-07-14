@@ -1,0 +1,11 @@
+Features component to component communication
+
+<input type="range" min="24" max="100" value="24" class="slider" id="myRange" oninput="Fez('#blue-icon').setSize(this.value)" />
+
+<br /><br />
+
+<ui-icon name="home"></ui-icon>
+<ui-icon name="settings" color="blue" onclick="alert(Fez(this).color)" id="blue-icon"></ui-icon>
+<ui-icon color="red">delete</ui-icon>
+
+

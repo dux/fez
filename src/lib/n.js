@@ -1,3 +1,6 @@
+// copyright @dux, 2024
+// Licence MIT
+
 export default function n(name, attrs = {}, data) {
   if (typeof attrs === 'string') {
     [attrs, data] = [data, attrs]

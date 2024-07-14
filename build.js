@@ -1,4 +1,4 @@
-// bun build.js w|d|b
+// bun build.js w|b
 // node build.js
 // npx esbuild src/fez.js --bundle > build/fez.js
 // npx esbuild src/fez.js --bundle --minify --target=es2015 > build/fez.min.js
@@ -20,11 +20,11 @@ const kind = process.argv[2]
 
 const opts = {
   entryPoints: ['./src/*'],
-  outdir: kind === 'd' ? './dist' : './public',
+  outdir: './dist',
   bundle: true,
   platform: 'browser',
   sourcemap: kind != 'd',
-  minify: kind === 'd',
+  minify: true,
   plugins: [coffeeScriptPlugin()],
 }
 
@@ -40,8 +40,10 @@ if (kind === 'w') {
     console.log('Watching...')
   }
   watch()
-} else if (['d', 'b'].includes(kind)) {
+} else if (kind === 'b') {
+  cliRun(`ruby -r erb -e 'puts ERB.new(File.read("./index.html.tpl")).result' > ./index.html`)
   await esbuild.build(opts)
+
 } else {
   console.error('ERROR: OPT w|b|d not selected')
 }

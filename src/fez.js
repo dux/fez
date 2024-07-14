@@ -69,7 +69,7 @@ class FezBase {
 
   // checks if node is attached and clears all if not
   get isAttached() {
-    if (this.root.parentNode) {
+    if (this.root?.parentNode) {
       return true
     } else {
       Object.keys(this.__int).forEach((key)=> {
@@ -289,6 +289,13 @@ class FezBase {
     }
   }
 
+  subscribe(channel, func) {
+    Fez._subs ||= {}
+    Fez._subs[channel] ||= []
+    Fez._subs[channel] = Fez._subs[channel].filter((el) => el[0].isAttached)
+    Fez._subs[channel].push([this, func])
+  }
+
   fezRegister() {
     if (this.class.css) {
       if (typeof this.class.css == 'function') {
@@ -462,6 +469,13 @@ Fez.htmlEscape = (text) => {
     .replaceAll('"', '&quot;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
+}
+
+Fez.publish = (channel, ...args) => {
+  Fez._subs[channel] ||= []
+  Fez._subs[channel].forEach((el) => {
+    el[1].bind(el[0])(...args)
+  })
 }
 
 window.Fez = Fez

@@ -1,4 +1,4 @@
-<img src="public/fez.webp" align="right" />
+<img src="demo/fez.webp" align="right" />
 
 # FEZ - Custom DOM Elements
 
@@ -142,8 +142,15 @@ Fez('foo-bar', class extends FezBase {
         </ul>
       {{/if}}
       <span class="btn" onclick="$$.getData()">read</span>
+
+      <h3>Svelte inspired</h3>
+      <span fez-this="data.foo">bind this node to this.data.foo</span>
+      <span fez-use="colorize">pass this node to this.colorize</span>
     `)
   }
+
+  // if you want to monitor new or changed node attributes
+  this.onPropsChange(name, value) { ... }
 })
 ```
 
@@ -417,6 +424,31 @@ Finds first closest Fez node.
   ```js
   const onClickFunction = this.prop('onclick')
   const idString = this.prop('id')
+  ```
+
+* ### this.onPropsChange(name, value)
+
+  If you want to monitor new or changed node attributes.
+
+  ```html
+    <fez-icon id="icon-1" name="gear" color="red" />
+  ```
+
+  ```js
+    Fez('fez-icon', class extends FezBase {
+      // ...
+
+      this.onPropsChange(name, value) {
+        if (name == 'color') {
+          this.setColor(value)
+        }
+      }
+    })
+
+    // same thing
+    document.getElementById('icon-1').setAttribute('color', 'red')
+    $('#icon-1').attr('color', 'red')
+    Fez('#icon-1').setColor('red')
   ```
 
 

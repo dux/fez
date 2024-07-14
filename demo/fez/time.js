@@ -1,10 +1,8 @@
-// no jQuery
-
 Fez('ui-time', class extends FezBase {
   static nodeName = 'div'
 
   static css = `
-    border: 5px solid green;
+    border: 10px solid green;
     border-radius: 10px;
     padding: 10px;
 
@@ -31,8 +29,9 @@ Fez('ui-time', class extends FezBase {
 
     this.html(`
       ${this.props.city}: <span class="time">${new Date()}</span>
-      &mdash;
-      <button onclick="Fez(this).refresh()">refresh</button>
+      <br />
+      <br />
+      <button onclick="Fez(this).refresh()">refresh color</button>
     `)
   }
 })

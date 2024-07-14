@@ -3,7 +3,7 @@ $(document.head).append(`
 `)
 
 // component to render google fonts icons
-Fez('ui-icon', class extends window.FezBase {
+Fez('ui-icon', class extends FezBase {
   // default node name is div
   static nodeName = 'span'
 
@@ -24,11 +24,13 @@ Fez('ui-icon', class extends window.FezBase {
   }
 
   connect(root, props) {
+    this.copy('onclick')
+
     const icon = this.props.name || this.root.innerHTML.trim()
     this.color = this.props.color || '#00'
 
-    root.addClass('material-symbols-outlined')
-    root.css('color', this.color)
-    root.html(icon)
+    this.$root.addClass('material-symbols-outlined')
+    this.$root.css('color', this.color)
+    this.html(icon)
   }
 })

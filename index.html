@@ -1,11 +1,471 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Test</title>
+  <link rel="stylesheet" href="./demo/main.css" />
+  <link rel="stylesheet" href="./demo/hjs-theme.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script src="./dist/fez.js"></script>
+  <script>hljs.highlightAll();</script>
 </head>
 <body>
-  Nice!
+  <h1>
+    Fez demo components
+    &sdot;
+    <a target="playground" href="https://jsitor.com/QoResUvMc">playground</a>
+  </h1>
+
+  
+      <script src="./demo/fez/box.js"></script>
+      <h2>
+        ui-box
+        &sdot;
+        <small>Features simple box with custom style, with global style.</small>
+      </h2>
+
+      <div class="flex">
+        <div>
+<ui-box title="Fez box">
+  <p>with body</p>
+</ui-box>
+
+<ui-box title="Fez box 2">
+  <p>with body 2</p>
+</ui-box>
+
+        </div>
+        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+Fez.globalCss(`
+  .fez-ui-box {
+    border: 2px solid #aaa;
+  }
+`)
+
+Fez('ui-box', class extends FezBase {
+ // demo for inline style
+  static css = `
+    border-radius: 4px;
+    padding: 1px 20px;
+    margin-bottom: 20px;
+    background-color: #eee;
+
+    h3 {
+      color: red;
+    }
+  `
+
+  connect() {
+    this.html(`
+      &lt;h3>${this.props.title || 'no title'}&lt;/h3>
+      &lt;slot />
+    `)
+  }
+})
+
+</code></pre>
+
+<pre><code class="language-html">
+&lt;ui-box title="Fez box">
+  &lt;p>with body&lt;/p>
+&lt;/ui-box>
+
+&lt;ui-box title="Fez box 2">
+  &lt;p>with body 2&lt;/p>
+&lt;/ui-box>
+
+</code></pre>
+        </div>
+      </div>
+    
+  
+      <script src="./demo/fez/form.js"></script>
+      <h2>
+        ui-form
+        &sdot;
+        <small>Features form helpers and custom dom node</small>
+      </h2>
+
+      <div class="flex">
+        <div>
+<ui-form target="/api">
+  <p>
+    <input type="text" name="name" value="Dux" />
+  </p>
+  <p>
+    <select name="num">
+      <option>one</option>
+      <option>two</option>
+      <option>three</option>
+    </select>
+  </p>
+  <p>
+    <button>Submit</button>
+  </p>
+</ui-form>
+
+        </div>
+        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+// render form
+Fez('ui-form', class extends FezBase {
+  static nodeName = 'form'
+
+  static css = `
+    border: 2px solid green;
+    border-radius: 5px;
+    padding: 15px;
+    margin: 15px 0;
+  `
+
+  submit(e) {
+    e.preventDefault()
+    alert(JSON.stringify(this.formData()))
+  }
+
+  connect() {
+    this.root.onsubmit = this.submit
+  }
+})
+
+</code></pre>
+
+<pre><code class="language-html">
+&lt;ui-form target="/api">
+  &lt;p>
+    &lt;input type="text" name="name" value="Dux" />
+  &lt;/p>
+  &lt;p>
+    &lt;select name="num">
+      &lt;option>one&lt;/option>
+      &lt;option>two&lt;/option>
+      &lt;option>three&lt;/option>
+    &lt;/select>
+  &lt;/p>
+  &lt;p>
+    &lt;button>Submit&lt;/button>
+  &lt;/p>
+&lt;/ui-form>
+
+</code></pre>
+        </div>
+      </div>
+    
+  
+      <script src="./demo/fez/time.js"></script>
+      <h2>
+        ui-time
+        &sdot;
+        <small>Features calling instance methods inside templates.</small>
+      </h2>
+
+      <div class="flex">
+        <div>
+<ui-time city="Zagreb"></ui-time>
+
+        </div>
+        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+Fez('ui-time', class extends FezBase {
+  static nodeName = 'div'
+
+  static css = `
+    border: 10px solid green;
+    border-radius: 10px;
+    padding: 10px;
+
+    button {
+      font-size: 16px;
+    }
+  `
+
+  getRandomColor() {
+    const colors = ['red', 'blue', 'green', 'teal', 'black', 'magenta']
+    return colors[Math.floor(Math.random() * colors.length)]
+  }
+
+  updateTime() {
+    this.val('.time', new Date())
+  }
+
+  refresh() {
+    this.root.style.borderColor = this.getRandomColor()
+  }
+
+  connect() {
+    this.setInterval(this.updateTime, 1000)
+
+    this.html(`
+      ${this.props.city}: &lt;span class="time">${new Date()}&lt;/span>
+      &lt;br />
+      &lt;br />
+      &lt;button onclick="Fez(this).refresh()">refresh color&lt;/button>
+    `)
+  }
+})
+
+</code></pre>
+
+<pre><code class="language-html">
+&lt;ui-time city="Zagreb">&lt;/ui-time>
+
+</code></pre>
+        </div>
+      </div>
+    
+  
+      <script src="./demo/fez/icon.js"></script>
+      <h2>
+        ui-icon
+        &sdot;
+        <small>Features component to component communication</small>
+      </h2>
+
+      <div class="flex">
+        <div>
+<input type="range" min="24" max="100" value="24" class="slider" id="myRange" oninput="Fez('#blue-icon').setSize(this.value)" />
+
+<br /><br />
+
+<ui-icon name="home"></ui-icon>
+<ui-icon name="settings" color="blue" onclick="alert(Fez(this).color)" id="blue-icon"></ui-icon>
+<ui-icon color="red">delete</ui-icon>
+
+
+
+        </div>
+        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+$(document.head).append(`
+  &lt;link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+`)
+
+// component to render google fonts icons
+Fez('ui-icon', class extends FezBase {
+  // default node name is div
+  static nodeName = 'span'
+
+  static style() {
+    return `
+      &.material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    `
+  }
+
+  setSize(size) {
+    this.$root.css('font-size', `${size}px`)
+  }
+
+  connect(root, props) {
+    this.copy('onclick')
+
+    const icon = this.props.name || this.root.innerHTML.trim()
+    this.color = this.props.color || '#00'
+
+    this.$root.addClass('material-symbols-outlined')
+    this.$root.css('color', this.color)
+    this.html(icon)
+  }
+})
+
+</code></pre>
+
+<pre><code class="language-html">
+&lt;input type="range" min="24" max="100" value="24" class="slider" id="myRange" oninput="Fez('#blue-icon').setSize(this.value)" />
+
+&lt;br />&lt;br />
+
+&lt;ui-icon name="home">&lt;/ui-icon>
+&lt;ui-icon name="settings" color="blue" onclick="alert(Fez(this).color)" id="blue-icon">&lt;/ui-icon>
+&lt;ui-icon color="red">delete&lt;/ui-icon>
+
+
+
+</code></pre>
+        </div>
+      </div>
+    
+  
+      <script src="./demo/fez/pubsub.js"></script>
+      <h2>
+        ui-pubsub
+        &sdot;
+        <small>Features publish &lt;> subscribe mechanism</small>
+      </h2>
+
+      <div class="flex">
+        <div>
+<button onclick="Fez.publish('ping', Math.random())">ping from anywhere</button>
+&sdot;
+Fast ping:
+<button onclick="clearInterval(window.fastPing); window.fastPing = setInterval(()=>Fez.publish('ping', Math.random()), 10);">START</button>
+&sdot;
+<button onclick="clearInterval(window.fastPing)">END</button>
+
+<ui-pubsub>
+  <h4>lisener 1</h4>
+  <p class="target"></p>
+</ui-pubsub>
+
+<ui-pubsub>
+  <h4>lisener 2</h4>
+  <b class="target"></b>
+</ui-pubsub>
+
+<ui-pubsub>
+  <h4>lisener 3</h4>
+  Foo: <span class="target"></span>
+</ui-pubsub>
+
+<template id="pubsub-t">
+  <ui-pubsub>
+    Dynamic:
+    <button onclick="Fez(this).$root.remove()">&times;</button>
+    &sdot;
+    <span class="target"></span>
+  </ui-pubsub>
+</template>
+
+<br />
+<button onclick="$(this).after($('#pubsub-t').html())">add listener</button>
+
+<script>
+setInterval(()=>Fez.publish('ping', Math.random()), 5000)
+</script>
+
+        </div>
+        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+Fez('ui-pubsub', class extends FezBase {
+  update (info) {
+    this.target.innerHTML = info
+  }
+
+  connect() {
+    this.target = this.find('.target')
+    this.subscribe('ping', this.update)
+    this.update('waiting for a ping...')
+  }
+})
+
+</code></pre>
+
+<pre><code class="language-html">
+&lt;button onclick="Fez.publish('ping', Math.random())">ping from anywhere&lt;/button>
+&sdot;
+Fast ping:
+&lt;button onclick="clearInterval(window.fastPing); window.fastPing = setInterval(()=>Fez.publish('ping', Math.random()), 10);">START&lt;/button>
+&sdot;
+&lt;button onclick="clearInterval(window.fastPing)">END&lt;/button>
+
+&lt;ui-pubsub>
+  &lt;h4>lisener 1&lt;/h4>
+  &lt;p class="target">&lt;/p>
+&lt;/ui-pubsub>
+
+&lt;ui-pubsub>
+  &lt;h4>lisener 2&lt;/h4>
+  &lt;b class="target">&lt;/b>
+&lt;/ui-pubsub>
+
+&lt;ui-pubsub>
+  &lt;h4>lisener 3&lt;/h4>
+  Foo: &lt;span class="target">&lt;/span>
+&lt;/ui-pubsub>
+
+&lt;template id="pubsub-t">
+  &lt;ui-pubsub>
+    Dynamic:
+    &lt;button onclick="Fez(this).$root.remove()">&times;&lt;/button>
+    &sdot;
+    &lt;span class="target">&lt;/span>
+  &lt;/ui-pubsub>
+&lt;/template>
+
+&lt;br />
+&lt;button onclick="$(this).after($('#pubsub-t').html())">add listener&lt;/button>
+
+&lt;script>
+setInterval(()=>Fez.publish('ping', Math.random()), 5000)
+&lt;/script>
+
+</code></pre>
+        </div>
+      </div>
+    
+  
+      <script src="./demo/fez/list.js"></script>
+      <h2>
+        ui-list
+        &sdot;
+        <small>Features list and object rendering</small>
+      </h2>
+
+      <div class="flex">
+        <div>
+<ui-list>red,green,blue</ui-list>
+<ui-list></ui-list>
+
+        </div>
+        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+// component to render google fonts icons
+Fez('ui-list', class extends FezBase {
+  static css = `
+    li {
+      font-weight: bold;
+    }
+  `
+
+  static html = `
+    {{#if @colors[0]}} @ will be replaced with this.
+      &lt;ul>
+        {{#for color in @colors}}
+          &lt;li style="color: {{ color }};">{{ color }}&lt;/li>
+        {{/for}}
+      &lt;/ul>
+    {{else}}
+      &lt;p>no colors, here is object&lt;/p>
+
+      &lt;h4>for loop, no index&lt;/h4>
+
+      {{#for [key, value] in this.objectData}}
+        &lt;p>{{ key }} : {{ value }}&lt;/p>
+      {{/for}}
+
+      &lt;h4>each loop, with index&lt;/h4>
+
+      {{#each this.objectData as [key, value], index }}
+        &lt;p>
+          {{ key }} : &lt;i>{{ value }}&lt;/i> : {{ index }}
+        &lt;/p>
+      {{/each}}
+    {{/if}}
+  `
+
+  connect() {
+    this.colors = this.root.innerHTML.trim().split(',')
+
+    this.objectData = {
+      foo: 'bar',
+      baz: 1234
+    }
+  }
+})
+
+</code></pre>
+
+<pre><code class="language-html">
+&lt;ui-list>red,green,blue&lt;/ui-list>
+&lt;ui-list>&lt;/ui-list>
+
+</code></pre>
+        </div>
+      </div>
+    
 </body>
 </html>
+
