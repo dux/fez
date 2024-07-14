@@ -463,4 +463,17 @@ Finds first closest Fez node.
     Fez('#icon-1').setColor('red')
   ```
 
+* ### this.reactiveStore({})
 
+  Creates reactive store that updates this.html() on change. You can pass another reactivity function.
+
+  Used in default TODO example.
+
+  ```js
+    this.reactiveStore({}, (o, k, v)=>{
+      window.requestAnimationFrame(()=>{
+        console.log(`key "${k}" changed to ${v}`)
+        this.html())
+      })
+    })
+  ```

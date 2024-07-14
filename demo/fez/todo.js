@@ -1,11 +1,12 @@
 Fez('ui-todo', class extends FezBase {
+  // if you define static html, it will be converted tu function(fast), and you will be able to refresh state with this.html()
   static html = `
     <h3>Tasks</h3>
-    {{#if !@tasks[0]}}
+    {{#if !@data.tasks[0]}}
       <p>No tasks found</p>
     {{/if}}
-    {{#for task, index in @tasks}}
-      {{#if task.animate}}
+    {{#for task, index in @data.tasks}}
+      {{#if task.animate}} <!-- this is fine because this is string templating -->
         <p fez-use="animate" style="display: none; height: 0px; opacity: 0;">
       {{else}}
         <p>
@@ -31,51 +32,66 @@ Fez('ui-todo', class extends FezBase {
       &sdot;
       <button onclick="$$.clearCompleted()">clear completed</button>
     </p>
-    <pre class="code">{{ JSON.stringify(this.tasks, null, 2) }}</pre>
+    <pre class="code">{{ JSON.stringify(this.data.tasks, null, 2) }}</pre>
   `
 
   toggleComplete(index) {
-    const task = this.tasks[index]
+    const task = this.data.tasks[index]
     task.done = !task.done
-    this.html()
   }
 
   clearCompleted() {
-    this.tasks = this.tasks.filter((t) => !t.done)
-    this.html()
+    this.data.tasks = this.data.tasks.filter((t) => !t.done)
   }
 
   removeTask(index) {
-    this.tasks = this.tasks.filter((_, i) => i !== index);
-    this.html()
+    this.data.tasks = this.data.tasks.filter((_, i) => i !== index);
   }
 
   setName(index, name) {
-    this.tasks[index].name = name
-    this.html() // refresh full component on every key stroke. done for render speed demo purposes
+    this.data.tasks[index].name = name
   }
 
   addTask() {
+    // no need to force update template, this is automatic because we are using reactiveStore()
     this.counter ||= 0
-    this.tasks.push({name: `new task ${++this.counter}`, done: false, animate: true})
-    this.html()
+    this.data.tasks.push({
+      name: `new task ${++this.counter}`,
+      done: false,
+      animate: true
+    })
   }
 
   animate(node) {
+    // same as in svelte, uf you define fez-use="methodName", method will be called when node is added to dom.
+    // in this case, we animate show new node
     $(node)
       .css('display', 'block')
       .animate({height: '33px', opacity: 1}, 200, () => {
-        delete this.tasks[this.tasks.length-1].animate
+        delete this.data.tasks[this.data.tasks.length-1].animate
         $(node).css('height', 'auto')
-        this.html()
       })
   }
 
   connect() {
-    this.tasks = [
+    // creates reactive store, that calls this.html() state refresh after every data set
+    // you can pass function as argument to change default reactive behaviour
+    this.data = this.reactiveStore({})
+
+    this.data.tasks = [
       {name: 'First task', done: false},
       {name: 'Second task', done: false},
       {name: 'Third task', done: true },
     ]
+
+    for (const i in [1,2,3,4,5]) {
+      this.data.i = i
+    }
+
+    window.requestAnimationFrame(()=>{
+      for (const i in [1,2,3,4,5]) {
+        this.data.i = i
+      }
+    })
   }
 })
