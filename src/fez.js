@@ -152,6 +152,7 @@ class FezBase {
 
     if (text.includes('{{')) {
       try {
+        // TODO: return template function pointer
         text = renderStache(text, this)
       } catch(error) {
         console.error(`Fez stache template error in "${this.fezName}"`, error)

@@ -6,7 +6,10 @@ Fez('ui-todo', class extends FezBase {
     {{/if}}
     {{#for task, index in @tasks}}
       <p>
-        <input type="text" name="" value="{{ task.name }}" onkeyup="$$.setName({{ index }}, this.value)" />
+        <input
+          type="text" name="" value="{{ task.name }}" onkeyup="$$.setName({{ index }}, this.value)"
+          style="{{ task.done ? 'background-color: #ccc;' : '' }}"
+        />
         &sdot;
         <input
           type="checkbox"
