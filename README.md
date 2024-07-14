@@ -14,7 +14,16 @@ Latest version of libs are baked in Fez distro.
 
 It uses minimal abstraction. You will learn to use it in 3 minutes, just look at example, it includes all you need to know.
 
-## Litte more details
+## How to install?
+
+Add `<script src="https://cdn.jsdelivr.net/gh/dux/fez-custom-dom-elements@latest/dist/fez.js"></script>`
+
+To start
+
+* define [Fez tag](https://dux.github.io/fez/)
+* add HTML. YOu can copy&paste from examples, must work.
+
+## Little more details
 
 Basically, it is logical variant of [lit.js](https://lit.dev/) or [Rails Stimulus](https://stimulus.hotwired.dev/). FEZ uses native DOM instead of shadow DOM, has an easy-to-debug and "hack" interface. It also tries to be as close to vanilla JS as possible. If you need TypeScript support, Shadow DOM, or a stronger community, use Lit.
 
