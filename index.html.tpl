@@ -37,7 +37,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Test</title>
-  <link rel="icon" href="./demo/fez.webp">
+  <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <link rel="stylesheet" href="./demo/hjs-theme.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
@@ -45,7 +45,7 @@
   <script>hljs.highlightAll();</script>
 </head>
 <body>
-  <img src="./demo/fez.webp" style="height: 128px; float: right; margin-bottom: -100px;" />
+  <img src="./demo/fez.png" style="height: 128px; float: right; margin-bottom: -100px;" />
   <h1>
     Fez demo components
     &sdot;

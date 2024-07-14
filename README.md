@@ -1,4 +1,4 @@
-<img src="demo/fez.webp" align="right" />
+<img src="demo/fez.png" align="right" />
 
 # FEZ - Custom DOM Elements
 
@@ -25,17 +25,20 @@ To start
 
 ## Little more details
 
-Basically, it is logical variant of [lit.js](https://lit.dev/) or [Rails Stimulus](https://stimulus.hotwired.dev/). FEZ uses native DOM instead of shadow DOM, has an easy-to-debug and "hack" interface. It also tries to be as close to vanilla JS as possible. If you need TypeScript support, Shadow DOM, or a stronger community, use Lit.
+It is great because it uses DOM as a source of truth anf tries to be as close to vanilla JS as possible.
 
 It replaces modern JS frameworks by using native Autonomous Custom Elements to create new HTML tags. This has been supported for years in [all major browsers](https://caniuse.com/custom-elementsv1).
 
 This article, [Web Components Will Replace Your Frontend Framework](https://www.dannymoerkerke.com/blog/web-components-will-replace-your-frontend-framework/), is from 2019. Join the future, ditch React, Angular and other never defined, always "evolving" monstrosities. Vanilla is the way :)
+
+There is no some "internal state" that is by some magic reflected to DOM. No! All methods Fez use to manupulate DOM are just helpers around native DOM interface. Work on DOM raw, use jQuery, use built in [node builder](https://github.com/dux/fez/blob/main/src/lib/n.js) or full template mapping with [morphing](https://github.com/bigskysoftware/idiomorph).
 
 ## How it works
 
 * define your custom component - `Fez('ui-foo', class UiFoo extends FezBase)`
 * add HTML - `<ui-foo bar="baz" id="node1"></ui-foo>`
   * lib will call `node1.fez.connect()` when node is added to DOM and connect your component to dom.
+  * use `Fez` helper methods, or do all by yourself, all good.
 
 That is all.
 

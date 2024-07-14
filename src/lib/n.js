@@ -1,3 +1,8 @@
+// Exposes node building method, that gets node name, attrs and body.
+// n('span', {id: id}), n('.foo', {id: id}, body), n('.foo', {id: id}, [...])
+// * you can switch places for attrs and body, and body can be list of nodes
+// * n('.foo.bar') -> n('div', { class: 'foo bar' })
+//
 // copyright @dux, 2024
 // Licence MIT
 
