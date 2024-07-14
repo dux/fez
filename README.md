@@ -1,4 +1,4 @@
-<img src="demo/fez.png" align="right" style="max-width: 110px; position: relative; z-index: 1;" />
+<img src="demo/fez.png" align="right" width="110" />
 
 # FEZ - Custom DOM Elements
 
