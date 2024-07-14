@@ -63,7 +63,7 @@ Fez('ui-todo', class extends FezBase {
   }
 
   animate(node) {
-    // same as in svelte, uf you define fez-use="methodName", method will be called when node is added to dom.
+    // same as in Svelte, uf you define fez-use="methodName", method will be called when node is added to dom.
     // in this case, we animate show new node
     $(node)
       .css('display', 'block')
@@ -74,7 +74,7 @@ Fez('ui-todo', class extends FezBase {
   }
 
   connect() {
-    // creates reactive store, that calls this.html() state refresh after every data set
+    // creates reactive store. calls this.html() to refresh state, after every data set
     // you can pass function as argument to change default reactive behaviour
     this.data = this.reactiveStore({})
 

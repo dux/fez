@@ -1,4 +1,4 @@
-<img src="demo/fez.png" align="right" />
+<img src="demo/fez.png" align="right" style="max-width: 110px; position: relative; z-index: 1;" />
 
 # FEZ - Custom DOM Elements
 
@@ -14,14 +14,11 @@ Latest version of libs are baked in Fez distro.
 
 It uses minimal abstraction. You will learn to use it in 3 minutes, just look at example, it includes all you need to know.
 
-## How to install?
+## How to install and test?
 
-Add `<script src="https://cdn.jsdelivr.net/gh/dux/fez-custom-dom-elements@latest/dist/fez.js"></script>`
-
-To start
-
-* define [Fez tag](https://dux.github.io/fez/)
-* add HTML. YOu can copy&paste from examples, must work.
+* Add `<script src="https://cdn.jsdelivr.net/gh/dux/fez-custom-dom-elements@latest/dist/fez.js"></script>` to header
+* define Fez tag JS, [copy from here](https://dux.github.io/fez/)
+* add HTML and hit refresh
 
 ## Little more details
 
