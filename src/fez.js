@@ -152,14 +152,12 @@ class FezBase {
 
     if (text.includes('{{')) {
       try {
-        // TODO: return template function pointer
-        text = renderStache(text, this)
+        const func = renderStache(text, this)
+        text = func()// .replace(/\n\s*\n/g, "\n")
       } catch(error) {
         console.error(`Fez stache template error in "${this.fezName}"`, error)
       }
     }
-
-    // text = text.replaceAll('>,<', "><").replace(/\s*undefined\s*/g, '')
 
     return text
   }
@@ -184,6 +182,12 @@ class FezBase {
     }
 
     const newNode = document.createElement('div')
+
+    if (typeof body === 'function') {
+      // this.class.html will be converted to function, and all sequential calls will use function call
+      // this feature is not available on this.html(...)
+      body = body()
+    }
 
     if (Array.isArray(body)) {
       if (body[0] instanceof Node) {
@@ -407,6 +411,7 @@ const Fez = (name, klass) => {
         if (typeof klass.html == 'function') {
           klass.html = klass.html(this)
         }
+        klass.html = renderStache(klass.html, object)
         object.html()
       }
 
