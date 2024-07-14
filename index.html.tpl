@@ -43,6 +43,38 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
   <script src="./dist/fez.js"></script>
   <script>hljs.highlightAll();</script>
+  <script>
+    function timeSince(date) {
+        const now = new Date();
+        const secondsPast = (now.getTime() - new Date(date).getTime()) / 1000;
+
+        if (secondsPast < 60) {
+            return `just now`;
+        }
+        if (secondsPast < 3600) { // less than 60 minutes
+            const minutes = Math.floor(secondsPast / 60);
+            return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+        }
+        if (secondsPast < 86400) { // less than 24 hours
+            const hours = Math.floor(secondsPast / 3600);
+            return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+        }
+        if (secondsPast < 2592000) { // less than 30 days
+            const days = Math.floor(secondsPast / 86400);
+            return `${days} day${days > 1 ? 's' : ''} ago`;
+        }
+        if (secondsPast < 31536000) { // less than 12 months
+            const months = Math.floor(secondsPast / 2592000);
+            return `${months} month${months > 1 ? 's' : ''} ago`;
+        }
+        const years = Math.floor(secondsPast / 31536000);
+        return `${years} year${years > 1 ? 's' : ''} ago`;
+    }
+
+    // Example usage:
+    const date = '2023-06-14T12:00:00Z'; // Replace with your date
+    console.log(timeSince(date));
+</script>
 </head>
 <body>
   <img src="./demo/fez.png" style="height: 128px; float: right; margin-bottom: -100px;" />
@@ -53,6 +85,8 @@
     &sdot;
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
+
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('<%= `git log -1 --format=%cd`.chomp %>'))</script>.
 
   <%= fez('todo') %>
   <%= fez('form') %>

@@ -83,15 +83,5 @@ Fez('ui-todo', class extends FezBase {
       {name: 'Second task', done: false},
       {name: 'Third task', done: true },
     ]
-
-    for (const i in [1,2,3,4,5]) {
-      this.data.i = i
-    }
-
-    window.requestAnimationFrame(()=>{
-      for (const i in [1,2,3,4,5]) {
-        this.data.i = i
-      }
-    })
   }
 })
