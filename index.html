@@ -24,62 +24,105 @@
   </h1>
 
   
-      <script src="./demo/fez/box.js"></script>
+      <script src="./demo/fez/todo.js"></script>
       <h2>
-        ui-box
+        ui-todo
         &sdot;
-        <small>Features simple box with custom style, with global style.</small>
+        <small>Todo app demo, <a href="https://todomvc.com/" target="mvc">ToDo MVC candidate</a> (<a href="https://github.com/tastejs/todomvc/tree/master/examples/react/src">React</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/vue/src">Vue</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/angular/src">Angular</a>)</small>
       </h2>
 
       <div class="flex">
         <div>
-<ui-box title="Fez box">
-  <p>with body</p>
-</ui-box>
-
-<ui-box title="Fez box 2">
-  <p>with body 2</p>
-</ui-box>
+<ui-todo></ui-todo>
 
         </div>
         <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
-Fez.globalCss(`
-  .fez-ui-box {
-    border: 2px solid #aaa;
-  }
-`)
-
-Fez('ui-box', class extends FezBase {
- // demo for inline style
-  static css = `
-    border-radius: 4px;
-    padding: 1px 20px;
-    margin-bottom: 20px;
-    background-color: #eee;
-
-    h3 {
-      color: red;
-    }
+Fez('ui-todo', class extends FezBase {
+  static html = `
+    &lt;h3>Tasks&lt;/h3>
+    {{#if !@tasks[0]}}
+      &lt;p>No tasks found&lt;/p>
+    {{/if}}
+    {{#for task, index in @tasks}}
+      {{#if task.animate}}
+        &lt;p fez-use="animate" style="display: none; height: 0px; opacity: 0;">
+      {{else}}
+        &lt;p>
+      {{/if}}
+        &lt;input
+          type="text" name="" value="{{ task.name }}"
+          onkeyup="$$.setName({{ index }}, this.value)"
+          style="{{ task.done ? 'background-color: #ccc;' : '' }}"
+        />
+        &sdot;
+        &lt;input
+          type="checkbox"
+          name=""
+          {{ task.done ? 'checked=""' : '' }}
+          onclick="$$.toggleComplete({{ index }})"
+        />
+        &sdot;
+        &lt;button onclick="$$.removeTask({{ index }})">&times;&lt;/button>
+      &lt;/p>
+    {{/for}}
+    &lt;p>
+      &lt;button onclick="$$.addTask()">add task&lt;/button>
+      &sdot;
+      &lt;button onclick="$$.clearCompleted()">clear completed&lt;/button>
+    &lt;/p>
+    &lt;pre class="code">{{ JSON.stringify(this.tasks, null, 2) }}&lt;/pre>
   `
 
+  toggleComplete(index) {
+    const task = this.tasks[index]
+    task.done = !task.done
+    this.html()
+  }
+
+  clearCompleted() {
+    this.tasks = this.tasks.filter((t) => !t.done)
+    this.html()
+  }
+
+  removeTask(index) {
+    this.tasks = this.tasks.filter((_, i) => i !== index);
+    this.html()
+  }
+
+  setName(index, name) {
+    this.tasks[index].name = name
+    this.html() // refresh full component on every key stroke. done for render speed demo purposes
+  }
+
+  addTask() {
+    this.counter ||= 0
+    this.tasks.push({name: `new task ${++this.counter}`, done: false, animate: true})
+    this.html()
+  }
+
+  animate(node) {
+    $(node)
+      .css('display', 'block')
+      .animate({height: '33px', opacity: 1}, 200, () => {
+        delete this.tasks[this.tasks.length-1].animate
+        $(node).css('height', 'auto')
+        this.html()
+      })
+  }
+
   connect() {
-    this.html(`
-      &lt;h3>${this.props.title || 'no title'}&lt;/h3>
-      &lt;slot />
-    `)
+    this.tasks = [
+      {name: 'First task', done: false},
+      {name: 'Second task', done: false},
+      {name: 'Third task', done: true },
+    ]
   }
 })
 
 </code></pre>
 
 <pre><code class="language-html">
-&lt;ui-box title="Fez box">
-  &lt;p>with body&lt;/p>
-&lt;/ui-box>
-
-&lt;ui-box title="Fez box 2">
-  &lt;p>with body 2&lt;/p>
-&lt;/ui-box>
+&lt;ui-todo>&lt;/ui-todo>
 
 </code></pre>
         </div>
@@ -90,7 +133,7 @@ Fez('ui-box', class extends FezBase {
       <h2>
         ui-form
         &sdot;
-        <small>Features form helpers and custom dom node</small>
+        <small>Features form helpers and custom dom node name (FORM)</small>
       </h2>
 
       <div class="flex">
@@ -564,13 +607,16 @@ Fez('ui-tabs', class extends FezBase {
     }
   `;
 
+  activateNode(node) {
+    node.parent().find('> *').removeClass('active')
+    node.addClass('active')
+  }
+
   activate(num) {
     this.active = parseInt(num)
     const target = this.$root.find(`> div > div.header > span.tab-title-${num}`)
-    target.parent().find('> *').removeClass('active')
-    target.addClass('active')
-    this.tabs[num].parent().find('> *').removeClass('active')
-    this.tabs[num].addClass('active')
+    this.activateNode(target)
+    this.activateNode(this.tabs[num])
   }
 
   connect(props) {
@@ -618,96 +664,6 @@ Fez('ui-tabs', class extends FezBase {
   &lt;/div>
 &lt;/ui-tabs>
 
-
-</code></pre>
-        </div>
-      </div>
-    
-  
-      <script src="./demo/fez/todo.js"></script>
-      <h2>
-        ui-todo
-        &sdot;
-        <small>Todo app demo, <a href="https://todomvc.com/" target="mvc">ToDo MVC candidate</a> (<a href="https://github.com/tastejs/todomvc/tree/master/examples/react/src">React</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/vue/src">Vue</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/angular/src">Angular</a>)</small>
-      </h2>
-
-      <div class="flex">
-        <div>
-<ui-todo></ui-todo>
-
-        </div>
-        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
-Fez('ui-todo', class extends FezBase {
-  static html = `
-    &lt;h3>Tasks&lt;/h3>
-    {{#if !@tasks[0]}}
-      &lt;p>No tasks found&lt;/p>
-    {{/if}}
-    {{#for task, index in @tasks}}
-      &lt;p>
-        &lt;input
-          type="text" name="" value="{{ task.name }}" onkeyup="$$.setName({{ index }}, this.value)"
-          style="{{ task.done ? 'background-color: #ccc;' : '' }}"
-        />
-        &sdot;
-        &lt;input
-          type="checkbox"
-          name=""
-          {{ task.done ? 'checked=""' : '' }}
-          onclick="$$.toggleComplete({{ index }})"
-        />
-        &sdot;
-        &lt;button onclick="$$.removeTask({{ index }})">&times;&lt;/button>
-      &lt;/p>
-    {{/for}}
-    &lt;p>
-      &lt;button onclick="$$.addTask()">add task&lt;/button>
-      &sdot;
-      &lt;button onclick="$$.clearCompleted()">clear completed&lt;/button>
-    &lt;/p>
-    &lt;pre class="code">{{ JSON.stringify(this.tasks, null, 2) }}&lt;/pre>
-  `
-
-  toggleComplete(index) {
-    const task = this.tasks[index]
-    task.done = !task.done
-    this.html()
-  }
-
-  clearCompleted() {
-    this.tasks = this.tasks.filter((t) => !t.done)
-    this.html()
-  }
-
-  removeTask(index) {
-    this.tasks = this.tasks.filter((_, i) => i !== index);
-    this.html()
-  }
-
-  setName(index, name) {
-    this.tasks[index].name = name
-    this.html()
-  }
-
-  addTask() {
-    let name = prompt('Task name', 'some task')
-    this.tasks.push({name: name})
-    this.html()
-  }
-
-  connect() {
-    this.tasks = [
-      {name: 'First task'},
-      {name: 'Second task'},
-      {name: 'Third task', done: true },
-    ]
-  }
-})
-
-</code></pre>
-
-<pre><code class="language-html">
-&lt;ui-todo>&lt;/ui-todo>
 
 </code></pre>
         </div>

@@ -77,6 +77,7 @@ export default function renderStache(tpl, context) {
       _strings.push(_sequence.join(''));
       return [_strings, _values];
     `
+
     // console.log(func)
     return new Function('_data', func);
   }
@@ -100,5 +101,6 @@ export default function renderStache(tpl, context) {
   }
 
   tpl = closeCustomTags(tpl)
-  return createTemplate(tpl)().replace(/\n\s*\n/g, "\n")
+  const out = createTemplate(tpl)().replace(/\n\s*\n/g, "\n")
+  return out
 }

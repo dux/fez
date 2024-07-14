@@ -210,14 +210,38 @@ class FezBase {
 
     Fez.morphdom(target, newNode)
 
-    target.querySelectorAll('*[fez-this]').forEach((n)=>{
-      let value = n.getAttribute('fez-this').replace(/[^\w\.\[\]]/, '')
+    const fetchAttr = (name, func) => {
+      target.querySelectorAll(`*[${name}]`).forEach((n)=>{
+        let value = n.getAttribute(name)
+        n.removeAttribute(name)
+        if (value) {
+          func.bind(this)(value, n)
+        }
+      })
+    }
+
+    fetchAttr('fez-this', (value, n) => {
       this[value] = n
     })
 
-    target.querySelectorAll('*[fez-use]').forEach((n)=>{
-      let value = n.getAttribute('fez-use')
-      this[value](n)
+    fetchAttr('fez-use', (value, n) => {
+      const target = this[value]
+      if (typeof target == 'function') {
+        target(n)
+      } else {
+        console.error(`Fez error: "${value}" is not a function in ${this.fezName}`)
+      }
+    })
+
+    fetchAttr('fez-class', (value) => {
+      let classes = value.split(/\s+/)
+      let lastClass = classes.pop()
+      classes.forEach((c)=> n.classList.add(c) )
+      if (lastClass) {
+        setTimeout(()=>{
+          n.classList.add(lastClass)
+        }, 1000)
+      }
     })
   }
 

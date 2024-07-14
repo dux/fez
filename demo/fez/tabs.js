@@ -38,13 +38,16 @@ Fez('ui-tabs', class extends FezBase {
     }
   `;
 
+  activateNode(node) {
+    node.parent().find('> *').removeClass('active')
+    node.addClass('active')
+  }
+
   activate(num) {
     this.active = parseInt(num)
     const target = this.$root.find(`> div > div.header > span.tab-title-${num}`)
-    target.parent().find('> *').removeClass('active')
-    target.addClass('active')
-    this.tabs[num].parent().find('> *').removeClass('active')
-    this.tabs[num].addClass('active')
+    this.activateNode(target)
+    this.activateNode(this.tabs[num])
   }
 
   connect(props) {

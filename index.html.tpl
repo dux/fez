@@ -54,14 +54,13 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <%= fez('box') %>
+  <%= fez('todo') %>
   <%= fez('form') %>
   <%= fez('time') %>
   <%= fez('icon') %>
   <%= fez('pubsub') %>
   <%= fez('list') %>
   <%= fez('tabs') %>
-  <%= fez('todo') %>
 </body>
 </html>
 
