@@ -14,21 +14,21 @@ Latest version of libs are baked in Fez distro.
 
 It uses minimal abstraction. You will learn to use it in 3 minutes, just look at example, it includes all you need to know.
 
-## How to install and test?
+## How to install
 
-* Add `<script src="https://cdn.jsdelivr.net/gh/dux/fez-custom-dom-elements@latest/dist/fez.js"></script>` to header
-* define Fez tag JS, [copy from here](https://dux.github.io/fez/)
-* add HTML and hit refresh
+`<script src="https://cdn.jsdelivr.net/gh/dux/fez-custom-dom-elements@latest/dist/fez.js"></script>`
 
 ## Little more details
 
-It is great because it uses DOM as a source of truth anf tries to be as close to vanilla JS as possible.
+Uses DOM as a source of truth anf tries to be as close to vanilla JS as possible. There is nothing to learn or "fight", or overload or "monkey patch" or anything. It just works.
 
 It replaces modern JS frameworks by using native Autonomous Custom Elements to create new HTML tags. This has been supported for years in [all major browsers](https://caniuse.com/custom-elementsv1).
 
 This article, [Web Components Will Replace Your Frontend Framework](https://www.dannymoerkerke.com/blog/web-components-will-replace-your-frontend-framework/), is from 2019. Join the future, ditch React, Angular and other never defined, always "evolving" monstrosities. Vanilla is the way :)
 
 There is no some "internal state" that is by some magic reflected to DOM. No! All methods Fez use to manupulate DOM are just helpers around native DOM interface. Work on DOM raw, use jQuery, use built in [node builder](https://github.com/dux/fez/blob/main/src/lib/n.js) or full template mapping with [morphing](https://github.com/bigskysoftware/idiomorph).
+
+It great in combination with another widely used JS libs, as jQuery, Zepto, underscore of loDash.
 
 ## How it works
 
@@ -49,9 +49,9 @@ That is all.
 * There is no magic as Svelte runes, React hooks, states and whatever. Plain vanilla JS classes with "few" documented functions.
 * it can style components using SCSS, using [goober](https://goober.js.org/).
 * it has few useful built in helper methods as formData(), setInterval() that triggers only while node is connected, etc
-* it has &lt;slot /&gt; support
+* it has `<slot />` support
 * It has garbage collector, just add tags to HTML and destroy DOM nodes as you whish.
-* It will close "HTML invalid" inline items before rendering `&lt;fez-icon name="gear" />` -> `&lt;fez-icon name="gear"></fez-icon>`
+* It will close "HTML invalid" inline items before rendering `<fez-icon name="gear" />` -> `<fez-icon name="gear"></fez-icon>`
 * it has built in publish-subscribe, where only connected nodes will be able to publish and receive subs.
 * It morphs DOM, state is preserved on changes.
 * It can have full state &lt;> template sync using `reactiveStore()`
@@ -60,19 +60,10 @@ That is all.
 
 * It has no build in routing. This is lib for building DOM components. Works great with any server side rendering or libs like [HTMLX](https://htmx.org/) or even React or Angular. Fez is great way to continue working on legacy JS apps that are too complicated to migrate. Just write new components in Fez.
 
-## Why?
-
-Because it is plain DOM + HTML. There is no framework, as React, Svelte, Vue, Angualr etc.
-There is nothing to learn or "fight", or overload or "monkey patch" or anything. It just works.
-
-There is on drawback too. If it works in Vannila JS, it will work here to.
-
-It great in combination with another wide ude JS libs, as jQuery, Zepto, underscore of loDash.
-
 ## Full available interface
 
 ```js
-// add global css
+// add global scss
 Fez.globalCss(`
   .some-class {
     color: red;
@@ -82,9 +73,10 @@ Fez.globalCss(`
   ...
 `)
 
+// define custom DOM node name -> <foo-bar>...
 Fez('foo-bar', class extends FezBase {
   // set element node name, set as property or method, defaults to DIV
-  // why? because Fez converts fez components to plain HTML
+  // why? because Fez renames custom dom nodes to regular HTML nodes
   static nodeName = 'span'
   static nodeName(node) { ... }
 
@@ -182,15 +174,17 @@ Fez('foo-bar', class extends FezBase {
       <span fez-use="colorize">pass this node to this.colorize</span>
     `)
   }
+  // you can render to another root too
+  this.html(this.find('.body'), someHtmlTemplate)
 
   // if you want to monitor new or changed node attributes
   this.onPropsChange(name, value) { ... }
 })
 ```
 
-## Examples
+## Examples / playground
 
-All examples are avaliable on [jsitor](https://jsitor.com/QoResUvMc).
+Examples are avaliable on [jsitor](https://jsitor.com/QoResUvMc).
 
 ## More in detail
 
