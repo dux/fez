@@ -82,20 +82,33 @@ Fez.globalCss(`
 `)
 
 Fez('foo-bar', class extends FezBase {
-  // set element style, set as property or method
-  static css() { .. }
-  static css = ` scss string... `
-
   // set element node name, set as property or method, defaults to DIV
   // why? because Fez converts fez components to plain HTML
   static nodeName = 'span'
   static nodeName(node) { ... }
+
+  // set element style, set as property or method
+  static css = ` scss string... `
+  static css(`
+    border: 5px solid green;
+    border-radius: 10px;
+    padding: 10px;
+    font-family: var(--font-family);
+
+    button {
+      font-size: 16px;
+    }
+  `)
 
   // unless node has no innerHTML on initialization, bind will be set to slow (fastBind = false)
   // if you are using components that to not use innerHTML and slots, enable fast bind (fastBind = true)
   // <fez-icon name="gear" />
   static fastBind = true
   static fastBind(node) { ... }
+
+  // define static HTML. calling `this.html()` (no arguments) will refresh current node.
+  // if you pair it with `reactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
+  static html = `...`
 
   connect(props) {
     // internal, get unique ID for a string, poor mans MD5
@@ -141,6 +154,13 @@ Fez('foo-bar', class extends FezBase {
     // gets root childNodes. pass function to loop forEach on selection
     this.childNodes(func)
 
+    // you can publish globaly, and subscribe localy
+    Fez.publish('channel', foo)
+    this.subscribe('channel', (foo) => { ... })
+
+    // on every "this.data" props change, auto update view.
+    this.data = this.reactiveStore()
+
     // render template and attach result dom to root. uses Idiomorph for DOM morph
     this.html(`
       {{if @list}}
@@ -171,79 +191,6 @@ Fez('foo-bar', class extends FezBase {
 
 All examples are avaliable on [jsitor](https://jsitor.com/QoResUvMc).
 
-### Show time ticker and change border color on refresh
-
-This component explains all basic concepts.
-
-If you understand how this works, you know FEZ. I am sorry it is this simple.
-
-* you add custom dom nodes as simple HTML tags. You can pass args too.
-* you can set your desired node name via `nodeName` static method, defaults to `div`.
-* you can define custom style with modern features.
-* when tag (node) is added to HTML DOM
-  * `Fez` component is created and `connect()` is called
-  * `this.setInterval(...)` loops only if node is attached to doom.
-    Clears itself once node is detached from DOM.
-  * this is all, now you are free to do whatever you want.
-
-###### HTML
-```html
-<ui-time city="Zagreb"></ui-time>
-```
-
-###### JS
-```js
-Fez('ui-time', class extends window.FezBase {
-  // default node name is DIV, fell free to change.
-  // Why native node name, in this case "<ui-time" is not used is explained in FAQ.
-  static nodeName = 'div'
-
-  // when element is used for the first, global element style will be injected in document head
-  // style will nave id="fez-style-ui-time"
-  static css(`
-    border: 5px solid green;
-    border-radius: 10px;
-    padding: 10px;
-    font-family: var(--font-family);
-
-    button {
-      font-size: 16px;
-    }
-  `)
-
-  // plain JS function to get random color
-  getRandomColor() {
-    const colors = ['red', 'blue', 'green', 'teal', 'black', 'magenta']
-    return colors[Math.floor(Math.random() * colors.length)]
-  }
-
-  updateTime() {
-    // this.$root will return jQuery root. shortcut for $(this.root)
-    // without jQuery: this.root.querySelector('.time').innerHTML = new Date()
-    this.$root.find('.time').html(new Date())
-  }
-
-  // update border color, with random color
-  refresh() {
-    $(this.root).css('border-color', this.getRandomColor())
-  }
-
-  connect() {
-    // Fez(this) will return pointer to first root FEZ component.
-    // If you want to target specific one by name, add it as second argument -> Fez(this, 'ui-time2')
-    this.html(`
-      {{ @props.city }}:
-      <span class="time">{{ new Date() }}</span>
-      &mdash;
-      <button onclick="$$.refresh()">refresh</button>
-    `)
-
-    // use FEZ internal setInterval, It is auto cleared when node is removed from DOM.
-    this.setInterval(this.updateTime, 1000)
-  }
-})
-```
-
 ## More in detail
 
 ### when fez init runs
@@ -255,39 +202,9 @@ Fez('ui-time', class extends window.FezBase {
   * in parent nodes access it via `Fez(this)` with optional tag name `Fez(this, 'ui-foo')`. It will look for closest FEZ node.
 * creates object for node attributes, accessible via `this.props`. `<ui-foo name="Split">` -> `this.props.name == 'Split'`
 
-### style()
+### css()
 
-* You can define it as string or a method.
-* If you omit style tag, css will be wrapped in component.
-* if you define style tag, only ID will be added and content will be copied "as it is"
-
-Do not forget nesting is supported in CSS now, you do not need scss and similar pre-processors.
-
-#### Examples
-
-```js
-// adds global css
-Fez.globalCss(`...`)
-
-Fez('ui-foo', class extends window.FezBase {
-  // local css
-  static css = `color: blue;`
-}
-```
-
-###### produces
-```html
-<html>
-  <head>
-    <style id="fez-style-ui-foo">
-    .fez-ui-foo {
-      color: blue;
-    }
-    </style>
-    ...
-  <head>
-  ...
-```
+You can add global or local styles.
 
 ### forms
 

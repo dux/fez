@@ -349,6 +349,8 @@ class FezBase {
   }
 
   reactiveStore(obj, handler) {
+    obj ||= {}
+
     handler ||= (o, k, v) => {
       window.requestAnimationFrame(()=>{
         Fez.info('reactive render')
