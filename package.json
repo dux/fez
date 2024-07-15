@@ -7,7 +7,10 @@
   "scripts": {
     "stache": "node test/stache.js",
     "pages": "ruby -r erb -e 'puts ERB.new(File.read(\"./index.html.tpl\")).result' > ./index.html",
-    "dev": "bun run pages; open index.html; bun build.js w"
+    "build": "bun build.js d",
+    "dev": "bun run pages; open index.html; bun build.js w",
+    "sdev": "bun run pages; bun build.js b",
+    "xdev": "find . | grep -v '.git' | grep -v 'node_modules' | entr -c bun run sdev"
   },
   "devDependencies": {
     "coffeescript": "^2.7.0",

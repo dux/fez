@@ -9,9 +9,14 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <link rel="stylesheet" href="./demo/hjs-theme.css" />
+  <link rel="stylesheet" href="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.js"></script>
   <script src="./dist/fez.js"></script>
-  <script>hljs.highlightAll();</script>
+  <script>
+    hljs.highlightAll();
+    hljs.addPlugin(new CopyButtonPlugin());
+  </script>
   <script>
     function timeSince(date) {
         const now = new Date();
@@ -51,22 +56,25 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Mon Jul 15 12:41:26 2024 +0200'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Mon Jul 15 15:11:48 2024 +0200'))</script>.
 
   
       <script src="./demo/fez/todo.js"></script>
       <h2>
         ui-todo
         &sdot;
-        <small>Todo app demo, features reactiveStore, fez-use, runtime scss. <a href="https://todomvc.com/" target="mvc">ToDo MVC candidate</a> (<a href="https://github.com/tastejs/todomvc/tree/master/examples/react/src">React</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/vue/src">Vue</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/angular/src">Angular</a>)</small>
+        <small>Todo app demo, features reactiveStore, fez-use &sdot; <a href="https://todomvc.com/" target="mvc">ToDo MVC candidate</a> (<a href="https://github.com/tastejs/todomvc/tree/master/examples/react/src">React</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/vue/src">Vue</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/angular/src">Angular</a>)</small>
       </h2>
 
       <div class="flex">
-        <div>
-<ui-todo></ui-todo>
+        <div class="body">
+           <ui-todo></ui-todo>
 
         </div>
-        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+        <div>
+          <div class="relative">
+            <pre>
+              <code class="language-javascript" id="fez-todo-js">
 Fez('ui-todo', class extends FezBase {
   // if you define static html, it will be converted tu function(fast), and you will be able to refresh state with this.html()
   static html = `
@@ -81,14 +89,14 @@ Fez('ui-todo', class extends FezBase {
         &lt;p>
       {{/if}}
         &lt;input
-          type="text" name="" value="{{ task.name }}"
+          type="text"
+          value="{{ task.name }}"
           onkeyup="$$.setName({{ index }}, this.value)"
           style="{{ task.done ? 'background-color: #ccc;' : '' }}"
         />
         &sdot;
         &lt;input
           type="checkbox"
-          name=""
           {{ task.done ? 'checked=""' : '' }}
           onclick="$$.toggleComplete({{ index }})"
         />
@@ -155,12 +163,18 @@ Fez('ui-todo', class extends FezBase {
   }
 })
 
-</code></pre>
+              </code>
+            </pre>
+          </div>
 
-<pre><code class="language-html">
+          <div class="relative">
+            <pre>
+              <code class="language-html" id="fez-todo-html">
 &lt;ui-todo>&lt;/ui-todo>
 
-</code></pre>
+</code>
+            <pre>
+          </div>
         </div>
       </div>
     
@@ -173,8 +187,8 @@ Fez('ui-todo', class extends FezBase {
       </h2>
 
       <div class="flex">
-        <div>
-<ui-form target="/api">
+        <div class="body">
+           <ui-form target="/api">
   <p>
     <input type="text" name="name" value="Dux" />
   </p>
@@ -191,7 +205,10 @@ Fez('ui-todo', class extends FezBase {
 </ui-form>
 
         </div>
-        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+        <div>
+          <div class="relative">
+            <pre>
+              <code class="language-javascript" id="fez-form-js">
 // render form
 Fez('ui-form', class extends FezBase {
   static nodeName = 'form'
@@ -213,9 +230,13 @@ Fez('ui-form', class extends FezBase {
   }
 })
 
-</code></pre>
+              </code>
+            </pre>
+          </div>
 
-<pre><code class="language-html">
+          <div class="relative">
+            <pre>
+              <code class="language-html" id="fez-form-html">
 &lt;ui-form target="/api">
   &lt;p>
     &lt;input type="text" name="name" value="Dux" />
@@ -232,7 +253,9 @@ Fez('ui-form', class extends FezBase {
   &lt;/p>
 &lt;/ui-form>
 
-</code></pre>
+</code>
+            <pre>
+          </div>
         </div>
       </div>
     
@@ -245,11 +268,14 @@ Fez('ui-form', class extends FezBase {
       </h2>
 
       <div class="flex">
-        <div>
-<ui-time city="Zagreb"></ui-time>
+        <div class="body">
+           <ui-time city="Zagreb"></ui-time>
 
         </div>
-        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+        <div>
+          <div class="relative">
+            <pre>
+              <code class="language-javascript" id="fez-time-js">
 Fez('ui-time', class extends FezBase {
   static nodeName = 'div'
 
@@ -290,12 +316,18 @@ Fez('ui-time', class extends FezBase {
   }
 })
 
-</code></pre>
+              </code>
+            </pre>
+          </div>
 
-<pre><code class="language-html">
+          <div class="relative">
+            <pre>
+              <code class="language-html" id="fez-time-html">
 &lt;ui-time city="Zagreb">&lt;/ui-time>
 
-</code></pre>
+</code>
+            <pre>
+          </div>
         </div>
       </div>
     
@@ -308,8 +340,8 @@ Fez('ui-time', class extends FezBase {
       </h2>
 
       <div class="flex">
-        <div>
-<input
+        <div class="body">
+           <input
   type="range" min="24" max="100" value="24" class="slider" id="myRange"
   oninput="Fez('#blue-icon').setSize(this.value)"
 />
@@ -323,7 +355,10 @@ Fez('ui-time', class extends FezBase {
 
 
         </div>
-        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+        <div>
+          <div class="relative">
+            <pre>
+              <code class="language-javascript" id="fez-icon-js">
 $(document.head).append(`
   &lt;link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 `)
@@ -361,9 +396,13 @@ Fez('ui-icon', class extends FezBase {
   }
 })
 
-</code></pre>
+              </code>
+            </pre>
+          </div>
 
-<pre><code class="language-html">
+          <div class="relative">
+            <pre>
+              <code class="language-html" id="fez-icon-html">
 &lt;input
   type="range" min="24" max="100" value="24" class="slider" id="myRange"
   oninput="Fez('#blue-icon').setSize(this.value)"
@@ -377,7 +416,9 @@ Fez('ui-icon', class extends FezBase {
 
 
 
-</code></pre>
+</code>
+            <pre>
+          </div>
         </div>
       </div>
     
@@ -390,8 +431,8 @@ Fez('ui-icon', class extends FezBase {
       </h2>
 
       <div class="flex">
-        <div>
-<button onclick="Fez.publish('ping', Math.random())">ping from anywhere</button>
+        <div class="body">
+           <button onclick="Fez.publish('ping', Math.random())">ping from anywhere</button>
 &sdot;
 Fast ping:
 <button onclick="
@@ -433,7 +474,10 @@ setInterval(()=>Fez.publish('ping', Math.random()), 5000)
 </script>
 
         </div>
-        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+        <div>
+          <div class="relative">
+            <pre>
+              <code class="language-javascript" id="fez-pubsub-js">
 Fez('ui-pubsub', class extends FezBase {
   update (info) {
     this.target.innerHTML = info
@@ -446,9 +490,13 @@ Fez('ui-pubsub', class extends FezBase {
   }
 })
 
-</code></pre>
+              </code>
+            </pre>
+          </div>
 
-<pre><code class="language-html">
+          <div class="relative">
+            <pre>
+              <code class="language-html" id="fez-pubsub-html">
 &lt;button onclick="Fez.publish('ping', Math.random())">ping from anywhere&lt;/button>
 &sdot;
 Fast ping:
@@ -490,7 +538,9 @@ Fast ping:
 setInterval(()=>Fez.publish('ping', Math.random()), 5000)
 &lt;/script>
 
-</code></pre>
+</code>
+            <pre>
+          </div>
         </div>
       </div>
     
@@ -503,13 +553,16 @@ setInterval(()=>Fez.publish('ping', Math.random()), 5000)
       </h2>
 
       <div class="flex">
-        <div>
-<ui-list>red,green,blue</ui-list>
+        <div class="body">
+           <ui-list>red,green,blue</ui-list>
 <hr />
 <ui-list></ui-list>
 
         </div>
-        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+        <div>
+          <div class="relative">
+            <pre>
+              <code class="language-javascript" id="fez-list-js">
 // component to render google fonts icons
 Fez('ui-list', class extends FezBase {
   static css = `
@@ -554,14 +607,20 @@ Fez('ui-list', class extends FezBase {
   }
 })
 
-</code></pre>
+              </code>
+            </pre>
+          </div>
 
-<pre><code class="language-html">
+          <div class="relative">
+            <pre>
+              <code class="language-html" id="fez-list-html">
 &lt;ui-list>red,green,blue&lt;/ui-list>
 &lt;hr />
 &lt;ui-list>&lt;/ui-list>
 
-</code></pre>
+</code>
+            <pre>
+          </div>
         </div>
       </div>
     
@@ -574,8 +633,8 @@ Fez('ui-list', class extends FezBase {
       </h2>
 
       <div class="flex">
-        <div>
-<ui-tabs>
+        <div class="body">
+           <ui-tabs>
   <div title="Foo">first tab</div>
   <div title="Bar">
     <p>second tab</p>
@@ -604,7 +663,10 @@ Fez('ui-list', class extends FezBase {
 
 
         </div>
-        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+        <div>
+          <div class="relative">
+            <pre>
+              <code class="language-javascript" id="fez-tabs-js">
 Fez('ui-tabs', class extends FezBase {
   static css = `
     --tabs-border: 1px solid #ccc;
@@ -672,9 +734,13 @@ Fez('ui-tabs', class extends FezBase {
 })
 
 
-</code></pre>
+              </code>
+            </pre>
+          </div>
 
-<pre><code class="language-html">
+          <div class="relative">
+            <pre>
+              <code class="language-html" id="fez-tabs-html">
 &lt;ui-tabs>
   &lt;div title="Foo">first tab&lt;/div>
   &lt;div title="Bar">
@@ -703,7 +769,9 @@ Fez('ui-tabs', class extends FezBase {
 &lt;/ui-tabs>
 
 
-</code></pre>
+</code>
+            <pre>
+          </div>
         </div>
       </div>
     

@@ -73,6 +73,12 @@ Fez.globalCss(`
   ...
 `)
 
+// internal, get unique ID for a string, poor mans MD5 / SHA1
+Fez.fnv1('some string')
+
+// get generated css class name, from scss source string
+Fez.css(text)
+
 // define custom DOM node name -> <foo-bar>...
 Fez('foo-bar', class extends FezBase {
   // set element node name, set as property or method, defaults to DIV
@@ -104,27 +110,14 @@ Fez('foo-bar', class extends FezBase {
   static html = `...`
 
   connect(props) {
-    // internal, get unique ID for a string, poor mans MD5
-    const uid = this.klass.fnv1('some string')
-
     // copy attributes from attr hash to root node
     this.copy('href', 'onclick', 'style')
-
-    // internal, check if node is attached
-    this.isAttached()
-
-    // copy all child nodes from source to target, without target returns tm node
-    this.slot(someNode, tmpRoot)
-    const tmpRoot = this.slot(self.root)
 
     // clasic interval, that rune only while node is attached
     this.setInterval(func, tick) { ... }
 
     // get closest form data, as object
     this.formData()
-
-    // get generated css class (uses gobber.js)
-    const localCssClass = this.css(text)
 
     // mounted DOM node root
     this.root
@@ -143,35 +136,52 @@ Fez('foo-bar', class extends FezBase {
 
     // gets value for FORM fields or node innerHTML
     this.val(selector)
-
-    // gets root childNodes. pass function to loop forEach on selection
-    this.childNodes(func)
+    // set value to a node, uses value or innerHTML
+    this.val(selector, value)
 
     // you can publish globaly, and subscribe localy
     Fez.publish('channel', foo)
     this.subscribe('channel', (foo) => { ... })
+
+    // gets root childNodes. pass function to loop forEach on selection
+    this.childNodes(func)
+
+    // check if the this.root node is attached to dom
+    this.isAttached()
 
     // on every "this.data" props change, auto update view.
     this.data = this.reactiveStore()
 
     // render template and attach result dom to root. uses Idiomorph for DOM morph
     this.html(`
-      {{if @list}}
-        <ul>
-          {{#each this.list as name, index}} // runs in node scope
+      <!-- resolve any condition -->
+      {{if this.list[0]}}
+
+        <!-- fez-this will link DOM node to object property (inspired by Svelte) -->
+        <ul fez-this="listRoot">
+
+          <!-- runs in node scope -->
+          {{#each this.list as name, index}}
+
+          <!-- @ will be replaced with this. (inspired by CoffeeScript) -->
           {{#each @list as name, index}}
-          {{#for name, i in @list} // you can use for loop
-            <li>
-              <input onkeyup="$$.list[{{ index }}].name = this.value" value="{{ name }}" /> // $$ will point to fez instance
+
+          <!-- you can use for loop -->
+          {{#for name, i in @list}
+
+            <!--
+              fez-use will call object function by name, and pass current node,
+              when node is added to dom (Inspired by Svelte)
+            -->
+            <li fez-use="animate">
+
+              <!-- $$ will point to fez instance, same as Fez(this) -->
+              <input onkeyup="$$.list[{{ index }}].name = this.value" value="{{ name }}" />
+
             </li>
           {{/list}}
         </ul>
       {{/if}}
-      <span class="btn" onclick="$$.getData()">read</span>
-
-      <h3>Svelte inspired</h3>
-      <span fez-this="data.foo">bind this node to this.data.foo</span>
-      <span fez-use="colorize">pass this node to this.colorize</span>
     `)
   }
   // you can render to another root too
@@ -184,7 +194,7 @@ Fez('foo-bar', class extends FezBase {
 
 ## Examples / playground
 
-Examples are avaliable on [jsitor](https://jsitor.com/QoResUvMc).
+Examples are avaliable on [jsitor](https://jsitor.com/QoResUvMc) or [local GH pages](dux.github.io/fez/).
 
 ## More in detail
 

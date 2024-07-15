@@ -12,14 +12,14 @@ Fez('ui-todo', class extends FezBase {
         <p>
       {{/if}}
         <input
-          type="text" name="" value="{{ task.name }}"
+          type="text"
+          value="{{ task.name }}"
           onkeyup="$$.setName({{ index }}, this.value)"
           style="{{ task.done ? 'background-color: #ccc;' : '' }}"
         />
         &sdot;
         <input
           type="checkbox"
-          name=""
           {{ task.done ? 'checked=""' : '' }}
           onclick="$$.toggleComplete({{ index }})"
         />

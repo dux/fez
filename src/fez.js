@@ -13,23 +13,6 @@ import parseNode from './lib/n'
 class FezBase {
   static __objects = []
 
-  static find(node, name) {
-    return Fez.find(node, name)
-  }
-
-  // get unique id from string
-  static fnv1(str) {
-    var FNV_OFFSET_BASIS, FNV_PRIME, hash, i, j, ref;
-    FNV_OFFSET_BASIS = 2166136261;
-    FNV_PRIME = 16777619;
-    hash = FNV_OFFSET_BASIS;
-    for (i = j = 0, ref = str.length - 1; (0 <= ref ? j <= ref : j >= ref); i = 0 <= ref ? ++j : --j) {
-      hash ^= str.charCodeAt(i);
-      hash *= FNV_PRIME;
-    }
-    return hash.toString(36).replaceAll('-', '');
-  }
-
   // get node attributes as object
   static getProps(node) {
     const attrs = {}
@@ -253,7 +236,7 @@ class FezBase {
       [tick, func] = [func, tick]
     }
 
-    name ||= this.class.fnv1(String(func))
+    name ||= Fez.fnv1(String(func))
 
     clearInterval(this.__int[name])
 
@@ -549,6 +532,19 @@ Fez.publish = (channel, ...args) => {
   Fez._subs[channel].forEach((el) => {
     el[1].bind(el[0])(...args)
   })
+}
+
+  // get unique id from string
+Fez.fnv1 = (str) => {
+  var FNV_OFFSET_BASIS, FNV_PRIME, hash, i, j, ref;
+  FNV_OFFSET_BASIS = 2166136261;
+  FNV_PRIME = 16777619;
+  hash = FNV_OFFSET_BASIS;
+  for (i = j = 0, ref = str.length - 1; (0 <= ref ? j <= ref : j >= ref); i = 0 <= ref ? ++j : --j) {
+    hash ^= str.charCodeAt(i);
+    hash *= FNV_PRIME;
+  }
+  return hash.toString(36).replaceAll('-', '');
 }
 
 window.Fez = Fez

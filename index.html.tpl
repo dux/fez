@@ -15,16 +15,25 @@
       </h2>
 
       <div class="flex">
-        <div>
-#{body[1]}
+        <div class="body">
+           #{body[1]}
         </div>
-        <div><pre style="position: relative; top: -23px;"><code class="language-javascript">
+        <div>
+          <div class="relative">
+            <pre>
+              <code class="language-javascript" id="fez-#{name}-js">
 #{escape(File.read("./demo/fez/#{name}.js"))}
-</code></pre>
+              </code>
+            </pre>
+          </div>
 
-<pre><code class="language-html">
+          <div class="relative">
+            <pre>
+              <code class="language-html" id="fez-#{name}-html">
 #{escape(body[1])}
-</code></pre>
+</code>
+            <pre>
+          </div>
         </div>
       </div>
     }
@@ -40,9 +49,14 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <link rel="stylesheet" href="./demo/hjs-theme.css" />
+  <link rel="stylesheet" href="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.js"></script>
   <script src="./dist/fez.js"></script>
-  <script>hljs.highlightAll();</script>
+  <script>
+    hljs.highlightAll();
+    hljs.addPlugin(new CopyButtonPlugin());
+  </script>
   <script>
     function timeSince(date) {
         const now = new Date();
