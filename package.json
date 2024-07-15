@@ -5,7 +5,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "stache": "node test/stache.js"
+    "stache": "node test/stache.js",
+    "pages": "ruby -r erb -e 'puts ERB.new(File.read(\"./index.html.tpl\")).result' > ./index.html",
+    "dev": "bun run pages; open index.html; bun build.js w"
   },
   "devDependencies": {
     "coffeescript": "^2.7.0",

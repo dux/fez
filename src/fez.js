@@ -169,7 +169,7 @@ class FezBase {
   // this.html('.images', '...loading')
   html(target, body) {
     if (!target) {
-      target = this.class.html
+      target = this._fez_html_func || console.error(`Fez error ${this.fezName}: class template not defined (static html = '...')`)
     }
 
     if (typeof body == 'undefined') {
@@ -184,8 +184,6 @@ class FezBase {
     const newNode = document.createElement('div')
 
     if (typeof body === 'function') {
-      // this.class.html will be converted to function, and all sequential calls will use function call
-      // this feature is not available on this.html(...)
       body = body()
     }
 
@@ -199,7 +197,7 @@ class FezBase {
       }
     } else if (typeof body === 'string') {
       newNode.innerHTML = this.parseHtml(body)
-    } else {
+    } else if (body) {
       newNode.appendChild(body)
     }
 
@@ -352,9 +350,10 @@ class FezBase {
     obj ||= {}
 
     handler ||= (o, k, v) => {
-      window.requestAnimationFrame(()=>{
+      this._nextRenderTick ||= window.requestAnimationFrame(()=>{
         Fez.info('reactive render')
         this.html()
+        this._nextRenderTick = null
       },0)
     }
 
@@ -444,15 +443,18 @@ const Fez = (name, klass) => {
         newNode.setAttribute('id', object.props.id)
       }
 
+      if (klass.html) {
+        if (typeof klass.html === 'function') {
+          klass.html = klass.html(this)
+        }
+        object._fez_html_func = renderStache(klass.html, object)
+      }
+
       object.fezRegister()
       object.connect(object.props)
       klass.__objects.push(object)
 
-      if (klass.html) {
-        if (typeof klass.html == 'function') {
-          klass.html = klass.html(this)
-        }
-        klass.html = renderStache(klass.html, object)
+      if (object._fez_html_func) {
         object.html()
       }
 

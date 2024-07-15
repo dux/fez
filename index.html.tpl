@@ -70,10 +70,6 @@
         const years = Math.floor(secondsPast / 31536000);
         return `${years} year${years > 1 ? 's' : ''} ago`;
     }
-
-    // Example usage:
-    const date = '2023-06-14T12:00:00Z'; // Replace with your date
-    console.log(timeSince(date));
 </script>
 </head>
 <body>

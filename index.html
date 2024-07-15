@@ -39,10 +39,6 @@
         const years = Math.floor(secondsPast / 31536000);
         return `${years} year${years > 1 ? 's' : ''} ago`;
     }
-
-    // Example usage:
-    const date = '2023-06-14T12:00:00Z'; // Replace with your date
-    console.log(timeSince(date));
 </script>
 </head>
 <body>
@@ -55,7 +51,7 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Sun Jul 14 18:05:03 2024 +0200'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Mon Jul 15 12:34:02 2024 +0200'))</script>.
 
   
       <script src="./demo/fez/todo.js"></script>
@@ -509,6 +505,7 @@ setInterval(()=>Fez.publish('ping', Math.random()), 5000)
       <div class="flex">
         <div>
 <ui-list>red,green,blue</ui-list>
+<hr />
 <ui-list></ui-list>
 
         </div>
@@ -561,6 +558,7 @@ Fez('ui-list', class extends FezBase {
 
 <pre><code class="language-html">
 &lt;ui-list>red,green,blue&lt;/ui-list>
+&lt;hr />
 &lt;ui-list>&lt;/ui-list>
 
 </code></pre>

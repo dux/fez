@@ -41,18 +41,19 @@ That is all.
 
 ## What can it do and why is it great?
 
-* It can create and define Custom HTML tags, libs main feature. It uses native, super fast broweser interface to do it.
-* It plays great with server generated code, because this is a component library. You are free to use any routing and server logic you preffer.
+* It can create and define Custom HTML tags, libs main feature. It uses native, fast browser interface to do it.
+* It plays great with server generated code, because this is a component library. You are free to use any routing and server logic you prefer.
+* Before `coonect()`, it will rename custom dom node name and create standard HTML node. For example `<ui-button>` can be converted to `<button class="fez fez-button btn btn-empty">...`. This makes all `Fez` components stylable in root (you can't style `ui-button`).
 * I will use one file to define CSS, HTML and code.
-* It does not need server side compileing.
+* It does not need server side compiling.
+* There is no magic as Svelte runes, React hooks, states and whatever. Plain vanilla JS classes with "few" documented functions.
 * it can style components using SCSS, using [goober](https://goober.js.org/).
 * it has few useful built in helper methods as formData(), setInterval() that triggers only while node is connected, etc
 * it has &lt;slot /&gt; support
-* It has garbage collector, just add tags to HTML and destroy as you which.
+* It has garbage collector, just add tags to HTML and destroy DOM nodes as you whish.
 * It will close "HTML invalid" inline items before rendering `&lt;fez-icon name="gear" />` -> `&lt;fez-icon name="gear"></fez-icon>`
 * it has built in publish-subscribe, where only connected nodes will be able to publish and receive subs.
-* It morphs DOM on `this.html(...)`, same as `React`.
-* upon `connect()`, it will convert custom DOM nodes to plain HTML tags, for easy and accurate styling. Example: `<fez-btn href="/foo" title="Bar" />` -> `<a class="btn btn-empty" href="/foo">Bar</a>`
+* It morphs DOM, state is preserved on changes.
 * It can have full state &lt;> template sync using `reactiveStore()`
 
 ## What it does not do?
