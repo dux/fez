@@ -1,5 +1,9 @@
 Features publish &lt;> subscribe mechanism
 
+<style>
+.fez-ui-pubsub { margin-top: 10px; }
+</style>
+
 <button onclick="Fez.publish('ping', Math.random())">ping from anywhere</button>
 &sdot;
 Fast ping:
@@ -27,7 +31,7 @@ Fast ping:
 
 <template id="pubsub-t">
   <ui-pubsub>
-    Dynamic:
+    Dynamic lisener:
     <button onclick="Fez(this).$root.remove()">&times;</button>
     &sdot;
     <span class="target"></span>

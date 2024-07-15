@@ -84,6 +84,8 @@
         const years = Math.floor(secondsPast / 31536000);
         return `${years} year${years > 1 ? 's' : ''} ago`;
     }
+
+    window.L = console.log
 </script>
 </head>
 <body>

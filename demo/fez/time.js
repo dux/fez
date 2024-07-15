@@ -11,29 +11,44 @@ Fez('ui-time', class extends FezBase {
     }
   `
 
+  static html = `
+    <p>Param city: {{ this.props.city }}</p>
+    <p>Time now: <span class="time"></span></p>
+    <p>Random num: <span>{{ Math.random() }}</span></p>
+    <button onclick="$$.setRandomColor()">random color</button>
+    &sdot;
+    <button onclick="$$.html()">refresh & preserve slot</button>
+    <hr />
+    <slot />
+  `
+
   getRandomColor() {
-    const colors = ['red', 'blue', 'green', 'teal', 'black', 'magenta']
+    const colors = ['red', 'blue', 'green', 'teal', 'black', 'magenta', 'orange', 'lightblue']
     return colors[Math.floor(Math.random() * colors.length)]
   }
 
-  updateTime() {
-    this.val('.time', new Date())
+  setRandomColor() {
+    const color = this.getRandomColor()
+    // this.find('.color-name').innerHTML = color
+    this.val('.color-name', color)
+    this.root.style.borderColor = color
   }
 
-  refresh() {
-    this.root.style.borderColor = this.getRandomColor()
+  getTime() {
+    return (new Date()).getTime()
+  }
+
+  setTime() {
+    this.val('.time', this.getTime())
   }
 
   connect() {
-    this.setInterval(this.updateTime, 1000)
-
-    this.html(`
-      ${this.props.city}: <span class="time">${new Date()}</span>
-      <br />
-      <br />
-      <button onclick="Fez(this).refresh()">refresh color</button>
-      &sdot;
-      <button onclick="$$.refresh()">refresh color alt</button>
-    `)
+    this.setInterval(this.setTime, 1000)
+    this.setRandomColor()
   }
+
+  afterHtml() {
+    this.setTime()
+  }
+
 })

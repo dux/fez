@@ -45,17 +45,17 @@ Fez('ui-tabs', class extends FezBase {
 
   activate(num) {
     this.active = parseInt(num)
-    const target = this.$root.find(`> div > div.header > span.tab-title-${num}`)
+    const target = this.$root.find(`> div > div.header > span:nth-child(${num + 1})`)
     this.activateNode(target)
     this.activateNode(this.tabs[num])
   }
 
   connect(props) {
-    this.tabs = this.childNodes().map(n => $(n));
+    this.tabs = this.childNodes(n => $(n))
 
     this.html([
       this.n('div.header', this.tabs.map((tab, index) =>
-        this.n(`span.tab-title-${index}`, tab.attr('title'), { onclick: `$$.activate(${index})` })
+        this.n(`span`, tab.attr('title'), { onclick: `$$.activate(${index})` })
       )),
       this.n('.body', '<slot />')
     ]);

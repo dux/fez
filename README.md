@@ -2,7 +2,7 @@
 
 # FEZ - Custom DOM Elements
 
-FEZ is a small library (17kb unziped) that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
+FEZ is a small library (18kb unziped) that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
 
 It uses
 
@@ -186,6 +186,15 @@ Fez('foo-bar', class extends FezBase {
   }
   // you can render to another root too
   this.html(this.find('.body'), someHtmlTemplate)
+
+  // alias to this.html(), to refresh state from static html template
+  this.refresh()
+
+  // execute after connect and initial component render
+  this.afterConnect() { ... }
+
+  // execute after every component render
+  this.afterHtml() { ... }
 
   // if you want to monitor new or changed node attributes
   this.onPropsChange(name, value) { ... }

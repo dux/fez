@@ -126,6 +126,9 @@ class FezBase {
     console.error('Fez is missing "connect" method.', this.root)
   }
 
+  afterConnect() {}
+  afterHtml() {}
+
   parseHtml(text, context) {
     if (typeof text == 'object') {
       text = text[0]
@@ -184,14 +187,16 @@ class FezBase {
       newNode.appendChild(body)
     }
 
+    // if slot is defined in static html, preserve current in runtime
     const slot = newNode.querySelector('slot')
     if (slot) {
-      this.slot(target, slot)
+      const currentSlot = this.find('.fez-slot')
+      if (currentSlot) {
+        this.slot(currentSlot, slot)
+      } else {
+        this.slot(target, slot)
+      }
     }
-
-    // old way, just replace
-    // target.innerHTML = ''
-    // this.slot(newNode, target)
 
     Fez.morphdom(target, newNode)
 
@@ -228,6 +233,12 @@ class FezBase {
         }, 1000)
       }
     })
+
+    this.afterHtml()
+  }
+
+  refresh() {
+    this.html()
   }
 
   // run only if node is attached, clear otherwise
@@ -264,13 +275,22 @@ class FezBase {
     return this.root.querySelector(selector)
   }
 
+  // get or set node value
   val(selector, data) {
-    const node = this.find('.time')
+    const node = this.find(selector)
 
-    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(node.nodeName)) {
-      node.value = data
-    } else {
-      node.innerHTML = new Date()
+    if (node) {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(node.nodeName)) {
+        if (typeof data != 'undefined') {
+          node.value = data
+        }
+        return node.value
+      } else {
+        if (typeof data != 'undefined') {
+          node.innerHTML = data
+        }
+        return node.innerHTML
+      }
     }
   }
 
@@ -290,13 +310,12 @@ class FezBase {
 
   // get root node child nodes as array
   childNodes(func) {
-    const list = Array.from(this.root.querySelectorAll(":scope > *"))
+    let list = Array.from(this.root.querySelectorAll(":scope > *"))
 
     if (func) {
-      list.forEach(func)
-    } else {
-      return list
+      list = list.map(func)
     }
+    return list
   }
 
   subscribe(channel, func) {
@@ -430,6 +449,13 @@ const Fez = (name, klass) => {
         if (typeof klass.html === 'function') {
           klass.html = klass.html(this)
         }
+
+        // wrap slot to enable reactive re-renders. It will use existing .fez-slot if found
+        klass.html = klass.html.replace(/<slot\s*\/>|<slot\s*><\/slot>/g, () => {
+          const name = klass.slotNodeName || 'div'
+          return `<${name} class="fez-slot"><slot /></${name}>`
+        })
+
         object._fez_html_func = renderStache(klass.html, object)
       }
 
@@ -440,6 +466,7 @@ const Fez = (name, klass) => {
       if (object._fez_html_func) {
         object.html()
       }
+      object.afterConnect(object.props)
 
       if (object.onPropsChange) {
         observer.observe(newNode, {attributes:true})
