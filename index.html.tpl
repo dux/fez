@@ -100,6 +100,7 @@
 
   <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('<%= `git log -1 --format=%cd`.chomp %>'))</script>.
 
+  <%= fez('clock') %>
   <%= fez('todo') %>
   <%= fez('form') %>
   <%= fez('time') %>

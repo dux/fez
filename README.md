@@ -22,6 +22,8 @@ It uses minimal abstraction. You will learn to use it in 3 minutes, just look at
 
 Uses DOM as a source of truth anf tries to be as close to vanilla JS as possible. There is nothing to learn or "fight", or overload or "monkey patch" or anything. It just works.
 
+Although fastest, Modifying DOM state directly in React / Vue / etc. is considered an anti-pattern. For `Fez` this is just fine if you want to do it. `Fez` basicly modifies DOM, you just have few helpers to help you do it.
+
 It replaces modern JS frameworks by using native Autonomous Custom Elements to create new HTML tags. This has been supported for years in [all major browsers](https://caniuse.com/custom-elementsv1).
 
 This article, [Web Components Will Replace Your Frontend Framework](https://www.dannymoerkerke.com/blog/web-components-will-replace-your-frontend-framework/), is from 2019. Join the future, ditch React, Angular and other never defined, always "evolving" monstrosities. Vanilla is the way :)
@@ -105,7 +107,7 @@ Fez('foo-bar', class extends FezBase {
   static fastBind = true
   static fastBind(node) { ... }
 
-  // define static HTML. calling `this.html()` (no arguments) will refresh current node.
+  // define static HTML. calling `this.render()` (no arguments) will refresh current node.
   // if you pair it with `reactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
   static html = `...`
 
@@ -152,8 +154,11 @@ Fez('foo-bar', class extends FezBase {
     // on every "this.data" props change, auto update view.
     this.data = this.reactiveStore()
 
+    // this.store has reactiveStore() attached by default. any change will trigger this,render()
+    this.store.foo = 123
+
     // render template and attach result dom to root. uses Idiomorph for DOM morph
-    this.html(`
+    this.render(`
       <!-- resolve any condition -->
       {{if this.list[0]}}
 
@@ -185,16 +190,17 @@ Fez('foo-bar', class extends FezBase {
     `)
   }
   // you can render to another root too
-  this.html(this.find('.body'), someHtmlTemplate)
+  this.render(this.find('.body'), someHtmlTemplate)
 
-  // alias to this.html(), to refresh state from static html template
+  // alias to this.render(), to refresh state from static html template
   this.refresh()
 
   // execute after connect and initial component render
   this.afterConnect() { ... }
 
-  // execute after every component render
-  this.afterHtml() { ... }
+  // execute before or after every render
+  this.beforeRender() { ... }
+  this.afterRender() { ... }
 
   // if you want to monitor new or changed node attributes
   this.onPropsChange(name, value) { ... }
@@ -310,7 +316,7 @@ Finds first closest Fez node.
     }
   ```
 
-* ### this.html(htmlString)
+* ### this.render(htmlString)
 
   Inject htmlString as root node innerHTML
 
@@ -323,7 +329,7 @@ Finds first closest Fez node.
     }
 
     connect() => {
-      this.html`
+      this.render`
         <ul>
           {{#list}}
             <li>
@@ -336,12 +342,9 @@ Finds first closest Fez node.
     }
   ```
 
-* ### this.parse(text, context or this)
+* ### this.parseHtml(text, context or this)
 
-  Same as `this.html()` but
-
-  * it does not render slot
-  * returns string instead attaching to `this.root`.
+  Returns rendered string.
 
 
 * ### this.css(text, optionalAddToRoot)
@@ -397,7 +400,7 @@ Finds first closest Fez node.
 
 * ### this.reactiveStore({})
 
-  Creates reactive store that updates this.html() on change. You can pass another reactivity function.
+  Creates reactive store that updates this.render() on change. You can pass another reactivity function.
 
   Used in default TODO example.
 
@@ -405,7 +408,7 @@ Finds first closest Fez node.
     this.reactiveStore({}, (o, k, v)=>{
       window.requestAnimationFrame(()=>{
         console.log(`key "${k}" changed to ${v}`)
-        this.html())
+        this.render())
       })
     })
   ```

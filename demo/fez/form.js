@@ -2,7 +2,7 @@
 Fez('ui-form', class extends FezBase {
   static nodeName = 'form'
 
-  static css = `
+  css = `
     border: 2px solid green;
     border-radius: 5px;
     padding: 15px;

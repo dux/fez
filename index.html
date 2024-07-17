@@ -58,8 +58,124 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Mon Jul 15 15:21:04 2024 +0200'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Mon Jul 15 18:29:49 2024 +0200'))</script>.
 
+  
+      <script src="./demo/fez/clock.js"></script>
+      <h2>
+        ui-clock
+        &sdot;
+        <small>featuturing SVG generation & reactive store</small>
+      </h2>
+
+      <div class="flex">
+        <div class="body">
+           <ui-clock></ui-clock>
+
+        </div>
+        <div>
+          <div class="relative">
+            <pre>
+              <code class="language-javascript" id="fez-clock-js">
+Fez('ui-clock', class extends FezBase {
+  css = `
+    input {
+      border: 3px solid red !important;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .clock-face {
+      stroke: #333;
+      fill: white;
+    }
+
+    .minor {
+      stroke: #999;
+      stroke-width: 0.5;
+    }
+
+    .major {
+      stroke: #333;
+      stroke-width: 1;
+    }
+
+    .hour {
+      stroke: #333;
+    }
+
+    .minute {
+      stroke: #666;
+    }
+
+    .second,
+    .second-counterweight {
+      stroke: rgb(180, 0, 0);
+    }
+
+    .second-counterweight {
+      stroke-width: 3;
+    }
+  `
+  static html = `
+    &lt;svg viewBox="-50 -50 100 100">
+      &lt;circle class="clock-face" r="48" />
+
+     &lt;!-- markers -->
+      {#each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}
+        &lt;line class="major" y1="35" y2="45" transform="rotate({30 * minute})" />
+
+        {#each [1, 2, 3, 4] as offset}
+          &lt;line class="minor" y1="42" y2="45" transform="rotate({6 * (minute + offset)})" />
+        {/each}
+      {/each}
+
+      &lt;!-- hour hand -->
+      &lt;line class="hour" y1="2" y2="-20" transform="rotate({30 * @state.hours + @state.minutes / 2})" />
+
+      &lt;!-- minute hand -->
+      &lt;line class="minute" y1="4" y2="-30" transform="rotate({6 * @state.minutes + @state.seconds / 10})" />
+
+      &lt;!-- second hand -->
+      &lt;g transform="rotate({6 * @state.seconds})">
+        &lt;line class="second" y1="10" y2="-38" />
+        &lt;line class="second-counterweight" y1="10" y2="2" />
+      &lt;/g>
+    &lt;/svg>
+  `
+
+  setVars() {
+    let time = new Date();
+    this.state.time = time
+    this.state.hours = time.getHours();
+    this.state.minutes = time.getMinutes();
+    this.state.seconds = time.getSeconds();
+  }
+
+  connect() {
+    this.setVars()
+    this.setInterval(this.setVars, 1000)
+  }
+})
+
+              </code>
+            </pre>
+          </div>
+
+          <div class="relative">
+            <pre>
+              <code class="language-html" id="fez-clock-html">
+&lt;ui-clock>&lt;/ui-clock>
+
+</code>
+            <pre>
+          </div>
+        </div>
+      </div>
+    
   
       <script src="./demo/fez/todo.js"></script>
       <h2>
@@ -78,7 +194,7 @@
             <pre>
               <code class="language-javascript" id="fez-todo-js">
 Fez('ui-todo', class extends FezBase {
-  // if you define static html, it will be converted tu function(fast), and you will be able to refresh state with this.html()
+  // if you define static html, it will be converted tu function(fast), and you will be able to refresh state with this.render()
   static html = `
     &lt;h3>Tasks&lt;/h3>
     {{#if !@data.tasks[0]}}
@@ -153,7 +269,7 @@ Fez('ui-todo', class extends FezBase {
   }
 
   connect() {
-    // creates reactive store. calls this.html() to refresh state, after every data set
+    // creates reactive store. calls this.render() to refresh state, after every data set
     // you can pass function as argument to change default reactive behaviour
     this.data = this.reactiveStore({})
 
@@ -215,7 +331,7 @@ Fez('ui-todo', class extends FezBase {
 Fez('ui-form', class extends FezBase {
   static nodeName = 'form'
 
-  static css = `
+  css = `
     border: 2px solid green;
     border-radius: 5px;
     padding: 15px;
@@ -289,13 +405,18 @@ Fez('ui-time', class extends FezBase {
   static nodeName = 'div'
 
   static css = `
-    border: 10px solid green;
-    border-radius: 10px;
-    padding: 10px;
+    // :fez will be replaced with .fez-ui-time, so you can add local styles in global css
+    :fez {
+      border-radius: 10px;
+      padding: 10px;
 
-    button {
-      font-size: 16px;
+      button {
+        font-size: 16px;
+      }
     }
+  `
+  css = `
+    border: 10px solid green;
   `
 
   static html = `
@@ -304,7 +425,7 @@ Fez('ui-time', class extends FezBase {
     &lt;p>Random num: &lt;span>{{ Math.random() }}&lt;/span>&lt;/p>
     &lt;button onclick="$$.setRandomColor()">random color&lt;/button>
     &sdot;
-    &lt;button onclick="$$.html()">refresh & preserve slot&lt;/button>
+    &lt;button onclick="$$.render()">refresh & preserve slot&lt;/button>
     &lt;hr />
     &lt;slot />
   `
@@ -329,13 +450,13 @@ Fez('ui-time', class extends FezBase {
     this.val('.time', this.getTime())
   }
 
+  afterRender() {
+    this.setTime()
+  }
+
   connect() {
     this.setInterval(this.setTime, 1000)
     this.setRandomColor()
-  }
-
-  afterHtml() {
-    this.setTime()
   }
 
 })
@@ -423,7 +544,7 @@ Fez('ui-icon', class extends FezBase {
 
     this.$root.addClass('material-symbols-outlined')
     this.$root.css('color', this.color)
-    this.html(icon)
+    this.render(icon)
   }
 })
 
@@ -604,7 +725,7 @@ setInterval(()=>Fez.publish('ping', Math.random()), 5000)
               <code class="language-javascript" id="fez-list-js">
 // component to render google fonts icons
 Fez('ui-list', class extends FezBase {
-  static css = `
+  css = `
     li {
       font-weight: bold;
     }
@@ -707,7 +828,7 @@ Fez('ui-list', class extends FezBase {
             <pre>
               <code class="language-javascript" id="fez-tabs-js">
 Fez('ui-tabs', class extends FezBase {
-  static css = `
+  css = `
     --tabs-border: 1px solid #ccc;
 
     .header {
@@ -761,7 +882,7 @@ Fez('ui-tabs', class extends FezBase {
   connect(props) {
     this.tabs = this.childNodes(n => $(n))
 
-    this.html([
+    this.render([
       this.n('div.header', this.tabs.map((tab, index) =>
         this.n(`span`, tab.attr('title'), { onclick: `$$.activate(${index})` })
       )),

@@ -1,5 +1,5 @@
 Fez('ui-tabs', class extends FezBase {
-  static css = `
+  css = `
     --tabs-border: 1px solid #ccc;
 
     .header {
@@ -53,7 +53,7 @@ Fez('ui-tabs', class extends FezBase {
   connect(props) {
     this.tabs = this.childNodes(n => $(n))
 
-    this.html([
+    this.render([
       this.n('div.header', this.tabs.map((tab, index) =>
         this.n(`span`, tab.attr('title'), { onclick: `$$.activate(${index})` })
       )),

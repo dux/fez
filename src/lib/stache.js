@@ -1,7 +1,7 @@
 // https://github.com/ryanmorr/stache
 export default function renderStache(tpl, context) {
   const NEW_LINES_RE = /(\r\n|\r|\n)/g;
-  const TEMPLATE_RE = /{{\s*(.+?)\s*}}/g;
+  const TEMPLATE_RE = /{{?\s*(.+?)\s*}}?/g;
   const EACH_RE = /^each\s+(.*)\s+as\s+(.*)$/;
   const IF_RE = /^if\s+(.*)$/;
   const ELSE_IF_RE = /^else if\s+(.*)$/;
@@ -98,6 +98,9 @@ export default function renderStache(tpl, context) {
       return selfClosingTags.has(tagName) ? match : `<${tagName}${attributes}></${tagName}>`
     })
   }
+
+  // foo={@foo} -> foo="{@foo}"
+  tpl = tpl.replace(/(\s\w+)=({{?[^}]+}}?)/, (...re)=> `${re[1]}="${re[2]}"` )
 
   tpl = closeCustomTags(tpl)
   return createTemplate(tpl)

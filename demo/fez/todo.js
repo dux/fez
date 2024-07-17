@@ -1,5 +1,5 @@
 Fez('ui-todo', class extends FezBase {
-  // if you define static html, it will be converted tu function(fast), and you will be able to refresh state with this.html()
+  // if you define static html, it will be converted tu function(fast), and you will be able to refresh state with this.render()
   static html = `
     <h3>Tasks</h3>
     {{#if !@data.tasks[0]}}
@@ -74,7 +74,7 @@ Fez('ui-todo', class extends FezBase {
   }
 
   connect() {
-    // creates reactive store. calls this.html() to refresh state, after every data set
+    // creates reactive store. calls this.render() to refresh state, after every data set
     // you can pass function as argument to change default reactive behaviour
     this.data = this.reactiveStore({})
 

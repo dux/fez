@@ -127,7 +127,8 @@ class FezBase {
   }
 
   afterConnect() {}
-  afterHtml() {}
+  beforeRender() {}
+  afterRender() {}
 
   parseHtml(text, context) {
     if (typeof text == 'object') {
@@ -151,12 +152,25 @@ class FezBase {
   // inject htmlString as innerHTML and replace $$. with local pointer
   // $$. will point to current fez instance
   // <slot></slot> will be replaced with current root
-  // this.html('...loading')
-  // this.html('.images', '...loading')
-  html(target, body) {
-    if (!target) {
-      target = this._fez_html_func || console.error(`Fez error ${this.fezName}: class template not defined (static html = '...')`)
+  // this.render('...loading')
+  // this.render('.images', '...loading')
+  render(target, body) {
+    if (target === true) {
+      this._nextRenderTick ||= window.requestAnimationFrame(()=>{
+        this.render()
+        this._nextRenderTick = null
+      })
+      return
     }
+
+    if (!target) {
+      target = this?._fez_html_func
+      if (!target) {
+        return
+      }
+    }
+
+    this.beforeRender()
 
     if (typeof body == 'undefined') {
       body = target
@@ -234,11 +248,11 @@ class FezBase {
       }
     })
 
-    this.afterHtml()
+    this.afterRender()
   }
 
   refresh() {
-    this.html()
+    this.render()
   }
 
   // run only if node is attached, clear otherwise
@@ -258,17 +272,6 @@ class FezBase {
     }, tick)
 
     return this.__int[name]
-  }
-
-  // add css class for scss styled text
-  css(text, isGlobal) {
-    const className = Fez.css(text)
-
-    if (isGlobal) {
-      this.root.classList.add(className)
-    }
-
-    return className
   }
 
   find(selector) {
@@ -327,15 +330,18 @@ class FezBase {
 
   fezRegister() {
     if (this.class.css) {
-      if (typeof this.class.css == 'function') {
-        this.class.css = this.class.css(this)
-      }
-
-      if (this.class.css.includes(':')) {
-        this.class.css = Fez.css(this.class.css)
-      }
-      this.root.classList.add(this.class.css)
+      Fez.globalCss(this.class.css, this)
+      delete this.class.css
     }
+
+    if (this.css) {
+      let css = typeof this.css === 'function' ? this.css(this.root) : this.css
+      css = `.fez-${this.fezName} { ${this.css} }`
+      Fez.globalCss(css, this)
+      delete this.css
+    }
+
+    this.state = this.reactiveStore()
 
     this.fezRegisterBindMethods()
   }
@@ -352,11 +358,7 @@ class FezBase {
     obj ||= {}
 
     handler ||= (o, k, v) => {
-      this._nextRenderTick ||= window.requestAnimationFrame(()=>{
-        Fez.info('reactive render')
-        this.html()
-        this._nextRenderTick = null
-      },0)
+      this.render(true)
     }
 
     handler.bind(this)
@@ -446,10 +448,6 @@ const Fez = (name, klass) => {
       }
 
       if (klass.html) {
-        if (typeof klass.html === 'function') {
-          klass.html = klass.html(this)
-        }
-
         // wrap slot to enable reactive re-renders. It will use existing .fez-slot if found
         klass.html = klass.html.replace(/<slot\s*\/>|<slot\s*><\/slot>/g, () => {
           const name = klass.slotNodeName || 'div'
@@ -464,7 +462,7 @@ const Fez = (name, klass) => {
       klass.__objects.push(object)
 
       if (object._fez_html_func) {
-        object.html()
+        object.render()
       }
       object.afterConnect(object.props)
 
@@ -519,16 +517,30 @@ Fez.find = (node, name) => {
   return node.closest(klass).fez
 }
 
-Fez.globalCss = (text) => {
-  const cssClass = Fez.css(text)
-  document.addEventListener("DOMContentLoaded", () => {
-    document.body.classList.add(cssClass)
-  })
-  return cssClass
-}
+window.Gobber = Gobber
 
 Fez.css = (text) => {
   return Gobber.css(text)
+}
+
+Fez.globalCss = (text, host = {}) => {
+  text = text
+    .split("\n")
+    .filter(line => !(/^\s*\/\//.test(line)))
+    .join("\n")
+  text = text.replaceAll(':fez', `.fez-${host.fezName}`)
+
+  const cssClass = Fez.css(text)
+
+  if (document.body) {
+    document.body.classList.add(cssClass)
+  } else {
+    document.addEventListener("DOMContentLoaded", () => {
+      document.body.classList.add(cssClass)
+    })
+  }
+
+  return cssClass
 }
 
 Fez.info = (text) => {

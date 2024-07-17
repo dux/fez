@@ -31,6 +31,6 @@ Fez('ui-icon', class extends FezBase {
 
     this.$root.addClass('material-symbols-outlined')
     this.$root.css('color', this.color)
-    this.html(icon)
+    this.render(icon)
   }
 })

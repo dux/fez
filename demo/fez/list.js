@@ -1,6 +1,6 @@
 // component to render google fonts icons
 Fez('ui-list', class extends FezBase {
-  static css = `
+  css = `
     li {
       font-weight: bold;
     }

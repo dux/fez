@@ -2,13 +2,18 @@ Fez('ui-time', class extends FezBase {
   static nodeName = 'div'
 
   static css = `
-    border: 10px solid green;
-    border-radius: 10px;
-    padding: 10px;
+    // :fez will be replaced with .fez-ui-time, so you can add local styles in global css
+    :fez {
+      border-radius: 10px;
+      padding: 10px;
 
-    button {
-      font-size: 16px;
+      button {
+        font-size: 16px;
+      }
     }
+  `
+  css = `
+    border: 10px solid green;
   `
 
   static html = `
@@ -17,7 +22,7 @@ Fez('ui-time', class extends FezBase {
     <p>Random num: <span>{{ Math.random() }}</span></p>
     <button onclick="$$.setRandomColor()">random color</button>
     &sdot;
-    <button onclick="$$.html()">refresh & preserve slot</button>
+    <button onclick="$$.render()">refresh & preserve slot</button>
     <hr />
     <slot />
   `
@@ -42,13 +47,13 @@ Fez('ui-time', class extends FezBase {
     this.val('.time', this.getTime())
   }
 
+  afterRender() {
+    this.setTime()
+  }
+
   connect() {
     this.setInterval(this.setTime, 1000)
     this.setRandomColor()
-  }
-
-  afterHtml() {
-    this.setTime()
   }
 
 })
