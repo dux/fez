@@ -41,6 +41,7 @@ Fez('ui-clock', class extends FezBase {
       stroke-width: 3;
     }
   `
+
   static html = `
     <svg viewBox="-50 -50 100 100">
       <circle class="clock-face" r="48" />

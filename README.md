@@ -111,6 +111,9 @@ Fez('foo-bar', class extends FezBase {
   // if you pair it with `reactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
   static html = `...`
 
+  // if you want to run code on component registration
+  static classConnect() { ... }
+
   connect(props) {
     // copy attributes from attr hash to root node
     this.copy('href', 'onclick', 'style')

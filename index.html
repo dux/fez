@@ -58,7 +58,7 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Mon Jul 15 18:29:49 2024 +0200'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Wed Jul 17 14:59:12 2024 +0200'))</script>.
 
   
       <script src="./demo/fez/clock.js"></script>
@@ -120,6 +120,7 @@ Fez('ui-clock', class extends FezBase {
       stroke-width: 3;
     }
   `
+
   static html = `
     &lt;svg viewBox="-50 -50 100 100">
       &lt;circle class="clock-face" r="48" />
@@ -181,7 +182,7 @@ Fez('ui-clock', class extends FezBase {
       <h2>
         ui-todo
         &sdot;
-        <small>Todo app demo, features reactiveStore, fez-use &sdot; <a href="https://todomvc.com/" target="mvc">ToDo MVC candidate</a> (<a href="https://github.com/tastejs/todomvc/tree/master/examples/react/src">React</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/vue/src">Vue</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/angular/src">Angular</a>)</small>
+        <small>features reactive state, fez-use & fez-bind &sdot; <a href="https://todomvc.com/" target="mvc">ToDo MVC candidate</a> (<a href="https://github.com/tastejs/todomvc/tree/master/examples/react/src">React</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/vue/src">Vue</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/angular/src">Angular</a>)</small>
       </h2>
 
       <div class="flex">
@@ -197,60 +198,58 @@ Fez('ui-todo', class extends FezBase {
   // if you define static html, it will be converted tu function(fast), and you will be able to refresh state with this.render()
   static html = `
     &lt;h3>Tasks&lt;/h3>
-    {{#if !@data.tasks[0]}}
+    {#if !@state.tasks[0]}
       &lt;p>No tasks found&lt;/p>
-    {{/if}}
-    {{#for task, index in @data.tasks}}
-      {{#if task.animate}} &lt;!-- this is fine because this is string templating -->
+    {/if}
+    {#for task, index in @state.tasks}
+      {#if task.animate} &lt;!-- this is fine because this is string templating -->
         &lt;p fez-use="animate" style="display: none; height: 0px; opacity: 0;">
-      {{else}}
+      {else}
         &lt;p>
-      {{/if}}
+      {/if}
         &lt;input
           type="text"
-          value="{{ task.name }}"
-          onkeyup="$$.setName({{ index }}, this.value)"
-          style="{{ task.done ? 'background-color: #ccc;' : '' }}"
+          fez-bind="state.tasks[{index}].name"
+          style="{ task.done ? 'background-color: #ccc;' : '' }"
         />
         &sdot;
         &lt;input
           type="checkbox"
-          {{ task.done ? 'checked=""' : '' }}
-          onclick="$$.toggleComplete({{ index }})"
+          fez-bind="state.tasks[{index}].done"
         />
         &sdot;
-        &lt;button onclick="$$.removeTask({{ index }})">&times;&lt;/button>
+        &lt;button onclick="$$.removeTask({ index })">&times;&lt;/button>
       &lt;/p>
-    {{/for}}
+    {/for}
     &lt;p>
       &lt;button onclick="$$.addTask()">add task&lt;/button>
       &sdot;
       &lt;button onclick="$$.clearCompleted()">clear completed&lt;/button>
     &lt;/p>
-    &lt;pre class="code">{{ JSON.stringify(this.data.tasks, null, 2) }}&lt;/pre>
+    &lt;pre class="code">{ JSON.stringify(this.state.tasks, null, 2) }&lt;/pre>
   `
 
   toggleComplete(index) {
-    const task = this.data.tasks[index]
+    const task = this.state.tasks[index]
     task.done = !task.done
   }
 
   clearCompleted() {
-    this.data.tasks = this.data.tasks.filter((t) => !t.done)
+    this.state.tasks = this.state.tasks.filter((t) => !t.done)
   }
 
   removeTask(index) {
-    this.data.tasks = this.data.tasks.filter((_, i) => i !== index);
+    this.state.tasks = this.state.tasks.filter((_, i) => i !== index);
   }
 
   setName(index, name) {
-    this.data.tasks[index].name = name
+    this.state.tasks[index].name = name
   }
 
   addTask() {
     // no need to force update template, this is automatic because we are using reactiveStore()
     this.counter ||= 0
-    this.data.tasks.push({
+    this.state.tasks.push({
       name: `new task ${++this.counter}`,
       done: false,
       animate: true
@@ -263,17 +262,13 @@ Fez('ui-todo', class extends FezBase {
     $(node)
       .css('display', 'block')
       .animate({height: '33px', opacity: 1}, 200, () => {
-        delete this.data.tasks[this.data.tasks.length-1].animate
+        delete this.state.tasks[this.state.tasks.length-1].animate
         $(node).css('height', 'auto')
       })
   }
 
   connect() {
-    // creates reactive store. calls this.render() to refresh state, after every data set
-    // you can pass function as argument to change default reactive behaviour
-    this.data = this.reactiveStore({})
-
-    this.data.tasks = [
+    this.state.tasks = [
       {name: 'First task', done: false},
       {name: 'Second task', done: false},
       {name: 'Third task', done: true },

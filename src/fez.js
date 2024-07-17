@@ -1,3 +1,17 @@
+window.getCssFromClassName = (className) => {
+    // Iterate over all stylesheets
+    for (let sheet of document.styleSheets) {
+        // Iterate over all CSS rules in the stylesheet
+        for (let rule of sheet.cssRules) {
+            // Check if the rule is a style rule and the selector matches the class name
+            if (rule instanceof CSSStyleRule && rule.selectorText === `.${className}`) {
+                return rule.cssText; // Return the CSS text for the matching rule
+            }
+        }
+    }
+    return null; // Return null if no matching rule is found
+}
+
 // templating
 import renderStache from './lib/stache'
 
@@ -37,10 +51,13 @@ class FezBase {
     return false
   }
 
+  // if you want to run code on component registration
+  static classConnect() {}
+
   // instance methods
 
   constructor() {
-    this.__int = {}
+    this._setIntervalCache = {}
   }
 
   n = parseNode
@@ -55,8 +72,8 @@ class FezBase {
     if (this.root?.parentNode) {
       return true
     } else {
-      Object.keys(this.__int).forEach((key)=> {
-        clearInterval(this.__int[key])
+      Object.keys(this._setIntervalCache).forEach((key)=> {
+        clearInterval(this._setIntervalCache[key])
       })
       this.root.fez = null
       this.root = null
@@ -248,6 +265,14 @@ class FezBase {
       }
     })
 
+    fetchAttr('fez-bind', (text, n) => {
+      const value = (new Function(`return this.${text}`)).bind(this)()
+      const isCb = n.type.toLowerCase() == 'checkbox'
+      const eventName = ['SELECT'].includes(n.nodeName) || isCb ? 'onchange' : 'onkeyup'
+      n.setAttribute(eventName, `${this.fezHtmlRoot}${text} = this.${isCb ? 'checked' : 'value'}`)
+      this.val(n, value)
+    })
+
     this.afterRender()
   }
 
@@ -263,19 +288,19 @@ class FezBase {
 
     name ||= Fez.fnv1(String(func))
 
-    clearInterval(this.__int[name])
+    clearInterval(this._setIntervalCache[name])
 
-    this.__int[name] = setInterval(() => {
+    this._setIntervalCache[name] = setInterval(() => {
       if (this.isAttached) {
         func()
       }
     }, tick)
 
-    return this.__int[name]
+    return this._setIntervalCache[name]
   }
 
   find(selector) {
-    return this.root.querySelector(selector)
+    return typeof selector == 'string' ? this.root.querySelector(selector) : selector
   }
 
   // get or set node value
@@ -285,14 +310,20 @@ class FezBase {
     if (node) {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(node.nodeName)) {
         if (typeof data != 'undefined') {
-          node.value = data
+          if (node.type == 'checkbox') {
+            node.checked = !!data
+          } else {
+            node.value = data
+          }
+        } else {
+          return node.value
         }
-        return node.value
       } else {
         if (typeof data != 'undefined') {
           node.innerHTML = data
+        } else {
+          return node.innerHTML
         }
-        return node.innerHTML
       }
     }
   }
@@ -330,15 +361,11 @@ class FezBase {
 
   fezRegister() {
     if (this.class.css) {
-      Fez.globalCss(this.class.css, this)
-      delete this.class.css
+      this.class.css = Fez.globalCss(this.class.css, {name: this.fezName})
     }
 
     if (this.css) {
-      let css = typeof this.css === 'function' ? this.css(this.root) : this.css
-      css = `.fez-${this.fezName} { ${this.css} }`
-      Fez.globalCss(css, this)
-      delete this.css
+      this.css = Fez.globalCss(this.css, {name: this.fezName, wrap: true})
     }
 
     this.state = this.reactiveStore()
@@ -484,6 +511,8 @@ const Fez = (name, klass) => {
     return Fez.find(name, klass)
   }
 
+  klass.classConnect(name)
+
   customElements.define(name, class extends HTMLElement {
     connectedCallback() {
       // when we render nested fez components, and under Svelte, sometimes node innerHTML is empty, but it should not be
@@ -523,14 +552,24 @@ Fez.css = (text) => {
   return Gobber.css(text)
 }
 
-Fez.globalCss = (text, host = {}) => {
-  text = text
-    .split("\n")
-    .filter(line => !(/^\s*\/\//.test(line)))
-    .join("\n")
-  text = text.replaceAll(':fez', `.fez-${host.fezName}`)
+Fez.globalCss = (cssClass, opts = {}) => {
+  if (typeof cssClass === 'function') {
+    cssClass = cssClass()
+  }
 
-  const cssClass = Fez.css(text)
+  if (cssClass.includes(':')) {
+    let text = cssClass
+      .split("\n")
+      .filter(line => !(/^\s*\/\//.test(line)))
+      .join("\n")
+    text = text.replaceAll(':fez', `.fez-${opts.name}`)
+
+    if (opts.wrap) {
+      text = `.fez-${opts.name} { ${text} }`
+    }
+
+    cssClass = Fez.css(text)
+  }
 
   if (document.body) {
     document.body.classList.add(cssClass)
