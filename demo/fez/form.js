@@ -7,6 +7,16 @@ Fez('ui-form', class extends FezBase {
     border-radius: 5px;
     padding: 15px;
     margin: 15px 0;
+
+    label {
+      display: block;
+      cursor: pointer;
+      margin-bottom: 5px;
+    }
+
+    select option {
+      font-size: 16px;
+    }
   `
 
   submit(e) {

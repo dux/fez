@@ -58,7 +58,7 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Wed Jul 17 14:59:12 2024 +0200'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Wed Jul 17 19:10:29 2024 +0200'))</script>.
 
   
       <script src="./demo/fez/clock.js"></script>
@@ -78,7 +78,7 @@
             <pre>
               <code class="language-javascript" id="fez-clock-js">
 Fez('ui-clock', class extends FezBase {
-  css = `
+  css = /*css*/ `
     input {
       border: 3px solid red !important;
     }
@@ -121,7 +121,7 @@ Fez('ui-clock', class extends FezBase {
     }
   `
 
-  static html = `
+  static html = /*html*/`
     &lt;svg viewBox="-50 -50 100 100">
       &lt;circle class="clock-face" r="48" />
 
@@ -229,21 +229,12 @@ Fez('ui-todo', class extends FezBase {
     &lt;pre class="code">{ JSON.stringify(this.state.tasks, null, 2) }&lt;/pre>
   `
 
-  toggleComplete(index) {
-    const task = this.state.tasks[index]
-    task.done = !task.done
-  }
-
   clearCompleted() {
     this.state.tasks = this.state.tasks.filter((t) => !t.done)
   }
 
   removeTask(index) {
     this.state.tasks = this.state.tasks.filter((_, i) => i !== index);
-  }
-
-  setName(index, name) {
-    this.state.tasks[index].name = name
   }
 
   addTask() {
@@ -303,7 +294,7 @@ Fez('ui-todo', class extends FezBase {
         <div class="body">
            <ui-form target="/api">
   <p>
-    <input type="text" name="name" value="Dux" />
+    <input type="text" name="info" value="a dude" />
   </p>
   <p>
     <select name="num">
@@ -311,6 +302,11 @@ Fez('ui-todo', class extends FezBase {
       <option>two</option>
       <option>three</option>
     </select>
+  </p>
+  <p>
+    <label><input type="radio" name="name" value="Jakov" /> Jakov</label>
+    <label><input type="radio" name="name" value="Vid" /> Vid</label>
+    <label><input type="radio" name="name" value="Dino" /> Dino</label>
   </p>
   <p>
     <button>Submit</button>
@@ -331,6 +327,16 @@ Fez('ui-form', class extends FezBase {
     border-radius: 5px;
     padding: 15px;
     margin: 15px 0;
+
+    label {
+      display: block;
+      cursor: pointer;
+      margin-bottom: 5px;
+    }
+
+    select option {
+      font-size: 16px;
+    }
   `
 
   submit(e) {
@@ -352,7 +358,7 @@ Fez('ui-form', class extends FezBase {
               <code class="language-html" id="fez-form-html">
 &lt;ui-form target="/api">
   &lt;p>
-    &lt;input type="text" name="name" value="Dux" />
+    &lt;input type="text" name="info" value="a dude" />
   &lt;/p>
   &lt;p>
     &lt;select name="num">
@@ -360,6 +366,11 @@ Fez('ui-form', class extends FezBase {
       &lt;option>two&lt;/option>
       &lt;option>three&lt;/option>
     &lt;/select>
+  &lt;/p>
+  &lt;p>
+    &lt;label>&lt;input type="radio" name="name" value="Jakov" /> Jakov&lt;/label>
+    &lt;label>&lt;input type="radio" name="name" value="Vid" /> Vid&lt;/label>
+    &lt;label>&lt;input type="radio" name="name" value="Dino" /> Dino&lt;/label>
   &lt;/p>
   &lt;p>
     &lt;button>Submit&lt;/button>
@@ -726,30 +737,30 @@ Fez('ui-list', class extends FezBase {
     }
   `
 
-  static html = `
-    {{#if @colors[0]}} @ will be replaced with this.
+  static html = /*html*/`
+    {#if @colors[0]} @ will be replaced with this.
       &lt;ul>
-        {{#for color in @colors}}
-          &lt;li style="color: {{ color }};">{{ color }}&lt;/li>
-        {{/for}}
+        {#for color in @colors}
+          &lt;li style="color: { color };">{ color }&lt;/li>
+        {/for}
       &lt;/ul>
-    {{else}}
+    {else}
       &lt;p>no colors, here is object&lt;/p>
 
       &lt;h4>for loop, no index&lt;/h4>
 
-      {{#for [key, value] in this.objectData}}
-        &lt;p>{{ key }} : {{ value }}&lt;/p>
-      {{/for}}
+      {#for [key, value] in this.objectData}
+        &lt;p>{ key } : { value }&lt;/p>
+      {/for}
 
       &lt;h4>each loop, with index&lt;/h4>
 
-      {{#each this.objectData as [key, value], index }}
+      {#each this.objectData as [key, value], index }
         &lt;p>
-          {{ key }} : &lt;i>{{ value }}&lt;/i> : {{ index }}
+          { key } : &lt;i>{ value }&lt;/i> : { index }
         &lt;/p>
-      {{/each}}
-    {{/if}}
+      {/each}
+    {/if}
   `
 
   connect() {

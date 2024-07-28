@@ -1,17 +1,3 @@
-window.getCssFromClassName = (className) => {
-    // Iterate over all stylesheets
-    for (let sheet of document.styleSheets) {
-        // Iterate over all CSS rules in the stylesheet
-        for (let rule of sheet.cssRules) {
-            // Check if the rule is a style rule and the selector matches the class name
-            if (rule instanceof CSSStyleRule && rule.selectorText === `.${className}`) {
-                return rule.cssText; // Return the CSS text for the matching rule
-            }
-        }
-    }
-    return null; // Return null if no matching rule is found
-}
-
 // templating
 import renderStache from './lib/stache'
 
@@ -23,6 +9,8 @@ import Gobber from './lib/gobber'
 
 // HTML node builder
 import parseNode from './lib/n'
+
+window.Gobber = Gobber
 
 class FezBase {
   static __objects = []
@@ -54,11 +42,11 @@ class FezBase {
   // if you want to run code on component registration
   static classConnect() {}
 
+  static nodeName = 'div'
+
   // instance methods
 
-  constructor() {
-    this._setIntervalCache = {}
-  }
+  constructor() {}
 
   n = parseNode
 
@@ -72,6 +60,7 @@ class FezBase {
     if (this.root?.parentNode) {
       return true
     } else {
+      this._setIntervalCache ||= {}
       Object.keys(this._setIntervalCache).forEach((key)=> {
         clearInterval(this._setIntervalCache[key])
       })
@@ -166,6 +155,19 @@ class FezBase {
     return text
   }
 
+  // pass name to have only one tick of a kind
+  nextTick(func, name) {
+    if (name) {
+      this._nextTicks ||= {}
+      this._nextTicks[name] ||= window.requestAnimationFrame(() => {
+        func.bind(this)()
+        this._nextTicks[name] = null
+      }, name)
+    } else {
+      window.requestAnimationFrame(func.bind(this))
+    }
+  }
+
   // inject htmlString as innerHTML and replace $$. with local pointer
   // $$. will point to current fez instance
   // <slot></slot> will be replaced with current root
@@ -173,10 +175,7 @@ class FezBase {
   // this.render('.images', '...loading')
   render(target, body) {
     if (target === true) {
-      this._nextRenderTick ||= window.requestAnimationFrame(()=>{
-        this.render()
-        this._nextRenderTick = null
-      })
+      this.nextTick(this.render, 'render')
       return
     }
 
@@ -288,6 +287,7 @@ class FezBase {
 
     name ||= Fez.fnv1(String(func))
 
+    this._setIntervalCache ||= {}
     clearInterval(this._setIntervalCache[name])
 
     this._setIntervalCache[name] = setInterval(() => {
@@ -511,6 +511,20 @@ const Fez = (name, klass) => {
     return Fez.find(name, klass)
   }
 
+  // to allow anonymous class and then re-attach (does not work)
+  // Fez('ui-todo', class { ... # instead Fez('ui-todo', class extends FezBase {
+  // if (!klass.classConnect) {
+  //   for (const prop of Object.getOwnPropertyNames(FezBase).filter(prop => prop !== "constructor")) {
+  //     L(prop)
+  //     klass[prop] = FezBase[prop]
+  //   }
+  //   L('-')
+  //   for (const prop of Object.getOwnPropertyNames(FezBase.prototype).filter(prop => prop !== "constructor")) {
+  //     L(prop)
+  //     klass.prototype[prop] = FezBase.prototype[prop]
+  //   }
+  // }
+
   klass.classConnect(name)
 
   customElements.define(name, class extends HTMLElement {
@@ -546,9 +560,7 @@ Fez.find = (node, name) => {
   return node.closest(klass).fez
 }
 
-window.Gobber = Gobber
-
-Fez.css = (text) => {
+Fez.cssClass = (text) => {
   return Gobber.css(text)
 }
 
@@ -568,7 +580,7 @@ Fez.globalCss = (cssClass, opts = {}) => {
       text = `.fez-${opts.name} { ${text} }`
     }
 
-    cssClass = Fez.css(text)
+    cssClass = Fez.cssClass(text)
   }
 
   if (document.body) {

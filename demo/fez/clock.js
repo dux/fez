@@ -1,5 +1,5 @@
 Fez('ui-clock', class extends FezBase {
-  css = `
+  css = /*css*/ `
     input {
       border: 3px solid red !important;
     }
@@ -42,7 +42,7 @@ Fez('ui-clock', class extends FezBase {
     }
   `
 
-  static html = `
+  static html = /*html*/`
     <svg viewBox="-50 -50 100 100">
       <circle class="clock-face" r="48" />
 

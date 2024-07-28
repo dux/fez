@@ -33,21 +33,12 @@ Fez('ui-todo', class extends FezBase {
     <pre class="code">{ JSON.stringify(this.state.tasks, null, 2) }</pre>
   `
 
-  toggleComplete(index) {
-    const task = this.state.tasks[index]
-    task.done = !task.done
-  }
-
   clearCompleted() {
     this.state.tasks = this.state.tasks.filter((t) => !t.done)
   }
 
   removeTask(index) {
     this.state.tasks = this.state.tasks.filter((_, i) => i !== index);
-  }
-
-  setName(index, name) {
-    this.state.tasks[index].name = name
   }
 
   addTask() {
