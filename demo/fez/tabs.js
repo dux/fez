@@ -1,4 +1,4 @@
-Fez('ui-tabs', class extends FezBase {
+Fez('ui-tabs', class {
   css = `
     --tabs-border: 1px solid #ccc;
 

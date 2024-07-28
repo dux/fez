@@ -1,12 +1,12 @@
 // component to render google fonts icons
-Fez('ui-list', class extends FezBase {
+Fez('ui-list', class {
   css = `
     li {
       font-weight: bold;
     }
   `
 
-  static html = /*html*/`
+  HTML = `
     {#if @colors[0]} @ will be replaced with this.
       <ul>
         {#for color in @colors}

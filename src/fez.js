@@ -39,9 +39,6 @@ class FezBase {
     return false
   }
 
-  // if you want to run code on component registration
-  static classConnect() {}
-
   static nodeName = 'div'
 
   // instance methods
@@ -360,12 +357,13 @@ class FezBase {
   }
 
   fezRegister() {
-    if (this.class.css) {
-      this.class.css = Fez.globalCss(this.class.css, {name: this.fezName})
+    if (this.css) {
+      this.class.css = `:fez { ${this.css} }`
+      delete this.css
     }
 
-    if (this.css) {
-      this.css = Fez.globalCss(this.css, {name: this.fezName, wrap: true})
+    if (this.class.css) {
+      this.class.css = Fez.globalCss(this.class.css, {name: this.fezName})
     }
 
     this.state = this.reactiveStore()
@@ -503,6 +501,8 @@ const Fez = (name, klass) => {
     return typeof klass.fastBind === 'function' ? klass.fastBind(n) : klass.fastBind
   }
 
+  //
+
   if (!name) {
     return FezBase
   }
@@ -513,19 +513,24 @@ const Fez = (name, klass) => {
 
   // to allow anonymous class and then re-attach (does not work)
   // Fez('ui-todo', class { ... # instead Fez('ui-todo', class extends FezBase {
-  // if (!klass.classConnect) {
-  //   for (const prop of Object.getOwnPropertyNames(FezBase).filter(prop => prop !== "constructor")) {
-  //     L(prop)
-  //     klass[prop] = FezBase[prop]
-  //   }
-  //   L('-')
-  //   for (const prop of Object.getOwnPropertyNames(FezBase.prototype).filter(prop => prop !== "constructor")) {
-  //     L(prop)
-  //     klass.prototype[prop] = FezBase.prototype[prop]
-  //   }
-  // }
+  if (!klass.__objects) {
+    const klassObj = new klass()
+    const newKlass = class extends FezBase {}
+    const props = Object.getOwnPropertyNames(klassObj)
+      .concat(Object.getOwnPropertyNames(klass.prototype))
+      .filter(el => !['constructor', 'prototype'].includes(el))
 
-  klass.classConnect(name)
+    L(props)
+
+    props.forEach(prop => newKlass.prototype[prop] = klassObj[prop])
+
+    if (klassObj.CSS) { newKlass.css = klassObj.CSS }
+    if (klassObj.HTML) { newKlass.html = klassObj.HTML }
+    if (klassObj.NAME) { newKlass.nodeName = klassObj.NAME }
+    if (klassObj.FAST) { newKlass.fastBind = klassObj.FAST }
+
+    klass = newKlass
+  }
 
   customElements.define(name, class extends HTMLElement {
     connectedCallback() {
@@ -574,10 +579,10 @@ Fez.globalCss = (cssClass, opts = {}) => {
       .split("\n")
       .filter(line => !(/^\s*\/\//.test(line)))
       .join("\n")
-    text = text.replaceAll(':fez', `.fez-${opts.name}`)
+    text = text.replaceAll(':fez', `.fez.fez-${opts.name}`)
 
     if (opts.wrap) {
-      text = `.fez-${opts.name} { ${text} }`
+      text = `.fez.fez-${opts.name} { ${text} }`
     }
 
     cssClass = Fez.cssClass(text)

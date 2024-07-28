@@ -13,6 +13,10 @@ body {
   }
 }
 
+.pointer {
+  cursor: pointer;
+}
+
 pre {
   overflow: auto;
 

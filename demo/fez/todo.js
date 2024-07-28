@@ -1,6 +1,6 @@
-Fez('ui-todo', class extends FezBase {
+Fez('ui-todo', class {
   // if you define static html, it will be converted tu function(fast), and you will be able to refresh state with this.render()
-  static html = `
+  HTML = `
     <h3>Tasks</h3>
     {#if !@state.tasks[0]}
       <p>No tasks found</p>
@@ -54,6 +54,7 @@ Fez('ui-todo', class extends FezBase {
   animate(node) {
     // same as in Svelte, uf you define fez-use="methodName", method will be called when node is added to dom.
     // in this case, we animate show new node
+
     $(node)
       .css('display', 'block')
       .animate({height: '33px', opacity: 1}, 200, () => {

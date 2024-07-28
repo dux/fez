@@ -58,7 +58,7 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Wed Jul 17 19:10:29 2024 +0200'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Sun Jul 28 14:15:58 2024 +0200'))</script>.
 
   
       <script src="./demo/fez/clock.js"></script>
@@ -77,8 +77,35 @@
           <div class="relative">
             <pre>
               <code class="language-javascript" id="fez-clock-js">
-Fez('ui-clock', class extends FezBase {
-  css = /*css*/ `
+Fez('ui-clock', class {
+  HTML = `
+    &lt;svg viewBox="-50 -50 100 100">
+      &lt;circle class="clock-face" r="48" />
+
+     &lt;!-- markers -->
+      {#each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}
+        &lt;line class="major" y1="35" y2="45" transform="rotate({30 * minute})" />
+
+        {#each [1, 2, 3, 4] as offset}
+          &lt;line class="minor" y1="42" y2="45" transform="rotate({6 * (minute + offset)})" />
+        {/each}
+      {/each}
+
+      &lt;!-- hour hand -->
+      &lt;line class="hour" y1="2" y2="-20" transform="rotate({30 * @state.hours + @state.minutes / 2})" />
+
+      &lt;!-- minute hand -->
+      &lt;line class="minute" y1="4" y2="-30" transform="rotate({6 * @state.minutes + @state.seconds / 10})" />
+
+      &lt;!-- second hand -->
+      &lt;g transform="rotate({6 * @state.seconds})">
+        &lt;line class="second" y1="10" y2="-38" />
+        &lt;line class="second-counterweight" y1="10" y2="2" />
+      &lt;/g>
+    &lt;/svg>
+  `
+
+  css = `
     input {
       border: 3px solid red !important;
     }
@@ -119,33 +146,6 @@ Fez('ui-clock', class extends FezBase {
     .second-counterweight {
       stroke-width: 3;
     }
-  `
-
-  static html = /*html*/`
-    &lt;svg viewBox="-50 -50 100 100">
-      &lt;circle class="clock-face" r="48" />
-
-     &lt;!-- markers -->
-      {#each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}
-        &lt;line class="major" y1="35" y2="45" transform="rotate({30 * minute})" />
-
-        {#each [1, 2, 3, 4] as offset}
-          &lt;line class="minor" y1="42" y2="45" transform="rotate({6 * (minute + offset)})" />
-        {/each}
-      {/each}
-
-      &lt;!-- hour hand -->
-      &lt;line class="hour" y1="2" y2="-20" transform="rotate({30 * @state.hours + @state.minutes / 2})" />
-
-      &lt;!-- minute hand -->
-      &lt;line class="minute" y1="4" y2="-30" transform="rotate({6 * @state.minutes + @state.seconds / 10})" />
-
-      &lt;!-- second hand -->
-      &lt;g transform="rotate({6 * @state.seconds})">
-        &lt;line class="second" y1="10" y2="-38" />
-        &lt;line class="second-counterweight" y1="10" y2="2" />
-      &lt;/g>
-    &lt;/svg>
   `
 
   setVars() {
@@ -194,9 +194,9 @@ Fez('ui-clock', class extends FezBase {
           <div class="relative">
             <pre>
               <code class="language-javascript" id="fez-todo-js">
-Fez('ui-todo', class extends FezBase {
+Fez('ui-todo', class {
   // if you define static html, it will be converted tu function(fast), and you will be able to refresh state with this.render()
-  static html = `
+  HTML = `
     &lt;h3>Tasks&lt;/h3>
     {#if !@state.tasks[0]}
       &lt;p>No tasks found&lt;/p>
@@ -250,6 +250,7 @@ Fez('ui-todo', class extends FezBase {
   animate(node) {
     // same as in Svelte, uf you define fez-use="methodName", method will be called when node is added to dom.
     // in this case, we animate show new node
+
     $(node)
       .css('display', 'block')
       .animate({height: '33px', opacity: 1}, 200, () => {
@@ -319,8 +320,8 @@ Fez('ui-todo', class extends FezBase {
             <pre>
               <code class="language-javascript" id="fez-form-js">
 // render form
-Fez('ui-form', class extends FezBase {
-  static nodeName = 'form'
+Fez('ui-form', class {
+  NAME = 'form'
 
   css = `
     border: 2px solid green;
@@ -407,12 +408,13 @@ Fez('ui-form', class extends FezBase {
           <div class="relative">
             <pre>
               <code class="language-javascript" id="fez-time-js">
-Fez('ui-time', class extends FezBase {
-  static nodeName = 'div'
+Fez('ui-time', class {
+  NAME = 'div'
 
-  static css = `
+  CSS = `
     // :fez will be replaced with .fez-ui-time, so you can add local styles in global css
     :fez {
+      border: 10px solid green;
       border-radius: 10px;
       padding: 10px;
 
@@ -421,14 +423,10 @@ Fez('ui-time', class extends FezBase {
       }
     }
   `
-  css = `
-    border: 10px solid green;
-  `
-
-  static html = `
-    &lt;p>Param city: {{ this.props.city }}&lt;/p>
+  HTML = `
+    &lt;p>Param city: { @props.city }&lt;/p>
     &lt;p>Time now: &lt;span class="time">&lt;/span>&lt;/p>
-    &lt;p>Random num: &lt;span>{{ Math.random() }}&lt;/span>&lt;/p>
+    &lt;p>Random num: &lt;span>{ Math.random() }&lt;/span>&lt;/p>
     &lt;button onclick="$$.setRandomColor()">random color&lt;/button>
     &sdot;
     &lt;button onclick="$$.render()">refresh & preserve slot&lt;/button>
@@ -504,6 +502,14 @@ Fez('ui-time', class extends FezBase {
   oninput="Fez('#blue-icon').setSize(this.value)"
 />
 
+&sdot;
+
+<span onclick="Fez('#blue-icon').attr('color', $(event.target).text())">
+  <span class="pointer">red</span>
+  <span class="pointer">blue</span>
+  <span class="pointer">green</span>
+</span>
+
 <br /><br />
 
 <ui-icon name="home"></ui-icon>
@@ -522,24 +528,28 @@ $(document.head).append(`
 `)
 
 // component to render google fonts icons
-Fez('ui-icon', class extends FezBase {
+Fez('ui-icon', class {
   // default node name is div
-  static nodeName = 'span'
+  NAME = 'span'
 
-  static style() {
-    return `
-      &.material-symbols-outlined {
-        font-variation-settings:
-        'FILL' 0,
-        'wght' 400,
-        'GRAD' 0,
-        'opsz' 24
-      }
-    `
-  }
+  CSS = `
+    &.material-symbols-outlined {
+      font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24
+    }
+  `
 
   setSize(size) {
     this.$root.css('font-size', `${size}px`)
+  }
+
+  onPropsChange(name, value) {
+    if (name == 'color') {
+      this.$root.css('color', value)
+    }
   }
 
   connect(root, props) {
@@ -565,6 +575,14 @@ Fez('ui-icon', class extends FezBase {
   type="range" min="24" max="100" value="24" class="slider" id="myRange"
   oninput="Fez('#blue-icon').setSize(this.value)"
 />
+
+&sdot;
+
+&lt;span onclick="Fez('#blue-icon').attr('color', $(event.target).text())">
+  &lt;span class="pointer">red&lt;/span>
+  &lt;span class="pointer">blue&lt;/span>
+  &lt;span class="pointer">green&lt;/span>
+&lt;/span>
 
 &lt;br />&lt;br />
 
@@ -730,14 +748,14 @@ setInterval(()=>Fez.publish('ping', Math.random()), 5000)
             <pre>
               <code class="language-javascript" id="fez-list-js">
 // component to render google fonts icons
-Fez('ui-list', class extends FezBase {
+Fez('ui-list', class {
   css = `
     li {
       font-weight: bold;
     }
   `
 
-  static html = /*html*/`
+  HTML = `
     {#if @colors[0]} @ will be replaced with this.
       &lt;ul>
         {#for color in @colors}
@@ -833,7 +851,7 @@ Fez('ui-list', class extends FezBase {
           <div class="relative">
             <pre>
               <code class="language-javascript" id="fez-tabs-js">
-Fez('ui-tabs', class extends FezBase {
+Fez('ui-tabs', class {
   css = `
     --tabs-border: 1px solid #ccc;
 

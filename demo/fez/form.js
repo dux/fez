@@ -1,6 +1,6 @@
 // render form
-Fez('ui-form', class extends FezBase {
-  static nodeName = 'form'
+Fez('ui-form', class {
+  NAME = 'form'
 
   css = `
     border: 2px solid green;

@@ -1,9 +1,10 @@
-Fez('ui-time', class extends FezBase {
-  static nodeName = 'div'
+Fez('ui-time', class {
+  NAME = 'div'
 
-  static css = `
+  CSS = `
     // :fez will be replaced with .fez-ui-time, so you can add local styles in global css
     :fez {
+      border: 10px solid green;
       border-radius: 10px;
       padding: 10px;
 
@@ -12,14 +13,10 @@ Fez('ui-time', class extends FezBase {
       }
     }
   `
-  css = `
-    border: 10px solid green;
-  `
-
-  static html = `
-    <p>Param city: {{ this.props.city }}</p>
+  HTML = `
+    <p>Param city: { @props.city }</p>
     <p>Time now: <span class="time"></span></p>
-    <p>Random num: <span>{{ Math.random() }}</span></p>
+    <p>Random num: <span>{ Math.random() }</span></p>
     <button onclick="$$.setRandomColor()">random color</button>
     &sdot;
     <button onclick="$$.render()">refresh & preserve slot</button>

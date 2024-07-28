@@ -5,6 +5,14 @@ Features component to component communication
   oninput="Fez('#blue-icon').setSize(this.value)"
 />
 
+&sdot;
+
+<span onclick="Fez('#blue-icon').attr('color', $(event.target).text())">
+  <span class="pointer">red</span>
+  <span class="pointer">blue</span>
+  <span class="pointer">green</span>
+</span>
+
 <br /><br />
 
 <ui-icon name="home"></ui-icon>

@@ -82,37 +82,24 @@ Fez.fnv1('some string')
 Fez.css(text)
 
 // define custom DOM node name -> <foo-bar>...
-Fez('foo-bar', class extends FezBase {
+Fez('foo-bar', class {
   // set element node name, set as property or method, defaults to DIV
   // why? because Fez renames custom dom nodes to regular HTML nodes
-  static nodeName = 'span'
-  static nodeName(node) { ... }
+  NAME = 'span'
+  NAME(node) { ... }
 
   // set element style, set as property or method
-  static css = ` scss string... `
-  static css(`
-    border: 5px solid green;
-    border-radius: 10px;
-    padding: 10px;
-    font-family: var(--font-family);
-
-    button {
-      font-size: 16px;
-    }
-  `)
+  CSS = `scss string... `
 
   // unless node has no innerHTML on initialization, bind will be set to slow (fastBind = false)
   // if you are using components that to not use innerHTML and slots, enable fast bind (fastBind = true)
   // <fez-icon name="gear" />
-  static fastBind = true
-  static fastBind(node) { ... }
+  FAST = true
+  FAST(node) { ... }
 
   // define static HTML. calling `this.render()` (no arguments) will refresh current node.
   // if you pair it with `reactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
-  static html = `...`
-
-  // if you want to run code on component registration
-  static classConnect() { ... }
+  HTML = `...`
 
   connect(props) {
     // copy attributes from attr hash to root node
@@ -246,7 +233,7 @@ Example: Dialog controller
 ```
 
 ```js
-Fez('ui-dialog', class extends FezBase {
+Fez('ui-dialog', class {
   close() {
     ...
   }
@@ -385,10 +372,10 @@ Finds first closest Fez node.
   ```
 
   ```js
-    Fez('fez-icon', class extends FezBase {
+    Fez('fez-icon', class {
       // ...
 
-      this.onPropsChange(name, value) {
+      onPropsChange(name, value) {
         if (name == 'color') {
           this.setColor(value)
         }

@@ -3,24 +3,28 @@ $(document.head).append(`
 `)
 
 // component to render google fonts icons
-Fez('ui-icon', class extends FezBase {
+Fez('ui-icon', class {
   // default node name is div
-  static nodeName = 'span'
+  NAME = 'span'
 
-  static style() {
-    return `
-      &.material-symbols-outlined {
-        font-variation-settings:
-        'FILL' 0,
-        'wght' 400,
-        'GRAD' 0,
-        'opsz' 24
-      }
-    `
-  }
+  CSS = `
+    &.material-symbols-outlined {
+      font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24
+    }
+  `
 
   setSize(size) {
     this.$root.css('font-size', `${size}px`)
+  }
+
+  onPropsChange(name, value) {
+    if (name == 'color') {
+      this.$root.css('color', value)
+    }
   }
 
   connect(root, props) {
