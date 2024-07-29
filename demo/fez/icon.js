@@ -18,12 +18,16 @@ Fez('ui-icon', class {
   `
 
   setSize(size) {
-    this.$root.css('font-size', `${size}px`)
+    this.$root.css('font-size', `${parseInt(size)}px`)
   }
 
   onPropsChange(name, value) {
     if (name == 'color') {
       this.$root.css('color', value)
+    }
+
+    if (name == 'size') {
+      this.setSize(value)
     }
   }
 
@@ -32,9 +36,7 @@ Fez('ui-icon', class {
 
     const icon = this.props.name || this.root.innerHTML.trim()
     this.color = this.props.color || '#00'
-
-    this.$root.addClass('material-symbols-outlined')
-    this.$root.css('color', this.color)
-    this.render(icon)
+    this.root.classList.add('material-symbols-outlined')
+    this.root.innerHTML = icon
   }
 })

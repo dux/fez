@@ -21,19 +21,20 @@
         <div>
           <div class="relative">
             <pre>
+              <code class="language-html" id="fez-#{name}-html">
+#{escape(body[1])}
+</code>
+            <pre>
+          </div>
+
+          <div class="relative">
+            <pre>
               <code class="language-javascript" id="fez-#{name}-js">
 #{escape(File.read("./demo/fez/#{name}.js"))}
               </code>
             </pre>
           </div>
 
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-#{name}-html">
-#{escape(body[1])}
-</code>
-            <pre>
-          </div>
         </div>
       </div>
     }

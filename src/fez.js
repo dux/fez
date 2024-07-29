@@ -491,8 +491,22 @@ const Fez = (name, klass) => {
       }
       object.afterConnect(object.props)
 
+      // parse code in props
+      // size="{{ document.getElementById('icon-range').value }}"
+      for (let [key, value] of Object.entries(object.props)) {
+        if (/^\{\{/.test(value) && /\}\}$/.test(value)) {
+          value = value.replace(/^\{\{/, 'return (').replace(/\}\}$/, ')')
+          value = (new Function(value)).bind(object.root)()
+          object.props[key] = value
+        }
+      }
+
+      // if onPropsChange method defined, add observer and trigger call on all attributes once component is loaded
       if (object.onPropsChange) {
         observer.observe(newNode, {attributes:true})
+        for (const [key, value] of Object.entries(object.props)) {
+          object.onPropsChange(key, value)
+        }
       }
     }
   }
@@ -519,8 +533,6 @@ const Fez = (name, klass) => {
     const props = Object.getOwnPropertyNames(klassObj)
       .concat(Object.getOwnPropertyNames(klass.prototype))
       .filter(el => !['constructor', 'prototype'].includes(el))
-
-    L(props)
 
     props.forEach(prop => newKlass.prototype[prop] = klassObj[prop])
 

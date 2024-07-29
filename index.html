@@ -58,7 +58,7 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Sun Jul 28 14:15:58 2024 +0200'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Mon Jul 29 12:15:34 2024 +0200'))</script>.
 
   
       <script src="./demo/fez/clock.js"></script>
@@ -74,6 +74,15 @@
 
         </div>
         <div>
+          <div class="relative">
+            <pre>
+              <code class="language-html" id="fez-clock-html">
+&lt;ui-clock>&lt;/ui-clock>
+
+</code>
+            <pre>
+          </div>
+
           <div class="relative">
             <pre>
               <code class="language-javascript" id="fez-clock-js">
@@ -166,14 +175,6 @@ Fez('ui-clock', class {
             </pre>
           </div>
 
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-clock-html">
-&lt;ui-clock>&lt;/ui-clock>
-
-</code>
-            <pre>
-          </div>
         </div>
       </div>
     
@@ -191,6 +192,15 @@ Fez('ui-clock', class {
 
         </div>
         <div>
+          <div class="relative">
+            <pre>
+              <code class="language-html" id="fez-todo-html">
+&lt;ui-todo>&lt;/ui-todo>
+
+</code>
+            <pre>
+          </div>
+
           <div class="relative">
             <pre>
               <code class="language-javascript" id="fez-todo-js">
@@ -272,14 +282,6 @@ Fez('ui-todo', class {
             </pre>
           </div>
 
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-todo-html">
-&lt;ui-todo>&lt;/ui-todo>
-
-</code>
-            <pre>
-          </div>
         </div>
       </div>
     
@@ -318,6 +320,34 @@ Fez('ui-todo', class {
         <div>
           <div class="relative">
             <pre>
+              <code class="language-html" id="fez-form-html">
+&lt;ui-form target="/api">
+  &lt;p>
+    &lt;input type="text" name="info" value="a dude" />
+  &lt;/p>
+  &lt;p>
+    &lt;select name="num">
+      &lt;option>one&lt;/option>
+      &lt;option>two&lt;/option>
+      &lt;option>three&lt;/option>
+    &lt;/select>
+  &lt;/p>
+  &lt;p>
+    &lt;label>&lt;input type="radio" name="name" value="Jakov" /> Jakov&lt;/label>
+    &lt;label>&lt;input type="radio" name="name" value="Vid" /> Vid&lt;/label>
+    &lt;label>&lt;input type="radio" name="name" value="Dino" /> Dino&lt;/label>
+  &lt;/p>
+  &lt;p>
+    &lt;button>Submit&lt;/button>
+  &lt;/p>
+&lt;/ui-form>
+
+</code>
+            <pre>
+          </div>
+
+          <div class="relative">
+            <pre>
               <code class="language-javascript" id="fez-form-js">
 // render form
 Fez('ui-form', class {
@@ -354,33 +384,6 @@ Fez('ui-form', class {
             </pre>
           </div>
 
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-form-html">
-&lt;ui-form target="/api">
-  &lt;p>
-    &lt;input type="text" name="info" value="a dude" />
-  &lt;/p>
-  &lt;p>
-    &lt;select name="num">
-      &lt;option>one&lt;/option>
-      &lt;option>two&lt;/option>
-      &lt;option>three&lt;/option>
-    &lt;/select>
-  &lt;/p>
-  &lt;p>
-    &lt;label>&lt;input type="radio" name="name" value="Jakov" /> Jakov&lt;/label>
-    &lt;label>&lt;input type="radio" name="name" value="Vid" /> Vid&lt;/label>
-    &lt;label>&lt;input type="radio" name="name" value="Dino" /> Dino&lt;/label>
-  &lt;/p>
-  &lt;p>
-    &lt;button>Submit&lt;/button>
-  &lt;/p>
-&lt;/ui-form>
-
-</code>
-            <pre>
-          </div>
         </div>
       </div>
     
@@ -405,6 +408,22 @@ Fez('ui-form', class {
 
         </div>
         <div>
+          <div class="relative">
+            <pre>
+              <code class="language-html" id="fez-time-html">
+&lt;ui-time city="Zagreb">
+  &lt;ul>
+    &lt;li>
+      Slot state preservation demo:
+      &lt;b class="color-name">&lt;/b>
+    &lt;/li>
+  &lt;/ul>
+&lt;/ui-time>
+
+</code>
+            <pre>
+          </div>
+
           <div class="relative">
             <pre>
               <code class="language-javascript" id="fez-time-js">
@@ -469,21 +488,6 @@ Fez('ui-time', class {
             </pre>
           </div>
 
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-time-html">
-&lt;ui-time city="Zagreb">
-  &lt;ul>
-    &lt;li>
-      Slot state preservation demo:
-      &lt;b class="color-name">&lt;/b>
-    &lt;/li>
-  &lt;/ul>
-&lt;/ui-time>
-
-</code>
-            <pre>
-          </div>
         </div>
       </div>
     
@@ -498,13 +502,13 @@ Fez('ui-time', class {
       <div class="flex">
         <div class="body">
            <input
-  type="range" min="24" max="100" value="24" class="slider" id="myRange"
-  oninput="Fez('#blue-icon').setSize(this.value)"
+  type="range" min="24" max="100" class="slider" id="icon-range"
+  oninput="Fez('#icon-blue').setSize(this.value)"
 />
 
 &sdot;
 
-<span onclick="Fez('#blue-icon').attr('color', $(event.target).text())">
+<span onclick="Fez('#icon-blue').attr('color', $(event.target).text())">
   <span class="pointer">red</span>
   <span class="pointer">blue</span>
   <span class="pointer">green</span>
@@ -513,13 +517,49 @@ Fez('ui-time', class {
 <br /><br />
 
 <ui-icon name="home"></ui-icon>
-<ui-icon name="settings" color="blue" onclick="alert(Fez(this).color)" id="blue-icon"></ui-icon>
+<ui-icon
+  id="icon-blue"
+  name="settings"
+  color="blue"
+  onclick="alert(this.fez.props.color)"
+  size="{{ document.getElementById('icon-range').value }}"
+></ui-icon>
 <ui-icon color="red">delete</ui-icon>
-
-
 
         </div>
         <div>
+          <div class="relative">
+            <pre>
+              <code class="language-html" id="fez-icon-html">
+&lt;input
+  type="range" min="24" max="100" class="slider" id="icon-range"
+  oninput="Fez('#icon-blue').setSize(this.value)"
+/>
+
+&sdot;
+
+&lt;span onclick="Fez('#icon-blue').attr('color', $(event.target).text())">
+  &lt;span class="pointer">red&lt;/span>
+  &lt;span class="pointer">blue&lt;/span>
+  &lt;span class="pointer">green&lt;/span>
+&lt;/span>
+
+&lt;br />&lt;br />
+
+&lt;ui-icon name="home">&lt;/ui-icon>
+&lt;ui-icon
+  id="icon-blue"
+  name="settings"
+  color="blue"
+  onclick="alert(this.fez.props.color)"
+  size="{{ document.getElementById('icon-range').value }}"
+>&lt;/ui-icon>
+&lt;ui-icon color="red">delete&lt;/ui-icon>
+
+</code>
+            <pre>
+          </div>
+
           <div class="relative">
             <pre>
               <code class="language-javascript" id="fez-icon-js">
@@ -543,12 +583,16 @@ Fez('ui-icon', class {
   `
 
   setSize(size) {
-    this.$root.css('font-size', `${size}px`)
+    this.$root.css('font-size', `${parseInt(size)}px`)
   }
 
   onPropsChange(name, value) {
     if (name == 'color') {
       this.$root.css('color', value)
+    }
+
+    if (name == 'size') {
+      this.setSize(value)
     }
   }
 
@@ -557,10 +601,8 @@ Fez('ui-icon', class {
 
     const icon = this.props.name || this.root.innerHTML.trim()
     this.color = this.props.color || '#00'
-
-    this.$root.addClass('material-symbols-outlined')
-    this.$root.css('color', this.color)
-    this.render(icon)
+    this.root.classList.add('material-symbols-outlined')
+    this.root.innerHTML = icon
   }
 })
 
@@ -568,33 +610,6 @@ Fez('ui-icon', class {
             </pre>
           </div>
 
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-icon-html">
-&lt;input
-  type="range" min="24" max="100" value="24" class="slider" id="myRange"
-  oninput="Fez('#blue-icon').setSize(this.value)"
-/>
-
-&sdot;
-
-&lt;span onclick="Fez('#blue-icon').attr('color', $(event.target).text())">
-  &lt;span class="pointer">red&lt;/span>
-  &lt;span class="pointer">blue&lt;/span>
-  &lt;span class="pointer">green&lt;/span>
-&lt;/span>
-
-&lt;br />&lt;br />
-
-&lt;ui-icon name="home">&lt;/ui-icon>
-&lt;ui-icon name="settings" color="blue" onclick="alert(Fez(this).color)" id="blue-icon">&lt;/ui-icon>
-&lt;ui-icon color="red">delete&lt;/ui-icon>
-
-
-
-</code>
-            <pre>
-          </div>
         </div>
       </div>
     
@@ -657,25 +672,6 @@ setInterval(()=>Fez.publish('ping', Math.random()), 5000)
         <div>
           <div class="relative">
             <pre>
-              <code class="language-javascript" id="fez-pubsub-js">
-Fez('ui-pubsub', class extends FezBase {
-  update (info) {
-    this.target.innerHTML = info
-  }
-
-  connect() {
-    this.target = this.find('.target')
-    this.subscribe('ping', this.update)
-    this.update('waiting for a ping...')
-  }
-})
-
-              </code>
-            </pre>
-          </div>
-
-          <div class="relative">
-            <pre>
               <code class="language-html" id="fez-pubsub-html">
 &lt;style>
 .fez-ui-pubsub { margin-top: 10px; }
@@ -725,6 +721,26 @@ setInterval(()=>Fez.publish('ping', Math.random()), 5000)
 </code>
             <pre>
           </div>
+
+          <div class="relative">
+            <pre>
+              <code class="language-javascript" id="fez-pubsub-js">
+Fez('ui-pubsub', class extends FezBase {
+  update (info) {
+    this.target.innerHTML = info
+  }
+
+  connect() {
+    this.target = this.find('.target')
+    this.subscribe('ping', this.update)
+    this.update('waiting for a ping...')
+  }
+})
+
+              </code>
+            </pre>
+          </div>
+
         </div>
       </div>
     
@@ -744,6 +760,17 @@ setInterval(()=>Fez.publish('ping', Math.random()), 5000)
 
         </div>
         <div>
+          <div class="relative">
+            <pre>
+              <code class="language-html" id="fez-list-html">
+&lt;ui-list>red,green,blue&lt;/ui-list>
+&lt;hr />
+&lt;ui-list>&lt;/ui-list>
+
+</code>
+            <pre>
+          </div>
+
           <div class="relative">
             <pre>
               <code class="language-javascript" id="fez-list-js">
@@ -795,16 +822,6 @@ Fez('ui-list', class {
             </pre>
           </div>
 
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-list-html">
-&lt;ui-list>red,green,blue&lt;/ui-list>
-&lt;hr />
-&lt;ui-list>&lt;/ui-list>
-
-</code>
-            <pre>
-          </div>
         </div>
       </div>
     
@@ -848,6 +865,41 @@ Fez('ui-list', class {
 
         </div>
         <div>
+          <div class="relative">
+            <pre>
+              <code class="language-html" id="fez-tabs-html">
+&lt;ui-tabs>
+  &lt;div title="Foo">first tab&lt;/div>
+  &lt;div title="Bar">
+    &lt;p>second tab&lt;/p>
+
+    &lt;br />
+
+    &lt;ui-tabs>
+      &lt;div title="Foo nested 2">first tab&lt;/div>
+      &lt;div title="Bar">
+        &lt;p>second tab&lt;/p>
+
+        &lt;ui-tabs>
+          &lt;div title="Foo nested 3">first tab&lt;/div>
+          &lt;div title="Bar nested 3">
+            &lt;p>second tab&lt;/p>
+          &lt;/div>
+        &lt;/ui-tabs>
+      &lt;/div>
+    &lt;/ui-tabs>
+  &lt;/div>
+  &lt;div title="Baz">
+    &lt;h4>image tab&lt;/h4>
+    &lt;img src="./demo/fez.png" />
+  &lt;/div>
+&lt;/ui-tabs>
+
+
+</code>
+            <pre>
+          </div>
+
           <div class="relative">
             <pre>
               <code class="language-javascript" id="fez-tabs-js">
@@ -922,40 +974,6 @@ Fez('ui-tabs', class {
             </pre>
           </div>
 
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-tabs-html">
-&lt;ui-tabs>
-  &lt;div title="Foo">first tab&lt;/div>
-  &lt;div title="Bar">
-    &lt;p>second tab&lt;/p>
-
-    &lt;br />
-
-    &lt;ui-tabs>
-      &lt;div title="Foo nested 2">first tab&lt;/div>
-      &lt;div title="Bar">
-        &lt;p>second tab&lt;/p>
-
-        &lt;ui-tabs>
-          &lt;div title="Foo nested 3">first tab&lt;/div>
-          &lt;div title="Bar nested 3">
-            &lt;p>second tab&lt;/p>
-          &lt;/div>
-        &lt;/ui-tabs>
-      &lt;/div>
-    &lt;/ui-tabs>
-  &lt;/div>
-  &lt;div title="Baz">
-    &lt;h4>image tab&lt;/h4>
-    &lt;img src="./demo/fez.png" />
-  &lt;/div>
-&lt;/ui-tabs>
-
-
-</code>
-            <pre>
-          </div>
         </div>
       </div>
     

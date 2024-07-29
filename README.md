@@ -2,7 +2,7 @@
 
 # FEZ - Custom DOM Elements
 
-FEZ is a small library (18kb unziped) that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
+FEZ is a small library (19kb unziped) that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
 
 It uses
 
@@ -195,6 +195,15 @@ Fez('foo-bar', class {
   // if you want to monitor new or changed node attributes
   this.onPropsChange(name, value) { ... }
 })
+```
+
+```html
+  <!-- wrap JS in {{ }} to calc before node mount -->
+  <foo-bar
+    id="id-will-be-copied"
+    size="{{ document.getElementById('icon-range').value }}"
+  >
+  </foo-bar>
 ```
 
 ## Examples / playground
