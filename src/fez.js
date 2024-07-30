@@ -16,11 +16,26 @@ class FezBase {
   static __objects = []
 
   // get node attributes as object
-  static getProps(node) {
-    const attrs = {}
+  static getProps(node, newNode) {
+    let attrs = {}
     for (const attr of node.attributes) {
       attrs[attr.name] = attr.value
     }
+
+    if (attrs['data-props']) {
+      attrs = JSON.parse(attrs['data-props'])
+    }
+
+    // pass props as json template
+    // <script type="text/template">{...}</script>
+    // <foo-bar data-json-template="true"></foo-bar>
+    if (attrs['data-json-template']) {
+      const data = newNode.previousSibling?.textContent
+      if (data) {
+        attrs = JSON.parse(data)
+      }
+    }
+
     return attrs
   }
 
@@ -126,7 +141,9 @@ class FezBase {
   style() { console.error('call Fez static style') }
 
   connect() {
-    console.error('Fez is missing "connect" method.', this.root)
+    if (! this.class.html) {
+      console.error('Fez is missing "connect" method.', this.root)
+    }
   }
 
   afterConnect() {}
@@ -138,7 +155,10 @@ class FezBase {
       text = text[0]
     }
 
-    text = text.replaceAll('$$.', this.fezHtmlRoot.replaceAll('"', '&quot;'))
+    const base = this.fezHtmlRoot.replaceAll('"', '&quot;')
+    text = text
+      .replaceAll('$$.', base)
+      .replace(/([^\w\.])fez\./g, `$1${base}`)
 
     if (text.includes('{{')) {
       try {
@@ -358,8 +378,7 @@ class FezBase {
 
   fezRegister() {
     if (this.css) {
-      this.class.css = `:fez { ${this.css} }`
-      delete this.css
+      this.css = Fez.globalCss(this.css, {name: this.fezName, wrap: true})
     }
 
     if (this.class.css) {
@@ -456,7 +475,7 @@ const Fez = (name, klass) => {
       object.oldRoot = this
       object.fezName = name
       object.root = newNode
-      object.props = klass.getProps(this)
+      object.props = klass.getProps(this, newNode)
       object.class = klass
 
       // copy child nodes, natively to preserve bound events
@@ -530,6 +549,7 @@ const Fez = (name, klass) => {
   if (!klass.__objects) {
     const klassObj = new klass()
     const newKlass = class extends FezBase {}
+
     const props = Object.getOwnPropertyNames(klassObj)
       .concat(Object.getOwnPropertyNames(klass.prototype))
       .filter(el => !['constructor', 'prototype'].includes(el))
@@ -542,6 +562,11 @@ const Fez = (name, klass) => {
     if (klassObj.FAST) { newKlass.fastBind = klassObj.FAST }
 
     klass = newKlass
+  }
+
+  // we have to register global css on component init, because some other component can depend on it (it is global)
+  if (klass.css) {
+    klass.css = Fez.globalCss(klass.css, {name: name})
   }
 
   customElements.define(name, class extends HTMLElement {
@@ -635,6 +660,7 @@ Fez.htmlEscape = (text) => {
 }
 
 Fez.publish = (channel, ...args) => {
+  Fez._subs ||= {}
   Fez._subs[channel] ||= []
   Fez._subs[channel].forEach((el) => {
     el[1].bind(el[0])(...args)
