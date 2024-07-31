@@ -45,7 +45,7 @@ if (kind === 'w') {
   await esbuild.build(opts)
 
 } else {
-  console.error('ERROR: OPT w|b|d not selected')
+  console.error('ERROR: OPT w|b not selected')
 }
 
 cliRun(`ls -lh ${opts.outdir}`)

@@ -1,15 +1,16 @@
-<script type="coffee">
-  export default class
-    setVars () ->
-      time = new Date()
-      @state.time = time
-      @state.hours = time.getHours()
-      @state.minutes = time.getMinutes();
-      @state.seconds = time.getSeconds();
+<script>
+  setVars() {
+    let time = new Date();
+    this.state.time = time
+    this.state.hours = time.getHours();
+    this.state.minutes = time.getMinutes();
+    this.state.seconds = time.getSeconds();
+  }
 
-    connect () ->
-      @setVars()
-      @setInterval(this.setVars, 1000)
+  connect() {
+    this.setVars()
+    this.setInterval(this.setVars, 1000)
+  }
 </script>
 
 <style>
@@ -45,8 +46,7 @@
     stroke: #666;
   }
 
-  .second,
-  .second-counterweight {
+  .second, .second-counterweight {
     stroke: rgb(180, 0, 0);
   }
 
