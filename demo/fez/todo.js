@@ -2,35 +2,40 @@ Fez('ui-todo', class {
   // if you define static html, it will be converted tu function(fast), and you will be able to refresh state with this.render()
   HTML = `
     <h3>Tasks</h3>
-    {#if !@state.tasks[0]}
+    {{#if !@state.tasks[0]}}
       <p>No tasks found</p>
-    {/if}
-    {#for task, index in @state.tasks}
-      {#if task.animate} <!-- this is fine because this is string templating -->
+    {{/if}}
+    {{#for task, index in @state.tasks}}
+      {{#if task.animate}} <!-- this is fine because this is string templating -->
         <p fez-use="animate" style="display: none; height: 0px; opacity: 0;">
-      {else}
+      {{else}}
         <p>
-      {/if}
+      {{/if}}
         <input
           type="text"
-          fez-bind="state.tasks[{index}].name"
-          style="{ task.done ? 'background-color: #ccc;' : '' }"
+          fez-bind="state.tasks[{{index}}].name"
+          style="{{ task.done ? 'background-color: #ccc;' : '' }}"
         />
         &sdot;
         <input
           type="checkbox"
-          fez-bind="state.tasks[{index}].done"
+          fez-bind="state.tasks[{{index}}].done"
         />
         &sdot;
-        <button onclick="$$.removeTask({ index })">&times;</button>
+        <button onclick="$$.removeTask({{ index }})">&times;</button>
       </p>
-    {/for}
+    {{/for}}
     <p>
       <button onclick="$$.addTask()">add task</button>
       &sdot;
       <button onclick="$$.clearCompleted()">clear completed</button>
     </p>
-    <pre class="code">{ JSON.stringify(this.state.tasks, null, 2) }</pre>
+    <pre class="code">{{ JSON.stringify(this.state.tasks, null, 2) }}</pre>
+    <p>If you want to preserve state in templates, wrap content in "fez-slot"</p>
+    <p>Refresh: {{Math.random()}}</p>
+    <p class="fez-slot">
+      Do not refresh: {{Math.random()}}.
+    </p>
   `
 
   clearCompleted() {

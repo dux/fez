@@ -14,9 +14,9 @@ Fez('ui-time', class {
     }
   `
   HTML = `
-    <p>Param city: { @props.city }</p>
+    <p>Param city: {{ @props.city }}</p>
     <p>Time now: <span class="time"></span></p>
-    <p>Random num: <span>{ Math.random() }</span></p>
+    <p>Random num: <span>{{ Math.random() }}</span></p>
     <button onclick="$$.setRandomColor()">random color</button>
     &sdot;
     <button onclick="$$.render()">refresh & preserve slot</button>

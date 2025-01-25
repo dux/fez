@@ -1,7 +1,7 @@
 // https://github.com/ryanmorr/stache
 export default function renderStache(tpl, context) {
   const NEW_LINES_RE = /(\r\n|\r|\n)/g;
-  const TEMPLATE_RE = /{{?\s*(.+?)\s*}}?/g;
+  const TEMPLATE_RE = /{{\s*(.+?)\s*}}/g;
   const EACH_RE = /^each\s+(.*)\s+as\s+(.*)$/;
   const IF_RE = /^if\s+(.*)$/;
   const ELSE_IF_RE = /^else if\s+(.*)$/;
@@ -9,12 +9,17 @@ export default function renderStache(tpl, context) {
   function stache(source) {
     const monkey = (t) => t.replaceAll('@', 'this.')
 
+    source = source.replaceAll("'", "\\'")
+    // console.log(source)
+
     let func = `
       let _strings = [], _sequence = [], _values = [];
 
       function htmlEscape(text) {
         if (typeof text === 'string') {
           return text
+            .replaceAll("{", '&#123;')
+            .replaceAll("}", '&#125;')
             .replaceAll("'", '&apos;')
             .replaceAll('"', '&quot;')
             .replaceAll('<', '&lt;')
@@ -28,6 +33,7 @@ export default function renderStache(tpl, context) {
         source.trim().replace(NEW_LINES_RE, '\\n').replace(TEMPLATE_RE, (all, code) => {
           // {{#if -> {{#if
           code = code.replace(/^[#:]/, '')
+          code = code.replaceAll("\\'", "'")
 
           if (code.startsWith('each') || code.startsWith('for')) {
             // support fro #for
@@ -77,7 +83,6 @@ export default function renderStache(tpl, context) {
       _strings.push(_sequence.join(''));
       return [_strings, _values];
     `
-
     return new Function('_data', func);
   }
 
@@ -89,19 +94,13 @@ export default function renderStache(tpl, context) {
     };
   }
 
-  function closeCustomTags(html) {
-    const selfClosingTags = new Set([
-      'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr'
-    ])
-
-    return html.replace(/<([a-z-]+)\b([^>]*)\/>/g, (match, tagName, attributes) => {
-      return selfClosingTags.has(tagName) ? match : `<${tagName}${attributes}></${tagName}>`
-    })
-  }
-
   // foo={@foo} -> foo="{@foo}"
-  tpl = tpl.replace(/(\s\w+)=({{?[^}]+}}?)/, (...re)=> `${re[1]}="${re[2]}"` )
+  tpl = tpl.replace(/(\s\w+)=({{[^}]+}})/, (...re)=> `${re[1]}="${re[2]}"` )
 
-  tpl = closeCustomTags(tpl)
+  // remove whitespace between nodes
+  tpl = tpl
+    .replace(/>\s+\{/g, '>{')
+    .replace(/\}\s+</g, '}<')
+
   return createTemplate(tpl)
 }

@@ -1,6 +1,16 @@
 // templating
 import renderStache from '../vendor/stache'
 
+function closeCustomTags(html) {
+  const selfClosingTags = new Set([
+    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr'
+  ])
+
+  return html.replace(/<([a-z-]+)\b([^>]*)\/>/g, (match, tagName, attributes) => {
+    return selfClosingTags.has(tagName) ? match : `<${tagName}${attributes}></${tagName}>`
+  })
+}
+
 export default function(name, klass) {
   // to allow anonymous class and then re-attach (does not work)
   // Fez('ui-todo', class { ... # instead Fez('ui-todo', class extends FezBase {
@@ -33,13 +43,16 @@ export default function(name, klass) {
       // in that case, we need to wait for another tick to get content
       // this solution looks like it is not efficient, because it slow renders fez components that do not have and are not intended to have body, but by testing this looks like it is not effecting render performance
       // if you want to force fast render, add static fastBind = true or check
-      if (this.firstChild || forceFastRender(this, klass)) {
+      // console.log(this)
+      if (this.firstChild || this.getAttribute('data-props') || forceFastRender(this, klass)) {
         Fez.info(`fast bind: ${name}`)
         connectDom(name, this, klass)
       } else {
         Fez.info(`slow bind: ${name}`)
         window.requestAnimationFrame(()=>{
-          connectDom(name, this, klass)
+          if (this.parentNode) {
+            connectDom(name, this, klass)
+          }
         })
       }
     }
@@ -64,7 +77,7 @@ function connectDom(name, node, klass) {
     object.oldRoot = node
     object.fezName = name
     object.root = newNode
-    object.props = klass.getProps(node, newNode)
+    object.props = klass.getProps(node, newNode) // TODO: simplify by move up
     object.class = klass
 
     // copy child nodes, natively to preserve bound events
@@ -81,11 +94,15 @@ function connectDom(name, node, klass) {
     }
 
     if (klass.html) {
+      klass.html = closeCustomTags(klass.html)
+
       // wrap slot to enable reactive re-renders. It will use existing .fez-slot if found
       klass.html = klass.html.replace(/<slot\s*\/>|<slot\s*><\/slot>/g, () => {
         const name = klass.slotNodeName || 'div'
         return `<${name} class="fez-slot"><slot /></${name}>`
       })
+
+      klass.htmlTemplate = klass.html
 
       object._fez_html_func = renderStache(klass.html, object)
     }
@@ -100,7 +117,7 @@ function connectDom(name, node, klass) {
     object.afterConnect(object.props)
 
     // parse code in props
-    // size="{{ document.getElementById('icon-range').value }}"
+    // size="{ document.getElementById('icon-range').value }"
     for (let [key, value] of Object.entries(object.props)) {
       if (/^\{\{/.test(value) && /\}\}$/.test(value)) {
         value = value.replace(/^\{\{/, 'return (').replace(/\}\}$/, ')')

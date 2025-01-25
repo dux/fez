@@ -1,5 +1,7 @@
 // HTML node builder
-import parseNode from './n'
+import parseNode from '../vendor/n'
+
+import renderStache from '../vendor/stache'
 
 export default class FezBase {
   static __objects = []
@@ -12,7 +14,13 @@ export default class FezBase {
     }
 
     if (attrs['data-props']) {
-      attrs = JSON.parse(attrs['data-props'])
+      let data = attrs['data-props']
+      if (data[0] != '{') {
+        data = decodeURIComponent(data)
+      }
+      // console.log(data)
+      // console.log(data)
+      attrs = JSON.parse(data)
     }
 
     // pass props as json template
@@ -29,7 +37,8 @@ export default class FezBase {
   }
 
   static formData(node) {
-    const formData = new FormData(node.closest('form'))
+    const formNode = node.closest('form') || node.querySelector('form')
+    const formData = new FormData(formNode)
     const formObject = {}
     formData.forEach((value, key) => {
       formObject[key] = value
@@ -140,6 +149,8 @@ export default class FezBase {
   afterRender() {}
 
   parseHtml(text, context) {
+    context ||= this
+
     if (typeof text == 'object') {
       text = text[0]
     }
@@ -149,9 +160,9 @@ export default class FezBase {
       .replaceAll('$$.', base)
       .replace(/([^\w\.])fez\./g, `$1${base}`)
 
-    if (text.includes('{{')) {
+    if (text.includes('{')) {
       try {
-        const func = renderStache(text, this)
+        const func = renderStache(text, context)
         text = func()// .replace(/\n\s*\n/g, "\n")
       } catch(error) {
         console.error(`Fez stache template error in "${this.fezName}"`, error)
@@ -203,7 +214,7 @@ export default class FezBase {
       target = this.find(target)
     }
 
-    const newNode = document.createElement('div')
+    const newNode = document.createElement(this.class.nodeName || 'div')
 
     if (typeof body === 'function') {
       body = body()
@@ -224,17 +235,41 @@ export default class FezBase {
     }
 
     // if slot is defined in static html, preserve current in runtime
-    const slot = newNode.querySelector('slot')
+    let currentSlot = this.find('.fez-slot')
+    if (currentSlot) {
+      const n = document.createElement('div')
+      n.setAttribute('class', 'fez-slot')
+      currentSlot.parentNode.replaceChild(n, currentSlot)
+    }
+
+    let slot = newNode.querySelector('slot')
     if (slot) {
-      const currentSlot = this.find('.fez-slot')
-      if (currentSlot) {
-        this.slot(currentSlot, slot)
-      } else {
-        this.slot(target, slot)
-      }
+      this.slot(target, slot)
     }
 
     Fez.morphdom(target, newNode)
+
+    slot = newNode.querySelector('slot')
+    if (slot) {
+      this.slot(target, slot)
+    }
+
+    if (currentSlot) {
+      const s = this.find('.fez-slot')
+      if (s) {
+        s.innerHTML = ''
+        this.slot(currentSlot, this.find('.fez-slot'))
+      } else {
+        this.currentSlot = currentSlot
+      }
+    } else if (this.currentSlot) {
+      const s = this.find('.fez-slot')
+      if (s) {
+        s.innerHTML = ''
+        this.slot(this.currentSlot, s)
+        this.currentSlot = null
+      }
+    }
 
     const fetchAttr = (name, func) => {
       target.querySelectorAll(`*[${name}]`).forEach((n)=>{
@@ -246,10 +281,12 @@ export default class FezBase {
       })
     }
 
+    // <button fez-this="button" -> this.button = node
     fetchAttr('fez-this', (value, n) => {
-      this[value] = n
+      (new Function('n', `this.${value} = n`)).bind(this)(n)
     })
 
+    // <button fez-use="animate" -> this.animate(node]
     fetchAttr('fez-use', (value, n) => {
       const target = this[value]
       if (typeof target == 'function') {
@@ -259,6 +296,7 @@ export default class FezBase {
       }
     })
 
+    // <button fez-class="dialog animate" -> add class "animate" after node init to trigger animation
     fetchAttr('fez-class', (value) => {
       let classes = value.split(/\s+/)
       let lastClass = classes.pop()
@@ -266,10 +304,11 @@ export default class FezBase {
       if (lastClass) {
         setTimeout(()=>{
           n.classList.add(lastClass)
-        }, 1000)
+        }, 300)
       }
     })
 
+    // <input fez-bind="state.inputNode" -> this.state.inputNode will be the value of input
     fetchAttr('fez-bind', (text, n) => {
       const value = (new Function(`return this.${text}`)).bind(this)()
       const isCb = n.type.toLowerCase() == 'checkbox'
@@ -281,8 +320,15 @@ export default class FezBase {
     this.afterRender()
   }
 
-  refresh() {
-    this.render()
+  refresh(selector) {
+    if (selector) {
+      const n = document.createElement('div')
+      n.innerHTML = this.class.htmlTemplate
+      const tpl = n.querySelector(selector).innerHTML
+      this.render(selector, tpl)
+    } else {
+      this.render()
+    }
   }
 
   // run only if node is attached, clear otherwise
@@ -374,7 +420,8 @@ export default class FezBase {
       this.class.css = Fez.globalCss(this.class.css, {name: this.fezName})
     }
 
-    this.state = this.reactiveStore()
+    this.state ||= this.reactiveStore()
+    this.data ||= {}
 
     this.fezRegisterBindMethods()
   }

@@ -46,7 +46,7 @@ Fez.globalCss = (cssClass, opts = {}) => {
       .split("\n")
       .filter(line => !(/^\s*\/\//.test(line)))
       .join("\n")
-    text = text.replaceAll(':fez', `.fez.fez-${opts.name}`)
+    text = text.replace(/\:fez|\:host/, `.fez.fez-${opts.name}`)
 
     if (opts.wrap) {
       text = `.fez.fez-${opts.name} { ${text} }`
@@ -78,7 +78,17 @@ Fez.morphdom = (target, newNode, opts = {}) => {
   }
 
   // Morphdom(target, newNode, opts)
-  Idiomorph.morph(target, newNode, { morphStyle: 'innerHTML'})
+  Idiomorph.morph(target, newNode, { morphStyle: 'innerHTML' })
+
+  // I tried to ignore custom DOM nodes, cant do it
+  // Idiomorph.defaults.callbacks.beforeNodeMorphed = (oldNode, newNode) => {
+  //   console.log('-', oldNode.outerHTML)
+  //   const klass = oldNode.getAttribute ? oldNode.getAttribute('class') : null
+  //   if (klass) {
+  //     console.log(klass)
+  //     return false
+  //   }
+  // }
 }
 
 Fez.htmlEscape = (text) => {
@@ -109,5 +119,10 @@ Fez.fnv1 = (str) => {
   }
   return hash.toString(36).replaceAll('-', '');
 }
+
+Fez.tag = function(tag, opts = {}, html = '') {
+  const json = encodeURIComponent(JSON.stringify(opts));
+  return `<${tag} data-props="${json}">${html}</${tag}>`;
+};
 
 export default Fez

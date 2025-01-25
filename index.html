@@ -58,7 +58,7 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Tue Jul 30 02:49:40 2024 +0200'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Wed Jul 31 10:45:38 2024 +0200'))</script>.
 
   
       <script src="./demo/fez/clock.js"></script>
@@ -92,22 +92,22 @@ Fez('ui-clock', class {
       &lt;circle class="clock-face" r="48" />
 
      &lt;!-- markers -->
-      {#each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}
-        &lt;line class="major" y1="35" y2="45" transform="rotate({30 * minute})" />
+      {{#each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}}
+        &lt;line class="major" y1="35" y2="45" transform="rotate({{30 * minute}})" />
 
-        {#each [1, 2, 3, 4] as offset}
-          &lt;line class="minor" y1="42" y2="45" transform="rotate({6 * (minute + offset)})" />
-        {/each}
-      {/each}
+        {{#each [1, 2, 3, 4] as offset}}
+          &lt;line class="minor" y1="42" y2="45" transform="rotate({{6 * (minute + offset)}})" />
+        {{/each}}
+      {{/each}}
 
       &lt;!-- hour hand -->
-      &lt;line class="hour" y1="2" y2="-20" transform="rotate({30 * @state.hours + @state.minutes / 2})" />
+      &lt;line class="hour" y1="2" y2="-20" transform="rotate({{30 * @state.hours + @state.minutes / 2}})" />
 
       &lt;!-- minute hand -->
-      &lt;line class="minute" y1="4" y2="-30" transform="rotate({6 * @state.minutes + @state.seconds / 10})" />
+      &lt;line class="minute" y1="4" y2="-30" transform="rotate({{6 * @state.minutes + @state.seconds / 10}})" />
 
       &lt;!-- second hand -->
-      &lt;g transform="rotate({6 * @state.seconds})">
+      &lt;g transform="rotate({{6 * @state.seconds}})">
         &lt;line class="second" y1="10" y2="-38" />
         &lt;line class="second-counterweight" y1="10" y2="2" />
       &lt;/g>
@@ -208,35 +208,40 @@ Fez('ui-todo', class {
   // if you define static html, it will be converted tu function(fast), and you will be able to refresh state with this.render()
   HTML = `
     &lt;h3>Tasks&lt;/h3>
-    {#if !@state.tasks[0]}
+    {{#if !@state.tasks[0]}}
       &lt;p>No tasks found&lt;/p>
-    {/if}
-    {#for task, index in @state.tasks}
-      {#if task.animate} &lt;!-- this is fine because this is string templating -->
+    {{/if}}
+    {{#for task, index in @state.tasks}}
+      {{#if task.animate}} &lt;!-- this is fine because this is string templating -->
         &lt;p fez-use="animate" style="display: none; height: 0px; opacity: 0;">
-      {else}
+      {{else}}
         &lt;p>
-      {/if}
+      {{/if}}
         &lt;input
           type="text"
-          fez-bind="state.tasks[{index}].name"
-          style="{ task.done ? 'background-color: #ccc;' : '' }"
+          fez-bind="state.tasks[{{index}}].name"
+          style="{{ task.done ? 'background-color: #ccc;' : '' }}"
         />
         &sdot;
         &lt;input
           type="checkbox"
-          fez-bind="state.tasks[{index}].done"
+          fez-bind="state.tasks[{{index}}].done"
         />
         &sdot;
-        &lt;button onclick="$$.removeTask({ index })">&times;&lt;/button>
+        &lt;button onclick="$$.removeTask({{ index }})">&times;&lt;/button>
       &lt;/p>
-    {/for}
+    {{/for}}
     &lt;p>
       &lt;button onclick="$$.addTask()">add task&lt;/button>
       &sdot;
       &lt;button onclick="$$.clearCompleted()">clear completed&lt;/button>
     &lt;/p>
-    &lt;pre class="code">{ JSON.stringify(this.state.tasks, null, 2) }&lt;/pre>
+    &lt;pre class="code">{{ JSON.stringify(this.state.tasks, null, 2) }}&lt;/pre>
+    &lt;p>If you want to preserve state in templates, wrap content in "fez-slot"&lt;/p>
+    &lt;p>Refresh: {{Math.random()}}&lt;/p>
+    &lt;p class="fez-slot">
+      Do not refresh: {{Math.random()}}.
+    &lt;/p>
   `
 
   clearCompleted() {
@@ -443,9 +448,9 @@ Fez('ui-time', class {
     }
   `
   HTML = `
-    &lt;p>Param city: { @props.city }&lt;/p>
+    &lt;p>Param city: {{ @props.city }}&lt;/p>
     &lt;p>Time now: &lt;span class="time">&lt;/span>&lt;/p>
-    &lt;p>Random num: &lt;span>{ Math.random() }&lt;/span>&lt;/p>
+    &lt;p>Random num: &lt;span>{{ Math.random() }}&lt;/span>&lt;/p>
     &lt;button onclick="$$.setRandomColor()">random color&lt;/button>
     &sdot;
     &lt;button onclick="$$.render()">refresh & preserve slot&lt;/button>
@@ -783,29 +788,29 @@ Fez('ui-list', class {
   `
 
   HTML = `
-    {#if @colors[0]} @ will be replaced with this.
+    {{#if @colors[0]}} @ will be replaced with this.
       &lt;ul>
-        {#for color in @colors}
-          &lt;li style="color: { color };">{ color }&lt;/li>
-        {/for}
+        {{#for color in @colors}}
+          &lt;li style="color: {{ color }};">{{ color }}&lt;/li>
+        {{/for}}
       &lt;/ul>
-    {else}
+    {{else}}
       &lt;p>no colors, here is object&lt;/p>
 
       &lt;h4>for loop, no index&lt;/h4>
 
-      {#for [key, value] in this.objectData}
-        &lt;p>{ key } : { value }&lt;/p>
-      {/for}
+      {{#for [key, value] in this.objectData}}
+        &lt;p>{{ key }} : {{ value }}&lt;/p>
+      {{/for}}
 
       &lt;h4>each loop, with index&lt;/h4>
 
-      {#each this.objectData as [key, value], index }
+      {{#each this.objectData as [key, value], index }}
         &lt;p>
-          { key } : &lt;i>{ value }&lt;/i> : { index }
+          {{ key }} : &lt;i>{{ value }}&lt;/i> : {{ index }}
         &lt;/p>
-      {/each}
-    {/if}
+      {{/each}}
+    {{/if}}
   `
 
   connect() {
@@ -836,14 +841,13 @@ Fez('ui-list', class {
       <div class="flex">
         <div class="body">
            <ui-tabs>
-  <div title="Foo">first tab</div>
   <div title="Bar">
-    <p>second tab</p>
+    <p>First tab</p>
 
     <br />
 
     <ui-tabs>
-      <div title="Foo nested 2">first tab</div>
+      <div title="Foo nested 2">First tab</div>
       <div title="Bar">
         <p>second tab</p>
 
@@ -860,6 +864,7 @@ Fez('ui-list', class {
     <h4>image tab</h4>
     <img src="./demo/fez.png" />
   </div>
+  <div title="Foo">Third tab</div>
 </ui-tabs>
 
 
@@ -869,14 +874,13 @@ Fez('ui-list', class {
             <pre>
               <code class="language-html" id="fez-tabs-html">
 &lt;ui-tabs>
-  &lt;div title="Foo">first tab&lt;/div>
   &lt;div title="Bar">
-    &lt;p>second tab&lt;/p>
+    &lt;p>First tab&lt;/p>
 
     &lt;br />
 
     &lt;ui-tabs>
-      &lt;div title="Foo nested 2">first tab&lt;/div>
+      &lt;div title="Foo nested 2">First tab&lt;/div>
       &lt;div title="Bar">
         &lt;p>second tab&lt;/p>
 
@@ -893,6 +897,7 @@ Fez('ui-list', class {
     &lt;h4>image tab&lt;/h4>
     &lt;img src="./demo/fez.png" />
   &lt;/div>
+  &lt;div title="Foo">Third tab&lt;/div>
 &lt;/ui-tabs>
 
 
