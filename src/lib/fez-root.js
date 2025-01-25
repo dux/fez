@@ -125,4 +125,35 @@ Fez.tag = function(tag, opts = {}, html = '') {
   return `<${tag} data-props="${json}">${html}</${tag}>`;
 };
 
+Fez.parseTemplate = function(html) {
+  const result = { script: '', style: '', html: '' }
+  const lines = html.split('\n')
+
+  let currentBlock = []
+  let currentType = ''
+
+  for (const line of lines) {
+    if (line.trim().startsWith('<script') && !result.script) {
+      currentType = 'script';
+    } else if (line.trim().startsWith('<style')) {
+      currentType = 'style';
+    } else if (line.trim().endsWith('</script>') && currentType === 'script' && !result.script) {
+      result.script = currentBlock.join('\n');
+      currentBlock = [];
+      currentType = null;
+    } else if (line.trim().endsWith('</style>') && currentType === 'style') {
+      result.style = currentBlock.join('\n');
+      currentBlock = [];
+      currentType = null;
+    } else if (currentType) {
+      currentBlock.push(line);
+    } else {
+      result.html += line + '\n';
+    }
+  }
+
+  result.html = result.html.trim();
+  return result;
+}
+
 export default Fez
