@@ -93,6 +93,7 @@ Fez.morphdom = (target, newNode, opts = {}) => {
 
 Fez.htmlEscape = (text) => {
   return text
+    .replaceAll('&', "&amp;")
     .replaceAll("'", '&apos;')
     .replaceAll('"', '&quot;')
     .replaceAll('<', '&lt;')

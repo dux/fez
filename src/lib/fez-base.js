@@ -184,23 +184,18 @@ export default class FezBase {
     const newNode = document.createElement(this.class.nodeName || 'div')
 
     let renderedTpl
-    switch (typeof template) {
-      case 'object':
-        if (Array.isArray(template)) {
-          if (template[0] instanceof Node) {
-            template.forEach((n)=>{
-              newNode.appendChild(n)
-            })
-          } else{
-            renderedTpl = template.join('')
-          }
-        }
-        break
-      case 'string':
-        renderedTpl = createTemplate(template)(this)
-        break
-      default:
-        renderedTpl = template(this)
+    if (Array.isArray(template)) {
+      if (template[0] instanceof Node) {
+        template.forEach( n => newNode.appendChild(n) )
+      } else{
+        renderedTpl = template.join('')
+      }
+    }
+    else if (typeof template == 'string') {
+      renderedTpl = createTemplate(template)(this)
+    }
+    else if (typeof template == 'function') {
+      renderedTpl = template(this)
     }
 
     if (renderedTpl) {
@@ -276,6 +271,7 @@ export default class FezBase {
     })
   }
 
+  // refresh single node only
   refresh(selector) {
     alert('NEEDS FIX and remove htmlTemplate')
     if (selector) {

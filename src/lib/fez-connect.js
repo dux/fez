@@ -99,7 +99,7 @@ function connectDom(name, node, klass) {
       // wrap slot to enable reactive re-renders. It will use existing .fez-slot if found
       klass.html = klass.html.replace(/<slot\s*\/>|<slot\s*><\/slot>/g, () => {
         const name = klass.slotNodeName || 'div'
-        return `<${name} class="fez-slot"><slot /></${name}>`
+        return `<${name} class="fez-slot"></${name}>`
       })
 
       klass.htmlTemplate = klass.html
@@ -111,13 +111,15 @@ function connectDom(name, node, klass) {
     object.connect(object.props)
     klass.__objects.push(object)
 
+    const oldRoot = object.root.cloneNode(true)
+
     if (object._fez_html_func) {
       object.render()
     }
 
-    const slot = object.find('.fez-slot')
+    const slot = object.root.querySelector('.fez-slot')
     if (slot) {
-      console.log(object.oldRoot.innerHTML)
+      object.slot(oldRoot, slot)
     }
 
     object.afterConnect(object.props)

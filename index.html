@@ -58,7 +58,7 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Sat Jan 25 12:28:55 2025 +0100'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Sat Jan 25 15:29:08 2025 +0100'))</script>.
 
   
       <script src="./demo/fez/clock.js"></script>
@@ -210,13 +210,10 @@ Fez('ui-todo', class {
     &lt;h3>Tasks&lt;/h3>
     {{#if !@state.tasks[0] }}
       &lt;p>No tasks found&lt;/p>
-      {{#if true}}
-        TRUE
-      {{/if}}
-    {{:else}}
-      FOO
     {{/if}}
-    END
+
+    foo @bar baz
+
     {{#for task, index in @state.tasks}}
       {{#if task.animate}} &lt;!-- this is fine because this is string templating -->
         &lt;p fez-use="animate" style="display: none; height: 0px; opacity: 0;">

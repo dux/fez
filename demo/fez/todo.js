@@ -4,13 +4,10 @@ Fez('ui-todo', class {
     <h3>Tasks</h3>
     {{#if !@state.tasks[0] }}
       <p>No tasks found</p>
-      {{#if true}}
-        TRUE
-      {{/if}}
-    {{:else}}
-      FOO
     {{/if}}
-    END
+
+    foo @bar baz
+
     {{#for task, index in @state.tasks}}
       {{#if task.animate}} <!-- this is fine because this is string templating -->
         <p fez-use="animate" style="display: none; height: 0px; opacity: 0;">
