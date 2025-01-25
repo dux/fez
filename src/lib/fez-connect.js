@@ -73,7 +73,7 @@ function connectDom(name, node, klass) {
 
     parentNode.replaceChild(newNode, node);
 
-    const object =  new klass()
+    const object = new klass()
     object.oldRoot = node
     object.fezName = name
     object.root = newNode
@@ -114,17 +114,13 @@ function connectDom(name, node, klass) {
     if (object._fez_html_func) {
       object.render()
     }
-    object.afterConnect(object.props)
 
-    // parse code in props
-    // size="{ document.getElementById('icon-range').value }"
-    for (let [key, value] of Object.entries(object.props)) {
-      if (/^\{\{/.test(value) && /\}\}$/.test(value)) {
-        value = value.replace(/^\{\{/, 'return (').replace(/\}\}$/, ')')
-        value = (new Function(value)).bind(object.root)()
-        object.props[key] = value
-      }
+    const slot = object.find('.fez-slot')
+    if (slot) {
+      console.log(object.oldRoot.innerHTML)
     }
+
+    object.afterConnect(object.props)
 
     // if onPropsChange method defined, add observer and trigger call on all attributes once component is loaded
     if (object.onPropsChange) {

@@ -181,47 +181,47 @@ export default class FezBase {
 
     this.beforeRender()
 
-    // if slot is defined in static html, preserve current in runtime
-    // let currentSlot = this.find('.fez-slot')
-    // if (currentSlot) {
-    //   const n = document.createElement('div')
-    //   n.setAttribute('class', 'fez-slot')
-    //   currentSlot.parentNode.replaceChild(n, currentSlot)
-    // }
-
-    let rendered = typeof template == 'string' ? createTemplate(template)(this) : template(this)
-
     const newNode = document.createElement(this.class.nodeName || 'div')
-    newNode.innerHTML = this.parseHtml(rendered)
 
-    // let slot = newNode.querySelector('slot')
-    // if (slot) {
-    //   this.slot(target, slot)
-    // }
+    let renderedTpl
+    switch (typeof template) {
+      case 'object':
+        if (Array.isArray(template)) {
+          if (template[0] instanceof Node) {
+            template.forEach((n)=>{
+              newNode.appendChild(n)
+            })
+          } else{
+            renderedTpl = template.join('')
+          }
+        }
+        break
+      case 'string':
+        renderedTpl = createTemplate(template)(this)
+        break
+      default:
+        renderedTpl = template(this)
+    }
+
+    if (renderedTpl) {
+      newNode.innerHTML = this.parseHtml(renderedTpl)
+    }
+
+    const slot = newNode.querySelector('slot')
+    if (slot) {
+      this.slot(this.root, slot.parentNode)
+      slot.parentNode.removeChild(slot)
+    }
+
+    let currentSlot = this.find('.fez-slot')
+    if (currentSlot) {
+      const newSLot = newNode.querySelector('.fez-slot')
+      if (newSLot) {
+        newSLot.parentNode.replaceChild(currentSlot, newSLot)
+      }
+    }
 
     Fez.morphdom(this.root, newNode)
-
-    // slot = newNode.querySelector('slot')
-    // if (slot) {
-    //   this.slot(target, slot)
-    // }
-
-    // if (currentSlot) {
-    //   const s = this.find('.fez-slot')
-    //   if (s) {
-    //     s.innerHTML = ''
-    //     this.slot(currentSlot, this.find('.fez-slot'))
-    //   } else {
-    //     this.currentSlot = currentSlot
-    //   }
-    // } else if (this.currentSlot) {
-    //   const s = this.find('.fez-slot')
-    //   if (s) {
-    //     s.innerHTML = ''
-    //     this.slot(this.currentSlot, s)
-    //     this.currentSlot = null
-    //   }
-    // }
 
     this.renderFezPostProcess()
 
@@ -277,6 +277,7 @@ export default class FezBase {
   }
 
   refresh(selector) {
+    alert('NEEDS FIX and remove htmlTemplate')
     if (selector) {
       const n = document.createElement('div')
       n.innerHTML = this.class.htmlTemplate

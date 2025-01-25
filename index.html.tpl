@@ -105,6 +105,10 @@
   <%= fez('todo') %>
   <%= fez('form') %>
   <%= fez('time') %>
+  <%= fez('icon') %>
+  <%= fez('pubsub') %>
+  <%= fez('list') %>
+  <%= fez('tabs') %>
 </body>
 </html>
 

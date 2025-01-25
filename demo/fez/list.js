@@ -18,17 +18,8 @@ Fez('ui-list', class {
 
       <h4>for loop, no index</h4>
 
-      {{#for [key, value] in this.objectData}}
-        <p>{{ key }} : {{ value }}</p>
-      {{/for}}
-
       <h4>each loop, with index</h4>
 
-      {{#each this.objectData as [key, value], index }}
-        <p>
-          {{ key }} : <i>{{ value }}</i> : {{ index }}
-        </p>
-      {{/each}}
     {{/if}}
   `
 
