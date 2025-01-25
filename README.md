@@ -7,7 +7,6 @@ FEZ is a small library (19kb unziped) that allows writing of [Custom DOM element
 It uses
 
 * [Goober](https://goober.js.org/) to enable runtime SCSS (similar to styled components)
-* [Stache](https://github.com/ryanmorr/stache) to render templates (similar/same to Svelte templates)
 * [Idiomorph](https://github.com/bigskysoftware/idiomorph) to morph DOM from one state to another (as React or Stimulus/Turbo does it)
 
 Latest version of libs are baked in Fez distro.

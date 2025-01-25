@@ -5,7 +5,6 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "stache": "node test/stache.js",
     "pages": "ruby -r erb -e 'puts ERB.new(File.read(\"./index.html.tpl\")).result' > ./index.html",
     "build": "bun build.js d",
     "dev": "bun run pages; open index.html; bun build.js w",

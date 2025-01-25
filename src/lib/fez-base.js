@@ -1,7 +1,6 @@
 // HTML node builder
 import parseNode from '../vendor/n'
-
-import renderStache from '../vendor/stache'
+import createTemplate from '../vendor/template'
 
 export default class FezBase {
   static __objects = []
@@ -148,26 +147,11 @@ export default class FezBase {
   beforeRender() {}
   afterRender() {}
 
-  parseHtml(text, context) {
-    context ||= this
-
-    if (typeof text == 'object') {
-      text = text[0]
-    }
-
+  parseHtml(text) {
     const base = this.fezHtmlRoot.replaceAll('"', '&quot;')
     text = text
       .replaceAll('$$.', base)
       .replace(/([^\w\.])fez\./g, `$1${base}`)
-
-    if (text.includes('{')) {
-      try {
-        const func = renderStache(text, context)
-        text = func()// .replace(/\n\s*\n/g, "\n")
-      } catch(error) {
-        console.error(`Fez stache template error in "${this.fezName}"`, error)
-      }
-    }
 
     return text
   }
@@ -190,89 +174,63 @@ export default class FezBase {
   // <slot></slot> will be replaced with current root
   // this.render('...loading')
   // this.render('.images', '...loading')
-  render(target, body) {
-    if (target === true) {
-      this.nextTick(this.render, 'render')
-      return
-    }
+  render(template) {
+    template ||= this?._fez_html_func
 
-    if (!target) {
-      target = this?._fez_html_func
-      if (!target) {
-        return
-      }
-    }
+    if (!template) return
 
     this.beforeRender()
 
-    if (typeof body == 'undefined') {
-      body = target
-      target = this.root
-    }
+    // if slot is defined in static html, preserve current in runtime
+    // let currentSlot = this.find('.fez-slot')
+    // if (currentSlot) {
+    //   const n = document.createElement('div')
+    //   n.setAttribute('class', 'fez-slot')
+    //   currentSlot.parentNode.replaceChild(n, currentSlot)
+    // }
 
-    if (typeof target == 'string') {
-      target = this.find(target)
-    }
+    let rendered = typeof template == 'string' ? createTemplate(template)(this) : template(this)
 
     const newNode = document.createElement(this.class.nodeName || 'div')
+    newNode.innerHTML = this.parseHtml(rendered)
 
-    if (typeof body === 'function') {
-      body = body()
-    }
+    // let slot = newNode.querySelector('slot')
+    // if (slot) {
+    //   this.slot(target, slot)
+    // }
 
-    if (Array.isArray(body)) {
-      if (body[0] instanceof Node) {
-        body.forEach((n)=>{
-          newNode.appendChild(n)
-        })
-      } else {
-        body = body.join('')
-      }
-    } else if (typeof body === 'string') {
-      newNode.innerHTML = this.parseHtml(body)
-    } else if (body) {
-      newNode.appendChild(body)
-    }
+    Fez.morphdom(this.root, newNode)
 
-    // if slot is defined in static html, preserve current in runtime
-    let currentSlot = this.find('.fez-slot')
-    if (currentSlot) {
-      const n = document.createElement('div')
-      n.setAttribute('class', 'fez-slot')
-      currentSlot.parentNode.replaceChild(n, currentSlot)
-    }
+    // slot = newNode.querySelector('slot')
+    // if (slot) {
+    //   this.slot(target, slot)
+    // }
 
-    let slot = newNode.querySelector('slot')
-    if (slot) {
-      this.slot(target, slot)
-    }
+    // if (currentSlot) {
+    //   const s = this.find('.fez-slot')
+    //   if (s) {
+    //     s.innerHTML = ''
+    //     this.slot(currentSlot, this.find('.fez-slot'))
+    //   } else {
+    //     this.currentSlot = currentSlot
+    //   }
+    // } else if (this.currentSlot) {
+    //   const s = this.find('.fez-slot')
+    //   if (s) {
+    //     s.innerHTML = ''
+    //     this.slot(this.currentSlot, s)
+    //     this.currentSlot = null
+    //   }
+    // }
 
-    Fez.morphdom(target, newNode)
+    this.renderFezPostProcess()
 
-    slot = newNode.querySelector('slot')
-    if (slot) {
-      this.slot(target, slot)
-    }
+    this.afterRender()
+  }
 
-    if (currentSlot) {
-      const s = this.find('.fez-slot')
-      if (s) {
-        s.innerHTML = ''
-        this.slot(currentSlot, this.find('.fez-slot'))
-      } else {
-        this.currentSlot = currentSlot
-      }
-    } else if (this.currentSlot) {
-      const s = this.find('.fez-slot')
-      if (s) {
-        s.innerHTML = ''
-        this.slot(this.currentSlot, s)
-        this.currentSlot = null
-      }
-    }
-
+  renderFezPostProcess() {
     const fetchAttr = (name, func) => {
-      target.querySelectorAll(`*[${name}]`).forEach((n)=>{
+      this.root.querySelectorAll(`*[${name}]`).forEach((n)=>{
         let value = n.getAttribute(name)
         n.removeAttribute(name)
         if (value) {
@@ -316,8 +274,6 @@ export default class FezBase {
       n.setAttribute(eventName, `${this.fezHtmlRoot}${text} = this.${isCb ? 'checked' : 'value'}`)
       this.val(n, value)
     })
-
-    this.afterRender()
   }
 
   refresh(selector) {
@@ -438,7 +394,7 @@ export default class FezBase {
     obj ||= {}
 
     handler ||= (o, k, v) => {
-      this.render(true)
+      this.nextTick(this.render, 'render')
     }
 
     handler.bind(this)

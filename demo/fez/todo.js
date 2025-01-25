@@ -2,9 +2,15 @@ Fez('ui-todo', class {
   // if you define static html, it will be converted tu function(fast), and you will be able to refresh state with this.render()
   HTML = `
     <h3>Tasks</h3>
-    {{#if !@state.tasks[0]}}
+    {{#if !@state.tasks[0] }}
       <p>No tasks found</p>
+      {{#if true}}
+        TRUE
+      {{/if}}
+    {{:else}}
+      FOO
     {{/if}}
+    END
     {{#for task, index in @state.tasks}}
       {{#if task.animate}} <!-- this is fine because this is string templating -->
         <p fez-use="animate" style="display: none; height: 0px; opacity: 0;">

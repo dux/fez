@@ -1,5 +1,5 @@
 // templating
-import renderStache from '../vendor/stache'
+import createTemplate from '../vendor/template'
 
 function closeCustomTags(html) {
   const selfClosingTags = new Set([
@@ -104,7 +104,7 @@ function connectDom(name, node, klass) {
 
       klass.htmlTemplate = klass.html
 
-      object._fez_html_func = renderStache(klass.html, object)
+      object._fez_html_func = createTemplate(klass.html)
     }
 
     object.fezRegister()
