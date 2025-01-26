@@ -132,8 +132,8 @@ Fez.tag = function(tag, opts = {}, html = '') {
 
 // <template fez="ui-form">
 // Fez.loadTemplate('ui-form')    # loads template[fez=ui-form]
-// Fez.loadTemplate(templateNode))
-// Fez.loadTemplate('ui-form', templateStrin)
+// Fez.loadTemplate(templateNode)
+// Fez.loadTemplate('ui-form', templateNode.innerHTML)
 
 Fez.loadTemplate = function(tagName, html) {
   if (tagName instanceof Node) {
@@ -180,12 +180,40 @@ Fez.loadTemplate = function(tagName, html) {
     }
   }
 
-  result.html = result.html.trim();
+  let klass = result.script
 
-  result.style = result.style.includes(':fez') ? result.style : `:fez {\n${result.style}\n}`
+  if (! /class\s+\{/.test(klass)) {
+    klass = `class {\n${klass}\n}`
+  }
 
-  const klassStr = `window.Fez('${tagName}', class {\n${result.script}\n\n  CSS = \`${result.style}\`\n\n  HTML = \`${result.html}\`\n})`
-  new Function(klassStr)()
+  if (String(result.style).includes(':')) {
+    result.style = result.style.includes(':fez') ? result.style : `:fez {\n${result.style}\n}`
+    klass = klass.replace(/\}\s*$/, `\n  CSS = \`${result.style}\`\n}`)
+  }
+
+  if (/\w/.test(String(result.html))) {
+    result.html = result.html.replaceAll('$', '\\$')
+    klass = klass.replace(/\}\s*$/, `\n  HTML = \`${result.html}\`\n}`)
+  }
+
+  const parts = klass.split(/class\s+\{/, 2)
+
+  if (/\w/.test(String(parts[2]))) {
+    klass = `${parts[0]};\n\nwindow.Fez('${tagName}', class {\n${parts[1]})`
+  } else {
+    klass = `window.Fez('${tagName}', class {\n${parts[0]})`
+  }
+
+  // if (tagName == 'x-counter') {
+  //   console.log(klass)
+  // }
+
+  try {
+    new Function(klass)()
+  } catch(e) {
+    console.error(`FEZ template "${tagName}" compile error: ${e.message}`)
+    console.log(klass)
+  }
 }
 
 Fez.loadTemplates = function() {

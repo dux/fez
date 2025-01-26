@@ -58,7 +58,7 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Sat Jan 25 16:58:01 2025 +0100'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Sun Jan 26 03:00:40 2025 +0100'))</script>.
 
   <template fez="ui-clock"><script>
   setVars() {
@@ -375,8 +375,7 @@ Fez('ui-todo', class {
       </div>
     </div>
   
-  <template fez="ui-form"><script>
-  NAME = 'form'
+  <template fez="ui-form"><script>NAME = 'form'
 
   submit(e) {
     e.preventDefault()
@@ -472,8 +471,7 @@ Fez('ui-todo', class {
           <pre>
             <div style="margin-bottom: -30px;">./demo/fez/form.fez</div>
             <code class="language-javascript" id="fez-form-js">
-&lt;script>
-  NAME = 'form'
+&lt;script>NAME = 'form'
 
   submit(e) {
     e.preventDefault()
@@ -617,7 +615,49 @@ Fez('ui-time', class {
       </div>
     </div>
   
-  <script src="./demo/fez/icon.js"></script>
+  <template fez="ui-icon"><script>
+  $(document.head).append(`
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  `)
+
+  class {
+    NAME = 'span'
+
+    setSize(size) {
+      this.$root.css('font-size', `${parseInt(size)}px`)
+    }
+
+    onPropsChange(name, value) {
+      if (name == 'color') {
+        this.$root.css('color', value)
+      }
+
+      if (name == 'size') {
+        this.setSize(value)
+      }
+    }
+
+    connect(props) {
+      this.copy('onclick')
+
+      const icon = props.name || this.root.innerHTML.trim()
+      this.color = props.color || '#00'
+      this.root.classList.add('material-symbols-outlined')
+      this.root.innerHTML = icon
+    }
+  }
+</script>
+
+<style>
+  &.material-symbols-outlined {
+    font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24
+  }
+</style>
+</template>
 
     <h2>
       ui-icon
@@ -635,9 +675,9 @@ Fez('ui-time', class {
 &sdot;
 
 <span onclick="Fez('#icon-blue').attr('color', $(event.target).text())">
-  <span class="pointer">red</span>
-  <span class="pointer">blue</span>
-  <span class="pointer">green</span>
+  <button>red</button>
+  <button>blue</button>
+  <button>green</button>
 </span>
 
 <br /><br />
@@ -666,9 +706,9 @@ Fez('ui-time', class {
 &sdot;
 
 &lt;span onclick="Fez('#icon-blue').attr('color', $(event.target).text())">
-  &lt;span class="pointer">red&lt;/span>
-  &lt;span class="pointer">blue&lt;/span>
-  &lt;span class="pointer">green&lt;/span>
+  &lt;button>red&lt;/button>
+  &lt;button>blue&lt;/button>
+  &lt;button>green&lt;/button>
 &lt;/span>
 
 &lt;br />&lt;br />
@@ -689,50 +729,50 @@ Fez('ui-time', class {
 
         <div class="relative">
           <pre>
-            <div style="margin-bottom: -30px;">./demo/fez/icon.js</div>
+            <div style="margin-bottom: -30px;">./demo/fez/icon.fez</div>
             <code class="language-javascript" id="fez-icon-js">
-$(document.head).append(`
-  &lt;link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-`)
+&lt;script>
+  $(document.head).append(`
+    &lt;link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  `)
 
-// component to render google fonts icons
-Fez('ui-icon', class {
-  // default node name is div
-  NAME = 'span'
+  class {
+    NAME = 'span'
 
-  CSS = `
-    &.material-symbols-outlined {
-      font-variation-settings:
-      'FILL' 0,
-      'wght' 400,
-      'GRAD' 0,
-      'opsz' 24
-    }
-  `
-
-  setSize(size) {
-    this.$root.css('font-size', `${parseInt(size)}px`)
-  }
-
-  onPropsChange(name, value) {
-    if (name == 'color') {
-      this.$root.css('color', value)
+    setSize(size) {
+      this.$root.css('font-size', `${parseInt(size)}px`)
     }
 
-    if (name == 'size') {
-      this.setSize(value)
+    onPropsChange(name, value) {
+      if (name == 'color') {
+        this.$root.css('color', value)
+      }
+
+      if (name == 'size') {
+        this.setSize(value)
+      }
+    }
+
+    connect(props) {
+      this.copy('onclick')
+
+      const icon = props.name || this.root.innerHTML.trim()
+      this.color = props.color || '#00'
+      this.root.classList.add('material-symbols-outlined')
+      this.root.innerHTML = icon
     }
   }
+&lt;/script>
 
-  connect(root, props) {
-    this.copy('onclick')
-
-    const icon = this.props.name || this.root.innerHTML.trim()
-    this.color = this.props.color || '#00'
-    this.root.classList.add('material-symbols-outlined')
-    this.root.innerHTML = icon
+&lt;style>
+  &.material-symbols-outlined {
+    font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24
   }
-})
+&lt;/style>
 
             </code>
           </pre>
@@ -977,7 +1017,7 @@ Fez('ui-list', class {
 
     this.render([
       this.n('div.header', this.tabs.map((tab, index) =>
-        this.n(`span`, tab.attr('title'), { onclick: `$$.activate(${index})` })
+        this.n(`span`, tab.attr('title'), { onclick: ()=> this.activate(index) })
       )),
       this.n('.body', '<slot />')
     ]);
@@ -1122,7 +1162,7 @@ Fez('ui-list', class {
 
     this.render([
       this.n('div.header', this.tabs.map((tab, index) =>
-        this.n(`span`, tab.attr('title'), { onclick: `$$.activate(${index})` })
+        this.n(`span`, tab.attr('title'), { onclick: ()=> this.activate(index) })
       )),
       this.n('.body', '&lt;slot />')
     ]);

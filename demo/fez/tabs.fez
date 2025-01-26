@@ -16,7 +16,7 @@
 
     this.render([
       this.n('div.header', this.tabs.map((tab, index) =>
-        this.n(`span`, tab.attr('title'), { onclick: `$$.activate(${index})` })
+        this.n(`span`, tab.attr('title'), { onclick: ()=> this.activate(index) })
       )),
       this.n('.body', '<slot />')
     ]);

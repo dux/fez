@@ -124,6 +124,16 @@ function connectDom(name, node, klass) {
 
     object.afterConnect(object.props)
 
+    // parse code in props
+    // size="{{ document.getElementById('icon-range').value }}"
+    for (let [key, value] of Object.entries(object.props)) {
+      if (/^\{\{/.test(value) && /\}\}$/.test(value)) {
+        value = value.replace(/^\{\{/, 'return (').replace(/\}\}$/, ')')
+        value = (new Function(value)).bind(object.root)()
+        object.props[key] = value
+      }
+    }
+
     // if onPropsChange method defined, add observer and trigger call on all attributes once component is loaded
     if (object.onPropsChange) {
       observer.observe(newNode, {attributes:true})
