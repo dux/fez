@@ -55,6 +55,8 @@ export default function createTemplate(text) {
 
   result = '`' + result + '`'
 
+  // console.log(result)
+
   try {
     const tplFunc = new Function(`return ${result}`)
     const outFunc = (o) => {

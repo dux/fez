@@ -1,15 +1,17 @@
 <script>
-  setVars() {
-    // will only render once on next tick
-    let time = new Date();
-    this.state.hours = time.getHours();
-    this.state.minutes = time.getMinutes();
-    this.state.seconds = time.getSeconds();
-  }
+  class {
+    setVars() {
+      // will only render once on next tick
+      let time = new Date();
+      this.state.hours = time.getHours();
+      this.state.minutes = time.getMinutes();
+      this.state.seconds = time.getSeconds();
+    }
 
-  connect() {
-    this.setVars()
-    this.setInterval(this.setVars, 1000)
+    connect() {
+      this.setVars()
+      this.setInterval(this.setVars, 1000)
+    }
   }
 </script>
 

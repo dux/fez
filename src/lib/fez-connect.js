@@ -1,16 +1,6 @@
 // templating
 import createTemplate from '../vendor/template'
 
-function closeCustomTags(html) {
-  const selfClosingTags = new Set([
-    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr'
-  ])
-
-  return html.replace(/<([a-z-]+)\b([^>]*)\/>/g, (match, tagName, attributes) => {
-    return selfClosingTags.has(tagName) ? match : `<${tagName}${attributes}></${tagName}>`
-  })
-}
-
 export default function(name, klass) {
   // to allow anonymous class and then re-attach (does not work)
   // Fez('ui-todo', class { ... # instead Fez('ui-todo', class extends FezBase {
@@ -32,34 +22,60 @@ export default function(name, klass) {
     klass = newKlass
   }
 
+  if (klass.html) {
+    klass.html = closeCustomTags(klass.html)
+
+    // wrap slot to enable reactive re-renders. It will use existing .fez-slot if found
+    klass.html = klass.html.replace(/<slot\s*\/>|<slot\s*>\s*<\/slot>/g, () => {
+      const name = klass.slotNodeName || 'div'
+      return `<${name} class="fez-slot"></${name}>`
+    })
+
+    klass.fezHtmlFunc = createTemplate(klass.html)
+  }
+
   // we have to register global css on component init, because some other component can depend on it (it is global)
   if (klass.css) {
     klass.css = Fez.globalCss(klass.css, {name: name})
   }
 
-  customElements.define(name, class extends HTMLElement {
-    connectedCallback() {
-      // when we render nested fez components, and under Svelte, sometimes node innerHTML is empty, but it should not be
-      // in that case, we need to wait for another tick to get content
-      // this solution looks like it is not efficient, because it slow renders fez components that do not have and are not intended to have body, but by testing this looks like it is not effecting render performance
-      // if you want to force fast render, add static fastBind = true or check
-      // console.log(this)
-      if (this.firstChild || this.getAttribute('data-props') || forceFastRender(this, klass)) {
-        Fez.info(`fast bind: ${name}`)
-        connectDom(name, this, klass)
-      } else {
-        Fez.info(`slow bind: ${name}`)
-        window.requestAnimationFrame(()=>{
-          if (this.parentNode) {
-            connectDom(name, this, klass)
-          }
-        })
+  Fez._classCache[name] = klass
+
+  if (!customElements.get(name)) {
+    customElements.define(name, class extends HTMLElement {
+      connectedCallback() {
+        // when we render nested fez components, and under Svelte, sometimes node innerHTML is empty, but it should not be
+        // in that case, we need to wait for another tick to get content
+        // this solution looks like it is not efficient, because it slow renders fez components that do not have and are not intended to have body, but by testing this looks like it is not effecting render performance
+        // if you want to force fast render, add static fastBind = true or check
+        // console.log(this)
+        if (this.firstChild || this.getAttribute('data-props') || forceFastRender(this, klass)) {
+          Fez.info(`fast bind: ${name}`)
+          connectDom(name, this, Fez._classCache[name])
+        } else {
+          Fez.info(`slow bind: ${name}`)
+          window.requestAnimationFrame(()=>{
+            if (this.parentNode) {
+              connectDom(name, this, Fez._classCache[name])
+            }
+          })
+        }
       }
-    }
-  })
+    })
+  }
 }
 
 //
+
+function closeCustomTags(html) {
+  const selfClosingTags = new Set([
+    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr'
+  ])
+
+  return html.replace(/<([a-z-]+)\b([^>]*)\/>/g, (match, tagName, attributes) => {
+    return selfClosingTags.has(tagName) ? match : `<${tagName}${attributes}></${tagName}>`
+  })
+}
 
 function connectDom(name, node, klass) {
   const parentNode = node.parentNode
@@ -93,27 +109,13 @@ function connectDom(name, node, klass) {
       newNode.setAttribute('id', object.props.id)
     }
 
-    if (klass.html) {
-      klass.html = closeCustomTags(klass.html)
-
-      // wrap slot to enable reactive re-renders. It will use existing .fez-slot if found
-      klass.html = klass.html.replace(/<slot\s*\/>|<slot\s*><\/slot>/g, () => {
-        const name = klass.slotNodeName || 'div'
-        return `<${name} class="fez-slot"></${name}>`
-      })
-
-      klass.htmlTemplate = klass.html
-
-      object._fez_html_func = createTemplate(klass.html)
-    }
-
     object.fezRegister()
     object.connect(object.props)
     klass.__objects.push(object)
 
     const oldRoot = object.root.cloneNode(true)
 
-    if (object._fez_html_func) {
+    if (object.class.fezHtmlFunc) {
       object.render()
     }
 

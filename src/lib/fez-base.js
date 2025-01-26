@@ -175,7 +175,7 @@ export default class FezBase {
   // this.render('...loading')
   // this.render('.images', '...loading')
   render(template) {
-    template ||= this?._fez_html_func
+    template ||= this?.class?.fezHtmlFunc
 
     if (!template) return
 

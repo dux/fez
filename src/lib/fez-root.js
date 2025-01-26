@@ -18,6 +18,8 @@ const Fez = (name, klass) => {
   return connect(name, klass)
 }
 
+Fez._classCache = {}
+
 Fez.find = (node, name) => {
   if (typeof node == 'string') {
     node = document.body.querySelector(node)

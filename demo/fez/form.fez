@@ -1,4 +1,5 @@
-<script>NAME = 'form'
+<script>
+  NAME = 'form'
 
   submit(e) {
     e.preventDefault()
