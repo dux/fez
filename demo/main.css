@@ -25,6 +25,13 @@ pre {
   }
 }
 
+code {
+  border: 1px solid #ccc;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background-color: #f7f7f7;
+}
+
 h2 {
   border-top: 1px solid #ccc;
   padding-top: 20px;

@@ -185,6 +185,7 @@ export default class FezBase {
 
     let renderedTpl
     if (Array.isArray(template)) {
+      // array nodes this.n(...), look tabs example
       if (template[0] instanceof Node) {
         template.forEach( n => newNode.appendChild(n) )
       } else{
@@ -202,6 +203,7 @@ export default class FezBase {
       newNode.innerHTML = this.parseHtml(renderedTpl)
     }
 
+    // this comes only from array nodes this.n(...)
     const slot = newNode.querySelector('slot')
     if (slot) {
       this.slot(this.root, slot.parentNode)

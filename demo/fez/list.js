@@ -7,28 +7,31 @@ Fez('ui-list', class {
   `
 
   HTML = `
-    {{#if @colors[0]}} @ will be replaced with this.
+    {{#if @colors[0]}}
+      <p>
+        Inside code blocks <code>{ { ... } }</code>, <code>@</code> will be replaced with <code>this.</code>
+      </p>
+      <h4>for loop, with index</h4>
       <ul>
-        {{#for color in @colors}}
-          <li style="color: {{ color }};">{{ color }}</li>
+        {{#for color, index in @colors}}
+          <li style="color: {{ color }};">
+            {{ index + 1}}. {{ color }}
+          </li>
         {{/for}}
       </ul>
     {{else}}
-      <p>no colors, here is object</p>
+      <p>no colors</p>
 
-      <h4>for loop, no index</h4>
+      <h3>Insert HTML example - bold italic</h3>
 
-      <h4>each loop, with index</h4>
-
+      <p>Escaped: {{ @example }}</p>
+      <p>Raw: {{@html @example }} (prefix with <code>@html</code>)</p>
     {{/if}}
   `
 
   connect() {
     this.colors = this.root.innerHTML.trim().split(',')
 
-    this.objectData = {
-      foo: 'bar',
-      baz: 1234
-    }
+    this.example = `<strong><i>bold & italic</i></strong>`
   }
 })

@@ -1,15 +1,13 @@
 <script>
   setVars() {
+    // will only render once on next tick
     let time = new Date();
-    this.state.time = time
     this.state.hours = time.getHours();
     this.state.minutes = time.getMinutes();
     this.state.seconds = time.getSeconds();
   }
 
   connect() {
-    alert(12)
-
     this.setVars()
     this.setInterval(this.setVars, 1000)
   }
@@ -62,21 +60,21 @@
 
   <!-- markers -->
   {{#each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}}
-    <line class="major" y1="35" y2="45" transform="rotate({30 * minute})" />
+    <line class="major" y1="35" y2="45" transform="rotate({{30 * minute}})" />
 
     {{#each [1, 2, 3, 4] as offset}}
-      <line class="minor" y1="42" y2="45" transform="rotate({6 * (minute + offset)})" />
+      <line class="minor" y1="42" y2="45" transform="rotate({{6 * (minute + offset)}})" />
     {{/each}}
   {{/each}}
 
   <!-- hour hand -->
-  <line class="hour" y1="2" y2="-20" transform="rotate({30 * @state.hours + @state.minutes / 2})" />
+  <line class="hour" y1="2" y2="-20" transform="rotate({{30 * @state.hours + @state.minutes / 2}})" />
 
   <!-- minute hand -->
-  <line class="minute" y1="4" y2="-30" transform="rotate({6 * @state.minutes + @state.seconds / 10})" />
+  <line class="minute" y1="4" y2="-30" transform="rotate({{6 * @state.minutes + @state.seconds / 10}})" />
 
   <!-- second hand -->
-  <g transform="rotate({6 * @state.seconds})">
+  <g transform="rotate({{6 * @state.seconds}})">
     <line class="second" y1="10" y2="-38" />
     <line class="second-counterweight" y1="10" y2="2" />
   </g>

@@ -1,44 +1,5 @@
 <%
-  def escape str
-    str.gsub '<', '&lt;'
-  end
-
-  def fez name
-    body = File.read("./demo/fez/#{name}.html").split(/\s*\n\s*/, 2)
-
-    %{
-      <script src="./demo/fez/#{name}.js"></script>
-      <h2>
-        ui-#{name}
-        &sdot;
-        <small>#{body[0]}</small>
-      </h2>
-
-      <div class="flex">
-        <div class="body">
-           #{body[1]}
-        </div>
-        <div>
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-#{name}-html">
-#{escape(body[1])}
-</code>
-            <pre>
-          </div>
-
-          <div class="relative">
-            <pre>
-              <code class="language-javascript" id="fez-#{name}-js">
-#{escape(File.read("./demo/fez/#{name}.js"))}
-              </code>
-            </pre>
-          </div>
-
-        </div>
-      </div>
-    }
-  end
+  load './demo/main.rb'
 %>
 
 <!DOCTYPE html>
@@ -109,6 +70,10 @@
   <%= fez('pubsub') %>
   <%= fez('list') %>
   <%= fez('tabs') %>
+
+  <script>
+    Fez.loadTemplates()
+  </script>
 </body>
 </html>
 

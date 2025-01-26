@@ -58,108 +58,12 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Sat Jan 25 15:29:08 2025 +0100'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Sat Jan 25 16:58:01 2025 +0100'))</script>.
 
-  
-      <script src="./demo/fez/clock.js"></script>
-      <h2>
-        ui-clock
-        &sdot;
-        <small>featuturing SVG generation & reactive store</small>
-      </h2>
-
-      <div class="flex">
-        <div class="body">
-           <ui-clock></ui-clock>
-
-        </div>
-        <div>
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-clock-html">
-&lt;ui-clock>&lt;/ui-clock>
-
-</code>
-            <pre>
-          </div>
-
-          <div class="relative">
-            <pre>
-              <code class="language-javascript" id="fez-clock-js">
-Fez('ui-clock', class {
-  HTML = `
-    &lt;svg viewBox="-50 -50 100 100">
-      &lt;circle class="clock-face" r="48" />
-
-     &lt;!-- markers -->
-      {{#each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}}
-        &lt;line class="major" y1="35" y2="45" transform="rotate({{30 * minute}})" />
-
-        {{#each [1, 2, 3, 4] as offset}}
-          &lt;line class="minor" y1="42" y2="45" transform="rotate({{6 * (minute + offset)}})" />
-        {{/each}}
-      {{/each}}
-
-      &lt;!-- hour hand -->
-      &lt;line class="hour" y1="2" y2="-20" transform="rotate({{30 * @state.hours + @state.minutes / 2}})" />
-
-      &lt;!-- minute hand -->
-      &lt;line class="minute" y1="4" y2="-30" transform="rotate({{6 * @state.minutes + @state.seconds / 10}})" />
-
-      &lt;!-- second hand -->
-      &lt;g transform="rotate({{6 * @state.seconds}})">
-        &lt;line class="second" y1="10" y2="-38" />
-        &lt;line class="second-counterweight" y1="10" y2="2" />
-      &lt;/g>
-    &lt;/svg>
-  `
-
-  css = `
-    input {
-      border: 3px solid red !important;
-    }
-
-    svg {
-      width: 100%;
-      height: 100%;
-    }
-
-    .clock-face {
-      stroke: #333;
-      fill: white;
-    }
-
-    .minor {
-      stroke: #999;
-      stroke-width: 0.5;
-    }
-
-    .major {
-      stroke: #333;
-      stroke-width: 1;
-    }
-
-    .hour {
-      stroke: #333;
-    }
-
-    .minute {
-      stroke: #666;
-    }
-
-    .second,
-    .second-counterweight {
-      stroke: rgb(180, 0, 0);
-    }
-
-    .second-counterweight {
-      stroke-width: 3;
-    }
-  `
-
+  <template fez="ui-clock"><script>
   setVars() {
+    // will only render once on next tick
     let time = new Date();
-    this.state.time = time
     this.state.hours = time.getHours();
     this.state.minutes = time.getMinutes();
     this.state.seconds = time.getSeconds();
@@ -169,41 +73,219 @@ Fez('ui-clock', class {
     this.setVars()
     this.setInterval(this.setVars, 1000)
   }
-})
+</script>
 
-              </code>
-            </pre>
-          </div>
+<style>
+  input {
+    border: 3px solid red !important;
+  }
 
-        </div>
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .clock-face {
+    stroke: #333;
+    fill: white;
+  }
+
+  .minor {
+    stroke: #999;
+    stroke-width: 0.5;
+  }
+
+  .major {
+    stroke: #333;
+    stroke-width: 1;
+  }
+
+  .hour {
+    stroke: #333;
+  }
+
+  .minute {
+    stroke: #666;
+  }
+
+  .second, .second-counterweight {
+    stroke: rgb(180, 0, 0);
+  }
+
+  .second-counterweight {
+    stroke-width: 3;
+  }
+</style>
+
+<svg viewBox="-50 -50 100 100">
+  <circle class="clock-face" r="48" />
+
+  <!-- markers -->
+  {{#each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}}
+    <line class="major" y1="35" y2="45" transform="rotate({{30 * minute}})" />
+
+    {{#each [1, 2, 3, 4] as offset}}
+      <line class="minor" y1="42" y2="45" transform="rotate({{6 * (minute + offset)}})" />
+    {{/each}}
+  {{/each}}
+
+  <!-- hour hand -->
+  <line class="hour" y1="2" y2="-20" transform="rotate({{30 * @state.hours + @state.minutes / 2}})" />
+
+  <!-- minute hand -->
+  <line class="minute" y1="4" y2="-30" transform="rotate({{6 * @state.minutes + @state.seconds / 10}})" />
+
+  <!-- second hand -->
+  <g transform="rotate({{6 * @state.seconds}})">
+    <line class="second" y1="10" y2="-38" />
+    <line class="second-counterweight" y1="10" y2="2" />
+  </g>
+</svg>
+</template>
+
+    <h2>
+      ui-clock
+      &sdot;
+      <small>featuturing SVG generation & reactive store</small>
+    </h2>
+
+    <div class="flex">
+      <div class="body">
+          <ui-clock></ui-clock>
+
       </div>
-    
-  
-      <script src="./demo/fez/todo.js"></script>
-      <h2>
-        ui-todo
-        &sdot;
-        <small>features reactive state, fez-use & fez-bind &sdot; <a href="https://todomvc.com/" target="mvc">ToDo MVC candidate</a> (<a href="https://github.com/tastejs/todomvc/tree/master/examples/react/src">React</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/vue/src">Vue</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/angular/src">Angular</a>)</small>
-      </h2>
+      <div>
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/clock.html</div>
+            <code class="language-html" id="fez-clock-html">
+&lt;ui-clock>&lt;/ui-clock>
 
-      <div class="flex">
-        <div class="body">
-           <ui-todo></ui-todo>
-
+</code>
+          <pre>
         </div>
-        <div>
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-todo-html">
+
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/clock.fez</div>
+            <code class="language-javascript" id="fez-clock-js">
+&lt;script>
+  setVars() {
+    // will only render once on next tick
+    let time = new Date();
+    this.state.hours = time.getHours();
+    this.state.minutes = time.getMinutes();
+    this.state.seconds = time.getSeconds();
+  }
+
+  connect() {
+    this.setVars()
+    this.setInterval(this.setVars, 1000)
+  }
+&lt;/script>
+
+&lt;style>
+  input {
+    border: 3px solid red !important;
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .clock-face {
+    stroke: #333;
+    fill: white;
+  }
+
+  .minor {
+    stroke: #999;
+    stroke-width: 0.5;
+  }
+
+  .major {
+    stroke: #333;
+    stroke-width: 1;
+  }
+
+  .hour {
+    stroke: #333;
+  }
+
+  .minute {
+    stroke: #666;
+  }
+
+  .second, .second-counterweight {
+    stroke: rgb(180, 0, 0);
+  }
+
+  .second-counterweight {
+    stroke-width: 3;
+  }
+&lt;/style>
+
+&lt;svg viewBox="-50 -50 100 100">
+  &lt;circle class="clock-face" r="48" />
+
+  &lt;!-- markers -->
+  {{#each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}}
+    &lt;line class="major" y1="35" y2="45" transform="rotate({{30 * minute}})" />
+
+    {{#each [1, 2, 3, 4] as offset}}
+      &lt;line class="minor" y1="42" y2="45" transform="rotate({{6 * (minute + offset)}})" />
+    {{/each}}
+  {{/each}}
+
+  &lt;!-- hour hand -->
+  &lt;line class="hour" y1="2" y2="-20" transform="rotate({{30 * @state.hours + @state.minutes / 2}})" />
+
+  &lt;!-- minute hand -->
+  &lt;line class="minute" y1="4" y2="-30" transform="rotate({{6 * @state.minutes + @state.seconds / 10}})" />
+
+  &lt;!-- second hand -->
+  &lt;g transform="rotate({{6 * @state.seconds}})">
+    &lt;line class="second" y1="10" y2="-38" />
+    &lt;line class="second-counterweight" y1="10" y2="2" />
+  &lt;/g>
+&lt;/svg>
+
+            </code>
+          </pre>
+        </div>
+
+      </div>
+    </div>
+  
+  <script src="./demo/fez/todo.js"></script>
+
+    <h2>
+      ui-todo
+      &sdot;
+      <small>features reactive state, fez-use & fez-bind &sdot; <a href="https://todomvc.com/" target="mvc">ToDo MVC candidate</a> (<a href="https://github.com/tastejs/todomvc/tree/master/examples/react/src">React</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/vue/src">Vue</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/angular/src">Angular</a>)</small>
+    </h2>
+
+    <div class="flex">
+      <div class="body">
+          <ui-todo></ui-todo>
+
+      </div>
+      <div>
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/todo.html</div>
+            <code class="language-html" id="fez-todo-html">
 &lt;ui-todo>&lt;/ui-todo>
 
 </code>
-            <pre>
-          </div>
+          <pre>
+        </div>
 
-          <div class="relative">
-            <pre>
-              <code class="language-javascript" id="fez-todo-js">
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/todo.js</div>
+            <code class="language-javascript" id="fez-todo-js">
 Fez('ui-todo', class {
   // if you define static html, it will be converted tu function(fast), and you will be able to refresh state with this.render()
   HTML = `
@@ -286,24 +368,55 @@ Fez('ui-todo', class {
   }
 })
 
-              </code>
-            </pre>
-          </div>
-
+            </code>
+          </pre>
         </div>
-      </div>
-    
-  
-      <script src="./demo/fez/form.js"></script>
-      <h2>
-        ui-form
-        &sdot;
-        <small>Features form helpers and custom dom node name (FORM)</small>
-      </h2>
 
-      <div class="flex">
-        <div class="body">
-           <ui-form target="/api">
+      </div>
+    </div>
+  
+  <template fez="ui-form"><script>
+  NAME = 'form'
+
+  submit(e) {
+    e.preventDefault()
+    alert(JSON.stringify(this.formData()))
+  }
+
+  connect() {
+    this.root.onsubmit = this.submit
+  }
+</script>
+
+<style>
+  :fez {
+    border: 2px solid green;
+    border-radius: 5px;
+    padding: 15px;
+    margin: 15px 0;
+
+    label {
+      display: block;
+      cursor: pointer;
+      margin-bottom: 5px;
+    }
+
+    select option {
+      font-size: 16px;
+    }
+  }
+</style>
+</template>
+
+    <h2>
+      ui-form
+      &sdot;
+      <small>Features form helpers and custom dom node name (FORM)</small>
+    </h2>
+
+    <div class="flex">
+      <div class="body">
+          <ui-form target="/api">
   <p>
     <input type="text" name="info" value="a dude" />
   </p>
@@ -324,11 +437,12 @@ Fez('ui-todo', class {
   </p>
 </ui-form>
 
-        </div>
-        <div>
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-form-html">
+      </div>
+      <div>
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/form.html</div>
+            <code class="language-html" id="fez-form-html">
 &lt;ui-form target="/api">
   &lt;p>
     &lt;input type="text" name="info" value="a dude" />
@@ -351,17 +465,28 @@ Fez('ui-todo', class {
 &lt;/ui-form>
 
 </code>
-            <pre>
-          </div>
+          <pre>
+        </div>
 
-          <div class="relative">
-            <pre>
-              <code class="language-javascript" id="fez-form-js">
-// render form
-Fez('ui-form', class {
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/form.fez</div>
+            <code class="language-javascript" id="fez-form-js">
+&lt;script>
   NAME = 'form'
 
-  css = `
+  submit(e) {
+    e.preventDefault()
+    alert(JSON.stringify(this.formData()))
+  }
+
+  connect() {
+    this.root.onsubmit = this.submit
+  }
+&lt;/script>
+
+&lt;style>
+  :fez {
     border: 2px solid green;
     border-radius: 5px;
     padding: 15px;
@@ -376,36 +501,27 @@ Fez('ui-form', class {
     select option {
       font-size: 16px;
     }
-  `
-
-  submit(e) {
-    e.preventDefault()
-    alert(JSON.stringify(this.formData()))
   }
+&lt;/style>
 
-  connect() {
-    this.root.onsubmit = this.submit
-  }
-})
-
-              </code>
-            </pre>
-          </div>
-
+            </code>
+          </pre>
         </div>
-      </div>
-    
-  
-      <script src="./demo/fez/time.js"></script>
-      <h2>
-        ui-time
-        &sdot;
-        <small>Features calling instance methods, afterHtml(), slot state preservation.</small>
-      </h2>
 
-      <div class="flex">
-        <div class="body">
-           <ui-time city="Zagreb">
+      </div>
+    </div>
+  
+  <script src="./demo/fez/time.js"></script>
+
+    <h2>
+      ui-time
+      &sdot;
+      <small>Features calling instance methods, afterHtml(), slot state preservation.</small>
+    </h2>
+
+    <div class="flex">
+      <div class="body">
+          <ui-time city="Zagreb">
   <ul>
     <li>
       Slot state preservation demo:
@@ -414,11 +530,12 @@ Fez('ui-form', class {
   </ul>
 </ui-time>
 
-        </div>
-        <div>
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-time-html">
+      </div>
+      <div>
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/time.html</div>
+            <code class="language-html" id="fez-time-html">
 &lt;ui-time city="Zagreb">
   &lt;ul>
     &lt;li>
@@ -429,12 +546,13 @@ Fez('ui-form', class {
 &lt;/ui-time>
 
 </code>
-            <pre>
-          </div>
+          <pre>
+        </div>
 
-          <div class="relative">
-            <pre>
-              <code class="language-javascript" id="fez-time-js">
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/time.js</div>
+            <code class="language-javascript" id="fez-time-js">
 Fez('ui-time', class {
   NAME = 'div'
 
@@ -492,24 +610,24 @@ Fez('ui-time', class {
 
 })
 
-              </code>
-            </pre>
-          </div>
-
+            </code>
+          </pre>
         </div>
-      </div>
-    
-  
-      <script src="./demo/fez/icon.js"></script>
-      <h2>
-        ui-icon
-        &sdot;
-        <small>Features component to component communication</small>
-      </h2>
 
-      <div class="flex">
-        <div class="body">
-           <input
+      </div>
+    </div>
+  
+  <script src="./demo/fez/icon.js"></script>
+
+    <h2>
+      ui-icon
+      &sdot;
+      <small>Features component to component communication</small>
+    </h2>
+
+    <div class="flex">
+      <div class="body">
+          <input
   type="range" min="24" max="100" class="slider" id="icon-range"
   oninput="Fez('#icon-blue').setSize(this.value)"
 />
@@ -534,11 +652,12 @@ Fez('ui-time', class {
 ></ui-icon>
 <ui-icon color="red">delete</ui-icon>
 
-        </div>
-        <div>
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-icon-html">
+      </div>
+      <div>
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/icon.html</div>
+            <code class="language-html" id="fez-icon-html">
 &lt;input
   type="range" min="24" max="100" class="slider" id="icon-range"
   oninput="Fez('#icon-blue').setSize(this.value)"
@@ -565,12 +684,13 @@ Fez('ui-time', class {
 &lt;ui-icon color="red">delete&lt;/ui-icon>
 
 </code>
-            <pre>
-          </div>
+          <pre>
+        </div>
 
-          <div class="relative">
-            <pre>
-              <code class="language-javascript" id="fez-icon-js">
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/icon.js</div>
+            <code class="language-javascript" id="fez-icon-js">
 $(document.head).append(`
   &lt;link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 `)
@@ -614,24 +734,24 @@ Fez('ui-icon', class {
   }
 })
 
-              </code>
-            </pre>
-          </div>
-
+            </code>
+          </pre>
         </div>
-      </div>
-    
-  
-      <script src="./demo/fez/pubsub.js"></script>
-      <h2>
-        ui-pubsub
-        &sdot;
-        <small>Features publish &lt;> subscribe mechanism</small>
-      </h2>
 
-      <div class="flex">
-        <div class="body">
-           <style>
+      </div>
+    </div>
+  
+  <script src="./demo/fez/pubsub.js"></script>
+
+    <h2>
+      ui-pubsub
+      &sdot;
+      <small>Features publish &lt;> subscribe mechanism</small>
+    </h2>
+
+    <div class="flex">
+      <div class="body">
+          <style>
 .fez-ui-pubsub { margin-top: 10px; }
 </style>
 
@@ -676,11 +796,12 @@ Fast ping:
 setInterval(()=>Fez.publish('ping', Math.random()), 5000)
 </script>
 
-        </div>
-        <div>
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-pubsub-html">
+      </div>
+      <div>
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/pubsub.html</div>
+            <code class="language-html" id="fez-pubsub-html">
 &lt;style>
 .fez-ui-pubsub { margin-top: 10px; }
 &lt;/style>
@@ -727,12 +848,13 @@ setInterval(()=>Fez.publish('ping', Math.random()), 5000)
 &lt;/script>
 
 </code>
-            <pre>
-          </div>
+          <pre>
+        </div>
 
-          <div class="relative">
-            <pre>
-              <code class="language-javascript" id="fez-pubsub-js">
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/pubsub.js</div>
+            <code class="language-javascript" id="fez-pubsub-js">
 Fez('ui-pubsub', class extends FezBase {
   update (info) {
     this.target.innerHTML = info
@@ -745,43 +867,53 @@ Fez('ui-pubsub', class extends FezBase {
   }
 })
 
-              </code>
-            </pre>
-          </div>
-
+            </code>
+          </pre>
         </div>
-      </div>
-    
-  
-      <script src="./demo/fez/list.js"></script>
-      <h2>
-        ui-list
-        &sdot;
-        <small>Features list and object rendering</small>
-      </h2>
 
-      <div class="flex">
-        <div class="body">
-           <ui-list>red,green,blue</ui-list>
+      </div>
+    </div>
+  
+  <script src="./demo/fez/list.js"></script>
+
+    <h2>
+      ui-list
+      &sdot;
+      <small>Features list and object rendering</small>
+    </h2>
+
+    <div class="flex">
+      <div class="body">
+          <h3>Case 1</h3>
+<ui-list>red,green,blue</ui-list>
+
 <hr />
+
+<h3>Case 2</h3>
 <ui-list></ui-list>
 
-        </div>
-        <div>
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-list-html">
+      </div>
+      <div>
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/list.html</div>
+            <code class="language-html" id="fez-list-html">
+&lt;h3>Case 1&lt;/h3>
 &lt;ui-list>red,green,blue&lt;/ui-list>
+
 &lt;hr />
+
+&lt;h3>Case 2&lt;/h3>
 &lt;ui-list>&lt;/ui-list>
 
 </code>
-            <pre>
-          </div>
+          <pre>
+        </div>
 
-          <div class="relative">
-            <pre>
-              <code class="language-javascript" id="fez-list-js">
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/list.js</div>
+            <code class="language-javascript" id="fez-list-js">
 // component to render google fonts icons
 Fez('ui-list', class {
   css = `
@@ -791,50 +923,118 @@ Fez('ui-list', class {
   `
 
   HTML = `
-    {{#if @colors[0]}} @ will be replaced with this.
+    {{#if @colors[0]}}
+      &lt;p>
+        Inside code blocks &lt;code>{ { ... } }&lt;/code>, &lt;code>@&lt;/code> will be replaced with &lt;code>this.&lt;/code>
+      &lt;/p>
+      &lt;h4>for loop, with index&lt;/h4>
       &lt;ul>
-        {{#for color in @colors}}
-          &lt;li style="color: {{ color }};">{{ color }}&lt;/li>
+        {{#for color, index in @colors}}
+          &lt;li style="color: {{ color }};">
+            {{ index + 1}}. {{ color }}
+          &lt;/li>
         {{/for}}
       &lt;/ul>
     {{else}}
-      &lt;p>no colors, here is object&lt;/p>
+      &lt;p>no colors&lt;/p>
 
-      &lt;h4>for loop, no index&lt;/h4>
+      &lt;h3>Insert HTML example - bold italic&lt;/h3>
 
-      &lt;h4>each loop, with index&lt;/h4>
-
+      &lt;p>Escaped: {{ @example }}&lt;/p>
+      &lt;p>Raw: {{@html @example }} (prefix with &lt;code>@html&lt;/code>)&lt;/p>
     {{/if}}
   `
 
   connect() {
     this.colors = this.root.innerHTML.trim().split(',')
 
-    this.objectData = {
-      foo: 'bar',
-      baz: 1234
-    }
+    this.example = `&lt;strong>&lt;i>bold & italic&lt;/i>&lt;/strong>`
   }
 })
 
-              </code>
-            </pre>
-          </div>
-
+            </code>
+          </pre>
         </div>
-      </div>
-    
-  
-      <script src="./demo/fez/tabs.js"></script>
-      <h2>
-        ui-tabs
-        &sdot;
-        <small>Features alternative node builder and nested components</small>
-      </h2>
 
-      <div class="flex">
-        <div class="body">
-           <ui-tabs>
+      </div>
+    </div>
+  
+  <template fez="ui-tabs"><script>
+  activateNode(node) {
+    node.parent().find('> *').removeClass('active')
+    node.addClass('active')
+  }
+
+  activate(num) {
+    this.active = parseInt(num)
+    const target = this.$root.find(`> div > div.header > span:nth-child(${num + 1})`)
+    this.activateNode(target)
+    this.activateNode(this.tabs[num])
+  }
+
+  connect(props) {
+    this.tabs = this.childNodes(n => $(n))
+
+    this.render([
+      this.n('div.header', this.tabs.map((tab, index) =>
+        this.n(`span`, tab.attr('title'), { onclick: `$$.activate(${index})` })
+      )),
+      this.n('.body', '<slot />')
+    ]);
+
+    this.activate(0)
+  }
+</script>
+
+<style>
+  --tabs-border: 1px solid #ccc;
+
+  .header {
+    margin-bottom: -2px;
+    position: relative;
+    z-index: 1;
+
+    & > span {
+      border: var(--tabs-border);
+      padding: 8px 15px;
+      display: inline-block;
+      border-radius: 8px 8px 0 0;
+      margin-right: -1px;
+      background: #eee;
+      cursor: pointer;
+
+      &.active {
+        background-color: #fff;
+        border-bottom: none;
+      }
+    }
+  }
+
+  .body {
+    border: var(--tabs-border);
+    padding: 8px 15px;
+    background: #fff;
+
+    & > div {
+      display: none;
+
+      &.active {
+        display: block;
+      }
+    }
+  }
+</style>
+</template>
+
+    <h2>
+      ui-tabs
+      &sdot;
+      <small>Features alternative node builder and nested components</small>
+    </h2>
+
+    <div class="flex">
+      <div class="body">
+          <ui-tabs>
   <div title="Bar">
     <p>First tab</p>
 
@@ -862,11 +1062,12 @@ Fez('ui-list', class {
 </ui-tabs>
 
 
-        </div>
-        <div>
-          <div class="relative">
-            <pre>
-              <code class="language-html" id="fez-tabs-html">
+      </div>
+      <div>
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/tabs.html</div>
+            <code class="language-html" id="fez-tabs-html">
 &lt;ui-tabs>
   &lt;div title="Bar">
     &lt;p>First tab&lt;/p>
@@ -896,52 +1097,14 @@ Fez('ui-list', class {
 
 
 </code>
-            <pre>
-          </div>
+          <pre>
+        </div>
 
-          <div class="relative">
-            <pre>
-              <code class="language-javascript" id="fez-tabs-js">
-Fez('ui-tabs', class {
-  css = `
-    --tabs-border: 1px solid #ccc;
-
-    .header {
-      margin-bottom: -2px;
-      position: relative;
-      z-index: 1;
-
-      & > span {
-        border: var(--tabs-border);
-        padding: 8px 15px;
-        display: inline-block;
-        border-radius: 8px 8px 0 0;
-        margin-right: -1px;
-        background: #eee;
-        cursor: pointer;
-
-        &.active {
-          background-color: #fff;
-          border-bottom: none;
-        }
-      }
-    }
-
-    .body {
-      border: var(--tabs-border);
-      padding: 8px 15px;
-      background: #fff;
-
-      & > div {
-        display: none;
-
-        &.active {
-          display: block;
-        }
-      }
-    }
-  `;
-
+        <div class="relative">
+          <pre>
+            <div style="margin-bottom: -30px;">./demo/fez/tabs.fez</div>
+            <code class="language-javascript" id="fez-tabs-js">
+&lt;script>
   activateNode(node) {
     node.parent().find('> *').removeClass('active')
     node.addClass('active')
@@ -966,16 +1129,58 @@ Fez('ui-tabs', class {
 
     this.activate(0)
   }
-})
+&lt;/script>
 
+&lt;style>
+  --tabs-border: 1px solid #ccc;
 
-              </code>
-            </pre>
-          </div>
+  .header {
+    margin-bottom: -2px;
+    position: relative;
+    z-index: 1;
 
+    & > span {
+      border: var(--tabs-border);
+      padding: 8px 15px;
+      display: inline-block;
+      border-radius: 8px 8px 0 0;
+      margin-right: -1px;
+      background: #eee;
+      cursor: pointer;
+
+      &.active {
+        background-color: #fff;
+        border-bottom: none;
+      }
+    }
+  }
+
+  .body {
+    border: var(--tabs-border);
+    padding: 8px 15px;
+    background: #fff;
+
+    & > div {
+      display: none;
+
+      &.active {
+        display: block;
+      }
+    }
+  }
+&lt;/style>
+
+            </code>
+          </pre>
         </div>
+
       </div>
-    
+    </div>
+  
+
+  <script>
+    Fez.loadTemplates()
+  </script>
 </body>
 </html>
 

@@ -92,12 +92,16 @@ Fez.morphdom = (target, newNode, opts = {}) => {
 }
 
 Fez.htmlEscape = (text) => {
-  return text
-    .replaceAll('&', "&amp;")
-    .replaceAll("'", '&apos;')
-    .replaceAll('"', '&quot;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
+  if (typeof text == 'string') {
+    return text
+      .replaceAll('&', "&amp;")
+      .replaceAll("'", '&apos;')
+      .replaceAll('"', '&quot;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+  } else {
+    return text
+  }
 }
 
 Fez.publish = (channel, ...args) => {
@@ -126,7 +130,30 @@ Fez.tag = function(tag, opts = {}, html = '') {
   return `<${tag} data-props="${json}">${html}</${tag}>`;
 };
 
-Fez.parseTemplate = function(html) {
+// <template fez="ui-form">
+// Fez.loadTemplate('ui-form')    # loads template[fez=ui-form]
+// Fez.loadTemplate(templateNode))
+// Fez.loadTemplate('ui-form', templateStrin)
+
+Fez.loadTemplate = function(tagName, html) {
+  if (tagName instanceof Node) {
+    // template reference
+    tagName.parentNode.removeChild(tagName)
+    html = tagName.innerHTML
+    tagName = tagName.getAttribute('fez')
+  }
+
+  if (!html) {
+    const selector = `template[fez=${tagName}]`
+    const node = document.querySelector(selector)
+    if (node) {
+      html = node.innerHTML
+    } else {
+      console.error(`Fez template not found: ${selector}`)
+      return
+    }
+  }
+
   const result = { script: '', style: '', html: '' }
   const lines = html.split('\n')
 
@@ -154,7 +181,16 @@ Fez.parseTemplate = function(html) {
   }
 
   result.html = result.html.trim();
-  return result;
+
+  result.style = result.style.includes(':fez') ? result.style : `:fez {\n${result.style}\n}`
+
+  const klassStr = `window.Fez('${tagName}', class {\n${result.script}\n\n  CSS = \`${result.style}\`\n\n  HTML = \`${result.html}\`\n})`
+  new Function(klassStr)()
 }
+
+Fez.loadTemplates = function() {
+  document.querySelectorAll('template[fez]').forEach((n) => Fez.loadTemplate(n))
+}
+
 
 export default Fez
