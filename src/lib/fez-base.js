@@ -32,6 +32,16 @@ export default class FezBase {
       }
     }
 
+    for (const [key, val] of Object.entries(attrs)) {
+      if (key[0] == ':') {
+        delete attrs[key]
+        const context = node.closest('.fez')?.fez || window
+        const newVal = new Function(`return (${val})`).bind(context)()
+        console.log(val, newVal)
+        attrs[key.replace(':', '')] = newVal
+      }
+    }
+
     return attrs
   }
 
@@ -142,9 +152,9 @@ export default class FezBase {
   style() { console.error('call Fez static style') }
 
   connect() {
-    if (! this.class.html) {
-      console.error('Fez is missing "connect" method.', this.root)
-    }
+    // if (! this.class.html) {
+    //   console.error('Fez is missing "connect" method.', this.root)
+    // }
   }
 
   afterConnect() {}

@@ -1,31 +1,52 @@
 <div class="info">
   <ul>
-    <li>form helper - <code>this.formData()</code></li>
+    <li>form helper - <code>this.formData()</code>. Get form data as object.</li>
+    <li>form helper - <code>this.onSubmit()</code>. If present, auto bind form and get form data as object</li>
+    <li>prefix params with <code>:</code> if you want to calculate attribute value. Same as in Vue, current example <code>:ping="..."</code></li>
     <li>Custom DOM tag name - <code>FORM</code> instead of default <code>DIV</code></li>
-    <li>
-      global and local css. If <code>:fez { ... }</code> is present, anything inside is local, anythig outside is global.
-      If no class <code>:fez</code> is present, style is considered local.
-      </li>
   </ul>
 </div>
 
-<ui-form target="/api">
-  <p>
-    <input type="text" name="info" value="a dude" />
-  </p>
-  <p>
-    <select name="num">
-      <option>one</option>
-      <option>two</option>
-      <option>three</option>
-    </select>
-  </p>
-  <p>
-    <label><input type="radio" name="name" value="Jakov" /> Jakov</label>
-    <label><input type="radio" name="name" value="Vid" /> Vid</label>
-    <label><input type="radio" name="name" value="Dino" /> Dino</label>
-  </p>
-  <p>
-    <button>Submit</button>
-  </p>
-</ui-form>
+<div class="flex">
+  <ui-form target="/api" :ping="updateFormData">
+    <p>
+      <input type="text" name="info" value="a dude" />
+    </p>
+    <p>
+      <select name="num">
+        <option>one</option>
+        <option>two</option>
+        <option>three</option>
+      </select>
+    </p>
+    <p>
+      <label><input type="radio" name="name" value="Jakov" /> Jakov</label>
+      <label><input type="radio" name="name" value="Vid" /> Vid</label>
+      <label><input type="radio" name="name" value="Dino" /> Dino</label>
+    </p>
+    <p>
+      <button>Submit</button>
+    </p>
+  </ui-form>
+
+  <ui-form target="/api" :ping="updateFormData">
+    <p>
+      <select name="num">
+        <option>uno</option>
+        <option>due</option>
+        <option>tres</option>
+      </select>
+    </p>
+    <p>
+      <button>Submit</button>
+    </p>
+  </ui-form>
+</div>
+
+<pre id="form-data"></pre>
+
+<script>
+  function updateFormData(obj) {
+    $('#form-data').append(JSON.stringify(obj) + "\n")
+  }
+</script>

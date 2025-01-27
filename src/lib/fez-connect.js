@@ -124,6 +124,14 @@ function connectDom(name, node, klass) {
       object.slot(oldRoot, slot)
     }
 
+    if (object.onSubmit) {
+      const form = object.root.nodeName == 'FORM' ? object.root : object.find('form')
+      form.onsubmit = (e) => {
+        e.preventDefault()
+        object.onSubmit(object.formData())
+      }
+    }
+
     object.afterConnect()
     object.onMount()
 

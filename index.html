@@ -58,7 +58,7 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Mon Jan 27 13:17:54 2025 +0100'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Mon Jan 27 17:29:44 2025 +0100'))</script>.
 
   <template fez="ui-clock"><script>
   class {
@@ -509,32 +509,27 @@
   <template fez="ui-form"><script>
   NAME = 'form'
 
-  submit(e) {
-    e.preventDefault()
-    alert(JSON.stringify(this.formData()))
-  }
-
-  connect() {
-    this.root.onsubmit = this.submit
+  // if you define onSubmit, you will get submited form data object
+  // and event.preventDefault will allready be applied
+  onSubmit(data) {
+    this.props.ping(data)
   }
 </script>
 
 <style>
-  :fez {
-    border: 2px solid green;
-    border-radius: 5px;
-    padding: 15px;
-    margin: 15px 0;
+  border: 2px solid green;
+  border-radius: 5px;
+  padding: 15px;
+  margin: 15px 0;
 
-    label {
-      display: block;
-      cursor: pointer;
-      margin-bottom: 5px;
-    }
+  label {
+    display: block;
+    cursor: pointer;
+    margin-bottom: 5px;
+  }
 
-    select option {
-      font-size: 16px;
-    }
+  select option {
+    font-size: 16px;
   }
 </style>
 </template>
@@ -544,35 +539,56 @@
         <h2>ui-form</h2>
         <div class="info">
   <ul>
-    <li>form helper - <code>this.formData()</code></li>
+    <li>form helper - <code>this.formData()</code>. Get form data as object.</li>
+    <li>form helper - <code>this.onSubmit()</code>. If present, auto bind form and get form data as object</li>
+    <li>prefix params with <code>:</code> if you want to calculate attribute value. Same as in Vue, current example <code>:ping="..."</code></li>
     <li>Custom DOM tag name - <code>FORM</code> instead of default <code>DIV</code></li>
-    <li>
-      global and local css. If <code>:fez { ... }</code> is present, anything inside is local, anythig outside is global.
-      If no class <code>:fez</code> is present, style is considered local.
-      </li>
   </ul>
 </div>
 
-<ui-form target="/api">
-  <p>
-    <input type="text" name="info" value="a dude" />
-  </p>
-  <p>
-    <select name="num">
-      <option>one</option>
-      <option>two</option>
-      <option>three</option>
-    </select>
-  </p>
-  <p>
-    <label><input type="radio" name="name" value="Jakov" /> Jakov</label>
-    <label><input type="radio" name="name" value="Vid" /> Vid</label>
-    <label><input type="radio" name="name" value="Dino" /> Dino</label>
-  </p>
-  <p>
-    <button>Submit</button>
-  </p>
-</ui-form>
+<div class="flex">
+  <ui-form target="/api" :ping="updateFormData">
+    <p>
+      <input type="text" name="info" value="a dude" />
+    </p>
+    <p>
+      <select name="num">
+        <option>one</option>
+        <option>two</option>
+        <option>three</option>
+      </select>
+    </p>
+    <p>
+      <label><input type="radio" name="name" value="Jakov" /> Jakov</label>
+      <label><input type="radio" name="name" value="Vid" /> Vid</label>
+      <label><input type="radio" name="name" value="Dino" /> Dino</label>
+    </p>
+    <p>
+      <button>Submit</button>
+    </p>
+  </ui-form>
+
+  <ui-form target="/api" :ping="updateFormData">
+    <p>
+      <select name="num">
+        <option>uno</option>
+        <option>due</option>
+        <option>tres</option>
+      </select>
+    </p>
+    <p>
+      <button>Submit</button>
+    </p>
+  </ui-form>
+</div>
+
+<pre id="form-data"></pre>
+
+<script>
+  function updateFormData(obj) {
+    $('#form-data').append(JSON.stringify(obj) + "\n")
+  }
+</script>
 
       </div>
       <div>
@@ -582,35 +598,56 @@
         <app-editor id="html-form" file="./demo/fez/form.html" language="html">
            &lt;div class="info">
   &lt;ul>
-    &lt;li>form helper - &lt;code>this.formData()&lt;/code>&lt;/li>
+    &lt;li>form helper - &lt;code>this.formData()&lt;/code>. Get form data as object.&lt;/li>
+    &lt;li>form helper - &lt;code>this.onSubmit()&lt;/code>. If present, auto bind form and get form data as object&lt;/li>
+    &lt;li>prefix params with &lt;code>:&lt;/code> if you want to calculate attribute value. Same as in Vue, current example &lt;code>:ping="..."&lt;/code>&lt;/li>
     &lt;li>Custom DOM tag name - &lt;code>FORM&lt;/code> instead of default &lt;code>DIV&lt;/code>&lt;/li>
-    &lt;li>
-      global and local css. If &lt;code>:fez { ... }&lt;/code> is present, anything inside is local, anythig outside is global.
-      If no class &lt;code>:fez&lt;/code> is present, style is considered local.
-      &lt;/li>
   &lt;/ul>
 &lt;/div>
 
-&lt;ui-form target="/api">
-  &lt;p>
-    &lt;input type="text" name="info" value="a dude" />
-  &lt;/p>
-  &lt;p>
-    &lt;select name="num">
-      &lt;option>one&lt;/option>
-      &lt;option>two&lt;/option>
-      &lt;option>three&lt;/option>
-    &lt;/select>
-  &lt;/p>
-  &lt;p>
-    &lt;label>&lt;input type="radio" name="name" value="Jakov" /> Jakov&lt;/label>
-    &lt;label>&lt;input type="radio" name="name" value="Vid" /> Vid&lt;/label>
-    &lt;label>&lt;input type="radio" name="name" value="Dino" /> Dino&lt;/label>
-  &lt;/p>
-  &lt;p>
-    &lt;button>Submit&lt;/button>
-  &lt;/p>
-&lt;/ui-form>
+&lt;div class="flex">
+  &lt;ui-form target="/api" :ping="updateFormData">
+    &lt;p>
+      &lt;input type="text" name="info" value="a dude" />
+    &lt;/p>
+    &lt;p>
+      &lt;select name="num">
+        &lt;option>one&lt;/option>
+        &lt;option>two&lt;/option>
+        &lt;option>three&lt;/option>
+      &lt;/select>
+    &lt;/p>
+    &lt;p>
+      &lt;label>&lt;input type="radio" name="name" value="Jakov" /> Jakov&lt;/label>
+      &lt;label>&lt;input type="radio" name="name" value="Vid" /> Vid&lt;/label>
+      &lt;label>&lt;input type="radio" name="name" value="Dino" /> Dino&lt;/label>
+    &lt;/p>
+    &lt;p>
+      &lt;button>Submit&lt;/button>
+    &lt;/p>
+  &lt;/ui-form>
+
+  &lt;ui-form target="/api" :ping="updateFormData">
+    &lt;p>
+      &lt;select name="num">
+        &lt;option>uno&lt;/option>
+        &lt;option>due&lt;/option>
+        &lt;option>tres&lt;/option>
+      &lt;/select>
+    &lt;/p>
+    &lt;p>
+      &lt;button>Submit&lt;/button>
+    &lt;/p>
+  &lt;/ui-form>
+&lt;/div>
+
+&lt;pre id="form-data">&lt;/pre>
+
+&lt;script>
+  function updateFormData(obj) {
+    $('#form-data').append(JSON.stringify(obj) + "\n")
+  }
+&lt;/script>
 
         </app-editor>
 
@@ -620,32 +657,27 @@
            &lt;script>
   NAME = 'form'
 
-  submit(e) {
-    e.preventDefault()
-    alert(JSON.stringify(this.formData()))
-  }
-
-  connect() {
-    this.root.onsubmit = this.submit
+  // if you define onSubmit, you will get submited form data object
+  // and event.preventDefault will allready be applied
+  onSubmit(data) {
+    this.props.ping(data)
   }
 &lt;/script>
 
 &lt;style>
-  :fez {
-    border: 2px solid green;
-    border-radius: 5px;
-    padding: 15px;
-    margin: 15px 0;
+  border: 2px solid green;
+  border-radius: 5px;
+  padding: 15px;
+  margin: 15px 0;
 
-    label {
-      display: block;
-      cursor: pointer;
-      margin-bottom: 5px;
-    }
+  label {
+    display: block;
+    cursor: pointer;
+    margin-bottom: 5px;
+  }
 
-    select option {
-      font-size: 16px;
-    }
+  select option {
+    font-size: 16px;
   }
 &lt;/style>
 
@@ -721,7 +753,10 @@
   <ul>
     <li>slots</li>
     <li>slot preservation on re-render</li>
-    <li>local and global styles</li>
+    <li>
+      global and local css. If <code>:fez { ... }</code> is present, anything inside is local, anythig outside is global.
+      If no class <code>:fez</code> is present, style is considered local.
+      </li>
   </ul>
 </div>
 
@@ -744,7 +779,10 @@
   &lt;ul>
     &lt;li>slots&lt;/li>
     &lt;li>slot preservation on re-render&lt;/li>
-    &lt;li>local and global styles&lt;/li>
+    &lt;li>
+      global and local css. If &lt;code>:fez { ... }&lt;/code> is present, anything inside is local, anythig outside is global.
+      If no class &lt;code>:fez&lt;/code> is present, style is considered local.
+      &lt;/li>
   &lt;/ul>
 &lt;/div>
 
@@ -877,7 +915,7 @@
         <div class="info">
   <ul>
     <li>Features component to component communication</li>
-    <li>set params on node inin <code>size="{{ document.getElementById('icon-range').value }}"</code></li>
+    <li>evalule value of a attribute if prefixed with column <code>:</code> (in this example <code>:size=</code></li>
   </ul>
 </div>
 
@@ -902,7 +940,7 @@
   name="settings"
   color="blue"
   onclick="alert(this.fez.props.color)"
-  size="{{ document.getElementById('icon-range').value }}"
+  :size="document.getElementById('icon-range').value"
 ></ui-icon>
 <ui-icon color="red">delete</ui-icon>
 
@@ -915,7 +953,7 @@
            &lt;div class="info">
   &lt;ul>
     &lt;li>Features component to component communication&lt;/li>
-    &lt;li>set params on node inin &lt;code>size="{{ document.getElementById('icon-range').value }}"&lt;/code>&lt;/li>
+    &lt;li>evalule value of a attribute if prefixed with column &lt;code>:&lt;/code> (in this example &lt;code>:size=&lt;/code>&lt;/li>
   &lt;/ul>
 &lt;/div>
 
@@ -940,7 +978,7 @@
   name="settings"
   color="blue"
   onclick="alert(this.fez.props.color)"
-  size="{{ document.getElementById('icon-range').value }}"
+  :size="document.getElementById('icon-range').value"
 >&lt;/ui-icon>
 &lt;ui-icon color="red">delete&lt;/ui-icon>
 

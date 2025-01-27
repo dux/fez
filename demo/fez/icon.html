@@ -1,7 +1,7 @@
 <div class="info">
   <ul>
     <li>Features component to component communication</li>
-    <li>set params on node inin <code>size="{{ document.getElementById('icon-range').value }}"</code></li>
+    <li>evalule value of a attribute if prefixed with column <code>:</code> (in this example <code>:size=</code></li>
   </ul>
 </div>
 
@@ -26,6 +26,6 @@
   name="settings"
   color="blue"
   onclick="alert(this.fez.props.color)"
-  size="{{ document.getElementById('icon-range').value }}"
+  :size="document.getElementById('icon-range').value"
 ></ui-icon>
 <ui-icon color="red">delete</ui-icon>
