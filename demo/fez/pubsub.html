@@ -42,5 +42,5 @@ Fast ping:
 <button onclick="$(this).after($('#pubsub-t').html())">add listener</button>
 
 <script>
-setInterval(()=>Fez.publish('ping', Math.random()), 5000)
+  setInterval(()=>Fez.publish('ping', Math.random()), 5000)
 </script>

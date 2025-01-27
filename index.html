@@ -58,7 +58,7 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Sun Jan 26 17:17:45 2025 +0100'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Mon Jan 27 11:46:40 2025 +0100'))</script>.
 
   <template fez="ui-clock"><script>
   class {
@@ -942,7 +942,7 @@ Fast ping:
 <button onclick="$(this).after($('#pubsub-t').html())">add listener</button>
 
 <script>
-setInterval(()=>Fez.publish('ping', Math.random()), 5000)
+  setInterval(()=>Fez.publish('ping', Math.random()), 5000)
 </script>
 
       </div>
@@ -993,7 +993,7 @@ Fast ping:
 &lt;button onclick="$(this).after($('#pubsub-t').html())">add listener&lt;/button>
 
 &lt;script>
-setInterval(()=>Fez.publish('ping', Math.random()), 5000)
+  setInterval(()=>Fez.publish('ping', Math.random()), 5000)
 &lt;/script>
 
         </app-editor>
@@ -1324,8 +1324,6 @@ Fez('ui-list', class {
         this.codeNode = this.find('code')
         this.codeNode.innerHTML = this.source.trim()
         hljs.highlightElement(this.codeNode);
-
-        // document.getElementById(this.props.target).innerHTML = codeNode.textContent
       }
     </script>
 
@@ -1352,8 +1350,6 @@ Fez('ui-list', class {
   </template>
 
   <script>
-    Fez.loadTemplates()
-
     window.applyChanges = function(name) {
       Fez.loadTemplate(`ui-${name}`, Fez(`#code-ui-${name}`).getSource())
 

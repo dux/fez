@@ -86,8 +86,6 @@
         this.codeNode = this.find('code')
         this.codeNode.innerHTML = this.source.trim()
         hljs.highlightElement(this.codeNode);
-
-        // document.getElementById(this.props.target).innerHTML = codeNode.textContent
       }
     </script>
 
@@ -114,8 +112,6 @@
   </template>
 
   <script>
-    Fez.loadTemplates()
-
     window.applyChanges = function(name) {
       Fez.loadTemplate(`ui-${name}`, Fez(`#code-ui-${name}`).getSource())
 

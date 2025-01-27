@@ -222,5 +222,4 @@ Fez.loadTemplates = function() {
   document.querySelectorAll('template[fez]').forEach((n) => Fez.loadTemplate(n))
 }
 
-
 export default Fez
