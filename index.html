@@ -58,16 +58,22 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Mon Jan 27 12:56:42 2025 +0100'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Mon Jan 27 13:17:54 2025 +0100'))</script>.
 
   <template fez="ui-clock"><script>
   class {
+    randomColor() {
+      const colors = ['red', 'green', 'blue', 'magenta', 'teal']
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
     setVars() {
       // will only render once on next tick
       let time = new Date();
       this.state.hours = time.getHours();
       this.state.minutes = time.getMinutes();
       this.state.seconds = time.getSeconds();
+      this.state.color = this.randomColor()
     }
 
     connect() {
@@ -111,7 +117,7 @@
   }
 
   .second, .second-counterweight {
-    stroke: rgb(180, 0, 0);
+    stroke: var(--color);
   }
 
   .second-counterweight {
@@ -119,7 +125,7 @@
   }
 </style>
 
-<svg viewBox="-50 -50 100 100">
+<svg viewBox="-50 -50 100 100" style="--color: {{ @state.color }}">
   <circle class="clock-face" r="48" />
 
   <!-- markers -->
@@ -153,6 +159,7 @@
     <li>SVG generation</li>
     <li>reactive store - any update to <code>this.state</code> object triggers re-render.</li>
     <li>DOM morph updates - update only changed nodes and attributes</li>
+    <li>dynamic styes (seconds line color)</li>
   </ul>
 </div>
 
@@ -185,6 +192,7 @@
     &lt;li>SVG generation&lt;/li>
     &lt;li>reactive store - any update to &lt;code>this.state&lt;/code> object triggers re-render.&lt;/li>
     &lt;li>DOM morph updates - update only changed nodes and attributes&lt;/li>
+    &lt;li>dynamic styes (seconds line color)&lt;/li>
   &lt;/ul>
 &lt;/div>
 
@@ -213,12 +221,18 @@
         <app-editor id="code-ui-clock" file="./demo/fez/clock.fez">
            &lt;script>
   class {
+    randomColor() {
+      const colors = ['red', 'green', 'blue', 'magenta', 'teal']
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
     setVars() {
       // will only render once on next tick
       let time = new Date();
       this.state.hours = time.getHours();
       this.state.minutes = time.getMinutes();
       this.state.seconds = time.getSeconds();
+      this.state.color = this.randomColor()
     }
 
     connect() {
@@ -262,7 +276,7 @@
   }
 
   .second, .second-counterweight {
-    stroke: rgb(180, 0, 0);
+    stroke: var(--color);
   }
 
   .second-counterweight {
@@ -270,7 +284,7 @@
   }
 &lt;/style>
 
-&lt;svg viewBox="-50 -50 100 100">
+&lt;svg viewBox="-50 -50 100 100" style="--color: {{ @state.color }}">
   &lt;circle class="clock-face" r="48" />
 
   &lt;!-- markers -->
@@ -673,8 +687,10 @@
 </script>
 
 <style>
+  /* styles are applied to body, so this becomes body background color */
   background-color: #f7f7f7;
 
+  /* local component style applied to mounted component root */
   :fez {
     border: 10px solid green;
     border-radius: 10px;
@@ -705,6 +721,7 @@
   <ul>
     <li>slots</li>
     <li>slot preservation on re-render</li>
+    <li>local and global styles</li>
   </ul>
 </div>
 
@@ -727,6 +744,7 @@
   &lt;ul>
     &lt;li>slots&lt;/li>
     &lt;li>slot preservation on re-render&lt;/li>
+    &lt;li>local and global styles&lt;/li>
   &lt;/ul>
 &lt;/div>
 
@@ -778,8 +796,10 @@
 &lt;/script>
 
 &lt;style>
+  /* styles are applied to body, so this becomes body background color */
   background-color: #f7f7f7;
 
+  /* local component style applied to mounted component root */
   :fez {
     border: 10px solid green;
     border-radius: 10px;
@@ -1272,7 +1292,8 @@ Fez('ui-list', class {
         <div class="info">
   <ul>
     <li>alternative node builder</li>
-    <li>nested components</li>
+    <li>nested and recursive components (tabs in tabs in tabs)</li>
+    <li><code>this.childNodes()</code> FEZ instance helper function, get all first level child nodes, excluding #text nodes.</li>
   </ul>
 </div>
 
@@ -1291,6 +1312,8 @@ Fez('ui-list', class {
           <div title="Foo nested 3">first tab</div>
           <div title="Bar nested 3">
             <p>second tab</p>
+            <hr />
+            <ui-clock></ui-clock>
           </div>
         </ui-tabs>
       </div>
@@ -1300,7 +1323,11 @@ Fez('ui-list', class {
     <h4>image tab</h4>
     <img src="./demo/fez.png" />
   </div>
-  <div title="Foo">Third tab</div>
+  <div title="Foo">
+    Third tab
+    <hr />
+    <ui-clock></ui-clock>
+  </div>
 </ui-tabs>
 
 
@@ -1313,7 +1340,8 @@ Fez('ui-list', class {
            &lt;div class="info">
   &lt;ul>
     &lt;li>alternative node builder&lt;/li>
-    &lt;li>nested components&lt;/li>
+    &lt;li>nested and recursive components (tabs in tabs in tabs)&lt;/li>
+    &lt;li>&lt;code>this.childNodes()&lt;/code> FEZ instance helper function, get all first level child nodes, excluding #text nodes.&lt;/li>
   &lt;/ul>
 &lt;/div>
 
@@ -1332,6 +1360,8 @@ Fez('ui-list', class {
           &lt;div title="Foo nested 3">first tab&lt;/div>
           &lt;div title="Bar nested 3">
             &lt;p>second tab&lt;/p>
+            &lt;hr />
+            &lt;ui-clock>&lt;/ui-clock>
           &lt;/div>
         &lt;/ui-tabs>
       &lt;/div>
@@ -1341,7 +1371,11 @@ Fez('ui-list', class {
     &lt;h4>image tab&lt;/h4>
     &lt;img src="./demo/fez.png" />
   &lt;/div>
-  &lt;div title="Foo">Third tab&lt;/div>
+  &lt;div title="Foo">
+    Third tab
+    &lt;hr />
+    &lt;ui-clock>&lt;/ui-clock>
+  &lt;/div>
 &lt;/ui-tabs>
 
 

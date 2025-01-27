@@ -1,11 +1,17 @@
 <script>
   class {
+    randomColor() {
+      const colors = ['red', 'green', 'blue', 'magenta', 'teal']
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
     setVars() {
       // will only render once on next tick
       let time = new Date();
       this.state.hours = time.getHours();
       this.state.minutes = time.getMinutes();
       this.state.seconds = time.getSeconds();
+      this.state.color = this.randomColor()
     }
 
     connect() {
@@ -49,7 +55,7 @@
   }
 
   .second, .second-counterweight {
-    stroke: rgb(180, 0, 0);
+    stroke: var(--color);
   }
 
   .second-counterweight {
@@ -57,7 +63,7 @@
   }
 </style>
 
-<svg viewBox="-50 -50 100 100">
+<svg viewBox="-50 -50 100 100" style="--color: {{ @state.color }}">
   <circle class="clock-face" r="48" />
 
   <!-- markers -->

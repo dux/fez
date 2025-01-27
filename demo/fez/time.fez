@@ -32,8 +32,10 @@
 </script>
 
 <style>
+  /* styles are applied to body, so this becomes body background color */
   background-color: #f7f7f7;
 
+  /* local component style applied to mounted component root */
   :fez {
     border: 10px solid green;
     border-radius: 10px;
