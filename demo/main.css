@@ -29,18 +29,33 @@ code {
   border: 1px solid #ccc;
   padding: 2px 5px;
   border-radius: 4px;
-  background-color: #f7f7f7;
 }
 
 h2 {
-  border-top: 1px solid #ccc;
-  padding-top: 20px;
-  margin-bottom: 0;
+  margin-bottom: 20px;
+}
+
+ul {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  padding-left: 20px;
+
+  li {
+    margin-bottom: 5px;
+  }
+}
+
+p {
+  margin-bottom: 10px;
 }
 
 input {
   padding: 5px 10px;
   font-size: 16px;
+}
+
+code {
+  background-color: #eee;
 }
 
 .arrow {
@@ -72,4 +87,12 @@ input {
     font-size: 14px;
     cursor: pointer;
   }
+}
+
+div.info {
+  background-color: #eee;
+  border: 1px solid #ddd;
+  padding: 1px 10px;
+  border-radius: 6px;
+  margin-bottom: 20px;
 }

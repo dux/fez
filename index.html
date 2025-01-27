@@ -58,7 +58,7 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Mon Jan 27 11:46:40 2025 +0100'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Mon Jan 27 12:56:42 2025 +0100'))</script>.
 
   <template fez="ui-clock"><script>
   class {
@@ -145,15 +145,33 @@
 </svg>
 </template>
 
-    <h2>
-      ui-clock
-      &sdot;
-      <small>featuturing SVG generation & reactive store</small>
-    </h2>
+    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
+      <div class="body" id="body-clock" style="">
+        <h2>ui-clock</h2>
+        <div class="info">
+  <ul>
+    <li>SVG generation</li>
+    <li>reactive store - any update to <code>this.state</code> object triggers re-render.</li>
+    <li>DOM morph updates - update only changed nodes and attributes</li>
+  </ul>
+</div>
 
-    <div class="flex">
-      <div class="body" id="body-clock" style="padding-top: 50px;">
-          <ui-clock></ui-clock>
+<div style="display: grid; grid-template-columns: 1fr fit-content(50%);">
+  <div>
+    <ui-clock></ui-clock>
+  </div>
+  <div>
+    <ui-clock></ui-clock>
+  </div>
+  <div>
+    <ui-clock></ui-clock>
+  </div>
+  <div>
+    <ui-clock></ui-clock>
+  </div>
+</div>
+
+
 
 
       </div>
@@ -162,7 +180,30 @@
           <button onclick="applyChanges('clock')" style="padding: 5px 10px;">Apply changes</button>
         </div>
         <app-editor id="html-clock" file="./demo/fez/clock.html" language="html">
-           &lt;ui-clock>&lt;/ui-clock>
+           &lt;div class="info">
+  &lt;ul>
+    &lt;li>SVG generation&lt;/li>
+    &lt;li>reactive store - any update to &lt;code>this.state&lt;/code> object triggers re-render.&lt;/li>
+    &lt;li>DOM morph updates - update only changed nodes and attributes&lt;/li>
+  &lt;/ul>
+&lt;/div>
+
+&lt;div style="display: grid; grid-template-columns: 1fr fit-content(50%);">
+  &lt;div>
+    &lt;ui-clock>&lt;/ui-clock>
+  &lt;/div>
+  &lt;div>
+    &lt;ui-clock>&lt;/ui-clock>
+  &lt;/div>
+  &lt;div>
+    &lt;ui-clock>&lt;/ui-clock>
+  &lt;/div>
+  &lt;div>
+    &lt;ui-clock>&lt;/ui-clock>
+  &lt;/div>
+&lt;/div>
+
+
 
 
         </app-editor>
@@ -336,15 +377,18 @@
 </p>
 </template>
 
-    <h2>
-      ui-todo
-      &sdot;
-      <small>features reactive state, fez-use & fez-bind &sdot; <a href="https://todomvc.com/" target="mvc">ToDo MVC candidate</a> (<a href="https://github.com/tastejs/todomvc/tree/master/examples/react/src">React</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/vue/src">Vue</a>, <a href="https://github.com/tastejs/todomvc/tree/master/examples/angular/src">Angular</a>)</small>
-    </h2>
+    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
+      <div class="body" id="body-todo" style="">
+        <h2>ui-todo</h2>
+        <div class="info">
+  <ul>
+    <li>fully <b>rective state</b></li>
+    <li><b>fez-bind</b> - two way binding of input element</li>
+    <li><b>fez-use</b> - when node is added to dom, call described function and pass node as reference (inspired by Svelte)</li>
+  </ul>
+</div>
 
-    <div class="flex">
-      <div class="body" id="body-todo" style="padding-top: 50px;">
-          <ui-todo></ui-todo>
+<ui-todo></ui-todo>
 
       </div>
       <div>
@@ -352,7 +396,15 @@
           <button onclick="applyChanges('todo')" style="padding: 5px 10px;">Apply changes</button>
         </div>
         <app-editor id="html-todo" file="./demo/fez/todo.html" language="html">
-           &lt;ui-todo>&lt;/ui-todo>
+           &lt;div class="info">
+  &lt;ul>
+    &lt;li>fully &lt;b>rective state&lt;/b>&lt;/li>
+    &lt;li>&lt;b>fez-bind&lt;/b> - two way binding of input element&lt;/li>
+    &lt;li>&lt;b>fez-use&lt;/b> - when node is added to dom, call described function and pass node as reference (inspired by Svelte)&lt;/li>
+  &lt;/ul>
+&lt;/div>
+
+&lt;ui-todo>&lt;/ui-todo>
 
         </app-editor>
 
@@ -473,15 +525,21 @@
 </style>
 </template>
 
-    <h2>
-      ui-form
-      &sdot;
-      <small>Features form helpers and custom dom node name (FORM)</small>
-    </h2>
+    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
+      <div class="body" id="body-form" style="">
+        <h2>ui-form</h2>
+        <div class="info">
+  <ul>
+    <li>form helper - <code>this.formData()</code></li>
+    <li>Custom DOM tag name - <code>FORM</code> instead of default <code>DIV</code></li>
+    <li>
+      global and local css. If <code>:fez { ... }</code> is present, anything inside is local, anythig outside is global.
+      If no class <code>:fez</code> is present, style is considered local.
+      </li>
+  </ul>
+</div>
 
-    <div class="flex">
-      <div class="body" id="body-form" style="padding-top: 50px;">
-          <ui-form target="/api">
+<ui-form target="/api">
   <p>
     <input type="text" name="info" value="a dude" />
   </p>
@@ -508,7 +566,18 @@
           <button onclick="applyChanges('form')" style="padding: 5px 10px;">Apply changes</button>
         </div>
         <app-editor id="html-form" file="./demo/fez/form.html" language="html">
-           &lt;ui-form target="/api">
+           &lt;div class="info">
+  &lt;ul>
+    &lt;li>form helper - &lt;code>this.formData()&lt;/code>&lt;/li>
+    &lt;li>Custom DOM tag name - &lt;code>FORM&lt;/code> instead of default &lt;code>DIV&lt;/code>&lt;/li>
+    &lt;li>
+      global and local css. If &lt;code>:fez { ... }&lt;/code> is present, anything inside is local, anythig outside is global.
+      If no class &lt;code>:fez&lt;/code> is present, style is considered local.
+      &lt;/li>
+  &lt;/ul>
+&lt;/div>
+
+&lt;ui-form target="/api">
   &lt;p>
     &lt;input type="text" name="info" value="a dude" />
   &lt;/p>
@@ -629,15 +698,17 @@
 <slot></slot>
 </template>
 
-    <h2>
-      ui-time
-      &sdot;
-      <small>Features calling instance methods, afterHtml(), slot state preservation.</small>
-    </h2>
+    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
+      <div class="body" id="body-time" style="">
+        <h2>ui-time</h2>
+        <div class="info">
+  <ul>
+    <li>slots</li>
+    <li>slot preservation on re-render</li>
+  </ul>
+</div>
 
-    <div class="flex">
-      <div class="body" id="body-time" style="padding-top: 50px;">
-          <ui-time city="Zagreb">
+<ui-time city="Zagreb">
   <ul>
     <li>
       Slot state preservation demo:xxxx
@@ -652,7 +723,14 @@
           <button onclick="applyChanges('time')" style="padding: 5px 10px;">Apply changes</button>
         </div>
         <app-editor id="html-time" file="./demo/fez/time.html" language="html">
-           &lt;ui-time city="Zagreb">
+           &lt;div class="info">
+  &lt;ul>
+    &lt;li>slots&lt;/li>
+    &lt;li>slot preservation on re-render&lt;/li>
+  &lt;/ul>
+&lt;/div>
+
+&lt;ui-time city="Zagreb">
   &lt;ul>
     &lt;li>
       Slot state preservation demo:xxxx
@@ -773,15 +851,17 @@
 </style>
 </template>
 
-    <h2>
-      ui-icon
-      &sdot;
-      <small>Features component to component communication</small>
-    </h2>
+    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
+      <div class="body" id="body-icon" style="">
+        <h2>ui-icon</h2>
+        <div class="info">
+  <ul>
+    <li>Features component to component communication</li>
+    <li>set params on node inin <code>size="{{ document.getElementById('icon-range').value }}"</code></li>
+  </ul>
+</div>
 
-    <div class="flex">
-      <div class="body" id="body-icon" style="padding-top: 50px;">
-          <input
+<input
   type="range" min="24" max="100" class="slider" id="icon-range"
   oninput="Fez('#icon-blue').setSize(this.value)"
 />
@@ -812,7 +892,14 @@
           <button onclick="applyChanges('icon')" style="padding: 5px 10px;">Apply changes</button>
         </div>
         <app-editor id="html-icon" file="./demo/fez/icon.html" language="html">
-           &lt;input
+           &lt;div class="info">
+  &lt;ul>
+    &lt;li>Features component to component communication&lt;/li>
+    &lt;li>set params on node inin &lt;code>size="{{ document.getElementById('icon-range').value }}"&lt;/code>&lt;/li>
+  &lt;/ul>
+&lt;/div>
+
+&lt;input
   type="range" min="24" max="100" class="slider" id="icon-range"
   oninput="Fez('#icon-blue').setSize(this.value)"
 />
@@ -892,16 +979,17 @@
   
   <script src="./demo/fez/pubsub.js"></script>
 
-    <h2>
-      ui-pubsub
-      &sdot;
-      <small>Features publish &lt;> subscribe mechanism</small>
-    </h2>
+    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
+      <div class="body" id="body-pubsub" style="">
+        <h2>ui-pubsub</h2>
+        <div class="info">
+  <ul>
+    <li>Features publish &lt;> subscribe mechanism</li>
+  </ul>
+</div>
 
-    <div class="flex">
-      <div class="body" id="body-pubsub" style="padding-top: 50px;">
-          <style>
-.fez-ui-pubsub { margin-top: 10px; }
+<style>
+  .fez-ui-pubsub { margin-top: 10px; }
 </style>
 
 <button onclick="Fez.publish('ping', Math.random())">ping from anywhere</button>
@@ -951,8 +1039,14 @@ Fast ping:
           <button onclick="applyChanges('pubsub')" style="padding: 5px 10px;">Apply changes</button>
         </div>
         <app-editor id="html-pubsub" file="./demo/fez/pubsub.html" language="html">
-           &lt;style>
-.fez-ui-pubsub { margin-top: 10px; }
+           &lt;div class="info">
+  &lt;ul>
+    &lt;li>Features publish &lt;> subscribe mechanism&lt;/li>
+  &lt;/ul>
+&lt;/div>
+
+&lt;style>
+  .fez-ui-pubsub { margin-top: 10px; }
 &lt;/style>
 
 &lt;button onclick="Fez.publish('ping', Math.random())">ping from anywhere&lt;/button>
@@ -1019,15 +1113,17 @@ Fast ping:
   
   <script src="./demo/fez/list.js"></script>
 
-    <h2>
-      ui-list
-      &sdot;
-      <small>Features list and object rendering</small>
-    </h2>
+    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
+      <div class="body" id="body-list" style="">
+        <h2>ui-list</h2>
+        <div class="info">
+  <ul>
+    <li>Features list and object rendering</li>
+    <li>JS fez tag creation (does not use template)</li>
+  </ul>
+</div>
 
-    <div class="flex">
-      <div class="body" id="body-list" style="padding-top: 50px;">
-          <h3>Case 1</h3>
+<h3>Case 1</h3>
 <ui-list>red,green,blue</ui-list>
 
 <hr />
@@ -1041,7 +1137,14 @@ Fast ping:
           <button onclick="applyChanges('list')" style="padding: 5px 10px;">Apply changes</button>
         </div>
         <app-editor id="html-list" file="./demo/fez/list.html" language="html">
-           &lt;h3>Case 1&lt;/h3>
+           &lt;div class="info">
+  &lt;ul>
+    &lt;li>Features list and object rendering&lt;/li>
+    &lt;li>JS fez tag creation (does not use template)&lt;/li>
+  &lt;/ul>
+&lt;/div>
+
+&lt;h3>Case 1&lt;/h3>
 &lt;ui-list>red,green,blue&lt;/ui-list>
 
 &lt;hr />
@@ -1163,15 +1266,17 @@ Fez('ui-list', class {
 </style>
 </template>
 
-    <h2>
-      ui-tabs
-      &sdot;
-      <small>Features alternative node builder and nested components</small>
-    </h2>
+    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
+      <div class="body" id="body-tabs" style="">
+        <h2>ui-tabs</h2>
+        <div class="info">
+  <ul>
+    <li>alternative node builder</li>
+    <li>nested components</li>
+  </ul>
+</div>
 
-    <div class="flex">
-      <div class="body" id="body-tabs" style="padding-top: 50px;">
-          <ui-tabs>
+<ui-tabs>
   <div title="Bar">
     <p>First tab</p>
 
@@ -1205,7 +1310,14 @@ Fez('ui-list', class {
           <button onclick="applyChanges('tabs')" style="padding: 5px 10px;">Apply changes</button>
         </div>
         <app-editor id="html-tabs" file="./demo/fez/tabs.html" language="html">
-           &lt;ui-tabs>
+           &lt;div class="info">
+  &lt;ul>
+    &lt;li>alternative node builder&lt;/li>
+    &lt;li>nested components&lt;/li>
+  &lt;/ul>
+&lt;/div>
+
+&lt;ui-tabs>
   &lt;div title="Bar">
     &lt;p>First tab&lt;/p>
 
@@ -1344,7 +1456,7 @@ Fez('ui-list', class {
         {{#if @props.file}}
           <div style="padding: 5px 0;">{{ @props.file }}</div>
         {{/if}}
-        <code class="language-html" contenteditable="true"></code>
+        <code class="language-js" contenteditable="true"></code>
       </pre>
     </div>
   </template>
