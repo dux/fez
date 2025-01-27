@@ -1,5 +1,6 @@
 def escape str
-  str.gsub '<', '&lt;'
+  str
+    .gsub('<', '&lt;')
 end
 
 def fez name
@@ -25,28 +26,22 @@ def fez name
     </h2>
 
     <div class="flex">
-      <div class="body">
+      <div class="body" id="body-#{name}" style="padding-top: 50px;">
           #{body[1]}
       </div>
       <div>
-        <div class="relative">
-          <pre>
-            <div style="margin-bottom: -30px;">#{filePath.sub(/\.\w+$/,'.html')}</div>
-            <code class="language-html" id="fez-#{name}-html">
-#{escape(body[1])}
-</code>
-          <pre>
+        <div style="text-align: right; position: relative; top: 20px;">
+          <button onclick="applyChanges('#{name}')" style="padding: 5px 10px;">Apply changes</button>
         </div>
+        <app-editor id="html-#{name}" file="#{filePath.sub(/\.\w+$/,'.html')}" language="html">
+           #{escape(body[1])}
+        </app-editor>
 
-        <div class="relative">
-          <pre>
-            <div style="margin-bottom: -30px;">#{filePath}</div>
-            <code class="language-javascript" id="fez-#{name}-js">
-#{escape(File.read(filePath))}
-            </code>
-          </pre>
-        </div>
+        <br />
 
+        <app-editor id="code-ui-#{name}" file="#{filePath}">
+           #{escape(File.read(filePath))}
+        </app-editor>
       </div>
     </div>
   }

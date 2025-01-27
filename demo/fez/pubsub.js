@@ -1,4 +1,4 @@
-Fez('ui-pubsub', class extends FezBase {
+Fez('ui-pubsub', class {
   update (info) {
     this.target.innerHTML = info
   }

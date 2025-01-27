@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "pages": "ruby -r erb -e 'puts ERB.new(File.read(\"./index.html.tpl\")).result' > ./index.html",
+    "pages": "ruby -r erb -e 'puts ERB.new(File.read(\"./index.tpl.html\")).result' > ./index.html",
     "build": "bun build.js d",
     "dev": "bun run pages; open index.html; bun build.js w",
     "sdev": "bun run pages; bun build.js b",

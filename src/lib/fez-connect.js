@@ -124,7 +124,8 @@ function connectDom(name, node, klass) {
       object.slot(oldRoot, slot)
     }
 
-    object.afterConnect(object.props)
+    object.afterConnect()
+    object.onMount()
 
     // parse code in props
     // size="{{ document.getElementById('icon-range').value }}"

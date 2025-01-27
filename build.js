@@ -41,7 +41,7 @@ if (kind === 'w') {
   }
   watch()
 } else if (kind === 'b') {
-  cliRun(`ruby -r erb -e 'puts ERB.new(File.read("./index.html.tpl")).result' > ./index.html`)
+  cliRun(`ruby -r erb -e 'puts ERB.new(File.read("./index.tpl.html")).result' > ./index.html`)
   await esbuild.build(opts)
 
 } else {

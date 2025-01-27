@@ -32,14 +32,13 @@
 </script>
 
 <style>
-  body {
-    background-color: red;
-  }
+  background-color: #f7f7f7;
 
   :fez {
     border: 10px solid green;
     border-radius: 10px;
     padding: 10px;
+    background-color: #fff;
 
     button {
       font-size: 16px;
@@ -54,4 +53,5 @@
 &sdot;
 <button onclick="$$.render()">refresh & preserve slot</button>
 <hr />
-<slot />
+
+<slot></slot>

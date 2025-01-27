@@ -73,7 +73,11 @@ export default class FezBase {
       Object.keys(this._setIntervalCache).forEach((key)=> {
         clearInterval(this._setIntervalCache[key])
       })
-      this.root.fez = null
+
+      if (this.root) {
+        this.root.fez = null
+      }
+
       this.root = null
       return false
     }
@@ -144,6 +148,7 @@ export default class FezBase {
   }
 
   afterConnect() {}
+  onMount() {}
   beforeRender() {}
   afterRender() {}
 

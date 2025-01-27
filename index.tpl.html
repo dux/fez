@@ -12,12 +12,12 @@
   <link rel="stylesheet" href="./demo/main.css" />
   <link rel="stylesheet" href="./demo/hjs-theme.css" />
   <link rel="stylesheet" href="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.js"></script>
   <script src="./dist/fez.js"></script>
   <script>
-    hljs.highlightAll();
-    hljs.addPlugin(new CopyButtonPlugin());
+    hljs.addPlugin(new CopyButtonPlugin({autohide: false}));
   </script>
   <script>
     function timeSince(date) {
@@ -71,8 +71,56 @@
   <%= fez('list') %>
   <%= fez('tabs') %>
 
+  <template fez="app-editor">
+    <script>
+      getSource() {
+        return this.codeNode.textContent
+      }
+
+      connect(props) {
+        props.language ||= 'html'
+        this.source = this.root.innerHTML
+      }
+
+      onMount() {
+        this.codeNode = this.find('code')
+        this.codeNode.innerHTML = this.source.trim()
+        hljs.highlightElement(this.codeNode);
+
+        // document.getElementById(this.props.target).innerHTML = codeNode.textContent
+      }
+    </script>
+
+    <style>
+      code {
+        padding: 10px;
+      }
+
+      .hljs-copy-button {
+        overflow: visible;
+        left: -5px;
+        top: 20px;
+      }
+    </style>
+
+    <div class="relative">
+      <pre>
+        {{#if @props.file}}
+          <div style="padding: 5px 0;">{{ @props.file }}</div>
+        {{/if}}
+        <code class="language-html" contenteditable="true"></code>
+      </pre>
+    </div>
+  </template>
+
   <script>
     Fez.loadTemplates()
+
+    window.applyChanges = function(name) {
+      Fez.loadTemplate(`ui-${name}`, Fez(`#code-ui-${name}`).getSource())
+
+      $(`#body-${name}`).html( Fez(`#html-${name}`).getSource() )
+    }
   </script>
 </body>
 </html>

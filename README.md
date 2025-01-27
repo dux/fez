@@ -186,6 +186,7 @@ Fez('foo-bar', class {
 
   // execute after connect and initial component render
   this.afterConnect() { ... }
+  this.onMount() { ... }
 
   // execute before or after every render
   this.beforeRender() { ... }
