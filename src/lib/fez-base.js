@@ -84,12 +84,13 @@ export default class FezBase {
       })
 
       this.onDestroy()
+      this.onDestroy = ()=> {}
 
       if (this.root) {
-        this.root.fez = null
+        this.root.fez = undefined
       }
 
-      this.root = null
+      this.root = undefined
       return false
     }
   }
@@ -163,6 +164,7 @@ export default class FezBase {
   beforeRender() {}
   afterRender() {}
   onDestroy() {}
+  publish = Fez.publish
 
   parseHtml(text) {
     const base = this.fezHtmlRoot.replaceAll('"', '&quot;')
@@ -404,6 +406,23 @@ export default class FezBase {
       .filter(method => method !== 'constructor' && typeof this[method] === 'function')
 
     methods.forEach(method => this[method] = this[method].bind(this))
+  }
+
+  fezHide() {
+    const node = this.root
+    const parent = this.root.parentNode
+    const fragment = document.createDocumentFragment();
+
+    while (node.firstChild) {
+      fragment.appendChild(node.firstChild)
+    }
+
+    // Replace the target element with the fragment (which contains the child elements)
+    node.parentNode.replaceChild(fragment, node);
+    // parent.classList.add('fez')
+    // parent.classList.add(`fez-${this.fezName}`)
+    this.root = parent
+    return this.childNodes()
   }
 
   reactiveStore(obj, handler) {

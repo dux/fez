@@ -57,11 +57,11 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Tue Jan 28 03:02:53 2025 +0100'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Tue Jan 28 03:14:18 2025 +0100'))</script>.
 
-  <h2>Why FEZ is a Developer's Best Pal</h2>
+  <h2>How FEZ feels and works?</h2>
 
-  <p>Build powerful web components faster than you can say 'node_modules' – zero build tools, zero fuss, all browser-native magic.</p>
+  <p>Component model is similar to <code>Vue</code> or <code>Svelte</code>, but there is no compile step, and you just work on whole HTML page as it is monuted to root. Render pages from server, and just use custom HTML tags you have created, as you would use any other HTML tag.</p>
 
   <ul>
     <li>🔌 <i>Native Browser Components:</i> Uses standard <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements">custom elements</a>. Create tags like <code>&lt;ui-clock&gt;</code>, place them anywhere in your HTML, and they just work. (Try it now in dev tools - instant magic!)</li>
@@ -88,8 +88,9 @@
     </li>
     <li>
       Create ex-counter component
+
       <xmp id="demo-counter">
-<fez-template tag="ex-counter">
+<fez-compile tag="ex-counter">
   <template>
     <script>
       connect() {
@@ -97,9 +98,9 @@
       }
 
       more() {
-        this.state.count += 1
+        this.state.count += this.state.count > 9 ? 0 : 1
       }
-    </>
+    </script>
 
     <style>
       span {
@@ -109,16 +110,24 @@
     </style>
 
     <button onclick="$$.state.count -= 1">-</button>
-    <span>{{ this.state.count }}</span>
+    <span>
+      {{ @state.count }}
+    </span>
     <button onclick="$$.more()">+</button>
+    {{#if true && @state.count > 0}}
+      <span>&mdash;</span>
+      {{#if @state.count % 2 }} odd {{:else}} even {{/if}}
+    {{/if}}
   </template>
-</fez-template>
+</fez-compile>
       </xmp>
       <script>$('#demo-counter').after($('#demo-counter').html())</script>
     </li>
     <li>
       Place ex-counter anywhere in BODY
-      <xmp><ex-counter></ex-counter></xmp>
+      <xmp>
+<ex-counter></ex-counter>
+      </xmp>
     </li>
     <li>
       <p>That is it! Edit this demo on <a target="codepen" href="https://codepen.io/dux/pen/JoPwmje">CodePen</a></p>
@@ -127,26 +136,28 @@
   </ol>
 
   <template fez="ui-clock"><script>
-  class {
-    randomColor() {
-      const colors = ['red', 'green', 'blue', 'magenta', 'teal']
-      return colors[Math.floor(Math.random() * colors.length)];
-    }
+  randomColor() {
+    const colors = ['red', 'green', 'blue', 'magenta', 'teal']
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
 
-    setVars() {
-      // will only render once on next tick
-      let time = new Date((new Date()).getTime() - this.offsetHours * 60 * 60 * 1000)
-      this.state.hours = time.getHours()
-      this.state.minutes = time.getMinutes()
-      this.state.seconds = time.getSeconds()
-      this.state.color = this.randomColor()
-    }
+  setVars() {
+    // will only render once on next tick
+    let time = new Date((new Date()).getTime() - this.offsetHours * 60 * 60 * 1000)
+    this.state.hours = time.getHours()
+    this.state.minutes = time.getMinutes()
+    this.state.seconds = time.getSeconds()
+    this.state.color = this.randomColor()
+  }
 
-    connect() {
-      this.offsetHours = parseFloat(this.props.utc || 0)
-      this.setVars()
-      this.setInterval(this.setVars, 1000)
-    }
+  connect() {
+    this.offsetHours = parseFloat(this.props.utc || 0)
+    this.setVars()
+    this.setInterval(this.setVars, 1000)
+  }
+
+  onDestroy() {
+    console.log(`By from ${this.fezName} - ${this.props.city}`)
   }
 </script>
 
@@ -235,6 +246,7 @@
     <li>reactive store - any update to <code>this.state</code> object triggers re-render.</li>
     <li>DOM morph updates - update only changed nodes and attributes</li>
     <li>dynamic styes (seconds line color)</li>
+    <li><code>onDestroy() { ... }</code> - execute code when component is removed from DOM</li>
   </ul>
 </div>
 
@@ -289,26 +301,28 @@
       <div>
         <app-editor id="code-ui-clock" file="./demo/fez/clock.fez" name="clock">
            &lt;script>
-  class {
-    randomColor() {
-      const colors = ['red', 'green', 'blue', 'magenta', 'teal']
-      return colors[Math.floor(Math.random() * colors.length)];
-    }
+  randomColor() {
+    const colors = ['red', 'green', 'blue', 'magenta', 'teal']
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
 
-    setVars() {
-      // will only render once on next tick
-      let time = new Date((new Date()).getTime() - this.offsetHours * 60 * 60 * 1000)
-      this.state.hours = time.getHours()
-      this.state.minutes = time.getMinutes()
-      this.state.seconds = time.getSeconds()
-      this.state.color = this.randomColor()
-    }
+  setVars() {
+    // will only render once on next tick
+    let time = new Date((new Date()).getTime() - this.offsetHours * 60 * 60 * 1000)
+    this.state.hours = time.getHours()
+    this.state.minutes = time.getMinutes()
+    this.state.seconds = time.getSeconds()
+    this.state.color = this.randomColor()
+  }
 
-    connect() {
-      this.offsetHours = parseFloat(this.props.utc || 0)
-      this.setVars()
-      this.setInterval(this.setVars, 1000)
-    }
+  connect() {
+    this.offsetHours = parseFloat(this.props.utc || 0)
+    this.setVars()
+    this.setInterval(this.setVars, 1000)
+  }
+
+  onDestroy() {
+    console.log(`By from ${this.fezName} - ${this.props.city}`)
   }
 &lt;/script>
 
@@ -1493,6 +1507,58 @@ Fez('ui-list', class {
       </div>
     </div>
   
+  <template fez="ui-border"><script>
+  onMount() {
+    const childNodes = this.fezHide()
+    $(childNodes).css('border', `3px solid ${this.props.color || 'black'}`)
+  }
+</script>
+</template>
+
+    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
+      <div class="body">
+        <h2 style="margin-top: 0;">Demo: ui-border</h2>
+        <div class="info">
+  <ul>
+    <li>internal method <code>this.fezHide()</code> will remove fez node from dom, and set <code>this.root</code> to first parent node and return initial child nodes.</li>
+  </ul>
+</div>
+
+        <div id="body-border" style="padding-bottom: 20px;">
+          <div class="should-be-first-parent">
+  <ui-border color="violet">
+    <div style="padding: 20px; max-width: 200px;">
+      this will get border from fez component. Also check the DOM, fez parent is removed from DOM.
+    </div>
+  </ui-border>
+</div>
+
+        </div>
+
+        <app-editor name="border" id="html-border" file="./demo/fez/border.html" language="html">
+           &lt;div class="should-be-first-parent">
+  &lt;ui-border color="violet">
+    &lt;div style="padding: 20px; max-width: 200px;">
+      this will get border from fez component. Also check the DOM, fez parent is removed from DOM.
+    &lt;/div>
+  &lt;/ui-border>
+&lt;/div>
+
+        </app-editor>
+      </div>
+      <div>
+        <app-editor id="code-ui-border" file="./demo/fez/border.fez" name="border">
+           &lt;script>
+  onMount() {
+    const childNodes = this.fezHide()
+    $(childNodes).css('border', `3px solid ${this.props.color || 'black'}`)
+  }
+&lt;/script>
+
+        </app-editor>
+      </div>
+    </div>
+  
 
   <template fez="app-editor">
     <script>
@@ -1538,7 +1604,7 @@ Fez('ui-list', class {
 
   <script>
     window.applyChanges = function(name) {
-      Fez.loadTemplate(`ui-${name}`, Fez(`#code-ui-${name}`).getSource())
+      Fez.compile(`ui-${name}`, Fez(`#code-ui-${name}`).getSource())
 
       $(`#body-${name}`).html( Fez(`#html-${name}`).getSource() )
     }

@@ -61,9 +61,9 @@
 
   <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('<%= `git log -1 --format=%cd`.chomp %>'))</script>.
 
-  <h2>Why FEZ is a Developer's Best Pal</h2>
+  <h2>How FEZ feels and works?</h2>
 
-  <p>Build powerful web components faster than you can say 'node_modules' – zero build tools, zero fuss, all browser-native magic.</p>
+  <p>Component model is similar to <code>Vue</code> or <code>Svelte</code>, but there is no compile step, and you just work on whole HTML page as it is monuted to root. Render pages from server, and just use custom HTML tags you have created, as you would use any other HTML tag.</p>
 
   <ul>
     <li>🔌 <i>Native Browser Components:</i> Uses standard <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements">custom elements</a>. Create tags like <code>&lt;ui-clock&gt;</code>, place them anywhere in your HTML, and they just work. (Try it now in dev tools - instant magic!)</li>
@@ -90,8 +90,9 @@
     </li>
     <li>
       Create ex-counter component
+
       <xmp id="demo-counter">
-<fez-template tag="ex-counter">
+<fez-compile tag="ex-counter">
   <template>
     <script>
       connect() {
@@ -99,9 +100,9 @@
       }
 
       more() {
-        this.state.count += 1
+        this.state.count += this.state.count > 9 ? 0 : 1
       }
-    </>
+    </script>
 
     <style>
       span {
@@ -111,16 +112,24 @@
     </style>
 
     <button onclick="$$.state.count -= 1">-</button>
-    <span>{{ this.state.count }}</span>
+    <span>
+      {{ @state.count }}
+    </span>
     <button onclick="$$.more()">+</button>
+    {{#if true && @state.count > 0}}
+      <span>&mdash;</span>
+      {{#if @state.count % 2 }} odd {{:else}} even {{/if}}
+    {{/if}}
   </template>
-</fez-template>
+</fez-compile>
       </xmp>
       <script>$('#demo-counter').after($('#demo-counter').html())</script>
     </li>
     <li>
       Place ex-counter anywhere in BODY
-      <xmp><ex-counter></ex-counter></xmp>
+      <xmp>
+<ex-counter></ex-counter>
+      </xmp>
     </li>
     <li>
       <p>That is it! Edit this demo on <a target="codepen" href="https://codepen.io/dux/pen/JoPwmje">CodePen</a></p>
@@ -136,6 +145,7 @@
   <%= fez('pubsub') %>
   <%= fez('list') %>
   <%= fez('tabs') %>
+  <%= fez('border') %>
 
   <template fez="app-editor">
     <script>
@@ -181,7 +191,7 @@
 
   <script>
     window.applyChanges = function(name) {
-      Fez.loadTemplate(`ui-${name}`, Fez(`#code-ui-${name}`).getSource())
+      Fez.compile(`ui-${name}`, Fez(`#code-ui-${name}`).getSource())
 
       $(`#body-${name}`).html( Fez(`#html-${name}`).getSource() )
     }

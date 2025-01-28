@@ -1,0 +1,6 @@
+<script>
+  onMount() {
+    const childNodes = this.fezHide()
+    $(childNodes).css('border', `3px solid ${this.props.color || 'black'}`)
+  }
+</script>

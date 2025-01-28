@@ -1,24 +1,26 @@
 <script>
-  class {
-    randomColor() {
-      const colors = ['red', 'green', 'blue', 'magenta', 'teal']
-      return colors[Math.floor(Math.random() * colors.length)];
-    }
+  randomColor() {
+    const colors = ['red', 'green', 'blue', 'magenta', 'teal']
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
 
-    setVars() {
-      // will only render once on next tick
-      let time = new Date((new Date()).getTime() - this.offsetHours * 60 * 60 * 1000)
-      this.state.hours = time.getHours()
-      this.state.minutes = time.getMinutes()
-      this.state.seconds = time.getSeconds()
-      this.state.color = this.randomColor()
-    }
+  setVars() {
+    // will only render once on next tick
+    let time = new Date((new Date()).getTime() - this.offsetHours * 60 * 60 * 1000)
+    this.state.hours = time.getHours()
+    this.state.minutes = time.getMinutes()
+    this.state.seconds = time.getSeconds()
+    this.state.color = this.randomColor()
+  }
 
-    connect() {
-      this.offsetHours = parseFloat(this.props.utc || 0)
-      this.setVars()
-      this.setInterval(this.setVars, 1000)
-    }
+  connect() {
+    this.offsetHours = parseFloat(this.props.utc || 0)
+    this.setVars()
+    this.setInterval(this.setVars, 1000)
+  }
+
+  onDestroy() {
+    console.log(`By from ${this.fezName} - ${this.props.city}`)
   }
 </script>
 

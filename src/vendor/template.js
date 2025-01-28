@@ -43,17 +43,21 @@ function parseBlock(data, ifStack) {
 
 // let tpl = createTemplate(sting)
 // tpl({ ... this sate ...})
-export default function createTemplate(text) {
+export default function createTemplate(text, opts = {}) {
   const ifStack = []
 
   let result = text.replace(/\s*{{(.*?)}}\s*/g, (match, content) => {
+    content = content
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&amp;', '&')
     const parsedData = parseBlock(content, ifStack);
     return parsedData
   });
 
-  //result = result.replace(/>\s+</g, '><')
+  // result = result.replace(/>\s+</g, '><')
 
-  result = '`' + result + '`'
+  result = '`' + result.trim() + '`'
 
   // console.log(result)
 
@@ -72,6 +76,8 @@ export default function createTemplate(text) {
     return outFunc
   } catch(e) {
     console.error(`FEZ template compile error: ${e.message}`)
-    console.log(text)
+    console.log(text.trim())
+    console.log('---')
+    console.log(result)
   }
 }

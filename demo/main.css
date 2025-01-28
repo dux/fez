@@ -31,6 +31,14 @@ code {
   border-radius: 4px;
 }
 
+xmp {
+  background-color: #333;
+  color: #fff;
+  padding: 0px 15px;
+  border-radius: 5px;
+  line-height: 20px;
+}
+
 h2 {
   margin-bottom: 20px;
 }

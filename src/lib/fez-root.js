@@ -133,11 +133,11 @@ Fez.tag = function(tag, opts = {}, html = '') {
 };
 
 // <template fez="ui-form">
-// Fez.loadTemplate('ui-form')    # loads template[fez=ui-form]
-// Fez.loadTemplate(templateNode)
-// Fez.loadTemplate('ui-form', templateNode.innerHTML)
+// Fez.compileAll('ui-form')    # loads template[fez=ui-form]
+// Fez.compileAll(templateNode)
+// Fez.compileAll('ui-form', templateNode.innerHTML)
 
-Fez.loadTemplate = function(tagName, html) {
+Fez.compile = function(tagName, html) {
   if (tagName instanceof Node) {
     // template reference
     tagName.parentNode.removeChild(tagName)
@@ -218,8 +218,8 @@ Fez.loadTemplate = function(tagName, html) {
   }
 }
 
-Fez.loadTemplates = function() {
-  document.querySelectorAll('template[fez]').forEach((n) => Fez.loadTemplate(n))
+Fez.compileAll = function() {
+  document.querySelectorAll('template[fez]').forEach((n) => Fez.compile(n))
 }
 
 export default Fez
