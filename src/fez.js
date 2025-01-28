@@ -9,7 +9,7 @@ window.Fez = Fez
 // clear all unattached nodes
 setInterval(() => {
   FezBase.__objects = FezBase.__objects.filter(
-    (el) => el.isAttached()
+    (el) => el.isConnected
   )
 }, 5_000)
 

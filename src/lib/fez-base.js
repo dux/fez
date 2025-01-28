@@ -74,8 +74,8 @@ export default class FezBase {
   }
 
   // checks if node is attached and clears all if not
-  get isAttached() {
-    if (this.root?.parentNode) {
+  get isConnected() {
+    if (this.root?.isConnected) {
       return true
     } else {
       this._setIntervalCache ||= {}
@@ -315,7 +315,7 @@ export default class FezBase {
     clearInterval(this._setIntervalCache[name])
 
     this._setIntervalCache[name] = setInterval(() => {
-      if (this.isAttached) {
+      if (this.isConnected) {
         func()
       }
     }, tick)
@@ -379,7 +379,7 @@ export default class FezBase {
   subscribe(channel, func) {
     Fez._subs ||= {}
     Fez._subs[channel] ||= []
-    Fez._subs[channel] = Fez._subs[channel].filter((el) => el[0].isAttached)
+    Fez._subs[channel] = Fez._subs[channel].filter((el) => el[0].isConnected)
     Fez._subs[channel].push([this, func])
   }
 

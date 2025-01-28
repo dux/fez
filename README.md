@@ -142,7 +142,7 @@ Fez('foo-bar', class {
     this.childNodes(func)
 
     // check if the this.root node is attached to dom
-    this.isAttached()
+    this.isConnected()
 
     // on every "this.data" props change, auto update view.
     this.data = this.reactiveStore()
