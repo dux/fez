@@ -2,6 +2,10 @@
 
 # FEZ - Custom DOM Elements
 
+### First look at examples at [https://dux.github.io/fez/](https://dux.github.io/fez), and if everything else fails, then read this documentation :)
+
+<hr />
+
 FEZ is a small library (19kb unziped) that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
 
 It uses

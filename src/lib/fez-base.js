@@ -37,7 +37,6 @@ export default class FezBase {
         delete attrs[key]
         const context = node.closest('.fez')?.fez || window
         const newVal = new Function(`return (${val})`).bind(context)()
-        console.log(val, newVal)
         attrs[key.replace(':', '')] = newVal
       }
     }
@@ -83,6 +82,8 @@ export default class FezBase {
       Object.keys(this._setIntervalCache).forEach((key)=> {
         clearInterval(this._setIntervalCache[key])
       })
+
+      this.onDestroy()
 
       if (this.root) {
         this.root.fez = null
@@ -161,6 +162,7 @@ export default class FezBase {
   onMount() {}
   beforeRender() {}
   afterRender() {}
+  onDestroy() {}
 
   parseHtml(text) {
     const base = this.fezHtmlRoot.replaceAll('"', '&quot;')

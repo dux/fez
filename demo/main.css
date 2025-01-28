@@ -70,7 +70,6 @@ code {
 }
 
 .relative {
-  margin-bottom: -60px;
   position: relative;
 
   .copy {

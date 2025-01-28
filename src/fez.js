@@ -9,9 +9,9 @@ window.Fez = Fez
 // clear all unattached nodes
 setInterval(() => {
   FezBase.__objects = FezBase.__objects.filter(
-    (el) => el.isAttached
+    (el) => el.isAttached()
   )
-}, 10_000)
+}, 5_000)
 
 document.addEventListener('DOMContentLoaded', Fez.loadTemplates)
 

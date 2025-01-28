@@ -1,7 +1,6 @@
 <%
   load './demo/main.rb'
 %>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -62,6 +61,73 @@
 
   <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('<%= `git log -1 --format=%cd`.chomp %>'))</script>.
 
+  <h2>Why FEZ is a Developer's Best Pal</h2>
+
+  <p>Build powerful web components faster than you can say 'node_modules' – zero build tools, zero fuss, all browser-native magic.</p>
+
+  <ul>
+    <li>🔌 <i>Native Browser Components:</i> Uses standard <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements">custom elements</a>. Create tags like <code>&lt;ui-clock&gt;</code>, place them anywhere in your HTML, and they just work. (Try it now in dev tools - instant magic!)</li>
+    <li>⚡ <i>Zero Build Step Hassle:</i> Works directly in the browser with a tiny runtime (20kb raw, 6kb zipped - smaller than most cat GIFs).</li>
+    <li>🔄 <i>Smart State Management:</i> Automatically re-renders components using <a href="https://github.com/bigskysoftware/idiomorph">Idiomorph</a> for efficient DOM updates when data changes.</li>
+    <li>📜 <i>Flexible Templating:</i> Choose between HTML-like templates (similar to <a href="https://dev.to/cloudcannon/templating-in-sveltekit-3ikm">Svelte</a>) or programmatic <a href="https://github.com/dux/fez/blob/main/src/vendor/n.js">node building</a>.</li>
+    <li>🎨 <i>CSS Superpowers:</i> Built-in SCSS support via <a href="https://goober.js.org/">Goober</a> with scoped/global styles and dynamic values.</li>
+    <li>🤝 <i>Familiar Syntax:</i> Supports Svelte-style <code>use</code>/<code>bind</code> and Vue-like <code>:attribute</code> bindings.</li>
+    <li>💡 <i>Stateful Slots:</i> Preserves slot content state during re-renders - form inputs stay filled, components keep their data.</li>
+    <li>📡 <i>Component Communication:</i> Straightforward parent-child interactions without complex state management.</li>
+    <li>🔔 <i>Event System:</i> Built-in pub/sub pattern for cross-component messaging.</li>
+    <li>⏳ <i>Lifecycle Control:</i> Hooks like <code>onMount</code>, <code>beforeRender</code>, and <code>onPropsChange</code> for precise timing.</li>
+  </ul>
+
+  <h2>How to build your first component</h2>
+
+  <p>Lets build simple counter</p>
+
+  <ol>
+    <li>Add Fez JS (to HEAD)
+      <xmp>
+<script src="https://dux.github.io/fez/dist/fez.js"></script>
+      </xmp>
+    </li>
+    <li>
+      Create ex-counter component
+      <xmp id="demo-counter">
+<fez-template tag="ex-counter">
+  <template>
+    <script>
+      connect() {
+        this.state.count = 0
+      }
+
+      more() {
+        this.state.count += 1
+      }
+    </>
+
+    <style>
+      span {
+        margin: 0 10px;
+        color: blue;
+      }
+    </style>
+
+    <button onclick="$$.state.count -= 1">-</button>
+    <span>{{ this.state.count }}</span>
+    <button onclick="$$.more()">+</button>
+  </template>
+</fez-template>
+      </xmp>
+      <script>$('#demo-counter').after($('#demo-counter').html())</script>
+    </li>
+    <li>
+      Place ex-counter anywhere in BODY
+      <xmp><ex-counter></ex-counter></xmp>
+    </li>
+    <li>
+      <p>That is it! Edit this demo on <a target="codepen" href="https://codepen.io/dux/pen/JoPwmje">CodePen</a></p>
+      <ex-counter></ex-counter>
+    </li>
+  </ol>
+
   <%= fez('clock') %>
   <%= fez('todo') %>
   <%= fez('form') %>
@@ -97,14 +163,16 @@
       .hljs-copy-button {
         overflow: visible;
         left: -5px;
-        top: 20px;
+        top: 30px;
       }
     </style>
 
     <div class="relative">
       <pre>
         {{#if @props.file}}
-          <div style="padding: 5px 0;">{{ @props.file }}</div>
+          <div style="margin-bottom: -10px;">
+            {{ @props.file }} &sdot; <span style="cursor: pointer;" onclick="applyChanges('{{ @props.name }}')">Save</span>
+          </div>
         {{/if}}
         <code class="language-js" contenteditable="true"></code>
       </pre>

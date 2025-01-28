@@ -7,18 +7,21 @@
   </ul>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr fit-content(50%);">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
   <div>
-    <ui-clock></ui-clock>
+    <ui-clock city="Zageb" utc="1"></ui-clock>
   </div>
   <div>
-    <ui-clock></ui-clock>
+    <ui-clock city="Moscow" utc="4"></ui-clock>
   </div>
   <div>
-    <ui-clock></ui-clock>
+    <ui-clock city="NYC" utc="-5"></ui-clock>
   </div>
   <div>
-    <ui-clock></ui-clock>
+    <ui-clock city="Mumbai" utc="5.5"></ui-clock>
+  </div>
+  <div>
+    <ui-clock city="Sydney" utc="10"></ui-clock>
   </div>
 </div>
 

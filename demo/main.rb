@@ -4,7 +4,12 @@ def escape str
 end
 
 def fez name
-  body = File.read("./demo/fez/#{name}.html")
+  body = File.read("./demo/fez/#{name}.html").split(/\n\s*\n/, 2)
+  unless body[1]
+    body[1] = body[0]
+    body[0] = ''
+  end
+
 
   base = "./demo/fez/#{name}"
   filePath = File.exist?("#{base}.js") ? "#{base}.js" : "#{base}.fez"
@@ -20,21 +25,20 @@ def fez name
 
   out.push %{
     <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
-      <div class="body" id="body-#{name}" style="">
-        <h2>ui-#{name}</h2>
-        #{body}
+      <div class="body">
+        <h2 style="margin-top: 0;">Demo: ui-#{name}</h2>
+        #{body[0]}
+
+        <div id="body-#{name}" style="padding-bottom: 20px;">
+          #{body[1]}
+        </div>
+
+        <app-editor name="#{name}" id="html-#{name}" file="#{filePath.sub(/\.\w+$/,'.html')}" language="html">
+           #{escape(body[1])}
+        </app-editor>
       </div>
       <div>
-        <div style="text-align: right; position: relative; top: 20px;">
-          <button onclick="applyChanges('#{name}')" style="padding: 5px 10px;">Apply changes</button>
-        </div>
-        <app-editor id="html-#{name}" file="#{filePath.sub(/\.\w+$/,'.html')}" language="html">
-           #{escape(body)}
-        </app-editor>
-
-        <br />
-
-        <app-editor id="code-ui-#{name}" file="#{filePath}">
+        <app-editor id="code-ui-#{name}" file="#{filePath}" name="#{name}">
            #{escape(File.read(filePath))}
         </app-editor>
       </div>

@@ -7,14 +7,15 @@
 
     setVars() {
       // will only render once on next tick
-      let time = new Date();
-      this.state.hours = time.getHours();
-      this.state.minutes = time.getMinutes();
-      this.state.seconds = time.getSeconds();
+      let time = new Date((new Date()).getTime() - this.offsetHours * 60 * 60 * 1000)
+      this.state.hours = time.getHours()
+      this.state.minutes = time.getMinutes()
+      this.state.seconds = time.getSeconds()
       this.state.color = this.randomColor()
     }
 
     connect() {
+      this.offsetHours = parseFloat(this.props.utc || 0)
       this.setVars()
       this.setInterval(this.setVars, 1000)
     }
@@ -48,6 +49,7 @@
 
   .hour {
     stroke: #333;
+    stroke-width: 1.5;
   }
 
   .minute {
@@ -86,4 +88,11 @@
     <line class="second" y1="10" y2="-38" />
     <line class="second-counterweight" y1="10" y2="2" />
   </g>
+
+  <!-- City text -->
+  {{#if @props.city }}
+    <text x="0" y="-17" text-anchor="middle" dominant-baseline="middle" style="font-size: 10px; fill: #111;">
+      {{ @props.city }}
+    </text>
+  {{/if}}
 </svg>
