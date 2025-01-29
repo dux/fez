@@ -1,5 +1,9 @@
 <%
   load './demo/main.rb'
+
+  def insert file
+    File.read "./demo/fez/#{file}"
+  end
 %>
 <!DOCTYPE html>
 <html lang="en">
@@ -54,7 +58,7 @@
   <h1>
     Fez demo components
     &sdot;
-    <a target="playground" href="https://jsitor.com/QoResUvMc">playground</a>
+    <a target="playground" href="https://jsbin.com/nitihel/edit?html,output">playground</a>
     &sdot;
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
@@ -63,7 +67,7 @@
 
   <h2>How FEZ feels and works?</h2>
 
-  <p>Component model is similar to <code>Vue</code> or <code>Svelte</code>, but there is no compile step, and you just work on whole HTML page as it is monuted to root. Render pages from server, and just use custom HTML tags you have created, as you would use any other HTML tag.</p>
+  <p>Component model is similar to <code>Vue</code> or <code>Svelte</code>, but there is no compile step. You work on HTML doc as it is was allready monuted to root. Render pages from server, and just use custom HTML tags you have created, as you would use any other HTML tag.</p>
 
   <ul>
     <li>🔌 <i>Native Browser Components:</i> Uses standard <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements">custom elements</a>. Create tags like <code>&lt;ui-clock&gt;</code>, place them anywhere in your HTML, and they just work. (Try it now in dev tools - instant magic!)</li>
@@ -92,38 +96,9 @@
       Create ex-counter component
 
       <xmp id="demo-counter">
-<fez-compile tag="ex-counter">
-  <template>
-    <script>
-      connect() {
-        this.state.count = 0
-      }
-
-      more() {
-        this.state.count += this.state.count > 9 ? 0 : 1
-      }
-    </script>
-
-    <style>
-      span {
-        margin: 0 10px;
-        color: blue;
-      }
-    </style>
-
-    <button onclick="@state.count -= 1">-</button>
-    <span>
-      {{ @state.count }}
-    </span>
-    <button onclick="@more()">+</button>
-    {{#if true && @state.count > 0}}
-      <span>&mdash;</span>
-      {{#if @state.count % 2 }} odd {{:else}} even {{/if}}
-    {{/if}}
-  </template>
-</fez-compile>
+<%= insert('index_counter.fez') %>
       </xmp>
-      <script>$('#demo-counter').after($('#demo-counter').html())</script>
+<%= insert('index_counter.fez') %>
     </li>
     <li>
       Place ex-counter anywhere in BODY
@@ -132,10 +107,12 @@
       </xmp>
     </li>
     <li>
-      <p>That is it! Edit this demo on <a target="codepen" href="https://codepen.io/dux/pen/JoPwmje">CodePen</a></p>
-      <ex-counter></ex-counter>
+      <p>That is it! Edit this demo on <a target="codepen" href="https://jsbin.com/nitihel/edit?html,output">CodePen</a></p>
+      <ex-counter id="main-counter"></ex-counter>
     </li>
   </ol>
+
+  <%= insert('index_editor.fez') %>
 
   <%= fez('clock') %>
   <%= fez('todo') %>
@@ -146,48 +123,6 @@
   <%= fez('list') %>
   <%= fez('tabs') %>
   <%= fez('border') %>
-
-  <template fez="app-editor">
-    <script>
-      getSource() {
-        return this.codeNode.textContent
-      }
-
-      connect(props) {
-        props.language ||= 'html'
-        this.source = this.root.innerHTML
-      }
-
-      onMount() {
-        this.codeNode = this.find('code')
-        this.codeNode.innerHTML = this.source.trim()
-        hljs.highlightElement(this.codeNode);
-      }
-    </script>
-
-    <style>
-      code {
-        padding: 10px;
-      }
-
-      .hljs-copy-button {
-        overflow: visible;
-        left: -5px;
-        top: 30px;
-      }
-    </style>
-
-    <div class="relative">
-      <pre>
-        {{#if @props.file}}
-          <div style="margin-bottom: -10px;">
-            {{ @props.file }} &sdot; <span style="cursor: pointer;" onclick="applyChanges('{{ @props.name }}')">Save</span>
-          </div>
-        {{/if}}
-        <code class="language-js" contenteditable="true"></code>
-      </pre>
-    </div>
-  </template>
 
   <script>
     window.applyChanges = function(name) {

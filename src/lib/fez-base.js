@@ -70,7 +70,7 @@ export default class FezBase {
 
   // string selector for use in HTML nodes
   get fezHtmlRoot() {
-    return `Fez.find(this, "${this.fezName}").`
+    return this.props.id ? `Fez.find("#${this.props.id}").` : `Fez.find(this, "${this.fezName}").`
   }
 
   // checks if node is attached and clears all if not
@@ -169,12 +169,12 @@ export default class FezBase {
   parseHtml(text) {
     const base = this.fezHtmlRoot.replaceAll('"', '&quot;')
 
-
     // $$. or fez. or @
     // @@foo to escape @foo
     text = text
       .replaceAll('$$.', base)
-      .replace(/(.)@(\w)/g, (_, m1, m2) => m1 == '@' ? `@${m2}` : `${m1}${base}${m2}`)
+      .replace(/(.)@(\w+[\.\(])/g, (_, m1, m2) => m1 == '@' ? `@${m2}` : `${m1}${base}${m2}`)
+      //.replace(/(.)@(\w+([:\.])/g, (_, m1, m2) => m1 == '@' ? `@${m2}` : `${m1}${base}${m2}`)
       .replace(/([^\w\.])fez\./g, `$1${base}`)
 
     // if (this.fezName == 'ex-counter') {

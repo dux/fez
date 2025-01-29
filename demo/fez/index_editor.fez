@@ -1,0 +1,41 @@
+<template fez="app-editor">
+  <script>
+    getSource() {
+      return this.codeNode.textContent
+    }
+
+    connect(props) {
+      props.language ||= 'html'
+      this.source = this.root.innerHTML
+    }
+
+    onMount() {
+      this.codeNode = this.find('code')
+      this.codeNode.innerHTML = this.source.trim()
+      hljs.highlightElement(this.codeNode);
+    }
+  </script>
+
+  <style>
+    code {
+      padding: 10px;
+    }
+
+    .hljs-copy-button {
+      overflow: visible;
+      left: -5px;
+      top: 30px;
+    }
+  </style>
+
+  <div class="relative">
+    <pre>
+      {{#if @props.file}}
+        <div style="margin-bottom: -10px;">
+          {{ @props.file }} &sdot; <span style="cursor: pointer;" onclick="applyChanges('{{ @props.name }}')">Save</span>
+        </div>
+      {{/if}}
+      <code class="language-js" contenteditable="true"></code>
+    </pre>
+  </div>
+</template>
