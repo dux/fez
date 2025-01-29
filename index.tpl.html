@@ -111,11 +111,11 @@
       }
     </style>
 
-    <button onclick="$$.state.count -= 1">-</button>
+    <button onclick="@state.count -= 1">-</button>
     <span>
       {{ @state.count }}
     </span>
-    <button onclick="$$.more()">+</button>
+    <button onclick="@more()">+</button>
     {{#if true && @state.count > 0}}
       <span>&mdash;</span>
       {{#if @state.count % 2 }} odd {{:else}} even {{/if}}

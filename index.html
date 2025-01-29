@@ -57,7 +57,7 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Tue Jan 28 03:14:18 2025 +0100'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Wed Jan 29 00:16:02 2025 +0100'))</script>.
 
   <h2>How FEZ feels and works?</h2>
 
@@ -109,11 +109,11 @@
       }
     </style>
 
-    <button onclick="$$.state.count -= 1">-</button>
+    <button onclick="@state.count -= 1">-</button>
     <span>
       {{ @state.count }}
     </span>
-    <button onclick="$$.more()">+</button>
+    <button onclick="@more()">+</button>
     {{#if true && @state.count > 0}}
       <span>&mdash;</span>
       {{#if @state.count % 2 }} odd {{:else}} even {{/if}}
@@ -467,13 +467,13 @@
       fez-bind="state.tasks[{{index}}].done"
     />
     &sdot;
-    <button onclick="$$.removeTask({{ index }})">&times;</button>
+    <button onclick="@removeTask({{ index }})">&times;</button>
   </p>
 {{/for}}
 <p>
-  <button onclick="$$.addTask()">add task</button>
+  <button onclick="@addTask()">add task</button>
   &sdot;
-  <button onclick="$$.clearCompleted()">clear completed</button>
+  <button onclick="@clearCompleted()">clear completed</button>
 </p>
 <pre class="code">{{ JSON.stringify(this.state.tasks, null, 2) }}</pre>
 <p>If you want to preserve state in templates, wrap content in "fez-slot"</p>
@@ -568,13 +568,13 @@
       fez-bind="state.tasks[{{index}}].done"
     />
     &sdot;
-    &lt;button onclick="$$.removeTask({{ index }})">&times;&lt;/button>
+    &lt;button onclick="@removeTask({{ index }})">&times;&lt;/button>
   &lt;/p>
 {{/for}}
 &lt;p>
-  &lt;button onclick="$$.addTask()">add task&lt;/button>
+  &lt;button onclick="@addTask()">add task&lt;/button>
   &sdot;
-  &lt;button onclick="$$.clearCompleted()">clear completed&lt;/button>
+  &lt;button onclick="@clearCompleted()">clear completed&lt;/button>
 &lt;/p>
 &lt;pre class="code">{{ JSON.stringify(this.state.tasks, null, 2) }}&lt;/pre>
 &lt;p>If you want to preserve state in templates, wrap content in "fez-slot"&lt;/p>
@@ -807,9 +807,9 @@
 <p>Param city: {{ @props.city }}</p>
 <p>Time now: <span class="time"></span></p>
 <p>Random num: <span>{{ Math.random() }}</span></p>
-<button onclick="$$.setRandomColor()">random color</button>
+<button onclick="@setRandomColor()">random color</button>
 &sdot;
-<button onclick="$$.render()">refresh & preserve slot</button>
+<button onclick="@render()">refresh & preserve slot</button>
 <hr />
 
 <slot></slot>
@@ -908,9 +908,9 @@
 &lt;p>Param city: {{ @props.city }}&lt;/p>
 &lt;p>Time now: &lt;span class="time">&lt;/span>&lt;/p>
 &lt;p>Random num: &lt;span>{{ Math.random() }}&lt;/span>&lt;/p>
-&lt;button onclick="$$.setRandomColor()">random color&lt;/button>
+&lt;button onclick="@setRandomColor()">random color&lt;/button>
 &sdot;
-&lt;button onclick="$$.render()">refresh & preserve slot&lt;/button>
+&lt;button onclick="@render()">refresh & preserve slot&lt;/button>
 &lt;hr />
 
 &lt;slot>&lt;/slot>
@@ -1521,6 +1521,7 @@ Fez('ui-list', class {
         <div class="info">
   <ul>
     <li>internal method <code>this.fezHide()</code> will remove fez node from dom, and set <code>this.root</code> to first parent node and return initial child nodes.</li>
+    <li>useful if you need to transform children, but you can't have parent node in place. Think jQuery plugin.</li>
   </ul>
 </div>
 

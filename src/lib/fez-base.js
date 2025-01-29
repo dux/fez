@@ -168,12 +168,22 @@ export default class FezBase {
 
   parseHtml(text) {
     const base = this.fezHtmlRoot.replaceAll('"', '&quot;')
+
+
+    // $$. or fez. or @
+    // @@foo to escape @foo
     text = text
       .replaceAll('$$.', base)
+      .replace(/(.)@(\w)/g, (_, m1, m2) => m1 == '@' ? `@${m2}` : `${m1}${base}${m2}`)
       .replace(/([^\w\.])fez\./g, `$1${base}`)
+
+    // if (this.fezName == 'ex-counter') {
+    //   console.log(text)
+    // }
 
     return text
   }
+
 
   // pass name to have only one tick of a kind
   nextTick(func, name) {

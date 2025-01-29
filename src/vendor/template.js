@@ -57,9 +57,8 @@ export default function createTemplate(text, opts = {}) {
 
   // result = result.replace(/>\s+</g, '><')
 
-  result = '`' + result.trim() + '`'
-
-  // console.log(result)
+  result = result.trim()
+  result = '`' + result + '`'
 
   try {
     const tplFunc = new Function(`return ${result}`)

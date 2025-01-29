@@ -60,13 +60,13 @@
       fez-bind="state.tasks[{{index}}].done"
     />
     &sdot;
-    <button onclick="$$.removeTask({{ index }})">&times;</button>
+    <button onclick="@removeTask({{ index }})">&times;</button>
   </p>
 {{/for}}
 <p>
-  <button onclick="$$.addTask()">add task</button>
+  <button onclick="@addTask()">add task</button>
   &sdot;
-  <button onclick="$$.clearCompleted()">clear completed</button>
+  <button onclick="@clearCompleted()">clear completed</button>
 </p>
 <pre class="code">{{ JSON.stringify(this.state.tasks, null, 2) }}</pre>
 <p>If you want to preserve state in templates, wrap content in "fez-slot"</p>
