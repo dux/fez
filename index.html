@@ -57,7 +57,7 @@
     <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
   </h1>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Wed Jan 29 10:40:02 2025 +0100'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('Wed Jan 29 12:21:47 2025 +0100'))</script>.
 
   <h2>How FEZ feels and works?</h2>
 
@@ -1625,6 +1625,360 @@ Fez('ui-list', class {
     $(childNodes).css('border', `3px solid ${this.props.color || 'black'}`)
   }
 &lt;/script>
+
+        </app-editor>
+      </div>
+    </div>
+  
+  <template fez="ui-slider"><script>
+  getWidth() {
+    const width = this.root.getBoundingClientRect().width
+
+    if (width != this.state.width) {
+      this.setPannel(0)
+      this.state.width = width
+    }
+  }
+
+  cssVars() {
+    return [
+      `--width: ${this.state.width}px`,
+      `--arrow-width: ${this.arrowWidth}px`,
+      `--pannel-width: ${this.state.width - (this.arrowWidth * 2)}px`,
+      `--offset: -${this.state.offset}px`,
+    ]
+  }
+
+  setPannel(num) {
+    this.state.slide = num
+  }
+
+  changePannel(direction){
+    this.state.slide += direction
+
+    const slides = this.find('.fez-slot').querySelectorAll(":scope > div")
+
+    if (this.state.slide < 0) {
+      this.state.slide = slides.length - 1
+    } else if (!slides[this.state.slide]) {
+      this.state.slide = 0
+    }
+  }
+
+  beforeRender() {
+    this.state.offset = (this.state.width - (this.arrowWidth * 2)) * this.state.slide
+  }
+
+  connect() {
+    this.arrowWidth = 100
+    this.setPannel(0)
+    this.getWidth()
+
+    this.setInterval(this.getWidth, 100)
+  }
+</script>
+
+<style>
+  .slides {
+    display: flex;
+    overflow: hidden;
+
+    > .arrow {
+      min-width: var(--arrow-width);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 50px;
+      cursor: pointer;
+      transform: rotate(-90deg);
+      color: #aaa;
+
+      span:hover {
+        color: #111;
+      }
+
+      &:nth-child(3) {
+        span {
+          transform: rotate(180deg);
+        }
+      }
+    }
+
+    > .slot {
+      display: flex;
+      align-items: flex-start;
+      overflow: hidden;
+      max-width: var(--panel-width);
+
+      .slot-parent {
+        transition: transform 0.3s ease;
+        transform: translateX(var(--offset));
+
+        .fez-slot {
+          display: flex;
+
+          & > div {
+            width: var(--pannel-width);
+            flex-shrink: 0;
+          }
+        }
+      }
+    }
+  }
+</style>
+
+<div class="slides" style="{{ @cssVars().join(';') }}">
+  <div class="arrow" onclick="@changePannel(-1)">
+      <span>&#8679;</span>
+  </div>
+  <div class="slot">
+    <div class="slot-parent">
+      <slot />
+    </div>
+  </div>
+  <div class="arrow" onclick="@changePannel(1)">
+      <span>&#8679;</span>
+  </div>
+</div>
+
+</template>
+
+    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
+      <div class="body">
+        <h2 style="margin-top: 0;">Demo: ui-slider</h2>
+        <div class="info">
+  <ul>
+    <li>sweet component with css animations :)</li>
+    <li><code>beforeRender()</code> to prepare vars before render (clean alternative to svelte <code>$: {...}</code></li>
+    <li><code>this.setInterval()</code> to set interval on a instance. No need to clear it, it will be auto cleared on component destroy.</li>
+  </ul>
+</div>
+
+        <div id="body-slider" style="padding-bottom: 20px;">
+          <style>
+  .fez-c-slider {
+    .fez-slot {
+      > div {
+         text-align: center;
+      }
+    }
+  }
+
+  div.img {
+    img {
+      width: 100%;
+      max-height: 600px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+  }
+</style>
+
+<ui-slider>
+  <div>
+    <h1>Sider 1</h1>
+    <div class="img">
+      <img src="https://images.unsplash.com/photo-1737143765999-bd3be790ab4f?w=600" />
+     </div>
+  </div>
+  <div>
+    <h1>Sider 2</h1>
+    <div class="img">
+      <img src="https://images.unsplash.com/photo-1735767975829-71496633d499?w=600" style="width: 45%" />
+      <img src="https://images.unsplash.com/photo-1736158064402-5b68c2cbcc77?w=600" style="width: 45%" />
+     </div>
+  </div>
+  <div>
+    <h1>Sider 3</h1>
+    <div class="img">
+      <img src="https://images.unsplash.com/photo-1737898415581-7dea57a1905b?w=600" />
+     </div>
+  </div>
+  <div>
+    <h1>Sider 4</h1>
+    <div class="img">
+      <img src="https://images.unsplash.com/photo-1736158064402-5b68c2cbcc77?w=600" />
+     </div>
+  </div>
+  <div>
+    <h1>Sider 5</h1>
+    <div class="img">
+      <img src="https://images.unsplash.com/photo-1736185669686-f302d6274f23?w=600" />
+     </div>
+  </div>
+</ui-slider>
+
+        </div>
+
+        <app-editor name="slider" id="html-slider" file="./demo/fez/slider.html" language="html">
+           &lt;style>
+  .fez-c-slider {
+    .fez-slot {
+      > div {
+         text-align: center;
+      }
+    }
+  }
+
+  div.img {
+    img {
+      width: 100%;
+      max-height: 600px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+  }
+&lt;/style>
+
+&lt;ui-slider>
+  &lt;div>
+    &lt;h1>Sider 1&lt;/h1>
+    &lt;div class="img">
+      &lt;img src="https://images.unsplash.com/photo-1737143765999-bd3be790ab4f?w=600" />
+     &lt;/div>
+  &lt;/div>
+  &lt;div>
+    &lt;h1>Sider 2&lt;/h1>
+    &lt;div class="img">
+      &lt;img src="https://images.unsplash.com/photo-1735767975829-71496633d499?w=600" style="width: 45%" />
+      &lt;img src="https://images.unsplash.com/photo-1736158064402-5b68c2cbcc77?w=600" style="width: 45%" />
+     &lt;/div>
+  &lt;/div>
+  &lt;div>
+    &lt;h1>Sider 3&lt;/h1>
+    &lt;div class="img">
+      &lt;img src="https://images.unsplash.com/photo-1737898415581-7dea57a1905b?w=600" />
+     &lt;/div>
+  &lt;/div>
+  &lt;div>
+    &lt;h1>Sider 4&lt;/h1>
+    &lt;div class="img">
+      &lt;img src="https://images.unsplash.com/photo-1736158064402-5b68c2cbcc77?w=600" />
+     &lt;/div>
+  &lt;/div>
+  &lt;div>
+    &lt;h1>Sider 5&lt;/h1>
+    &lt;div class="img">
+      &lt;img src="https://images.unsplash.com/photo-1736185669686-f302d6274f23?w=600" />
+     &lt;/div>
+  &lt;/div>
+&lt;/ui-slider>
+
+        </app-editor>
+      </div>
+      <div>
+        <app-editor id="code-ui-slider" file="./demo/fez/slider.fez" name="slider">
+           &lt;script>
+  getWidth() {
+    const width = this.root.getBoundingClientRect().width
+
+    if (width != this.state.width) {
+      this.setPannel(0)
+      this.state.width = width
+    }
+  }
+
+  cssVars() {
+    return [
+      `--width: ${this.state.width}px`,
+      `--arrow-width: ${this.arrowWidth}px`,
+      `--pannel-width: ${this.state.width - (this.arrowWidth * 2)}px`,
+      `--offset: -${this.state.offset}px`,
+    ]
+  }
+
+  setPannel(num) {
+    this.state.slide = num
+  }
+
+  changePannel(direction){
+    this.state.slide += direction
+
+    const slides = this.find('.fez-slot').querySelectorAll(":scope > div")
+
+    if (this.state.slide &lt; 0) {
+      this.state.slide = slides.length - 1
+    } else if (!slides[this.state.slide]) {
+      this.state.slide = 0
+    }
+  }
+
+  beforeRender() {
+    this.state.offset = (this.state.width - (this.arrowWidth * 2)) * this.state.slide
+  }
+
+  connect() {
+    this.arrowWidth = 100
+    this.setPannel(0)
+    this.getWidth()
+
+    this.setInterval(this.getWidth, 100)
+  }
+&lt;/script>
+
+&lt;style>
+  .slides {
+    display: flex;
+    overflow: hidden;
+
+    > .arrow {
+      min-width: var(--arrow-width);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 50px;
+      cursor: pointer;
+      transform: rotate(-90deg);
+      color: #aaa;
+
+      span:hover {
+        color: #111;
+      }
+
+      &:nth-child(3) {
+        span {
+          transform: rotate(180deg);
+        }
+      }
+    }
+
+    > .slot {
+      display: flex;
+      align-items: flex-start;
+      overflow: hidden;
+      max-width: var(--panel-width);
+
+      .slot-parent {
+        transition: transform 0.3s ease;
+        transform: translateX(var(--offset));
+
+        .fez-slot {
+          display: flex;
+
+          & > div {
+            width: var(--pannel-width);
+            flex-shrink: 0;
+          }
+        }
+      }
+    }
+  }
+&lt;/style>
+
+&lt;div class="slides" style="{{ @cssVars().join(';') }}">
+  &lt;div class="arrow" onclick="@changePannel(-1)">
+      &lt;span>&#8679;&lt;/span>
+  &lt;/div>
+  &lt;div class="slot">
+    &lt;div class="slot-parent">
+      &lt;slot />
+    &lt;/div>
+  &lt;/div>
+  &lt;div class="arrow" onclick="@changePannel(1)">
+      &lt;span>&#8679;&lt;/span>
+  &lt;/div>
+&lt;/div>
+
 
         </app-editor>
       </div>

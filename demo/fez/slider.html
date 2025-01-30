@@ -1,28 +1,60 @@
 <div class="info">
   <ul>
-    <li>sweet component</li>
+    <li>sweet component with css animations :)</li>
+    <li><code>beforeRender()</code> to prepare vars before render (clean alternative to svelte <code>$: {...}</code></li>
+    <li><code>this.setInterval()</code> to set interval on a instance. No need to clear it, it will be auto cleared on component destroy.</li>
   </ul>
 </div>
 
-<ui-slider dotts="true" arrows="true" next="5000">
+<style>
+  .fez-c-slider {
+    .fez-slot {
+      > div {
+         text-align: center;
+      }
+    }
+  }
+
+  div.img {
+    img {
+      width: 100%;
+      max-height: 600px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+  }
+</style>
+
+<ui-slider>
   <div>
-    <div>
-      <h2>First</h2>
-    </div>
+    <h1>Sider 1</h1>
+    <div class="img">
+      <img src="https://images.unsplash.com/photo-1737143765999-bd3be790ab4f?w=600" />
+     </div>
   </div>
   <div>
-    <div>
-      <h2>First</h2>
-    </div>
+    <h1>Sider 2</h1>
+    <div class="img">
+      <img src="https://images.unsplash.com/photo-1735767975829-71496633d499?w=600" style="width: 45%" />
+      <img src="https://images.unsplash.com/photo-1736158064402-5b68c2cbcc77?w=600" style="width: 45%" />
+     </div>
   </div>
   <div>
-    <div>
-      <h2>First</h2>
-    </div>
+    <h1>Sider 3</h1>
+    <div class="img">
+      <img src="https://images.unsplash.com/photo-1737898415581-7dea57a1905b?w=600" />
+     </div>
   </div>
   <div>
-    <div>
-      <h2>First</h2>
-    </div>
+    <h1>Sider 4</h1>
+    <div class="img">
+      <img src="https://images.unsplash.com/photo-1736158064402-5b68c2cbcc77?w=600" />
+     </div>
   </div>
-</div>
+  <div>
+    <h1>Sider 5</h1>
+    <div class="img">
+      <img src="https://images.unsplash.com/photo-1736185669686-f302d6274f23?w=600" />
+     </div>
+  </div>
+</ui-slider>

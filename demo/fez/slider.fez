@@ -1,0 +1,111 @@
+<script>
+  getWidth() {
+    const width = this.root.getBoundingClientRect().width
+
+    if (width != this.state.width) {
+      this.setPannel(0)
+      this.state.width = width
+    }
+  }
+
+  cssVars() {
+    return [
+      `--width: ${this.state.width}px`,
+      `--arrow-width: ${this.arrowWidth}px`,
+      `--pannel-width: ${this.state.width - (this.arrowWidth * 2)}px`,
+      `--offset: -${this.state.offset}px`,
+    ]
+  }
+
+  setPannel(num) {
+    this.state.slide = num
+  }
+
+  changePannel(direction){
+    this.state.slide += direction
+
+    const slides = this.find('.fez-slot').querySelectorAll(":scope > div")
+
+    if (this.state.slide < 0) {
+      this.state.slide = slides.length - 1
+    } else if (!slides[this.state.slide]) {
+      this.state.slide = 0
+    }
+  }
+
+  beforeRender() {
+    this.state.offset = (this.state.width - (this.arrowWidth * 2)) * this.state.slide
+  }
+
+  connect() {
+    this.arrowWidth = 100
+    this.setPannel(0)
+    this.getWidth()
+
+    this.setInterval(this.getWidth, 100)
+  }
+</script>
+
+<style>
+  .slides {
+    display: flex;
+    overflow: hidden;
+
+    > .arrow {
+      min-width: var(--arrow-width);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 50px;
+      cursor: pointer;
+      transform: rotate(-90deg);
+      color: #aaa;
+
+      span:hover {
+        color: #111;
+      }
+
+      &:nth-child(3) {
+        span {
+          transform: rotate(180deg);
+        }
+      }
+    }
+
+    > .slot {
+      display: flex;
+      align-items: flex-start;
+      overflow: hidden;
+      max-width: var(--panel-width);
+
+      .slot-parent {
+        transition: transform 0.3s ease;
+        transform: translateX(var(--offset));
+
+        .fez-slot {
+          display: flex;
+
+          & > div {
+            width: var(--pannel-width);
+            flex-shrink: 0;
+          }
+        }
+      }
+    }
+  }
+</style>
+
+<div class="slides" style="{{ @cssVars().join(';') }}">
+  <div class="arrow" onclick="@changePannel(-1)">
+      <span>&#8679;</span>
+  </div>
+  <div class="slot">
+    <div class="slot-parent">
+      <slot />
+    </div>
+  </div>
+  <div class="arrow" onclick="@changePannel(1)">
+      <span>&#8679;</span>
+  </div>
+</div>
+
