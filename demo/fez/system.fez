@@ -39,3 +39,25 @@
     </pre>
   </div>
 </template>
+
+<template fez="app-info">
+  <style>
+    & > div {
+      border: 3px solid #bb8;
+      padding: 10px;
+      border-radius: 8px;
+      background-color: #ffe;
+      margin-bottom: 16px;
+    }
+  </style>
+
+  <div>
+    {{#if @props.small}}
+      <p>
+        <small>{{ @props.small }}</small>
+      </p>
+    {{/if}}
+
+    <slot />
+  </div>
+</template>

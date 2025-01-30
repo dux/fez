@@ -2,11 +2,13 @@
 
 # FEZ - Custom DOM Elements
 
-### First look at examples at [https://dux.github.io/fez/](https://dux.github.io/fez), and if everything else fails, then read this documentation :)
+### jQuery taught me simplicity, I added Svelte's elegance, just drop in and code!
+
+#### First look at examples at [https://dux.github.io/fez/](https://dux.github.io/fez), and if everything else fails, then read this documentation :)
 
 <hr />
 
-FEZ is a small library (19kb unziped) that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
+FEZ is a small library (20kb minified) that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
 
 It uses
 
@@ -15,11 +17,11 @@ It uses
 
 Latest version of libs are baked in Fez distro.
 
-It uses minimal abstraction. You will learn to use it in 3 minutes, just look at example, it includes all you need to know.
+It uses minimal abstraction. You will learn to use it in 15 minutes, just look at examples, it includes all you need to know.
 
 ## How to install
 
-`<script src="https://cdn.jsdelivr.net/gh/dux/fez-custom-dom-elements@latest/dist/fez.js"></script>`
+`<script src="https://dux.github.io/fez/dist/fez.js"></script>`
 
 ## Little more details
 
