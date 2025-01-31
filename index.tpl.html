@@ -13,45 +13,11 @@
   <title>Test</title>
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
-  <link rel="stylesheet" href="./demo/hjs-theme.css" />
-  <link rel="stylesheet" href="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
   <script src="./dist/fez.js"></script>
   <script>
-    hljs.addPlugin(new CopyButtonPlugin({autohide: false}));
-  </script>
-  <script>
-    function timeSince(date) {
-        const now = new Date();
-        const secondsPast = (now.getTime() - new Date(date).getTime()) / 1000;
-
-        if (secondsPast < 60) {
-            return `just now`;
-        }
-        if (secondsPast < 3600) { // less than 60 minutes
-            const minutes = Math.floor(secondsPast / 60);
-            return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-        }
-        if (secondsPast < 86400) { // less than 24 hours
-            const hours = Math.floor(secondsPast / 3600);
-            return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-        }
-        if (secondsPast < 2592000) { // less than 30 days
-            const days = Math.floor(secondsPast / 86400);
-            return `${days} day${days > 1 ? 's' : ''} ago`;
-        }
-        if (secondsPast < 31536000) { // less than 12 months
-            const months = Math.floor(secondsPast / 2592000);
-            return `${months} month${months > 1 ? 's' : ''} ago`;
-        }
-        const years = Math.floor(secondsPast / 31536000);
-        return `${years} year${years > 1 ? 's' : ''} ago`;
-    }
-
     window.L = console.log
-</script>
+  </script>
 </head>
 <body>
   <img src="./demo/fez.png" style="height: 128px; float: right; margin-bottom: -100px;" />
@@ -71,7 +37,7 @@
     jQuery taught us simplicity, we added Svelte's elegance, just drop in and code!
   </app-info>
 
-  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024. Latest update was <script>document.write(timeSince('<%= `git log -1 --format=%cd`.chomp %>'))</script>.
+  <p>Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024.
 
   <h2>How FEZ feels and works?</h2>
 
@@ -132,6 +98,7 @@
   <%= fez('tabs') %>
   <%= fez('border') %>
   <%= fez('slider') %>
+  <%= fez('editor') %>
 
   <script>
     window.applyChanges = function(name) {

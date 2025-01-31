@@ -33,14 +33,14 @@ def fez name
           #{body[1]}
         </div>
 
-        <app-editor name="#{name}" id="html-#{name}" file="#{filePath.sub(/\.\w+$/,'.html')}" language="html">
+        <ui-editor name="#{name}" id="html-#{name}" file="#{filePath.sub(/\.\w+$/,'.html')}" language="html" :action="applyChanges">
            #{escape(body[1])}
-        </app-editor>
+        </ui-editor>
       </div>
       <div>
-        <app-editor id="code-ui-#{name}" file="#{filePath}" name="#{name}">
+        <ui-editor id="code-ui-#{name}" file="#{filePath}" name="#{name}" :action="applyChanges">
            #{escape(File.read(filePath))}
-        </app-editor>
+        </ui-editor>
       </div>
     </div>
   }

@@ -1,0 +1,53 @@
+<script>
+  // you need to escape script tag inside fez script block
+  Fez.head(`
+    <link rel="stylesheet" href="./demo/hjs-theme.css" />
+    <link rel="stylesheet" href="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.css" />
+    <sc`+`ript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></scr`+`ipt>
+  `)
+
+  class {
+    getSource() {
+      return this.codeNode.textContent
+    }
+
+    connect(props) {
+      props.language ||= 'html'
+      this.source = this.root.innerHTML
+    }
+
+    onMount() {
+      this.codeNode = this.find('code')
+      this.codeNode.innerHTML = this.source.trim()
+
+      Fez.untilTrue(()=>{
+        if (window.hljs) {
+          hljs.highlightElement(this.codeNode);
+          return true
+        }
+      })
+    }
+  }
+</script>
+<style>
+  code {
+    padding: 10px;
+  }
+
+  .hljs-copy-button {
+    overflow: visible;
+    left: -5px;
+    top: 30px;
+  }
+</style>
+
+<div class="relative">
+  <pre>
+    {{#if @props.file}}
+      <div style="margin-bottom: -10px;">
+        {{ @props.file }} &sdot; <span style="cursor: pointer;" onclick="@props.action('{{ @props.name }}')">Save</span>
+      </div>
+    {{/if}}
+    <code class="language-js" contenteditable="true"></code>
+  </pre>
+</div>

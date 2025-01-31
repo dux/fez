@@ -128,14 +128,47 @@ Fez.fnv1 = (str) => {
 }
 
 Fez.tag = function(tag, opts = {}, html = '') {
-  const json = encodeURIComponent(JSON.stringify(opts));
-  return `<${tag} data-props="${json}">${html}</${tag}>`;
+  const json = encodeURIComponent(JSON.stringify(opts))
+  return `<${tag} data-props="${json}">${html}</${tag}>`
 };
+
+Fez.head = (text) => {
+  const tempDiv = document.createElement('div')
+  tempDiv.innerHTML = text
+
+  Array.from(tempDiv.childNodes).forEach(node => {
+    if (node.tagName === 'SCRIPT') {
+      const newScript = document.createElement('script')
+
+      Array.from(node.attributes).forEach(attr => {
+        newScript.setAttribute(attr.name, attr.value)
+      })
+
+      if (node.textContent) {
+        newScript.textContent = node.textContent
+      }
+
+      document.head.appendChild(newScript)
+    } else {
+      document.head.appendChild(node)
+    }
+  })
+}
 
 // <template fez="ui-form">
 // Fez.compileAll('ui-form')    # loads template[fez=ui-form]
 // Fez.compileAll(templateNode)
 // Fez.compileAll('ui-form', templateNode.innerHTML)
+
+// execute function untill it returns true
+Fez.untilTrue = (func, pingRate) => {
+  if (!func()) {
+    setTimeout(
+      func,
+      pingRate || 200
+    )
+  }
+}
 
 Fez.compile = function(tagName, html) {
   if (tagName instanceof Node) {
@@ -184,7 +217,7 @@ Fez.compile = function(tagName, html) {
 
   let klass = result.script
 
-  if (! /class\s+\{/.test(klass)) {
+  if (!/class\s+\{/.test(klass)) {
     klass = `class {\n${klass}\n}`
   }
 
@@ -199,12 +232,7 @@ Fez.compile = function(tagName, html) {
   }
 
   const parts = klass.split(/class\s+\{/, 2)
-
-  if (/\w/.test(String(parts[2]))) {
-    klass = `${parts[0]};\n\nwindow.Fez('${tagName}', class {\n${parts[1]})`
-  } else {
-    klass = `window.Fez('${tagName}', class {\n${parts[0]})`
-  }
+  klass = `${parts[0]};\n\nwindow.Fez('${tagName}', class {\n${parts[1]})`
 
   // if (tagName == 'x-counter') {
   //   console.log(klass)
@@ -214,6 +242,7 @@ Fez.compile = function(tagName, html) {
     new Function(klass)()
   } catch(e) {
     console.error(`FEZ template "${tagName}" compile error: ${e.message}`)
+    console.log(html)
     console.log(klass)
   }
 }
