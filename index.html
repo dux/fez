@@ -1987,6 +1987,10 @@ Fez('ui-list', class {
       return this.codeNode.textContent
     }
 
+    copy() {
+      navigator.clipboard.writeText(this.getSource())
+    }
+
     connect(props) {
       props.language ||= 'html'
       this.source = this.root.innerHTML
@@ -2010,20 +2014,23 @@ Fez('ui-list', class {
     padding: 10px;
   }
 
-  .hljs-copy-button {
-    overflow: visible;
-    left: -5px;
-    top: 30px;
+  pre {
+    margin-top: 0;
   }
 </style>
 
 <div class="relative">
+  {{#if @props.file}}
+    <div style="position: relative; top: 10px; font-size: 14px;">
+      {{ @props.file }}
+      &sdot;
+      <span onclick="@copy()">Copy</span>
+      {{#if @props.action }}
+        &sdot; <span style="cursor: pointer;" onclick="@props.action('{{ @props.name }}')">Save</span>
+      {{/if}}
+    </div>
+  {{/if}}
   <pre>
-    {{#if @props.file}}
-      <div style="margin-bottom: -10px;">
-        {{ @props.file }} &sdot; <span style="cursor: pointer;" onclick="@props.action('{{ @props.name }}')">Save</span>
-      </div>
-    {{/if}}
     <code class="language-js" contenteditable="true"></code>
   </pre>
 </div>
@@ -2069,6 +2076,10 @@ Fez('ui-list', class {
       return this.codeNode.textContent
     }
 
+    copy() {
+      navigator.clipboard.writeText(this.getSource())
+    }
+
     connect(props) {
       props.language ||= 'html'
       this.source = this.root.innerHTML
@@ -2092,20 +2103,23 @@ Fez('ui-list', class {
     padding: 10px;
   }
 
-  .hljs-copy-button {
-    overflow: visible;
-    left: -5px;
-    top: 30px;
+  pre {
+    margin-top: 0;
   }
 &lt;/style>
 
 &lt;div class="relative">
+  {{#if @props.file}}
+    &lt;div style="position: relative; top: 10px; font-size: 14px;">
+      {{ @props.file }}
+      &sdot;
+      &lt;span onclick="@copy()">Copy&lt;/span>
+      {{#if @props.action }}
+        &sdot; &lt;span style="cursor: pointer;" onclick="@props.action('{{ @props.name }}')">Save&lt;/span>
+      {{/if}}
+    &lt;/div>
+  {{/if}}
   &lt;pre>
-    {{#if @props.file}}
-      &lt;div style="margin-bottom: -10px;">
-        {{ @props.file }} &sdot; &lt;span style="cursor: pointer;" onclick="@props.action('{{ @props.name }}')">Save&lt;/span>
-      &lt;/div>
-    {{/if}}
     &lt;code class="language-js" contenteditable="true">&lt;/code>
   &lt;/pre>
 &lt;/div>

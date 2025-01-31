@@ -1,11 +1,27 @@
 function parseBlock(data, ifStack) {
-  data = data.replaceAll('@', 'this.')
+  data = data
+    .replaceAll('#html', '@html')
+    .replaceAll('@', 'this.')
 
   // Handle #if directive
   if (data.startsWith('#if') || data.startsWith('if')) {
     ifStack.push(false)
     data = data.replace(/^#?if/, '')
     return `\${ ${data} ? \``
+  }
+  if (data.startsWith('#block') || data.startsWith('block')) {
+    const parts1 = data.split('block ', 2)
+    const parts2 = data.split('block:', 2)
+
+    if (parts1[1]) {
+      return '${(this.fezBlocks.' + parts1[1] + ' = `'
+    } else {
+      return '${ this.fezBlocks.' + parts2[1] + ' }'
+    }
+
+  }
+  else if (data == '/block') {
+    return '`) && \'\'}'
   }
   else if (data.startsWith('#for') || data.startsWith('for')) {
     data = data.replace(/^#?for/, '')
@@ -46,18 +62,17 @@ function parseBlock(data, ifStack) {
 export default function createTemplate(text, opts = {}) {
   const ifStack = []
 
-  let result = text.replace(/\s*{{(.*?)}}\s*/g, (match, content) => {
+  let result = text.replace(/(.?){{(.*?)}}/g, (match, prefix, content) => {
     content = content
       .replaceAll('&lt;', '<')
       .replaceAll('&gt;', '>')
       .replaceAll('&amp;', '&')
     const parsedData = parseBlock(content, ifStack);
-    return parsedData
+
+    // convert ={{ ... }} to ="{{ ... }}"
+    return prefix == '=' ? `="${parsedData}"` : `${prefix}${parsedData}`
   });
 
-  // result = result.replace(/>\s+</g, '><')
-
-  result = result.trim()
   result = '`' + result + '`'
 
   try {

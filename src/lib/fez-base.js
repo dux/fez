@@ -165,6 +165,7 @@ export default class FezBase {
   afterRender() {}
   onDestroy() {}
   publish = Fez.publish
+  fezBlocks = {}
 
   parseHtml(text) {
     const base = this.fezHtmlRoot.replaceAll('"', '&quot;')
@@ -174,8 +175,8 @@ export default class FezBase {
     text = text
       .replaceAll('$$.', base)
       .replace(/(.)@(\w+[\.\(])/g, (_, m1, m2) => m1 == '@' ? `@${m2}` : `${m1}${base}${m2}`)
-      //.replace(/(.)@(\w+([:\.])/g, (_, m1, m2) => m1 == '@' ? `@${m2}` : `${m1}${base}${m2}`)
       .replace(/([^\w\.])fez\./g, `$1${base}`)
+      .replace(/>\s+</g, '><')
 
     // if (this.fezName == 'ex-counter') {
     //   console.log(text)

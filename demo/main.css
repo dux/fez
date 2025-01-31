@@ -67,6 +67,10 @@ code {
   background-color: #eee;
 }
 
+*[onclick] {
+  cursor: pointer;
+}
+
 .arrow {
   font-size: 50px;
   text-align: center;
