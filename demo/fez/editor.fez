@@ -45,7 +45,7 @@
 
 <div class="relative">
   {{#if @props.file}}
-    <div style="position: relative; top: 10px; font-size: 14px;">
+    <div style="font-size: 14px; margin: 4px 0;">
       {{ @props.file }}
       &sdot;
       <span onclick="@copy()">Copy</span>

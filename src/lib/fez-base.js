@@ -182,7 +182,7 @@ export default class FezBase {
     //   console.log(text)
     // }
 
-    return text
+    return text.trim()
   }
 
 

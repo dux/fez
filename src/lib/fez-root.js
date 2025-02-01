@@ -68,29 +68,24 @@ Fez.globalCss = (cssClass, opts = {}) => {
   return cssClass
 }
 
-Fez.info = (text) => {
-  if (window.DEBUG) {
-    console.log(`Fez: ${text}`)
-  }
+Fez.info = () => {
+  console.log(JSON.stringify(Fez.fastBindInfo, null, 2))
 }
 
 Fez.morphdom = (target, newNode, opts = {}) => {
-  if (opts.childrenOnly === undefined) {
-    opts.childrenOnly = true
+  Array.from(target.attributes).forEach(attr => {
+    newNode.setAttribute(attr.name, attr.value)
+  })
+
+  Idiomorph.morph(target, newNode, {
+    morphStyle: 'outerHTML'
+  })
+
+  // remove whitespace on next node, if exists (you never want this)
+  const nextSibling = target.nextSibling
+  if (nextSibling?.nodeType === Node.TEXT_NODE && nextSibling.textContent.trim() === '') {
+    nextSibling.remove();
   }
-
-  // Morphdom(target, newNode, opts)
-  Idiomorph.morph(target, newNode, { morphStyle: 'innerHTML' })
-
-  // I tried to ignore custom DOM nodes, cant do it
-  // Idiomorph.defaults.callbacks.beforeNodeMorphed = (oldNode, newNode) => {
-  //   console.log('-', oldNode.outerHTML)
-  //   const klass = oldNode.getAttribute ? oldNode.getAttribute('class') : null
-  //   if (klass) {
-  //     console.log(klass)
-  //     return false
-  //   }
-  // }
 }
 
 Fez.htmlEscape = (text) => {

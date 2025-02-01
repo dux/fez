@@ -14,10 +14,17 @@ export default function(name, klass) {
 
     props.forEach(prop => newKlass.prototype[prop] = klassObj[prop])
 
+    Fez.fastBindInfo ||= {fast: [], slow: []}
+
     if (klassObj.CSS) { newKlass.css = klassObj.CSS }
     if (klassObj.HTML) { newKlass.html = klassObj.HTML }
     if (klassObj.NAME) { newKlass.nodeName = klassObj.NAME }
-    if (klassObj.FAST) { newKlass.fastBind = klassObj.FAST }
+    if (klassObj.FAST) {
+      newKlass.fastBind = klassObj.FAST
+      Fez.fastBindInfo.fast.push(typeof klassObj.FAST == 'function' ? `${name} (func)` : name)
+    } else {
+      Fez.fastBindInfo.slow.push(name)
+    }
 
     klass = newKlass
   }
@@ -50,10 +57,8 @@ export default function(name, klass) {
         // if you want to force fast render, add static fastBind = true or check
         // console.log(this)
         if (this.firstChild || this.getAttribute('data-props') || forceFastRender(this, klass)) {
-          Fez.info(`fast bind: ${name}`)
           connectDom(name, this, Fez._classCache[name])
         } else {
-          Fez.info(`slow bind: ${name}`)
           window.requestAnimationFrame(()=>{
             if (this.parentNode) {
               connectDom(name, this, Fez._classCache[name])

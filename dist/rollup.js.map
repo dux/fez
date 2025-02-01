@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/rollup.js"],
+  "sourcesContent": ["function fezPlugin() {\n  return {\n    name: 'fez-plugin',\n\n    transform(code, filePath) {\n      const baseName = filePath.split('/').pop().split('.')\n\n      if (baseName[1] == 'fez') {\n        const transformedCode = `Fez.compile('${baseName[0]}', \\`${code}\\`)`;\n        // console.log('Transformed code:', baseName, transformedCode);\n\n        return {\n          code: transformedCode,\n          map: null,\n        }\n      }\n    },\n  };\n}\n\n// Export for ES modules\nexport default fezPlugin;\n\n// Export for CommonJS\n// if (typeof module !== 'undefined') {\n//   module.exports = fezPlugin;\n// }\n"],
+  "mappings": "MAAA,SAASA,GAAY,CACnB,MAAO,CACL,KAAM,aAEN,UAAUC,EAAMC,EAAU,CACxB,IAAMC,EAAWD,EAAS,MAAM,GAAG,EAAE,IAAI,EAAE,MAAM,GAAG,EAEpD,GAAIC,EAAS,CAAC,GAAK,MAIjB,MAAO,CACL,KAJsB,gBAAgBA,EAAS,CAAC,CAAC,QAAQF,CAAI,MAK7D,IAAK,IACP,CAEJ,CACF,CACF,CAGA,IAAOG,EAAQJ",
+  "names": ["fezPlugin", "code", "filePath", "baseName", "rollup_default"]
+}

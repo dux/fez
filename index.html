@@ -2021,7 +2021,7 @@ Fez('ui-list', class {
 
 <div class="relative">
   {{#if @props.file}}
-    <div style="position: relative; top: 10px; font-size: 14px;">
+    <div style="font-size: 14px; margin: 4px 0;">
       {{ @props.file }}
       &sdot;
       <span onclick="@copy()">Copy</span>
@@ -2110,7 +2110,7 @@ Fez('ui-list', class {
 
 &lt;div class="relative">
   {{#if @props.file}}
-    &lt;div style="position: relative; top: 10px; font-size: 14px;">
+    &lt;div style="font-size: 14px; margin: 4px 0;">
       {{ @props.file }}
       &sdot;
       &lt;span onclick="@copy()">Copy&lt;/span>
@@ -2123,6 +2123,164 @@ Fez('ui-list', class {
     &lt;code class="language-js" contenteditable="true">&lt;/code>
   &lt;/pre>
 &lt;/div>
+
+        </ui-editor>
+      </div>
+    </div>
+  
+  <template fez="ui-avatar"><script>
+  NAME = 'span'
+  FAST = true
+
+  connect(props) {
+    this.copy('href', 'style')
+
+    this.size = (props.size || 64) + 'px'
+
+    this.$root.css('width', this.size)
+    this.$root.css('height', this.size)
+  }
+</script>
+
+<style>
+  span.avatar {
+    display: inline-block;
+    text-align: center;
+
+    .title {
+      display: inline-block;
+      border: 1px solid #ccc;
+      background-color: #eee;
+      padding: 1px 5px;
+      font-size: 13px;
+      position: relative;
+      left: 3px;
+      top: 8px;
+      border-radius: 4px;
+    }
+  }
+</style>
+
+{{#block avatar}}
+  <img
+    src="{{ @props.src }}"
+    class="avatar"
+    style="width: {{ @size }}; height: {{ @size }}; border-radius: 100px;"
+  />
+{{/block}}
+
+{{#if @props.name}}
+  <span class="avatar">
+    <div class="title">{{ @props.name }}</div>
+    <div>{{#block:avatar}}</div>
+  </span>
+{{:else}}
+  {{#block:avatar}}
+{{/if}}
+</template>
+
+    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
+      <div class="body">
+        <h2 style="margin-top: 0;">Demo: ui-avatar</h2>
+        <div class="info">
+  <ul>
+    <li>features blocks <code>{{#block ...}}</code></li>
+  </ul>
+</div>
+
+        <div id="body-avatar" style="padding-bottom: 20px;">
+          <style>
+  .avatars {
+    img.avatar {
+      border: 2px solid #ddd;
+      background-color: #fff;
+      margin-right: -10px;
+    }
+  }
+</style>
+
+<div class="avatars">
+  <ui-avatar src="https://robohash.org/a.png" name="Dux"></ui-avatar>
+  <ui-avatar src="https://robohash.org/b.png" name="Mile"></ui-avatar>
+  <ui-avatar src="https://robohash.org/c.png?set=set2"></ui-avatar>
+  <ui-avatar src="https://robohash.org/d.png?set=set2"></ui-avatar>
+  <ui-avatar src="https://robohash.org/e.png" name="Joza"></ui-avatar>
+</div>
+
+        </div>
+
+        <ui-editor name="avatar" id="html-avatar" file="./demo/fez/avatar.html" language="html" :action="applyChanges">
+           &lt;style>
+  .avatars {
+    img.avatar {
+      border: 2px solid #ddd;
+      background-color: #fff;
+      margin-right: -10px;
+    }
+  }
+&lt;/style>
+
+&lt;div class="avatars">
+  &lt;ui-avatar src="https://robohash.org/a.png" name="Dux">&lt;/ui-avatar>
+  &lt;ui-avatar src="https://robohash.org/b.png" name="Mile">&lt;/ui-avatar>
+  &lt;ui-avatar src="https://robohash.org/c.png?set=set2">&lt;/ui-avatar>
+  &lt;ui-avatar src="https://robohash.org/d.png?set=set2">&lt;/ui-avatar>
+  &lt;ui-avatar src="https://robohash.org/e.png" name="Joza">&lt;/ui-avatar>
+&lt;/div>
+
+        </ui-editor>
+      </div>
+      <div>
+        <ui-editor id="code-ui-avatar" file="./demo/fez/avatar.fez" name="avatar" :action="applyChanges">
+           &lt;script>
+  NAME = 'span'
+  FAST = true
+
+  connect(props) {
+    this.copy('href', 'style')
+
+    this.size = (props.size || 64) + 'px'
+
+    this.$root.css('width', this.size)
+    this.$root.css('height', this.size)
+  }
+&lt;/script>
+
+&lt;style>
+  span.avatar {
+    display: inline-block;
+    text-align: center;
+
+    .title {
+      display: inline-block;
+      border: 1px solid #ccc;
+      background-color: #eee;
+      padding: 1px 5px;
+      font-size: 13px;
+      position: relative;
+      left: 3px;
+      top: 8px;
+      border-radius: 4px;
+    }
+  }
+&lt;/style>
+
+{{#block avatar}}
+  &lt;img
+    src="{{ @props.src }}"
+    class="avatar"
+    style="width: {{ @size }}; height: {{ @size }}; border-radius: 100px;"
+  />
+{{/block}}
+
+{{#if @props.name}}
+  &lt;span class="avatar">
+    &lt;div class="title">{{ @props.name }}&lt;/div>
+    &lt;div>{{#block:avatar}}&lt;/div>
+  &lt;/span>
+{{:else}}
+  {{#block:avatar}}
+{{/if}}
 
         </ui-editor>
       </div>

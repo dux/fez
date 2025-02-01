@@ -1,8 +1,8 @@
 {
-  "name": "fez",
-  "version": "0.0.2",
+  "name": "@dinoreic/fez",
+  "version": "0.1.0",
   "description": "Runtime custom dom elements",
-  "main": "index.js",
+  "main": "src/fez.js",
   "type": "module",
   "scripts": {
     "pages": "ruby -r erb -e 'puts ERB.new(File.read(\"./index.tpl.html\")).result' > ./index.html",
