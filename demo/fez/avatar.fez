@@ -1,0 +1,49 @@
+<script>
+  NAME = 'span'
+  FAST = true
+
+  connect(props) {
+    this.copy('href', 'style')
+
+    this.size = (props.size || 64) + 'px'
+
+    this.$root.css('width', this.size)
+    this.$root.css('height', this.size)
+  }
+</script>
+
+<style>
+  span.avatar {
+    display: inline-block;
+    text-align: center;
+
+    .title {
+      display: inline-block;
+      border: 1px solid #ccc;
+      background-color: #eee;
+      padding: 1px 5px;
+      font-size: 13px;
+      position: relative;
+      left: 3px;
+      top: 8px;
+      border-radius: 4px;
+    }
+  }
+</style>
+
+{{#block avatar}}
+  <img
+    src="{{ @props.src }}"
+    class="avatar"
+    style="width: {{ @size }}; height: {{ @size }}; border-radius: 100px;"
+  />
+{{/block}}
+
+{{#if @props.name}}
+  <span class="avatar">
+    <div class="title">{{ @props.name }}</div>
+    <div>{{#block:avatar}}</div>
+  </span>
+{{:else}}
+  {{#block:avatar}}
+{{/if}}
