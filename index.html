@@ -261,18 +261,9 @@
 </svg>
 </template>
 
-    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
-      <div class="body">
+    <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+      <div style="margin-top: 10px;">
         <h2 style="margin-top: 0;">Demo: ui-clock</h2>
-        <div class="info">
-  <ul>
-    <li>SVG generation</li>
-    <li>reactive store - any update to <code>this.state</code> object triggers re-render.</li>
-    <li>DOM morph updates - update only changed nodes and attributes</li>
-    <li>dynamic styes (seconds line color)</li>
-    <li><code>onDestroy() { ... }</code> - execute code when component is removed from DOM</li>
-  </ul>
-</div>
 
         <div id="body-clock" style="padding-bottom: 20px;">
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
@@ -297,9 +288,23 @@
 
 
         </div>
-
-        <ui-editor name="clock" id="html-clock" file="./demo/fez/clock.html" language="html" :action="applyChanges">
-           &lt;div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+      </div>
+      <div style="margin-top: 20px;">
+        <ui-tabs>
+          <div title="Info" active="true">
+            <div class="info">
+  <ul>
+    <li>SVG generation</li>
+    <li>reactive store - any update to <code>this.state</code> object triggers re-render.</li>
+    <li>DOM morph updates - update only changed nodes and attributes</li>
+    <li>dynamic styes (seconds line color)</li>
+    <li><code>onDestroy() { ... }</code> - execute code when component is removed from DOM</li>
+  </ul>
+</div>
+          </div>
+          <div title="HTML">
+            <ui-editor name="clock" id="html-clock" file="./demo/fez/clock.html" language="html" :action="applyChanges">
+              &lt;div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
   &lt;div>
     &lt;ui-clock city="Zageb" utc="1">&lt;/ui-clock>
   &lt;/div>
@@ -320,11 +325,11 @@
 
 
 
-        </ui-editor>
-      </div>
-      <div>
-        <ui-editor id="code-ui-clock" file="./demo/fez/clock.fez" name="clock" :action="applyChanges">
-           &lt;script>
+            </ui-editor>
+          </div>
+          <div title="Fez component">
+            <ui-editor id="code-ui-clock" file="./demo/fez/clock.fez" name="clock" :action="applyChanges">
+              &lt;script>
   randomColor() {
     const colors = ['red', 'green', 'blue', 'magenta', 'teal']
     return colors[Math.floor(Math.random() * colors.length)];
@@ -425,7 +430,9 @@
   {{/if}}
 &lt;/svg>
 
-        </ui-editor>
+            </ui-editor>
+          </div>
+        </ui-tabs>
       </div>
     </div>
   
@@ -507,30 +514,35 @@
 </p>
 </template>
 
-    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
-      <div class="body">
+    <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+      <div style="margin-top: 10px;">
         <h2 style="margin-top: 0;">Demo: ui-todo</h2>
-        <div class="info">
+
+        <div id="body-todo" style="padding-bottom: 20px;">
+          <ui-todo></ui-todo>
+
+        </div>
+      </div>
+      <div style="margin-top: 20px;">
+        <ui-tabs>
+          <div title="Info" active="true">
+            <div class="info">
   <ul>
     <li>fully <b>rective state</b></li>
     <li><b>fez-bind</b> - two way binding of input element</li>
     <li><b>fez-use</b> - when node is added to dom, call described function and pass node as reference (inspired by Svelte)</li>
   </ul>
 </div>
+          </div>
+          <div title="HTML">
+            <ui-editor name="todo" id="html-todo" file="./demo/fez/todo.html" language="html" :action="applyChanges">
+              &lt;ui-todo>&lt;/ui-todo>
 
-        <div id="body-todo" style="padding-bottom: 20px;">
-          <ui-todo></ui-todo>
-
-        </div>
-
-        <ui-editor name="todo" id="html-todo" file="./demo/fez/todo.html" language="html" :action="applyChanges">
-           &lt;ui-todo>&lt;/ui-todo>
-
-        </ui-editor>
-      </div>
-      <div>
-        <ui-editor id="code-ui-todo" file="./demo/fez/todo.fez" name="todo" :action="applyChanges">
-           &lt;script>
+            </ui-editor>
+          </div>
+          <div title="Fez component">
+            <ui-editor id="code-ui-todo" file="./demo/fez/todo.fez" name="todo" :action="applyChanges">
+              &lt;script>
   clearCompleted() {
     this.state.tasks = this.state.tasks.filter((t) => !t.done)
   }
@@ -607,7 +619,9 @@
   Do not refresh: {{Math.random()}}.
 &lt;/p>
 
-        </ui-editor>
+            </ui-editor>
+          </div>
+        </ui-tabs>
       </div>
     </div>
   
@@ -639,17 +653,9 @@
 </style>
 </template>
 
-    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
-      <div class="body">
+    <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+      <div style="margin-top: 10px;">
         <h2 style="margin-top: 0;">Demo: ui-form</h2>
-        <div class="info">
-  <ul>
-    <li>form helper - <code>this.formData()</code>. Get form data as object.</li>
-    <li>form helper - <code>this.onSubmit()</code>. If present, auto bind form and get form data as object</li>
-    <li>prefix params with <code>:</code> if you want to calculate attribute value. Same as in Vue, current example <code>:ping="..."</code></li>
-    <li>Custom DOM tag name - <code>FORM</code> instead of default <code>DIV</code></li>
-  </ul>
-</div>
 
         <div id="body-form" style="padding-bottom: 20px;">
           <div class="flex">
@@ -697,9 +703,22 @@
 </script>
 
         </div>
-
-        <ui-editor name="form" id="html-form" file="./demo/fez/form.html" language="html" :action="applyChanges">
-           &lt;div class="flex">
+      </div>
+      <div style="margin-top: 20px;">
+        <ui-tabs>
+          <div title="Info" active="true">
+            <div class="info">
+  <ul>
+    <li>form helper - <code>this.formData()</code>. Get form data as object.</li>
+    <li>form helper - <code>this.onSubmit()</code>. If present, auto bind form and get form data as object</li>
+    <li>prefix params with <code>:</code> if you want to calculate attribute value. Same as in Vue, current example <code>:ping="..."</code></li>
+    <li>Custom DOM tag name - <code>FORM</code> instead of default <code>DIV</code></li>
+  </ul>
+</div>
+          </div>
+          <div title="HTML">
+            <ui-editor name="form" id="html-form" file="./demo/fez/form.html" language="html" :action="applyChanges">
+              &lt;div class="flex">
   &lt;ui-form target="/api" :ping="updateFormData">
     &lt;p>
       &lt;input type="text" name="info" value="a dude" />
@@ -743,11 +762,11 @@
   }
 &lt;/script>
 
-        </ui-editor>
-      </div>
-      <div>
-        <ui-editor id="code-ui-form" file="./demo/fez/form.fez" name="form" :action="applyChanges">
-           &lt;script>
+            </ui-editor>
+          </div>
+          <div title="Fez component">
+            <ui-editor id="code-ui-form" file="./demo/fez/form.fez" name="form" :action="applyChanges">
+              &lt;script>
   NAME = 'form'
 
   // if you define onSubmit, you will get submited form data object
@@ -774,7 +793,9 @@
   }
 &lt;/style>
 
-        </ui-editor>
+            </ui-editor>
+          </div>
+        </ui-tabs>
       </div>
     </div>
   
@@ -839,19 +860,9 @@
 <slot></slot>
 </template>
 
-    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
-      <div class="body">
+    <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+      <div style="margin-top: 10px;">
         <h2 style="margin-top: 0;">Demo: ui-time</h2>
-        <div class="info">
-  <ul>
-    <li>slots</li>
-    <li>slot preservation on re-render</li>
-    <li>
-      global and local css. If <code>:fez { ... }</code> is present, anything inside is local, anythig outside is global.
-      If no class <code>:fez</code> is present, style is considered local.
-      </li>
-  </ul>
-</div>
 
         <div id="body-time" style="padding-bottom: 20px;">
           <ui-time city="Zagreb">
@@ -864,9 +875,24 @@
 </ui-time>
 
         </div>
-
-        <ui-editor name="time" id="html-time" file="./demo/fez/time.html" language="html" :action="applyChanges">
-           &lt;ui-time city="Zagreb">
+      </div>
+      <div style="margin-top: 20px;">
+        <ui-tabs>
+          <div title="Info" active="true">
+            <div class="info">
+  <ul>
+    <li>slots</li>
+    <li>slot preservation on re-render</li>
+    <li>
+      global and local css. If <code>:fez { ... }</code> is present, anything inside is local, anythig outside is global.
+      If no class <code>:fez</code> is present, style is considered local.
+      </li>
+  </ul>
+</div>
+          </div>
+          <div title="HTML">
+            <ui-editor name="time" id="html-time" file="./demo/fez/time.html" language="html" :action="applyChanges">
+              &lt;ui-time city="Zagreb">
   &lt;ul>
     &lt;li>
       Slot state preservation demo: &nbsp;
@@ -875,11 +901,11 @@
   &lt;/ul>
 &lt;/ui-time>
 
-        </ui-editor>
-      </div>
-      <div>
-        <ui-editor id="code-ui-time" file="./demo/fez/time.fez" name="time" :action="applyChanges">
-           &lt;script>
+            </ui-editor>
+          </div>
+          <div title="Fez component">
+            <ui-editor id="code-ui-time" file="./demo/fez/time.fez" name="time" :action="applyChanges">
+              &lt;script>
   NAME = 'div'
 
   getRandomColor() {
@@ -939,7 +965,9 @@
 
 &lt;slot>&lt;/slot>
 
-        </ui-editor>
+            </ui-editor>
+          </div>
+        </ui-tabs>
       </div>
     </div>
   
@@ -988,15 +1016,9 @@
 </style>
 </template>
 
-    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
-      <div class="body">
+    <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+      <div style="margin-top: 10px;">
         <h2 style="margin-top: 0;">Demo: ui-icon</h2>
-        <div class="info">
-  <ul>
-    <li>Features component to component communication</li>
-    <li>evalule value of a attribute if prefixed with column <code>:</code> (in this example <code>:size=</code></li>
-  </ul>
-</div>
 
         <div id="body-icon" style="padding-bottom: 20px;">
           <input
@@ -1025,9 +1047,20 @@
 <ui-icon color="red">delete</ui-icon>
 
         </div>
-
-        <ui-editor name="icon" id="html-icon" file="./demo/fez/icon.html" language="html" :action="applyChanges">
-           &lt;input
+      </div>
+      <div style="margin-top: 20px;">
+        <ui-tabs>
+          <div title="Info" active="true">
+            <div class="info">
+  <ul>
+    <li>Features component to component communication</li>
+    <li>evalule value of a attribute if prefixed with column <code>:</code> (in this example <code>:size=</code></li>
+  </ul>
+</div>
+          </div>
+          <div title="HTML">
+            <ui-editor name="icon" id="html-icon" file="./demo/fez/icon.html" language="html" :action="applyChanges">
+              &lt;input
   type="range" min="24" max="100" class="slider" id="icon-range"
   oninput="Fez('#icon-blue').setSize(this.value)"
 />
@@ -1052,11 +1085,11 @@
 >&lt;/ui-icon>
 &lt;ui-icon color="red">delete&lt;/ui-icon>
 
-        </ui-editor>
-      </div>
-      <div>
-        <ui-editor id="code-ui-icon" file="./demo/fez/icon.fez" name="icon" :action="applyChanges">
-           &lt;script>
+            </ui-editor>
+          </div>
+          <div title="Fez component">
+            <ui-editor id="code-ui-icon" file="./demo/fez/icon.fez" name="icon" :action="applyChanges">
+              &lt;script>
   // everything before class gets executed in component registration
   $(document.head).append(`
     &lt;link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
@@ -1100,20 +1133,17 @@
   }
 &lt;/style>
 
-        </ui-editor>
+            </ui-editor>
+          </div>
+        </ui-tabs>
       </div>
     </div>
   
   <script src="./demo/fez/pubsub.js"></script>
 
-    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
-      <div class="body">
+    <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+      <div style="margin-top: 10px;">
         <h2 style="margin-top: 0;">Demo: ui-pubsub</h2>
-        <div class="info">
-  <ul>
-    <li>Features publish &lt;> subscribe mechanism</li>
-  </ul>
-</div>
 
         <div id="body-pubsub" style="padding-bottom: 20px;">
           <style>
@@ -1162,9 +1192,19 @@ Fast ping:
 </script>
 
         </div>
-
-        <ui-editor name="pubsub" id="html-pubsub" file="./demo/fez/pubsub.html" language="html" :action="applyChanges">
-           &lt;style>
+      </div>
+      <div style="margin-top: 20px;">
+        <ui-tabs>
+          <div title="Info" active="true">
+            <div class="info">
+  <ul>
+    <li>Features publish &lt;> subscribe mechanism</li>
+  </ul>
+</div>
+          </div>
+          <div title="HTML">
+            <ui-editor name="pubsub" id="html-pubsub" file="./demo/fez/pubsub.html" language="html" :action="applyChanges">
+              &lt;style>
   .fez-ui-pubsub { margin-top: 10px; }
 &lt;/style>
 
@@ -1209,11 +1249,11 @@ Fast ping:
   setInterval(()=>Fez.publish('ping', Math.random()), 5000)
 &lt;/script>
 
-        </ui-editor>
-      </div>
-      <div>
-        <ui-editor id="code-ui-pubsub" file="./demo/fez/pubsub.js" name="pubsub" :action="applyChanges">
-           Fez('ui-pubsub', class {
+            </ui-editor>
+          </div>
+          <div title="Fez component">
+            <ui-editor id="code-ui-pubsub" file="./demo/fez/pubsub.js" name="pubsub" :action="applyChanges">
+              Fez('ui-pubsub', class {
   update (info) {
     this.target.innerHTML = info
   }
@@ -1225,21 +1265,17 @@ Fast ping:
   }
 })
 
-        </ui-editor>
+            </ui-editor>
+          </div>
+        </ui-tabs>
       </div>
     </div>
   
   <script src="./demo/fez/list.js"></script>
 
-    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
-      <div class="body">
+    <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+      <div style="margin-top: 10px;">
         <h2 style="margin-top: 0;">Demo: ui-list</h2>
-        <div class="info">
-  <ul>
-    <li>Features list and object rendering</li>
-    <li>JS fez tag creation (does not use template)</li>
-  </ul>
-</div>
 
         <div id="body-list" style="padding-bottom: 20px;">
           <h3>Case 1</h3>
@@ -1251,9 +1287,20 @@ Fast ping:
 <ui-list></ui-list>
 
         </div>
-
-        <ui-editor name="list" id="html-list" file="./demo/fez/list.html" language="html" :action="applyChanges">
-           &lt;h3>Case 1&lt;/h3>
+      </div>
+      <div style="margin-top: 20px;">
+        <ui-tabs>
+          <div title="Info" active="true">
+            <div class="info">
+  <ul>
+    <li>Features list and object rendering</li>
+    <li>JS fez tag creation (does not use template)</li>
+  </ul>
+</div>
+          </div>
+          <div title="HTML">
+            <ui-editor name="list" id="html-list" file="./demo/fez/list.html" language="html" :action="applyChanges">
+              &lt;h3>Case 1&lt;/h3>
 &lt;ui-list>red,green,blue&lt;/ui-list>
 
 &lt;hr />
@@ -1261,11 +1308,11 @@ Fast ping:
 &lt;h3>Case 2&lt;/h3>
 &lt;ui-list>&lt;/ui-list>
 
-        </ui-editor>
-      </div>
-      <div>
-        <ui-editor id="code-ui-list" file="./demo/fez/list.js" name="list" :action="applyChanges">
-           // component to render google fonts icons
+            </ui-editor>
+          </div>
+          <div title="Fez component">
+            <ui-editor id="code-ui-list" file="./demo/fez/list.js" name="list" :action="applyChanges">
+              // component to render google fonts icons
 Fez('ui-list', class {
   css = `
     li {
@@ -1303,7 +1350,9 @@ Fez('ui-list', class {
   }
 })
 
-        </ui-editor>
+            </ui-editor>
+          </div>
+        </ui-tabs>
       </div>
     </div>
   
@@ -1315,7 +1364,7 @@ Fez('ui-list', class {
 
   activate(num) {
     this.active = parseInt(num)
-    const target = this.$root.find(`> div > div.header > span:nth-child(${num + 1})`)
+    const target = this.$root.find(`> div.header > span:nth-child(${num + 1})`)
     this.activateNode(target)
     this.activateNode(this.tabs[num])
   }
@@ -1336,6 +1385,8 @@ Fez('ui-list', class {
 
 <style>
   --tabs-border: 1px solid #ccc;
+
+  max-width: calc(100%);
 
   .header {
     margin-bottom: -2px;
@@ -1374,16 +1425,9 @@ Fez('ui-list', class {
 </style>
 </template>
 
-    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
-      <div class="body">
+    <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+      <div style="margin-top: 10px;">
         <h2 style="margin-top: 0;">Demo: ui-tabs</h2>
-        <div class="info">
-  <ul>
-    <li>alternative node builder</li>
-    <li>nested and recursive components (tabs in tabs in tabs)</li>
-    <li><code>this.childNodes()</code> FEZ instance helper function, get all first level child nodes, excluding #text nodes.</li>
-  </ul>
-</div>
 
         <div id="body-tabs" style="padding-bottom: 20px;">
           <ui-tabs>
@@ -1421,9 +1465,21 @@ Fez('ui-list', class {
 
 
         </div>
-
-        <ui-editor name="tabs" id="html-tabs" file="./demo/fez/tabs.html" language="html" :action="applyChanges">
-           &lt;ui-tabs>
+      </div>
+      <div style="margin-top: 20px;">
+        <ui-tabs>
+          <div title="Info" active="true">
+            <div class="info">
+  <ul>
+    <li>alternative node builder</li>
+    <li>nested and recursive components (tabs in tabs in tabs)</li>
+    <li><code>this.childNodes()</code> FEZ instance helper function, get all first level child nodes, excluding #text nodes.</li>
+  </ul>
+</div>
+          </div>
+          <div title="HTML">
+            <ui-editor name="tabs" id="html-tabs" file="./demo/fez/tabs.html" language="html" :action="applyChanges">
+              &lt;ui-tabs>
   &lt;div title="Bar">
     &lt;p>First tab&lt;/p>
 
@@ -1457,11 +1513,11 @@ Fez('ui-list', class {
 &lt;/ui-tabs>
 
 
-        </ui-editor>
-      </div>
-      <div>
-        <ui-editor id="code-ui-tabs" file="./demo/fez/tabs.fez" name="tabs" :action="applyChanges">
-           &lt;script>
+            </ui-editor>
+          </div>
+          <div title="Fez component">
+            <ui-editor id="code-ui-tabs" file="./demo/fez/tabs.fez" name="tabs" :action="applyChanges">
+              &lt;script>
   activateNode(node) {
     node.parent().find('> *').removeClass('active')
     node.addClass('active')
@@ -1469,7 +1525,7 @@ Fez('ui-list', class {
 
   activate(num) {
     this.active = parseInt(num)
-    const target = this.$root.find(`> div > div.header > span:nth-child(${num + 1})`)
+    const target = this.$root.find(`> div.header > span:nth-child(${num + 1})`)
     this.activateNode(target)
     this.activateNode(this.tabs[num])
   }
@@ -1490,6 +1546,8 @@ Fez('ui-list', class {
 
 &lt;style>
   --tabs-border: 1px solid #ccc;
+
+  max-width: calc(100%);
 
   .header {
     margin-bottom: -2px;
@@ -1527,7 +1585,9 @@ Fez('ui-list', class {
   }
 &lt;/style>
 
-        </ui-editor>
+            </ui-editor>
+          </div>
+        </ui-tabs>
       </div>
     </div>
   
@@ -1539,15 +1599,9 @@ Fez('ui-list', class {
 </script>
 </template>
 
-    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
-      <div class="body">
+    <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+      <div style="margin-top: 10px;">
         <h2 style="margin-top: 0;">Demo: ui-border</h2>
-        <div class="info">
-  <ul>
-    <li>internal method <code>this.fezHide()</code> will remove fez node from dom, and set <code>this.root</code> to first parent node and return initial child nodes.</li>
-    <li>useful if you need to transform children, but you can't have parent node in place. Think jQuery plugin.</li>
-  </ul>
-</div>
 
         <div id="body-border" style="padding-bottom: 20px;">
           <div class="should-be-first-parent">
@@ -1559,9 +1613,20 @@ Fez('ui-list', class {
 </div>
 
         </div>
-
-        <ui-editor name="border" id="html-border" file="./demo/fez/border.html" language="html" :action="applyChanges">
-           &lt;div class="should-be-first-parent">
+      </div>
+      <div style="margin-top: 20px;">
+        <ui-tabs>
+          <div title="Info" active="true">
+            <div class="info">
+  <ul>
+    <li>internal method <code>this.fezHide()</code> will remove fez node from dom, and set <code>this.root</code> to first parent node and return initial child nodes.</li>
+    <li>useful if you need to transform children, but you can't have parent node in place. Think jQuery plugin.</li>
+  </ul>
+</div>
+          </div>
+          <div title="HTML">
+            <ui-editor name="border" id="html-border" file="./demo/fez/border.html" language="html" :action="applyChanges">
+              &lt;div class="should-be-first-parent">
   &lt;ui-border color="violet">
     &lt;div style="padding: 20px; max-width: 200px;">
       this will get border from fez component. Also check the DOM, fez parent is removed from DOM.
@@ -1569,18 +1634,20 @@ Fez('ui-list', class {
   &lt;/ui-border>
 &lt;/div>
 
-        </ui-editor>
-      </div>
-      <div>
-        <ui-editor id="code-ui-border" file="./demo/fez/border.fez" name="border" :action="applyChanges">
-           &lt;script>
+            </ui-editor>
+          </div>
+          <div title="Fez component">
+            <ui-editor id="code-ui-border" file="./demo/fez/border.fez" name="border" :action="applyChanges">
+              &lt;script>
   onMount() {
     const childNodes = this.fezHide()
     $(childNodes).css('border', `3px solid ${this.props.color || 'black'}`)
   }
 &lt;/script>
 
-        </ui-editor>
+            </ui-editor>
+          </div>
+        </ui-tabs>
       </div>
     </div>
   
@@ -1709,16 +1776,9 @@ Fez('ui-list', class {
 </table>
 </template>
 
-    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
-      <div class="body">
+    <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+      <div style="margin-top: 10px;">
         <h2 style="margin-top: 0;">Demo: ui-slider</h2>
-        <div class="info">
-  <ul>
-    <li>sweet component with css animations :)</li>
-    <li><code>beforeRender()</code> to prepare vars before render (clean alternative to svelte <code>$: {...}</code></li>
-    <li><code>this.setInterval()</code> to set interval on a instance. No need to clear it, it will be auto cleared on component destroy.</li>
-  </ul>
-</div>
 
         <div id="body-slider" style="padding-bottom: 20px;">
           <style>
@@ -1781,9 +1841,21 @@ Fez('ui-list', class {
 </ui-slider>
 
         </div>
-
-        <ui-editor name="slider" id="html-slider" file="./demo/fez/slider.html" language="html" :action="applyChanges">
-           &lt;style>
+      </div>
+      <div style="margin-top: 20px;">
+        <ui-tabs>
+          <div title="Info" active="true">
+            <div class="info">
+  <ul>
+    <li>sweet component with css animations :)</li>
+    <li><code>beforeRender()</code> to prepare vars before render (clean alternative to svelte <code>$: {...}</code></li>
+    <li><code>this.setInterval()</code> to set interval on a instance. No need to clear it, it will be auto cleared on component destroy.</li>
+  </ul>
+</div>
+          </div>
+          <div title="HTML">
+            <ui-editor name="slider" id="html-slider" file="./demo/fez/slider.html" language="html" :action="applyChanges">
+              &lt;style>
   .fez-c-slider {
     .fez-slot {
       > div {
@@ -1842,11 +1914,11 @@ Fez('ui-list', class {
   &lt;/div>
 &lt;/ui-slider>
 
-        </ui-editor>
-      </div>
-      <div>
-        <ui-editor id="code-ui-slider" file="./demo/fez/slider.fez" name="slider" :action="applyChanges">
-           &lt;script>
+            </ui-editor>
+          </div>
+          <div title="Fez component">
+            <ui-editor id="code-ui-slider" file="./demo/fez/slider.fez" name="slider" :action="applyChanges">
+              &lt;script>
   getWidth() {
     const width = this.root.getBoundingClientRect().width
 
@@ -1970,7 +2042,9 @@ Fez('ui-list', class {
   &lt;/tr>
 &lt;/table>
 
-        </ui-editor>
+            </ui-editor>
+          </div>
+        </ui-tabs>
       </div>
     </div>
   
@@ -2036,16 +2110,9 @@ Fez('ui-list', class {
 </div>
 </template>
 
-    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
-      <div class="body">
+    <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+      <div style="margin-top: 10px;">
         <h2 style="margin-top: 0;">Demo: ui-editor</h2>
-        <div class="info">
-  <ul>
-    <li>this is viewer / editor you see on the right</li>
-    <li>Featuring <code>Fez.head(...)</code> that will safely insert script tags in the page header</li>
-    <li>Featuring <code>Fez.untilTrue(...)</code> that will execute code every 100 miliseconds until it returns true</li>
-  </ul>
-</div>
 
         <div id="body-editor" style="padding-bottom: 20px;">
           <ui-editor>
@@ -2053,17 +2120,29 @@ Fez('ui-list', class {
 </ui-editor>
 
         </div>
-
-        <ui-editor name="editor" id="html-editor" file="./demo/fez/editor.html" language="html" :action="applyChanges">
-           &lt;ui-editor>
+      </div>
+      <div style="margin-top: 20px;">
+        <ui-tabs>
+          <div title="Info" active="true">
+            <div class="info">
+  <ul>
+    <li>this is viewer / editor you see on the right</li>
+    <li>Featuring <code>Fez.head(...)</code> that will safely insert script tags in the page header</li>
+    <li>Featuring <code>Fez.untilTrue(...)</code> that will execute code every 100 miliseconds until it returns true</li>
+  </ul>
+</div>
+          </div>
+          <div title="HTML">
+            <ui-editor name="editor" id="html-editor" file="./demo/fez/editor.html" language="html" :action="applyChanges">
+              &lt;ui-editor>
     Hi
 &lt;/ui-editor>
 
-        </ui-editor>
-      </div>
-      <div>
-        <ui-editor id="code-ui-editor" file="./demo/fez/editor.fez" name="editor" :action="applyChanges">
-           &lt;script>
+            </ui-editor>
+          </div>
+          <div title="Fez component">
+            <ui-editor id="code-ui-editor" file="./demo/fez/editor.fez" name="editor" :action="applyChanges">
+              &lt;script>
   // you need to escape script tag inside fez script block
   Fez.head(`
     &lt;link rel="stylesheet" href="./demo/hjs-theme.css" />
@@ -2124,7 +2203,9 @@ Fez('ui-list', class {
   &lt;/pre>
 &lt;/div>
 
-        </ui-editor>
+            </ui-editor>
+          </div>
+        </ui-tabs>
       </div>
     </div>
   
@@ -2179,14 +2260,9 @@ Fez('ui-list', class {
 {{/if}}
 </template>
 
-    <div class="flex" style="border-top: 1px solid #ccc; margin-top: 40px;">
-      <div class="body">
+    <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+      <div style="margin-top: 10px;">
         <h2 style="margin-top: 0;">Demo: ui-avatar</h2>
-        <div class="info">
-  <ul>
-    <li>features blocks <code>{{#block ...}}</code></li>
-  </ul>
-</div>
 
         <div id="body-avatar" style="padding-bottom: 20px;">
           <style>
@@ -2208,9 +2284,19 @@ Fez('ui-list', class {
 </div>
 
         </div>
-
-        <ui-editor name="avatar" id="html-avatar" file="./demo/fez/avatar.html" language="html" :action="applyChanges">
-           &lt;style>
+      </div>
+      <div style="margin-top: 20px;">
+        <ui-tabs>
+          <div title="Info" active="true">
+            <div class="info">
+  <ul>
+    <li>features blocks <code>{{#block ...}}</code></li>
+  </ul>
+</div>
+          </div>
+          <div title="HTML">
+            <ui-editor name="avatar" id="html-avatar" file="./demo/fez/avatar.html" language="html" :action="applyChanges">
+              &lt;style>
   .avatars {
     img.avatar {
       border: 2px solid #ddd;
@@ -2228,11 +2314,11 @@ Fez('ui-list', class {
   &lt;ui-avatar src="https://robohash.org/e.png" name="Joza">&lt;/ui-avatar>
 &lt;/div>
 
-        </ui-editor>
-      </div>
-      <div>
-        <ui-editor id="code-ui-avatar" file="./demo/fez/avatar.fez" name="avatar" :action="applyChanges">
-           &lt;script>
+            </ui-editor>
+          </div>
+          <div title="Fez component">
+            <ui-editor id="code-ui-avatar" file="./demo/fez/avatar.fez" name="avatar" :action="applyChanges">
+              &lt;script>
   NAME = 'span'
   FAST = true
 
@@ -2282,7 +2368,9 @@ Fez('ui-list', class {
   {{#block:avatar}}
 {{/if}}
 
-        </ui-editor>
+            </ui-editor>
+          </div>
+        </ui-tabs>
       </div>
     </div>
   

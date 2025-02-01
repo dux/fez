@@ -6,7 +6,7 @@
 
   activate(num) {
     this.active = parseInt(num)
-    const target = this.$root.find(`> div > div.header > span:nth-child(${num + 1})`)
+    const target = this.$root.find(`> div.header > span:nth-child(${num + 1})`)
     this.activateNode(target)
     this.activateNode(this.tabs[num])
   }
@@ -27,6 +27,8 @@
 
 <style>
   --tabs-border: 1px solid #ccc;
+
+  max-width: calc(100%);
 
   .header {
     margin-bottom: -2px;
