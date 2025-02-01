@@ -62,18 +62,18 @@ function parseBlock(data, ifStack) {
 export default function createTemplate(text, opts = {}) {
   const ifStack = []
 
-  let result = text.replace(/(.?){{(.*?)}}/g, (match, prefix, content) => {
+  let result = text.replace(/{{(.*?)}}/g, (match,content) => {
     content = content
       .replaceAll('&lt;', '<')
       .replaceAll('&gt;', '>')
       .replaceAll('&amp;', '&')
     const parsedData = parseBlock(content, ifStack);
 
-    // convert ={{ ... }} to ="{{ ... }}"
-    return prefix == '=' ? `="${parsedData}"` : `${prefix}${parsedData}`
+    // return prefix == '=' ? `="${parsedData}"` : `${prefix}${parsedData}`
+    return parsedData
   });
 
-  result = '`' + result + '`'
+  result = '`' + result.trim() + '`'
 
   try {
     const tplFunc = new Function(`return ${result}`)
@@ -81,17 +81,13 @@ export default function createTemplate(text, opts = {}) {
       try {
         return tplFunc.bind(o)()
       } catch(e) {
-        const msg = `FEZ template runtime error: ${e.message}`
-        console.error(msg)
-        console.log(text)
-        return `${msg} (check console for template info)`
+        e.message = `FEZ template runtime error: ${e.message}\n\nTemplate source: ${text}`
+        console.error(e)
       }
     }
     return outFunc
   } catch(e) {
-    console.error(`FEZ template compile error: ${e.message}`)
-    console.log(text.trim())
-    console.log('---')
-    console.log(result)
+    e.message = `FEZ template compile error: ${e.message}Template source:\n${text.trim()}\n\nCompile result (produced invald JS):\nnew Function(${result})\n`
+    console.error(e)
   }
 }
