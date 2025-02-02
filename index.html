@@ -38,7 +38,7 @@
     </div>
   </div>
 
-  <div class="container-xs" style="margin-top: 300px;">
+  <div class="con-xs" style="margin-top: 300px;">
     <h1 class="jumbo">&darr;</h1>
     <h1>How FEZ feels and works?</h1>
 
@@ -107,6 +107,7 @@
   {{/if}}
 </template>
 
+
         <ui-editor id="demo-counter">
           <template>
             <template fez="ex-counter">
@@ -157,7 +158,7 @@
         </ui-editor>
       </li>
       <li>
-        <p>That is it! Edit this demo on <a target="codepen" href="https://jsbin.com/nitihel/edit?html,output">JSbin</a></p>
+        <p>That is it! Edit this demo on <a target="jsbin" href="https://jsbin.com/nitihel/edit?html,output">JSbin</a></p>
         <ex-counter id="main-counter"></ex-counter>
       </li>
     </ol>
@@ -320,8 +321,8 @@
   </div>
 </div>
 
-<fez-compile tag="ui-avatar">
-  <template>
+<fez-compile>
+  <template fez="ui-avatar">
     <script>
   NAME = 'span'
   FAST = true
@@ -399,7 +400,7 @@
       <div title="Info" active="true">
         <div class="info">
   <ul>
-    <li>internal method <code>this.fezHide()</code> will remove fez node from dom, and set <code>this.root</code> to first parent node and return initial child nodes.</li>
+    <li>Features: internal method <code>this.fezHide()</code> will remove fez node from dom, and set <code>this.root</code> to first parent node and return initial child nodes.</li>
     <li>useful if you need to transform children, but you can't have parent node in place. Think jQuery plugin.</li>
   </ul>
 </div>
@@ -442,8 +443,8 @@
   </div>
 </div>
 
-<fez-compile tag="ui-border">
-  <template>
+<fez-compile>
+  <template fez="ui-border">
     <script>
   onMount() {
     const childNodes = this.fezHide()
@@ -495,6 +496,7 @@
     <li>Features: DOM morph updates - update only changed nodes and attributes</li>
     <li>Features: dynamic styes (seconds line color)</li>
     <li>Features: <code>onDestroy() { ... }</code> - execute code when component is removed from DOM</li>
+    <li>Featuers: <code>setInterval() { ... }</code> to set interval on a instance. No need to clear it, it will be auto cleared on component destroy.</li>
   </ul>
 </div>
       </div>
@@ -643,8 +645,8 @@
   </div>
 </div>
 
-<fez-compile tag="ui-clock">
-  <template>
+<fez-compile>
+  <template fez="ui-clock">
     <script>
   randomColor() {
     const colors = ['red', 'green', 'blue', 'magenta', 'teal']
@@ -797,11 +799,11 @@
         >
           &lt;script>
   // you need to escape script tag inside fez script block
+
   Fez.head(`
     &lt;link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
     &lt;s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js">&lt;/sc`+`ript>
     &lt;s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js">&lt;/sc`+`ript>
-    &lt;s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js">&lt;/sc`+`ript>
   `)
 
   class {
@@ -845,28 +847,27 @@
 
   pre {
     margin-top: 10px;
+    width: 100%;
   }
 &lt;/style>
 
-&lt;div class="relative">
-  {{#if @props.file}}
-    &lt;div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
-      {{ @props.file }}
+{{#if @props.file}}
+  &lt;div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
+    {{ @props.file }}
+    &sdot;
+    &lt;span onclick="@copy()">Copy&lt;/span>
+    {{#if @props.action }}
       &sdot;
-      &lt;span onclick="@copy()">Copy&lt;/span>
-      {{#if @props.action }}
-        &sdot;
-        &lt;span
-          style="cursor: pointer; font-weight: 600;"
-          onclick="@props.action('{{ @props.name }}')"
-        >Update&lt;/span>
-      {{/if}}
-    &lt;/div>
-  {{/if}}
-  &lt;pre>
-    &lt;code class="language-{{ @props.language }}" contenteditable="{{ !!@props.file }}">&lt;/code>
-  &lt;/pre>
-&lt;/div>
+      &lt;span
+        style="cursor: pointer; font-weight: 600;"
+        onclick="@props.action('{{ @props.name }}')"
+      >Update&lt;/span>
+    {{/if}}
+  &lt;/div>
+{{/if}}
+&lt;pre>
+  &lt;code class="language-{{ @props.language }}" contenteditable="{{ !!@props.file }}">&lt;/code>
+&lt;/pre>
 
         </ui-editor>
       </div>
@@ -874,15 +875,15 @@
   </div>
 </div>
 
-<fez-compile tag="ui-editor">
-  <template>
+<fez-compile>
+  <template fez="ui-editor">
     <script>
   // you need to escape script tag inside fez script block
+
   Fez.head(`
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
     <s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></sc`+`ript>
     <s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></sc`+`ript>
-    <s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></sc`+`ript>
   `)
 
   class {
@@ -926,28 +927,27 @@
 
   pre {
     margin-top: 10px;
+    width: 100%;
   }
 </style>
 
-<div class="relative">
-  {{#if @props.file}}
-    <div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
-      {{ @props.file }}
+{{#if @props.file}}
+  <div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
+    {{ @props.file }}
+    &sdot;
+    <span onclick="@copy()">Copy</span>
+    {{#if @props.action }}
       &sdot;
-      <span onclick="@copy()">Copy</span>
-      {{#if @props.action }}
-        &sdot;
-        <span
-          style="cursor: pointer; font-weight: 600;"
-          onclick="@props.action('{{ @props.name }}')"
-        >Update</span>
-      {{/if}}
-    </div>
-  {{/if}}
-  <pre>
-    <code class="language-{{ @props.language }}" contenteditable="{{ !!@props.file }}"></code>
-  </pre>
-</div>
+      <span
+        style="cursor: pointer; font-weight: 600;"
+        onclick="@props.action('{{ @props.name }}')"
+      >Update</span>
+    {{/if}}
+  </div>
+{{/if}}
+<pre>
+  <code class="language-{{ @props.language }}" contenteditable="{{ !!@props.file }}"></code>
+</pre>
 
   </template>
 </fez-compile>
@@ -1094,6 +1094,7 @@
   border-radius: 5px;
   padding: 15px;
   margin: 15px 0;
+  background-color: #efe;
 
   label {
     display: block;
@@ -1112,8 +1113,8 @@
   </div>
 </div>
 
-<fez-compile tag="ui-form">
-  <template>
+<fez-compile>
+  <template fez="ui-form">
     <script>
   NAME = 'form'
 
@@ -1129,6 +1130,7 @@
   border-radius: 5px;
   padding: 15px;
   margin: 15px 0;
+  background-color: #efe;
 
   label {
     display: block;
@@ -1281,8 +1283,8 @@
   </div>
 </div>
 
-<fez-compile tag="ui-icon">
-  <template>
+<fez-compile>
+  <template fez="ui-icon">
     <script>
   // everything before class gets executed in component registration
   $(document.head).append(`
@@ -1406,7 +1408,7 @@
   <ul>
     <li>sweet component with css animations :)</li>
     <li>Features: <code>beforeRender()</code> to prepare vars before render (clean alternative to svelte <code>$: {...}</code></li>
-    <li>Features: <code>setInterval()</code> to set interval on a instance. No need to clear it, it will be auto cleared on component destroy.</li>
+    <li>Features: <code>onResize()</code> to execute code on window resized. Auto cleared when node is removed.</li>
   </ul>
 </div>
       </div>
@@ -1487,29 +1489,18 @@
           :action="applyChanges"
         >
           &lt;script>
-  getWidth() {
-    const width = this.root.getBoundingClientRect().width
-
-    if (width != this.state.width) {
-      this.setPannel(0)
-      this.state.width = width
-    }
-  }
-
   cssVars() {
     return [
-      `--width: ${this.state.width}px`,
       `--arrow-width: ${this.arrowWidth}px`,
-      `--panel-width: ${this.state.width - (this.arrowWidth * 2)}px`,
       `--offset: -${this.state.offset}px`,
     ]
   }
 
-  setPannel(num) {
+  setSlide(num) {
     this.state.slide = num
   }
 
-  changePannel(direction){
+  changeSlide(direction){
     this.state.slide += direction
 
     const slides = this.find('.fez-slot').querySelectorAll(":scope > div")
@@ -1522,15 +1513,16 @@
   }
 
   beforeRender() {
-    this.state.offset = (this.state.width - (this.arrowWidth * 2)) * this.state.slide
+    const node = this.find('.slot')
+    if (node) {
+      this.state.offset = node.getBoundingClientRect().width * this.state.slide
+    }
   }
 
   connect() {
     this.arrowWidth = 100
-    this.setPannel(0)
-    this.getWidth()
-
-    this.setInterval(this.getWidth, 100)
+    this.setSlide(0)
+    this.onResize(this.render, 100)
   }
 &lt;/script>
 
@@ -1568,7 +1560,7 @@
        overflow: hidden;
        display: flex;
        align-items: flex-start;
-       max-width: var(--panel-width);
+       max-width: 100%;
 
        .slot-parent {
          transition: transform 0.3s ease;
@@ -1578,7 +1570,7 @@
            display: flex;
 
            & > div {
-             width: var(--panel-width);
+             width: 100%;
              flex-shrink: 0;
             }
           }
@@ -1590,7 +1582,7 @@
 
 &lt;table class="slides" style="{{ @cssVars().join(';') }}">
   &lt;tr>
-    &lt;td class="arrow" onclick="@changePannel(-1)">
+    &lt;td class="arrow" onclick="@changeSlide(-1)">
       &lt;div>
         &lt;span>&#8679;&lt;/span>
       &lt;/div>
@@ -1602,7 +1594,7 @@
         &lt;/div>
       &lt;/div>
     &lt;/td>
-    &lt;td class="arrow" onclick="@changePannel(1)">
+    &lt;td class="arrow" onclick="@changeSlide(1)">
       &lt;div>
         &lt;span>&#8679;&lt;/span>
       &lt;/div>
@@ -1616,32 +1608,21 @@
   </div>
 </div>
 
-<fez-compile tag="ui-slider">
-  <template>
+<fez-compile>
+  <template fez="ui-slider">
     <script>
-  getWidth() {
-    const width = this.root.getBoundingClientRect().width
-
-    if (width != this.state.width) {
-      this.setPannel(0)
-      this.state.width = width
-    }
-  }
-
   cssVars() {
     return [
-      `--width: ${this.state.width}px`,
       `--arrow-width: ${this.arrowWidth}px`,
-      `--panel-width: ${this.state.width - (this.arrowWidth * 2)}px`,
       `--offset: -${this.state.offset}px`,
     ]
   }
 
-  setPannel(num) {
+  setSlide(num) {
     this.state.slide = num
   }
 
-  changePannel(direction){
+  changeSlide(direction){
     this.state.slide += direction
 
     const slides = this.find('.fez-slot').querySelectorAll(":scope > div")
@@ -1654,15 +1635,16 @@
   }
 
   beforeRender() {
-    this.state.offset = (this.state.width - (this.arrowWidth * 2)) * this.state.slide
+    const node = this.find('.slot')
+    if (node) {
+      this.state.offset = node.getBoundingClientRect().width * this.state.slide
+    }
   }
 
   connect() {
     this.arrowWidth = 100
-    this.setPannel(0)
-    this.getWidth()
-
-    this.setInterval(this.getWidth, 100)
+    this.setSlide(0)
+    this.onResize(this.render, 100)
   }
 </script>
 
@@ -1700,7 +1682,7 @@
        overflow: hidden;
        display: flex;
        align-items: flex-start;
-       max-width: var(--panel-width);
+       max-width: 100%;
 
        .slot-parent {
          transition: transform 0.3s ease;
@@ -1710,7 +1692,7 @@
            display: flex;
 
            & > div {
-             width: var(--panel-width);
+             width: 100%;
              flex-shrink: 0;
             }
           }
@@ -1722,7 +1704,7 @@
 
 <table class="slides" style="{{ @cssVars().join(';') }}">
   <tr>
-    <td class="arrow" onclick="@changePannel(-1)">
+    <td class="arrow" onclick="@changeSlide(-1)">
       <div>
         <span>&#8679;</span>
       </div>
@@ -1734,7 +1716,7 @@
         </div>
       </div>
     </td>
-    <td class="arrow" onclick="@changePannel(1)">
+    <td class="arrow" onclick="@changeSlide(1)">
       <div>
         <span>&#8679;</span>
       </div>
@@ -1925,8 +1907,8 @@
   </div>
 </div>
 
-<fez-compile tag="ui-tabs">
-  <template>
+<fez-compile>
+  <template fez="ui-tabs">
     <script>
   activateNode(node) {
     node.parent().find('> *').removeClass('active')
@@ -2022,8 +2004,7 @@
       <div title="Info" active="true">
         <div class="info">
   <ul>
-    <li>Features: slots</li>
-    <li>slot preservation on re-render</li>
+    <li>Features: slots - preserves original slot (fez tag innerHTML) on re-render</li>
     <li>
       global and local css. If <code>:fez { ... }</code> is present, anything inside is local, anythig outside is global.
       If no class <code>:fez</code> is present, style is considered local.
@@ -2123,8 +2104,8 @@
   </div>
 </div>
 
-<fez-compile tag="ui-time">
-  <template>
+<fez-compile>
+  <template fez="ui-time">
     <script>
   NAME = 'div'
 
@@ -2313,8 +2294,8 @@
   </div>
 </div>
 
-<fez-compile tag="ui-todo">
-  <template>
+<fez-compile>
+  <template fez="ui-todo">
     <script>
   clearCompleted() {
     this.state.tasks = this.state.tasks.filter((t) => !t.done)
@@ -2406,7 +2387,6 @@
   <script>
     window.applyChanges = function(name) {
       Fez.compile(`ui-${name}`, Fez(`#code-ui-${name}`).getSource())
-
       $(`#body-${name}`).html( Fez(`#html-${name}`).getSource() )
     }
   </script>

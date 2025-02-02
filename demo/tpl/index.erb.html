@@ -38,7 +38,7 @@
     </div>
   </div>
 
-  <div class="container-xs" style="margin-top: 300px;">
+  <div class="con-xs" style="margin-top: 300px;">
     <h1 class="jumbo">&darr;</h1>
     <h1>How FEZ feels and works?</h1>
 
@@ -72,6 +72,7 @@
         Create ex-counter component
 
         <%= read('tpl/index_counter.fez') %>
+
         <ui-editor id="demo-counter">
           <template>
             <%= read('tpl/index_counter.fez') %>
@@ -87,7 +88,7 @@
         </ui-editor>
       </li>
       <li>
-        <p>That is it! Edit this demo on <a target="codepen" href="https://jsbin.com/nitihel/edit?html,output">JSbin</a></p>
+        <p>That is it! Edit this demo on <a target="jsbin" href="https://jsbin.com/nitihel/edit?html,output">JSbin</a></p>
         <ex-counter id="main-counter"></ex-counter>
       </li>
     </ol>
@@ -113,7 +114,6 @@
   <script>
     window.applyChanges = function(name) {
       Fez.compile(`ui-${name}`, Fez(`#code-ui-${name}`).getSource())
-
       $(`#body-${name}`).html( Fez(`#html-${name}`).getSource() )
     }
   </script>

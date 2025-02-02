@@ -54,8 +54,8 @@
   </div>
 </div>
 
-<fez-compile tag="ui-<%= @fez.name %>">
-  <template>
+<fez-compile>
+  <template fez="ui-<%= @fez.name %>">
     <%= @fez.code %>
   </template>
 </fez-compile>

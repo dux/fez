@@ -128,6 +128,45 @@ export default class FezBase {
     }
   }
 
+  // helper function to execute stuff on window resize, and clean after node is not connected any more
+  // if delay given, throttle, if not debounce
+  onResize(func, delay) {
+    let timeoutId;
+    let lastRun = 0;
+
+    func()
+
+    const checkAndExecute = () => {
+      if (!this.isConnected) {
+        window.removeEventListener('resize', handleResize);
+        return;
+      }
+      func.call(this);
+    };
+
+    const handleResize = () => {
+      if (!this.isConnected) {
+        window.removeEventListener('resize', handleResize);
+        return;
+      }
+
+      if (delay) {
+        // Throttle
+        const now = Date.now();
+        if (now - lastRun >= delay) {
+          checkAndExecute();
+          lastRun = now;
+        }
+      } else {
+        // Debounce
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(checkAndExecute, 200);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+  }
+
   // copy child nodes, natively to preserve bound events
   // if node name is SLOT insert adjacent and remove SLOT, else as a child nodes
   slot(source, target) {

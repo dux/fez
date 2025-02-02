@@ -1,10 +1,10 @@
 <script>
   // you need to escape script tag inside fez script block
+
   Fez.head(`
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
     <s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></sc`+`ript>
     <s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></sc`+`ript>
-    <s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></sc`+`ript>
   `)
 
   class {
@@ -48,25 +48,24 @@
 
   pre {
     margin-top: 10px;
+    width: 100%;
   }
 </style>
 
-<div class="relative">
-  {{#if @props.file}}
-    <div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
-      {{ @props.file }}
+{{#if @props.file}}
+  <div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
+    {{ @props.file }}
+    &sdot;
+    <span onclick="@copy()">Copy</span>
+    {{#if @props.action }}
       &sdot;
-      <span onclick="@copy()">Copy</span>
-      {{#if @props.action }}
-        &sdot;
-        <span
-          style="cursor: pointer; font-weight: 600;"
-          onclick="@props.action('{{ @props.name }}')"
-        >Update</span>
-      {{/if}}
-    </div>
-  {{/if}}
-  <pre>
-    <code class="language-{{ @props.language }}" contenteditable="{{ !!@props.file }}"></code>
-  </pre>
-</div>
+      <span
+        style="cursor: pointer; font-weight: 600;"
+        onclick="@props.action('{{ @props.name }}')"
+      >Update</span>
+    {{/if}}
+  </div>
+{{/if}}
+<pre>
+  <code class="language-{{ @props.language }}" contenteditable="{{ !!@props.file }}"></code>
+</pre>

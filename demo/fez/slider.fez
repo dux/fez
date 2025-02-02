@@ -1,27 +1,16 @@
 <script>
-  getWidth() {
-    const width = this.root.getBoundingClientRect().width
-
-    if (width != this.state.width) {
-      this.setPannel(0)
-      this.state.width = width
-    }
-  }
-
   cssVars() {
     return [
-      `--width: ${this.state.width}px`,
       `--arrow-width: ${this.arrowWidth}px`,
-      `--panel-width: ${this.state.width - (this.arrowWidth * 2)}px`,
       `--offset: -${this.state.offset}px`,
     ]
   }
 
-  setPannel(num) {
+  setSlide(num) {
     this.state.slide = num
   }
 
-  changePannel(direction){
+  changeSlide(direction){
     this.state.slide += direction
 
     const slides = this.find('.fez-slot').querySelectorAll(":scope > div")
@@ -34,15 +23,16 @@
   }
 
   beforeRender() {
-    this.state.offset = (this.state.width - (this.arrowWidth * 2)) * this.state.slide
+    const node = this.find('.slot')
+    if (node) {
+      this.state.offset = node.getBoundingClientRect().width * this.state.slide
+    }
   }
 
   connect() {
     this.arrowWidth = 100
-    this.setPannel(0)
-    this.getWidth()
-
-    this.setInterval(this.getWidth, 100)
+    this.setSlide(0)
+    this.onResize(this.render, 100)
   }
 </script>
 
@@ -80,7 +70,7 @@
        overflow: hidden;
        display: flex;
        align-items: flex-start;
-       max-width: var(--panel-width);
+       max-width: 100%;
 
        .slot-parent {
          transition: transform 0.3s ease;
@@ -90,7 +80,7 @@
            display: flex;
 
            & > div {
-             width: var(--panel-width);
+             width: 100%;
              flex-shrink: 0;
             }
           }
@@ -102,7 +92,7 @@
 
 <table class="slides" style="{{ @cssVars().join(';') }}">
   <tr>
-    <td class="arrow" onclick="@changePannel(-1)">
+    <td class="arrow" onclick="@changeSlide(-1)">
       <div>
         <span>&#8679;</span>
       </div>
@@ -114,7 +104,7 @@
         </div>
       </div>
     </td>
-    <td class="arrow" onclick="@changePannel(1)">
+    <td class="arrow" onclick="@changeSlide(1)">
       <div>
         <span>&#8679;</span>
       </div>

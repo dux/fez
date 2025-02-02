@@ -4,7 +4,8 @@ import Gobber from '../vendor/gobber'
 // morph dom from one state to another
 import { Idiomorph } from '../vendor/idiomorph'
 
-import connect from './fez-connect'
+import connect from './connect'
+import compile from './compile'
 
 const Fez = (name, klass) => {
   if (!name) {
@@ -122,7 +123,7 @@ Fez.fnv1 = (str) => {
   return hash.toString(36).replaceAll('-', '');
 }
 
-Fez.tag = function(tag, opts = {}, html = '') {
+Fez.tag = (tag, opts = {}, html = '') => {
   const json = encodeURIComponent(JSON.stringify(opts))
   return `<${tag} data-props="${json}">${html}</${tag}>`
 };
@@ -150,11 +151,6 @@ Fez.head = (text) => {
   })
 }
 
-// <template fez="ui-form">
-// Fez.compileAll('ui-form')    # loads template[fez=ui-form]
-// Fez.compileAll(templateNode)
-// Fez.compileAll('ui-form', templateNode.innerHTML)
-
 // execute function untill it returns true
 Fez.untilTrue = (func, pingRate) => {
   if (!func()) {
@@ -165,85 +161,6 @@ Fez.untilTrue = (func, pingRate) => {
   }
 }
 
-Fez.compile = function(tagName, html) {
-  if (tagName instanceof Node) {
-    // template reference
-    tagName.parentNode.removeChild(tagName)
-    html = tagName.innerHTML
-    tagName = tagName.getAttribute('fez')
-  }
-
-  if (!html) {
-    const selector = `template[fez=${tagName}]`
-    const node = document.querySelector(selector)
-    if (node) {
-      html = node.innerHTML
-    } else {
-      console.error(`Fez template not found: ${selector}`)
-      return
-    }
-  }
-
-  const result = { script: '', style: '', html: '' }
-  const lines = html.split('\n')
-
-  let currentBlock = []
-  let currentType = ''
-
-  for (const line of lines) {
-    if (line.trim().startsWith('<script') && !result.script) {
-      currentType = 'script';
-    } else if (line.trim().startsWith('<style')) {
-      currentType = 'style';
-    } else if (line.trim().endsWith('</script>') && currentType === 'script' && !result.script) {
-      result.script = currentBlock.join('\n');
-      currentBlock = [];
-      currentType = null;
-    } else if (line.trim().endsWith('</style>') && currentType === 'style') {
-      result.style = currentBlock.join('\n');
-      currentBlock = [];
-      currentType = null;
-    } else if (currentType) {
-      currentBlock.push(line);
-    } else {
-      result.html += line + '\n';
-    }
-  }
-
-  let klass = result.script
-
-  if (!/class\s+\{/.test(klass)) {
-    klass = `class {\n${klass}\n}`
-  }
-
-  if (String(result.style).includes(':')) {
-    result.style = result.style.includes(':fez') ? result.style : `:fez {\n${result.style}\n}`
-    klass = klass.replace(/\}\s*$/, `\n  CSS = \`${result.style}\`\n}`)
-  }
-
-  if (/\w/.test(String(result.html))) {
-    result.html = result.html.replaceAll('$', '\\$')
-    klass = klass.replace(/\}\s*$/, `\n  HTML = \`${result.html}\`\n}`)
-  }
-
-  const parts = klass.split(/class\s+\{/, 2)
-  klass = `${parts[0]};\n\nwindow.Fez('${tagName}', class {\n${parts[1]})`
-
-  // if (tagName == 'x-counter') {
-  //   console.log(klass)
-  // }
-
-  try {
-    new Function(klass)()
-  } catch(e) {
-    console.error(`FEZ template "${tagName}" compile error: ${e.message}`)
-    console.log(html)
-    console.log(klass)
-  }
-}
-
-Fez.compileAll = function() {
-  document.querySelectorAll('template[fez]').forEach((n) => Fez.compile(n))
-}
+Fez.compile = compile
 
 export default Fez
