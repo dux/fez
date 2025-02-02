@@ -12,13 +12,15 @@
   }
 
   connect(props) {
+    const { n, activate } = this;
+
     this.tabs = this.childNodes(n => $(n))
 
     this.render([
-      this.n('div.header', this.tabs.map((tab, index) =>
-        this.n(`span`, tab.attr('title'), { onclick: ()=> this.activate(index) })
+      n('div.header', this.tabs.map((tab, index) =>
+        n('span', tab.attr('title'), { onclick: ()=> activate(index) })
       )),
-      this.n('.body', '<slot />')
+      n('.body', '<slot />')
     ]);
 
     this.activate(0)

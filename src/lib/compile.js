@@ -50,7 +50,7 @@ const compileToClass = (html) => {
 // Fez.compile()                                  # compile all
 // Fez.compile(templateNode)                      # compile template node
 // Fez.compile('ui-form', templateNode.innerHTML) # compile string
-export default compile = function(tagName, html) {
+export default function (tagName, html) {
   if (tagName instanceof Node) {
     tagName.remove()
     html = tagName.innerHTML

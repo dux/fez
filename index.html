@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Test</title>
+  <title>Fez - JavaScript DOM compoennt framework.</title>
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-  <script src="./dist/fez.js"></script>
+  <script src="./dist/fez.js?t=1738546828"></script>
   <script>
     window.L = console.log
   </script>
@@ -42,11 +42,15 @@
     <h1 class="jumbo">&darr;</h1>
     <h1>How FEZ feels and works?</h1>
 
-    <p>Component model is similar to <code>Vue</code> or <code>Svelte</code>, but there is no compile step. You work on HTML doc as it is was allready monuted to root. Render pages from server, and just use custom HTML tags you have created, as you would use any other HTML tag.</p>
+    <p>
+      FEZ brings a familiar <b>component-based approach</b> you know from Vue or React, but strips away the build complexity.
+      It lets you write components naturally, right in your HTML, <b>without needing a compilation step</b>. Think of it as a jQuery for modern component development, <b>with the simplicity of dropping a script tag into your page</b>.
+      You get to use your components as if they were native HTML elements, making the development experience straightforward and intuitive.
+    </p>
 
     <ul>
       <li>🔌 <i>Native Browser Components:</i> Uses standard <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements">custom elements</a>. Create tags like <code>&lt;ui-clock&gt;</code>, place them anywhere in your HTML, and they just work. (Try it now in dev tools - instant magic!)</li>
-      <li>⚡ <i>Zero Build Step Hassle:</i> Works directly in the browser with a tiny runtime (20kb raw, 6kb zipped - smaller than most cat GIFs).</li>
+      <li>⚡ <i>Zero Build Step Hassle:</i> Works directly in the browser with a tiny runtime (20kb raw, 9kb zipped - smaller than most cat GIFs).</li>
       <li>🔄 <i>Smart State Management:</i> Automatically re-renders components using <a href="https://github.com/bigskysoftware/idiomorph">Idiomorph</a> for efficient DOM updates when data changes.</li>
       <li>📜 <i>Flexible Templating:</i> Choose between HTML-like templates (similar to <a href="https://dev.to/cloudcannon/templating-in-sveltekit-3ikm">Svelte</a>) or programmatic <a href="https://github.com/dux/fez/blob/main/src/vendor/n.js">node building</a>.</li>
       <li>🎨 <i>CSS Superpowers:</i> Built-in SCSS support via <a href="https://goober.js.org/">Goober</a> with scoped/global styles and dynamic values.</li>
@@ -169,6 +173,8 @@
   <a herf="#" name="examples"></a>
   <h1>Examples</h1>
 
+  <p class="center" style="margin-bottom: 40px;">You will learn all Fez features, just by inspecting this examples. You can edit and update both HTML and Fez code.</p>
+
   <template fez="app-info">
   <style>
     & > div {
@@ -264,57 +270,58 @@
           name="avatar"
           :action="applyChanges"
         >
-          &lt;script>
-  NAME = 'span'
-  FAST = true
-
-  connect(props) {
-    this.copy('href', 'style')
-    this.size = (props.size || 64) + 'px'
-    this.$root.css({width: this.size, height: this.size})
-  }
-&lt;/script>
-
-&lt;style>
-  img {
-    border-radius: 50%;
-  }
-
-  span.avatar {
-    display: inline-block;
-    text-align: center;
-
-    .title {
-      display: inline-block;
-      border: 1px solid #ccc;
-      background-color: #eee;
-      padding: 1px 5px;
-      font-size: 13px;
-      position: relative;
-      left: 3px;
-      top: 8px;
-      border-radius: 4px;
+          &lt;template fez="ui-avatar">
+  &lt;script>
+    NAME = 'span'
+    FAST = true
+  
+    connect(props) {
+      this.copy('href', 'style')
+      this.size = (props.size || 64) + 'px'
+      this.$root.css({width: this.size, height: this.size})
     }
-  }
-&lt;/style>
-
-{{#block avatar}}
-  &lt;img
-    src="{{ @props.src }}"
-    class="avatar"
-    style="width: {{ @size }}; height: {{ @size }};"
-  />
-{{/block}}
-
-{{#if @props.name}}
-  &lt;span class="avatar">
-    &lt;div class="title">{{ @props.name }}&lt;/div>
-    &lt;div>{{#block:avatar}}&lt;/div>
-  &lt;/span>
-{{:else}}
-  {{#block:avatar}}
-{{/if}}
-
+  &lt;/script>
+  
+  &lt;style>
+    img {
+      border-radius: 50%;
+    }
+  
+    span.avatar {
+      display: inline-block;
+      text-align: center;
+  
+      .title {
+        display: inline-block;
+        border: 1px solid #ccc;
+        background-color: #eee;
+        padding: 1px 5px;
+        font-size: 13px;
+        position: relative;
+        left: 3px;
+        top: 8px;
+        border-radius: 4px;
+      }
+    }
+  &lt;/style>
+  
+  {{#block avatar}}
+    &lt;img
+      src="{{ @props.src }}"
+      class="avatar"
+      style="width: {{ @size }}; height: {{ @size }};"
+    />
+  {{/block}}
+  
+  {{#if @props.name}}
+    &lt;span class="avatar">
+      &lt;div class="title">{{ @props.name }}&lt;/div>
+      &lt;div>{{#block:avatar}}&lt;/div>
+    &lt;/span>
+  {{:else}}
+    {{#block:avatar}}
+  {{/if}}
+  &lt;/template>
         </ui-editor>
       </div>
     </ui-tabs>
@@ -323,57 +330,56 @@
 
 <fez-compile>
   <template fez="ui-avatar">
-    <script>
-  NAME = 'span'
-  FAST = true
-
-  connect(props) {
-    this.copy('href', 'style')
-    this.size = (props.size || 64) + 'px'
-    this.$root.css({width: this.size, height: this.size})
-  }
-</script>
-
-<style>
-  img {
-    border-radius: 50%;
-  }
-
-  span.avatar {
-    display: inline-block;
-    text-align: center;
-
-    .title {
-      display: inline-block;
-      border: 1px solid #ccc;
-      background-color: #eee;
-      padding: 1px 5px;
-      font-size: 13px;
-      position: relative;
-      left: 3px;
-      top: 8px;
-      border-radius: 4px;
+  <script>
+    NAME = 'span'
+    FAST = true
+  
+    connect(props) {
+      this.copy('href', 'style')
+      this.size = (props.size || 64) + 'px'
+      this.$root.css({width: this.size, height: this.size})
     }
-  }
-</style>
-
-{{#block avatar}}
-  <img
-    src="{{ @props.src }}"
-    class="avatar"
-    style="width: {{ @size }}; height: {{ @size }};"
-  />
-{{/block}}
-
-{{#if @props.name}}
-  <span class="avatar">
-    <div class="title">{{ @props.name }}</div>
-    <div>{{#block:avatar}}</div>
-  </span>
-{{:else}}
-  {{#block:avatar}}
-{{/if}}
-
+  </script>
+  
+  <style>
+    img {
+      border-radius: 50%;
+    }
+  
+    span.avatar {
+      display: inline-block;
+      text-align: center;
+  
+      .title {
+        display: inline-block;
+        border: 1px solid #ccc;
+        background-color: #eee;
+        padding: 1px 5px;
+        font-size: 13px;
+        position: relative;
+        left: 3px;
+        top: 8px;
+        border-radius: 4px;
+      }
+    }
+  </style>
+  
+  {{#block avatar}}
+    <img
+      src="{{ @props.src }}"
+      class="avatar"
+      style="width: {{ @size }}; height: {{ @size }};"
+    />
+  {{/block}}
+  
+  {{#if @props.name}}
+    <span class="avatar">
+      <div class="title">{{ @props.name }}</div>
+      <div>{{#block:avatar}}</div>
+    </span>
+  {{:else}}
+    {{#block:avatar}}
+  {{/if}}
   </template>
 </fez-compile>
 
@@ -430,13 +436,14 @@
           name="border"
           :action="applyChanges"
         >
-          &lt;script>
-  onMount() {
-    const childNodes = this.fezHide()
-    $(childNodes).css('border', `3px solid ${this.props.color || 'black'}`)
-  }
-&lt;/script>
-
+          &lt;template fez="ui-border">
+  &lt;script>
+    onMount() {
+      const childNodes = this.fezHide()
+      $(childNodes).css('border', `3px solid ${this.props.color || 'black'}`)
+    }
+  &lt;/script>
+  &lt;/template>
         </ui-editor>
       </div>
     </ui-tabs>
@@ -445,13 +452,223 @@
 
 <fez-compile>
   <template fez="ui-border">
-    <script>
-  onMount() {
-    const childNodes = this.fezHide()
-    $(childNodes).css('border', `3px solid ${this.props.color || 'black'}`)
-  }
-</script>
+  <script>
+    onMount() {
+      const childNodes = this.fezHide()
+      $(childNodes).css('border', `3px solid ${this.props.color || 'black'}`)
+    }
+  </script>
+  </template>
+</fez-compile>
 
+  
+    
+
+<div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+  <div style="margin-top: 10px;">
+    <h3 style="margin-top: 0;">Demo: ui-card</h3>
+
+    <div id="body-card" style="padding-bottom: 20px;">
+      <ui-card>
+  <div class="front">
+    <h1>The magician</h1>
+    <p>Click to flip!</p>
+  </div>
+  <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m1.webp') no-repeat center/cover;">
+  </div>
+</ui-card>
+
+<ui-card>
+  <div class="front">
+    <h1>Another clock?</h1>
+    <p>Click to see</p>
+  </div>
+  <div class="back" style="background-color: #aba;">
+    <div style="width: 150px;">
+      <ui-clock></ui-clock>
+    </div>
+    <div style="padding: 30px;">
+      Any HTML or Fez component inside.
+    </div>
+  </div>
+</ui-card>
+
+    </div>
+  </div>
+  <div style="margin-top: 20px;">
+    <ui-tabs>
+      <div title="Info" active="true">
+        <div class="info">
+  <ul>
+    <li>Simple UI component</li>
+  </ul>
+</div>
+      </div>
+      <div title="HTML">
+        <ui-editor
+          name="card"
+          id="html-card"
+          file="./demo/fez/card.html"
+          language="html"
+          :action="applyChanges"
+        >
+          &lt;ui-card>
+  &lt;div class="front">
+    &lt;h1>The magician&lt;/h1>
+    &lt;p>Click to flip!&lt;/p>
+  &lt;/div>
+  &lt;div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m1.webp') no-repeat center/cover;">
+  &lt;/div>
+&lt;/ui-card>
+
+&lt;ui-card>
+  &lt;div class="front">
+    &lt;h1>Another clock?&lt;/h1>
+    &lt;p>Click to see&lt;/p>
+  &lt;/div>
+  &lt;div class="back" style="background-color: #aba;">
+    &lt;div style="width: 150px;">
+      &lt;ui-clock>&lt;/ui-clock>
+    &lt;/div>
+    &lt;div style="padding: 30px;">
+      Any HTML or Fez component inside.
+    &lt;/div>
+  &lt;/div>
+&lt;/ui-card>
+
+        </ui-editor>
+      </div>
+      <div title="Fez component">
+        <ui-editor
+          id="code-ui-card"
+          file="./demo/fez/card.fez"
+          name="card"
+          :action="applyChanges"
+        >
+          &lt;template fez="ui-card">
+  &lt;style>
+    .card {
+      display: inline-block;
+      float: left;
+      width: 300px;
+      height: 400px;
+      perspective: 1000px;
+      cursor: pointer;
+      margin-right: 20px;
+    }
+  
+    .fez-slot {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      transition: transform 0.8s;
+      transform-style: preserve-3d;
+    }
+  
+    .card.flipped .fez-slot {
+      transform: rotateY(180deg);
+    }
+  
+    .front, .back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+  
+    .front {
+      background: #fff;
+      color: #333;
+    }
+  
+    .back {
+      background: #fff;
+      transform: rotateY(180deg);
+    }
+  
+    .card:hover {
+      transform: scale(1.02);
+      transition: transform 0.3s ease;
+    }
+  &lt;/style>
+  
+  &lt;div class="card" onclick="this.classList.toggle('flipped')">
+    &lt;slot />
+  &lt;/div>
+  
+  &lt;/template>
+        </ui-editor>
+      </div>
+    </ui-tabs>
+  </div>
+</div>
+
+<fez-compile>
+  <template fez="ui-card">
+  <style>
+    .card {
+      display: inline-block;
+      float: left;
+      width: 300px;
+      height: 400px;
+      perspective: 1000px;
+      cursor: pointer;
+      margin-right: 20px;
+    }
+  
+    .fez-slot {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      transition: transform 0.8s;
+      transform-style: preserve-3d;
+    }
+  
+    .card.flipped .fez-slot {
+      transform: rotateY(180deg);
+    }
+  
+    .front, .back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+  
+    .front {
+      background: #fff;
+      color: #333;
+    }
+  
+    .back {
+      background: #fff;
+      transform: rotateY(180deg);
+    }
+  
+    .card:hover {
+      transform: scale(1.02);
+      transition: transform 0.3s ease;
+    }
+  </style>
+  
+  <div class="card" onclick="this.classList.toggle('flipped')">
+    <slot />
+  </div>
+  
   </template>
 </fez-compile>
 
@@ -538,107 +755,108 @@
           name="clock"
           :action="applyChanges"
         >
-          &lt;script>
-  randomColor() {
-    const colors = ['red', 'green', 'blue', 'magenta', 'teal']
-    return colors[Math.floor(Math.random() * colors.length)];
-  }
-
-  setVars() {
-    // will only render once on next tick
-    let time = new Date((new Date()).getTime() - this.offsetHours * 60 * 60 * 1000)
-    this.state.hours = time.getHours()
-    this.state.minutes = time.getMinutes()
-    this.state.seconds = time.getSeconds()
-    this.state.color = this.randomColor()
-  }
-
-  connect() {
-    this.offsetHours = parseFloat(this.props.utc || 0)
-    this.setVars()
-    this.setInterval(this.setVars, 1000)
-  }
-
-  onDestroy() {
-    console.log(`By from ${this.fezName} - ${this.props.city}`)
-  }
-&lt;/script>
-
-&lt;style>
-  input {
-    border: 3px solid red !important;
-  }
-
-  svg {
-    width: 100%;
-    height: 100%;
-  }
-
-  .clock-face {
-    stroke: #333;
-    fill: white;
-  }
-
-  .minor {
-    stroke: #999;
-    stroke-width: 0.5;
-  }
-
-  .major {
-    stroke: #333;
-    stroke-width: 1;
-  }
-
-  .hour {
-    stroke: #333;
-    stroke-width: 1.5;
-  }
-
-  .minute {
-    stroke: #666;
-  }
-
-  .second, .second-counterweight {
-    stroke: var(--color);
-  }
-
-  .second-counterweight {
-    stroke-width: 3;
-  }
-&lt;/style>
-
-&lt;svg viewBox="-50 -50 100 100" style="--color: {{ @state.color }}">
-  &lt;circle class="clock-face" r="48" />
-
-  &lt;!-- markers -->
-  {{#each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}}
-    &lt;line class="major" y1="35" y2="45" transform="rotate({{30 * minute}})" />
-
-    {{#each [1, 2, 3, 4] as offset}}
-      &lt;line class="minor" y1="42" y2="45" transform="rotate({{6 * (minute + offset)}})" />
+          &lt;template fez="ui-clock">
+  &lt;script>
+    randomColor() {
+      const colors = ['red', 'green', 'blue', 'magenta', 'teal']
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+  
+    setVars() {
+      // will only render once on next tick
+      let time = new Date((new Date()).getTime() - this.offsetHours * 60 * 60 * 1000)
+      this.state.hours = time.getHours()
+      this.state.minutes = time.getMinutes()
+      this.state.seconds = time.getSeconds()
+      this.state.color = this.randomColor()
+    }
+  
+    connect() {
+      this.offsetHours = parseFloat(this.props.utc || 0)
+      this.setVars()
+      this.setInterval(this.setVars, 1000)
+    }
+  
+    onDestroy() {
+      console.log(`By from ${this.fezName} - ${this.props.city}`)
+    }
+  &lt;/script>
+  
+  &lt;style>
+    input {
+      border: 3px solid red !important;
+    }
+  
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+  
+    .clock-face {
+      stroke: #333;
+      fill: white;
+    }
+  
+    .minor {
+      stroke: #999;
+      stroke-width: 0.5;
+    }
+  
+    .major {
+      stroke: #333;
+      stroke-width: 1;
+    }
+  
+    .hour {
+      stroke: #333;
+      stroke-width: 1.5;
+    }
+  
+    .minute {
+      stroke: #666;
+    }
+  
+    .second, .second-counterweight {
+      stroke: var(--color);
+    }
+  
+    .second-counterweight {
+      stroke-width: 3;
+    }
+  &lt;/style>
+  
+  &lt;svg viewBox="-50 -50 100 100" style="--color: {{ @state.color }}">
+    &lt;circle class="clock-face" r="48" />
+  
+    &lt;!-- markers -->
+    {{#each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}}
+      &lt;line class="major" y1="35" y2="45" transform="rotate({{30 * minute}})" />
+  
+      {{#each [1, 2, 3, 4] as offset}}
+        &lt;line class="minor" y1="42" y2="45" transform="rotate({{6 * (minute + offset)}})" />
+      {{/each}}
     {{/each}}
-  {{/each}}
-
-  &lt;!-- hour hand -->
-  &lt;line class="hour" y1="2" y2="-20" transform="rotate({{30 * @state.hours + @state.minutes / 2}})" />
-
-  &lt;!-- minute hand -->
-  &lt;line class="minute" y1="4" y2="-30" transform="rotate({{6 * @state.minutes + @state.seconds / 10}})" />
-
-  &lt;!-- second hand -->
-  &lt;g transform="rotate({{6 * @state.seconds}})">
-    &lt;line class="second" y1="10" y2="-38" />
-    &lt;line class="second-counterweight" y1="10" y2="2" />
-  &lt;/g>
-
-  &lt;!-- City text -->
-  {{#if @props.city }}
-    &lt;text x="0" y="-17" text-anchor="middle" dominant-baseline="middle" style="font-size: 10px; fill: #111;">
-      {{ @props.city }}
-    &lt;/text>
-  {{/if}}
-&lt;/svg>
-
+  
+    &lt;!-- hour hand -->
+    &lt;line class="hour" y1="2" y2="-20" transform="rotate({{30 * @state.hours + @state.minutes / 2}})" />
+  
+    &lt;!-- minute hand -->
+    &lt;line class="minute" y1="4" y2="-30" transform="rotate({{6 * @state.minutes + @state.seconds / 10}})" />
+  
+    &lt;!-- second hand -->
+    &lt;g transform="rotate({{6 * @state.seconds}})">
+      &lt;line class="second" y1="10" y2="-38" />
+      &lt;line class="second-counterweight" y1="10" y2="2" />
+    &lt;/g>
+  
+    &lt;!-- City text -->
+    {{#if @props.city }}
+      &lt;text x="0" y="-17" text-anchor="middle" dominant-baseline="middle" style="font-size: 10px; fill: #111;">
+        {{ @props.city }}
+      &lt;/text>
+    {{/if}}
+  &lt;/svg>
+  &lt;/template>
         </ui-editor>
       </div>
     </ui-tabs>
@@ -647,107 +865,106 @@
 
 <fez-compile>
   <template fez="ui-clock">
-    <script>
-  randomColor() {
-    const colors = ['red', 'green', 'blue', 'magenta', 'teal']
-    return colors[Math.floor(Math.random() * colors.length)];
-  }
-
-  setVars() {
-    // will only render once on next tick
-    let time = new Date((new Date()).getTime() - this.offsetHours * 60 * 60 * 1000)
-    this.state.hours = time.getHours()
-    this.state.minutes = time.getMinutes()
-    this.state.seconds = time.getSeconds()
-    this.state.color = this.randomColor()
-  }
-
-  connect() {
-    this.offsetHours = parseFloat(this.props.utc || 0)
-    this.setVars()
-    this.setInterval(this.setVars, 1000)
-  }
-
-  onDestroy() {
-    console.log(`By from ${this.fezName} - ${this.props.city}`)
-  }
-</script>
-
-<style>
-  input {
-    border: 3px solid red !important;
-  }
-
-  svg {
-    width: 100%;
-    height: 100%;
-  }
-
-  .clock-face {
-    stroke: #333;
-    fill: white;
-  }
-
-  .minor {
-    stroke: #999;
-    stroke-width: 0.5;
-  }
-
-  .major {
-    stroke: #333;
-    stroke-width: 1;
-  }
-
-  .hour {
-    stroke: #333;
-    stroke-width: 1.5;
-  }
-
-  .minute {
-    stroke: #666;
-  }
-
-  .second, .second-counterweight {
-    stroke: var(--color);
-  }
-
-  .second-counterweight {
-    stroke-width: 3;
-  }
-</style>
-
-<svg viewBox="-50 -50 100 100" style="--color: {{ @state.color }}">
-  <circle class="clock-face" r="48" />
-
-  <!-- markers -->
-  {{#each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}}
-    <line class="major" y1="35" y2="45" transform="rotate({{30 * minute}})" />
-
-    {{#each [1, 2, 3, 4] as offset}}
-      <line class="minor" y1="42" y2="45" transform="rotate({{6 * (minute + offset)}})" />
+  <script>
+    randomColor() {
+      const colors = ['red', 'green', 'blue', 'magenta', 'teal']
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+  
+    setVars() {
+      // will only render once on next tick
+      let time = new Date((new Date()).getTime() - this.offsetHours * 60 * 60 * 1000)
+      this.state.hours = time.getHours()
+      this.state.minutes = time.getMinutes()
+      this.state.seconds = time.getSeconds()
+      this.state.color = this.randomColor()
+    }
+  
+    connect() {
+      this.offsetHours = parseFloat(this.props.utc || 0)
+      this.setVars()
+      this.setInterval(this.setVars, 1000)
+    }
+  
+    onDestroy() {
+      console.log(`By from ${this.fezName} - ${this.props.city}`)
+    }
+  </script>
+  
+  <style>
+    input {
+      border: 3px solid red !important;
+    }
+  
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+  
+    .clock-face {
+      stroke: #333;
+      fill: white;
+    }
+  
+    .minor {
+      stroke: #999;
+      stroke-width: 0.5;
+    }
+  
+    .major {
+      stroke: #333;
+      stroke-width: 1;
+    }
+  
+    .hour {
+      stroke: #333;
+      stroke-width: 1.5;
+    }
+  
+    .minute {
+      stroke: #666;
+    }
+  
+    .second, .second-counterweight {
+      stroke: var(--color);
+    }
+  
+    .second-counterweight {
+      stroke-width: 3;
+    }
+  </style>
+  
+  <svg viewBox="-50 -50 100 100" style="--color: {{ @state.color }}">
+    <circle class="clock-face" r="48" />
+  
+    <!-- markers -->
+    {{#each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}}
+      <line class="major" y1="35" y2="45" transform="rotate({{30 * minute}})" />
+  
+      {{#each [1, 2, 3, 4] as offset}}
+        <line class="minor" y1="42" y2="45" transform="rotate({{6 * (minute + offset)}})" />
+      {{/each}}
     {{/each}}
-  {{/each}}
-
-  <!-- hour hand -->
-  <line class="hour" y1="2" y2="-20" transform="rotate({{30 * @state.hours + @state.minutes / 2}})" />
-
-  <!-- minute hand -->
-  <line class="minute" y1="4" y2="-30" transform="rotate({{6 * @state.minutes + @state.seconds / 10}})" />
-
-  <!-- second hand -->
-  <g transform="rotate({{6 * @state.seconds}})">
-    <line class="second" y1="10" y2="-38" />
-    <line class="second-counterweight" y1="10" y2="2" />
-  </g>
-
-  <!-- City text -->
-  {{#if @props.city }}
-    <text x="0" y="-17" text-anchor="middle" dominant-baseline="middle" style="font-size: 10px; fill: #111;">
-      {{ @props.city }}
-    </text>
-  {{/if}}
-</svg>
-
+  
+    <!-- hour hand -->
+    <line class="hour" y1="2" y2="-20" transform="rotate({{30 * @state.hours + @state.minutes / 2}})" />
+  
+    <!-- minute hand -->
+    <line class="minute" y1="4" y2="-30" transform="rotate({{6 * @state.minutes + @state.seconds / 10}})" />
+  
+    <!-- second hand -->
+    <g transform="rotate({{6 * @state.seconds}})">
+      <line class="second" y1="10" y2="-38" />
+      <line class="second-counterweight" y1="10" y2="2" />
+    </g>
+  
+    <!-- City text -->
+    {{#if @props.city }}
+      <text x="0" y="-17" text-anchor="middle" dominant-baseline="middle" style="font-size: 10px; fill: #111;">
+        {{ @props.city }}
+      </text>
+    {{/if}}
+  </svg>
   </template>
 </fez-compile>
 
@@ -797,78 +1014,79 @@
           name="editor"
           :action="applyChanges"
         >
-          &lt;script>
-  // you need to escape script tag inside fez script block
-
-  Fez.head(`
-    &lt;link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
-    &lt;s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js">&lt;/sc`+`ript>
-    &lt;s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js">&lt;/sc`+`ript>
-  `)
-
-  class {
-    getSource() {
-      return this.codeNode.textContent
-    }
-
-    copy() {
-      navigator.clipboard.writeText(this.getSource())
-    }
-
-    connect(props) {
-      props.language ||= 'html'
-
-      if (this.root.firstElementChild?.nodeName == 'TEMPLATE') {
-        this.source = Fez.htmlEscape(this.root.firstElementChild.innerHTML)
-      } else {
-        this.source = this.root.innerHTML
+          &lt;template fez="ui-editor">
+  &lt;script>
+    // you need to escape script tag inside fez script block
+  
+    Fez.head(`
+      &lt;link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+      &lt;s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js">&lt;/sc`+`ript>
+      &lt;s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js">&lt;/sc`+`ript>
+    `)
+  
+    class {
+      getSource() {
+        return this.codeNode.textContent
+      }
+  
+      copy() {
+        navigator.clipboard.writeText(this.getSource())
+      }
+  
+      connect(props) {
+        props.language ||= 'html'
+  
+        if (this.root.firstElementChild?.nodeName == 'TEMPLATE') {
+          this.source = Fez.htmlEscape(this.root.firstElementChild.innerHTML)
+        } else {
+          this.source = this.root.innerHTML
+        }
+      }
+  
+      onMount() {
+        this.codeNode = this.find('code')
+        this.codeNode.innerHTML = this.source.trim()
+  
+        Fez.untilTrue(()=>{
+          if (window.hljs) {
+            hljs.highlightElement(this.codeNode);
+            return true
+          }
+        })
       }
     }
-
-    onMount() {
-      this.codeNode = this.find('code')
-      this.codeNode.innerHTML = this.source.trim()
-
-      Fez.untilTrue(()=>{
-        if (window.hljs) {
-          hljs.highlightElement(this.codeNode);
-          return true
-        }
-      })
+  &lt;/script>
+  
+  &lt;style>
+    code {
+      padding: 10px;
+      font-size: 15px;
     }
-  }
-&lt;/script>
-
-&lt;style>
-  code {
-    padding: 10px;
-    font-size: 15px;
-  }
-
-  pre {
-    margin-top: 10px;
-    width: 100%;
-  }
-&lt;/style>
-
-{{#if @props.file}}
-  &lt;div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
-    {{ @props.file }}
-    &sdot;
-    &lt;span onclick="@copy()">Copy&lt;/span>
-    {{#if @props.action }}
+  
+    pre {
+      margin-top: 10px;
+      width: 100%;
+    }
+  &lt;/style>
+  
+  {{#if @props.file}}
+    &lt;div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
+      {{ @props.file }}
       &sdot;
-      &lt;span
-        style="cursor: pointer; font-weight: 600;"
-        onclick="@props.action('{{ @props.name }}')"
-      >Update&lt;/span>
-    {{/if}}
-  &lt;/div>
-{{/if}}
-&lt;pre>
-  &lt;code class="language-{{ @props.language }}" contenteditable="{{ !!@props.file }}">&lt;/code>
-&lt;/pre>
-
+      &lt;span onclick="@copy()">Copy&lt;/span>
+      {{#if @props.action }}
+        &sdot;
+        &lt;span
+          style="cursor: pointer; font-weight: 600;"
+          onclick="@props.action('{{ @props.name }}')"
+        >Update&lt;/span>
+      {{/if}}
+    &lt;/div>
+  {{/if}}
+  &lt;pre>
+    &lt;code class="language-{{ @props.language }}" contenteditable="{{ !!@props.file }}">&lt;/code>
+  &lt;/pre>
+  &lt;/template>
         </ui-editor>
       </div>
     </ui-tabs>
@@ -877,78 +1095,77 @@
 
 <fez-compile>
   <template fez="ui-editor">
-    <script>
-  // you need to escape script tag inside fez script block
-
-  Fez.head(`
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
-    <s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></sc`+`ript>
-    <s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></sc`+`ript>
-  `)
-
-  class {
-    getSource() {
-      return this.codeNode.textContent
-    }
-
-    copy() {
-      navigator.clipboard.writeText(this.getSource())
-    }
-
-    connect(props) {
-      props.language ||= 'html'
-
-      if (this.root.firstElementChild?.nodeName == 'TEMPLATE') {
-        this.source = Fez.htmlEscape(this.root.firstElementChild.innerHTML)
-      } else {
-        this.source = this.root.innerHTML
+  <script>
+    // you need to escape script tag inside fez script block
+  
+    Fez.head(`
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+      <s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></sc`+`ript>
+      <s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></sc`+`ript>
+    `)
+  
+    class {
+      getSource() {
+        return this.codeNode.textContent
+      }
+  
+      copy() {
+        navigator.clipboard.writeText(this.getSource())
+      }
+  
+      connect(props) {
+        props.language ||= 'html'
+  
+        if (this.root.firstElementChild?.nodeName == 'TEMPLATE') {
+          this.source = Fez.htmlEscape(this.root.firstElementChild.innerHTML)
+        } else {
+          this.source = this.root.innerHTML
+        }
+      }
+  
+      onMount() {
+        this.codeNode = this.find('code')
+        this.codeNode.innerHTML = this.source.trim()
+  
+        Fez.untilTrue(()=>{
+          if (window.hljs) {
+            hljs.highlightElement(this.codeNode);
+            return true
+          }
+        })
       }
     }
-
-    onMount() {
-      this.codeNode = this.find('code')
-      this.codeNode.innerHTML = this.source.trim()
-
-      Fez.untilTrue(()=>{
-        if (window.hljs) {
-          hljs.highlightElement(this.codeNode);
-          return true
-        }
-      })
+  </script>
+  
+  <style>
+    code {
+      padding: 10px;
+      font-size: 15px;
     }
-  }
-</script>
-
-<style>
-  code {
-    padding: 10px;
-    font-size: 15px;
-  }
-
-  pre {
-    margin-top: 10px;
-    width: 100%;
-  }
-</style>
-
-{{#if @props.file}}
-  <div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
-    {{ @props.file }}
-    &sdot;
-    <span onclick="@copy()">Copy</span>
-    {{#if @props.action }}
+  
+    pre {
+      margin-top: 10px;
+      width: 100%;
+    }
+  </style>
+  
+  {{#if @props.file}}
+    <div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
+      {{ @props.file }}
       &sdot;
-      <span
-        style="cursor: pointer; font-weight: 600;"
-        onclick="@props.action('{{ @props.name }}')"
-      >Update</span>
-    {{/if}}
-  </div>
-{{/if}}
-<pre>
-  <code class="language-{{ @props.language }}" contenteditable="{{ !!@props.file }}"></code>
-</pre>
-
+      <span onclick="@copy()">Copy</span>
+      {{#if @props.action }}
+        &sdot;
+        <span
+          style="cursor: pointer; font-weight: 600;"
+          onclick="@props.action('{{ @props.name }}')"
+        >Update</span>
+      {{/if}}
+    </div>
+  {{/if}}
+  <pre>
+    <code class="language-{{ @props.language }}" contenteditable="{{ !!@props.file }}"></code>
+  </pre>
   </template>
 </fez-compile>
 
@@ -1079,34 +1296,35 @@
           name="form"
           :action="applyChanges"
         >
-          &lt;script>
-  NAME = 'form'
-
-  // if you define onSubmit, you will get submited form data object
-  // and event.preventDefault will allready be applied
-  onSubmit(data) {
-    this.props.ping(data)
-  }
-&lt;/script>
-
-&lt;style>
-  border: 2px solid green;
-  border-radius: 5px;
-  padding: 15px;
-  margin: 15px 0;
-  background-color: #efe;
-
-  label {
-    display: block;
-    cursor: pointer;
-    margin-bottom: 5px;
-  }
-
-  select option {
-    font-size: 16px;
-  }
-&lt;/style>
-
+          &lt;template fez="ui-form">
+  &lt;script>
+    NAME = 'form'
+  
+    // if you define onSubmit, you will get submited form data object
+    // and event.preventDefault will allready be applied
+    onSubmit(data) {
+      this.props.ping(data)
+    }
+  &lt;/script>
+  
+  &lt;style>
+    border: 2px solid green;
+    border-radius: 5px;
+    padding: 15px;
+    margin: 15px 0;
+    background-color: #efe;
+  
+    label {
+      display: block;
+      cursor: pointer;
+      margin-bottom: 5px;
+    }
+  
+    select option {
+      font-size: 16px;
+    }
+  &lt;/style>
+  &lt;/template>
         </ui-editor>
       </div>
     </ui-tabs>
@@ -1115,34 +1333,33 @@
 
 <fez-compile>
   <template fez="ui-form">
-    <script>
-  NAME = 'form'
-
-  // if you define onSubmit, you will get submited form data object
-  // and event.preventDefault will allready be applied
-  onSubmit(data) {
-    this.props.ping(data)
-  }
-</script>
-
-<style>
-  border: 2px solid green;
-  border-radius: 5px;
-  padding: 15px;
-  margin: 15px 0;
-  background-color: #efe;
-
-  label {
-    display: block;
-    cursor: pointer;
-    margin-bottom: 5px;
-  }
-
-  select option {
-    font-size: 16px;
-  }
-</style>
-
+  <script>
+    NAME = 'form'
+  
+    // if you define onSubmit, you will get submited form data object
+    // and event.preventDefault will allready be applied
+    onSubmit(data) {
+      this.props.ping(data)
+    }
+  </script>
+  
+  <style>
+    border: 2px solid green;
+    border-radius: 5px;
+    padding: 15px;
+    margin: 15px 0;
+    background-color: #efe;
+  
+    label {
+      display: block;
+      cursor: pointer;
+      margin-bottom: 5px;
+    }
+  
+    select option {
+      font-size: 16px;
+    }
+  </style>
   </template>
 </fez-compile>
 
@@ -1233,50 +1450,51 @@
           name="icon"
           :action="applyChanges"
         >
-          &lt;script>
-  // everything before class gets executed in component registration
-  $(document.head).append(`
-    &lt;link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-  `)
-
-  class {
-    NAME = 'span'
-
-    setSize(size) {
-      this.$root.css('font-size', `${parseInt(size)}px`)
-    }
-
-    onPropsChange(name, value) {
-      if (name == 'color') {
-        this.$root.css('color', value)
+          &lt;template fez="ui-icon">
+  &lt;script>
+    // everything before class gets executed in component registration
+    $(document.head).append(`
+      &lt;link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    `)
+  
+    class {
+      NAME = 'span'
+  
+      setSize(size) {
+        this.$root.css('font-size', `${parseInt(size)}px`)
       }
-
-      if (name == 'size') {
-        this.setSize(value)
+  
+      onPropsChange(name, value) {
+        if (name == 'color') {
+          this.$root.css('color', value)
+        }
+  
+        if (name == 'size') {
+          this.setSize(value)
+        }
+      }
+  
+      connect(props) {
+        this.copy('onclick')
+  
+        const icon = props.name || this.root.innerHTML.trim()
+        this.color = props.color || '#00'
+        this.root.classList.add('material-symbols-outlined')
+        this.root.innerHTML = icon
       }
     }
-
-    connect(props) {
-      this.copy('onclick')
-
-      const icon = props.name || this.root.innerHTML.trim()
-      this.color = props.color || '#00'
-      this.root.classList.add('material-symbols-outlined')
-      this.root.innerHTML = icon
+  &lt;/script>
+  
+  &lt;style>
+    &.material-symbols-outlined {
+      font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24
     }
-  }
-&lt;/script>
-
-&lt;style>
-  &.material-symbols-outlined {
-    font-variation-settings:
-    'FILL' 0,
-    'wght' 400,
-    'GRAD' 0,
-    'opsz' 24
-  }
-&lt;/style>
-
+  &lt;/style>
+  &lt;/template>
         </ui-editor>
       </div>
     </ui-tabs>
@@ -1285,50 +1503,49 @@
 
 <fez-compile>
   <template fez="ui-icon">
-    <script>
-  // everything before class gets executed in component registration
-  $(document.head).append(`
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-  `)
-
-  class {
-    NAME = 'span'
-
-    setSize(size) {
-      this.$root.css('font-size', `${parseInt(size)}px`)
-    }
-
-    onPropsChange(name, value) {
-      if (name == 'color') {
-        this.$root.css('color', value)
+  <script>
+    // everything before class gets executed in component registration
+    $(document.head).append(`
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    `)
+  
+    class {
+      NAME = 'span'
+  
+      setSize(size) {
+        this.$root.css('font-size', `${parseInt(size)}px`)
       }
-
-      if (name == 'size') {
-        this.setSize(value)
+  
+      onPropsChange(name, value) {
+        if (name == 'color') {
+          this.$root.css('color', value)
+        }
+  
+        if (name == 'size') {
+          this.setSize(value)
+        }
+      }
+  
+      connect(props) {
+        this.copy('onclick')
+  
+        const icon = props.name || this.root.innerHTML.trim()
+        this.color = props.color || '#00'
+        this.root.classList.add('material-symbols-outlined')
+        this.root.innerHTML = icon
       }
     }
-
-    connect(props) {
-      this.copy('onclick')
-
-      const icon = props.name || this.root.innerHTML.trim()
-      this.color = props.color || '#00'
-      this.root.classList.add('material-symbols-outlined')
-      this.root.innerHTML = icon
+  </script>
+  
+  <style>
+    &.material-symbols-outlined {
+      font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24
     }
-  }
-</script>
-
-<style>
-  &.material-symbols-outlined {
-    font-variation-settings:
-    'FILL' 0,
-    'wght' 400,
-    'GRAD' 0,
-    'opsz' 24
-  }
-</style>
-
+  </style>
   </template>
 </fez-compile>
 
@@ -1407,8 +1624,9 @@
         <div class="info">
   <ul>
     <li>sweet component with css animations :)</li>
-    <li>Features: <code>beforeRender()</code> to prepare vars before render (clean alternative to svelte <code>$: {...}</code></li>
-    <li>Features: <code>onResize()</code> to execute code on window resized. Auto cleared when node is removed.</li>
+    <li>Features: <code>this.find()</code> to find node in template, shortcut for <code>this.root.querySelector()</code></li>
+    <li>Features: <code>this.beforeRender()</code> to prepare vars before render (clean alternative to svelte <code>$: {...}</code></li>
+    <li>Features: <code>this.onResize()</code> to execute code on window resized. Auto cleared when node is removed.</li>
   </ul>
 </div>
       </div>
@@ -1488,120 +1706,121 @@
           name="slider"
           :action="applyChanges"
         >
-          &lt;script>
-  cssVars() {
-    return [
-      `--arrow-width: ${this.arrowWidth}px`,
-      `--offset: -${this.state.offset}px`,
-    ]
-  }
-
-  setSlide(num) {
-    this.state.slide = num
-  }
-
-  changeSlide(direction){
-    this.state.slide += direction
-
-    const slides = this.find('.fez-slot').querySelectorAll(":scope > div")
-
-    if (this.state.slide &lt; 0) {
-      this.state.slide = slides.length - 1
-    } else if (!slides[this.state.slide]) {
-      this.state.slide = 0
+          &lt;template fez="ui-slider">
+  &lt;script>
+    cssVars() {
+      return [
+        `--arrow-width: ${this.arrowWidth}px`,
+        `--offset: -${this.state.offset}px`,
+      ]
     }
-  }
-
-  beforeRender() {
-    const node = this.find('.slot')
-    if (node) {
-      this.state.offset = node.getBoundingClientRect().width * this.state.slide
+  
+    setSlide(num) {
+      this.state.slide = num
     }
-  }
-
-  connect() {
-    this.arrowWidth = 100
-    this.setSlide(0)
-    this.onResize(this.render, 100)
-  }
-&lt;/script>
-
-&lt;style>
-  table.slides {
-    td.arrow {
-      cursor: pointer;
-
-      div {
-        min-width: var(--arrow-width);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 50px;
-        color: #aaa;
-
-        span {
-          transform: rotate(-90deg);
+  
+    changeSlide(direction){
+      this.state.slide += direction
+  
+      const slides = this.find('.fez-slot').querySelectorAll(":scope > div")
+  
+      if (this.state.slide &lt; 0) {
+        this.state.slide = slides.length - 1
+      } else if (!slides[this.state.slide]) {
+        this.state.slide = 0
+      }
+    }
+  
+    beforeRender() {
+      const node = this.find('.slot')
+      if (node) {
+        this.state.offset = node.getBoundingClientRect().width * this.state.slide
+      }
+    }
+  
+    connect() {
+      this.arrowWidth = 100
+      this.setSlide(0)
+      this.onResize(this.render, 100)
+    }
+  &lt;/script>
+  
+  &lt;style>
+    table.slides {
+      td.arrow {
+        cursor: pointer;
+  
+        div {
+          min-width: var(--arrow-width);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          font-size: 50px;
+          color: #aaa;
+  
+          span {
+            transform: rotate(-90deg);
+          }
+        }
+  
+        &:hover span {
+          color: #111;
+        }
+  
+        &:nth-child(3) {
+          span {
+            transform: rotate(90deg) translateY(10px);
+          }
         }
       }
-
-      &:hover span {
-        color: #111;
-      }
-
-      &:nth-child(3) {
-        span {
-          transform: rotate(90deg) translateY(10px);
-        }
-      }
-    }
-
-   td {
-     div.slot {
-       overflow: hidden;
-       display: flex;
-       align-items: flex-start;
-       max-width: 100%;
-
-       .slot-parent {
-         transition: transform 0.3s ease;
-         transform: translateX(var(--offset));
-
-         .fez-slot {
-           display: flex;
-
-           & > div {
-             width: 100%;
-             flex-shrink: 0;
+  
+     td {
+       div.slot {
+         overflow: hidden;
+         display: flex;
+         align-items: flex-start;
+         max-width: 100%;
+  
+         .slot-parent {
+           transition: transform 0.3s ease;
+           transform: translateX(var(--offset));
+  
+           .fez-slot {
+             display: flex;
+  
+             & > div {
+               width: 100%;
+               flex-shrink: 0;
+              }
             }
           }
         }
       }
     }
-  }
-&lt;/style>
-
-&lt;table class="slides" style="{{ @cssVars().join(';') }}">
-  &lt;tr>
-    &lt;td class="arrow" onclick="@changeSlide(-1)">
-      &lt;div>
-        &lt;span>&#8679;&lt;/span>
-      &lt;/div>
-    &lt;/td>
-    &lt;td>
-      &lt;div class="slot">
-        &lt;div class="slot-parent">
-          &lt;slot />
+  &lt;/style>
+  
+  &lt;table class="slides" style="{{ @cssVars().join(';') }}">
+    &lt;tr>
+      &lt;td class="arrow" onclick="@changeSlide(-1)">
+        &lt;div>
+          &lt;span>&#8679;&lt;/span>
         &lt;/div>
-      &lt;/div>
-    &lt;/td>
-    &lt;td class="arrow" onclick="@changeSlide(1)">
-      &lt;div>
-        &lt;span>&#8679;&lt;/span>
-      &lt;/div>
-    &lt;/td>
-  &lt;/tr>
-&lt;/table>
-
+      &lt;/td>
+      &lt;td>
+        &lt;div class="slot">
+          &lt;div class="slot-parent">
+            &lt;slot />
+          &lt;/div>
+        &lt;/div>
+      &lt;/td>
+      &lt;td class="arrow" onclick="@changeSlide(1)">
+        &lt;div>
+          &lt;span>&#8679;&lt;/span>
+        &lt;/div>
+      &lt;/td>
+    &lt;/tr>
+  &lt;/table>
+  &lt;/template>
         </ui-editor>
       </div>
     </ui-tabs>
@@ -1610,120 +1829,119 @@
 
 <fez-compile>
   <template fez="ui-slider">
-    <script>
-  cssVars() {
-    return [
-      `--arrow-width: ${this.arrowWidth}px`,
-      `--offset: -${this.state.offset}px`,
-    ]
-  }
-
-  setSlide(num) {
-    this.state.slide = num
-  }
-
-  changeSlide(direction){
-    this.state.slide += direction
-
-    const slides = this.find('.fez-slot').querySelectorAll(":scope > div")
-
-    if (this.state.slide < 0) {
-      this.state.slide = slides.length - 1
-    } else if (!slides[this.state.slide]) {
-      this.state.slide = 0
+  <script>
+    cssVars() {
+      return [
+        `--arrow-width: ${this.arrowWidth}px`,
+        `--offset: -${this.state.offset}px`,
+      ]
     }
-  }
-
-  beforeRender() {
-    const node = this.find('.slot')
-    if (node) {
-      this.state.offset = node.getBoundingClientRect().width * this.state.slide
+  
+    setSlide(num) {
+      this.state.slide = num
     }
-  }
-
-  connect() {
-    this.arrowWidth = 100
-    this.setSlide(0)
-    this.onResize(this.render, 100)
-  }
-</script>
-
-<style>
-  table.slides {
-    td.arrow {
-      cursor: pointer;
-
-      div {
-        min-width: var(--arrow-width);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 50px;
-        color: #aaa;
-
-        span {
-          transform: rotate(-90deg);
+  
+    changeSlide(direction){
+      this.state.slide += direction
+  
+      const slides = this.find('.fez-slot').querySelectorAll(":scope > div")
+  
+      if (this.state.slide < 0) {
+        this.state.slide = slides.length - 1
+      } else if (!slides[this.state.slide]) {
+        this.state.slide = 0
+      }
+    }
+  
+    beforeRender() {
+      const node = this.find('.slot')
+      if (node) {
+        this.state.offset = node.getBoundingClientRect().width * this.state.slide
+      }
+    }
+  
+    connect() {
+      this.arrowWidth = 100
+      this.setSlide(0)
+      this.onResize(this.render, 100)
+    }
+  </script>
+  
+  <style>
+    table.slides {
+      td.arrow {
+        cursor: pointer;
+  
+        div {
+          min-width: var(--arrow-width);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          font-size: 50px;
+          color: #aaa;
+  
+          span {
+            transform: rotate(-90deg);
+          }
+        }
+  
+        &:hover span {
+          color: #111;
+        }
+  
+        &:nth-child(3) {
+          span {
+            transform: rotate(90deg) translateY(10px);
+          }
         }
       }
-
-      &:hover span {
-        color: #111;
-      }
-
-      &:nth-child(3) {
-        span {
-          transform: rotate(90deg) translateY(10px);
-        }
-      }
-    }
-
-   td {
-     div.slot {
-       overflow: hidden;
-       display: flex;
-       align-items: flex-start;
-       max-width: 100%;
-
-       .slot-parent {
-         transition: transform 0.3s ease;
-         transform: translateX(var(--offset));
-
-         .fez-slot {
-           display: flex;
-
-           & > div {
-             width: 100%;
-             flex-shrink: 0;
+  
+     td {
+       div.slot {
+         overflow: hidden;
+         display: flex;
+         align-items: flex-start;
+         max-width: 100%;
+  
+         .slot-parent {
+           transition: transform 0.3s ease;
+           transform: translateX(var(--offset));
+  
+           .fez-slot {
+             display: flex;
+  
+             & > div {
+               width: 100%;
+               flex-shrink: 0;
+              }
             }
           }
         }
       }
     }
-  }
-</style>
-
-<table class="slides" style="{{ @cssVars().join(';') }}">
-  <tr>
-    <td class="arrow" onclick="@changeSlide(-1)">
-      <div>
-        <span>&#8679;</span>
-      </div>
-    </td>
-    <td>
-      <div class="slot">
-        <div class="slot-parent">
-          <slot />
+  </style>
+  
+  <table class="slides" style="{{ @cssVars().join(';') }}">
+    <tr>
+      <td class="arrow" onclick="@changeSlide(-1)">
+        <div>
+          <span>&#8679;</span>
         </div>
-      </div>
-    </td>
-    <td class="arrow" onclick="@changeSlide(1)">
-      <div>
-        <span>&#8679;</span>
-      </div>
-    </td>
-  </tr>
-</table>
-
+      </td>
+      <td>
+        <div class="slot">
+          <div class="slot-parent">
+            <slot />
+          </div>
+        </div>
+      </td>
+      <td class="arrow" onclick="@changeSlide(1)">
+        <div>
+          <span>&#8679;</span>
+        </div>
+      </td>
+    </tr>
+  </table>
   </template>
 </fez-compile>
 
@@ -1833,74 +2051,77 @@
           name="tabs"
           :action="applyChanges"
         >
-          &lt;script>
-  activateNode(node) {
-    node.parent().find('> *').removeClass('active')
-    node.addClass('active')
-  }
-
-  activate(num) {
-    this.active = parseInt(num)
-    const target = this.$root.find(`> div.header > span:nth-child(${num + 1})`)
-    this.activateNode(target)
-    this.activateNode(this.tabs[num])
-  }
-
-  connect(props) {
-    this.tabs = this.childNodes(n => $(n))
-
-    this.render([
-      this.n('div.header', this.tabs.map((tab, index) =>
-        this.n(`span`, tab.attr('title'), { onclick: ()=> this.activate(index) })
-      )),
-      this.n('.body', '&lt;slot />')
-    ]);
-
-    this.activate(0)
-  }
-&lt;/script>
-
-&lt;style>
-  --tabs-border: 1px solid #ccc;
-
-  max-width: calc(100%);
-
-  .header {
-    margin-bottom: -2px;
-    position: relative;
-    z-index: 1;
-
-    & > span {
+          &lt;template fez="ui-tabs">
+  &lt;script>
+    activateNode(node) {
+      node.parent().find('> *').removeClass('active')
+      node.addClass('active')
+    }
+  
+    activate(num) {
+      this.active = parseInt(num)
+      const target = this.$root.find(`> div.header > span:nth-child(${num + 1})`)
+      this.activateNode(target)
+      this.activateNode(this.tabs[num])
+    }
+  
+    connect(props) {
+      const { n, activate } = this;
+  
+      this.tabs = this.childNodes(n => $(n))
+  
+      this.render([
+        n('div.header', this.tabs.map((tab, index) =>
+          n('span', tab.attr('title'), { onclick: ()=> activate(index) })
+        )),
+        n('.body', '&lt;slot />')
+      ]);
+  
+      this.activate(0)
+    }
+  &lt;/script>
+  
+  &lt;style>
+    --tabs-border: 1px solid #ccc;
+  
+    max-width: calc(100%);
+  
+    .header {
+      margin-bottom: -2px;
+      position: relative;
+      z-index: 1;
+  
+      & > span {
+        border: var(--tabs-border);
+        padding: 8px 15px;
+        display: inline-block;
+        border-radius: 8px 8px 0 0;
+        margin-right: -1px;
+        background: #eee;
+        cursor: pointer;
+  
+        &.active {
+          background-color: #fff;
+          border-bottom: none;
+        }
+      }
+    }
+  
+    .body {
       border: var(--tabs-border);
       padding: 8px 15px;
-      display: inline-block;
-      border-radius: 8px 8px 0 0;
-      margin-right: -1px;
-      background: #eee;
-      cursor: pointer;
-
-      &.active {
-        background-color: #fff;
-        border-bottom: none;
+      background: #fff;
+  
+      & > div {
+        display: none;
+  
+        &.active {
+          display: block;
+        }
       }
     }
-  }
-
-  .body {
-    border: var(--tabs-border);
-    padding: 8px 15px;
-    background: #fff;
-
-    & > div {
-      display: none;
-
-      &.active {
-        display: block;
-      }
-    }
-  }
-&lt;/style>
-
+  &lt;/style>
+  &lt;/template>
         </ui-editor>
       </div>
     </ui-tabs>
@@ -1909,74 +2130,75 @@
 
 <fez-compile>
   <template fez="ui-tabs">
-    <script>
-  activateNode(node) {
-    node.parent().find('> *').removeClass('active')
-    node.addClass('active')
-  }
-
-  activate(num) {
-    this.active = parseInt(num)
-    const target = this.$root.find(`> div.header > span:nth-child(${num + 1})`)
-    this.activateNode(target)
-    this.activateNode(this.tabs[num])
-  }
-
-  connect(props) {
-    this.tabs = this.childNodes(n => $(n))
-
-    this.render([
-      this.n('div.header', this.tabs.map((tab, index) =>
-        this.n(`span`, tab.attr('title'), { onclick: ()=> this.activate(index) })
-      )),
-      this.n('.body', '<slot />')
-    ]);
-
-    this.activate(0)
-  }
-</script>
-
-<style>
-  --tabs-border: 1px solid #ccc;
-
-  max-width: calc(100%);
-
-  .header {
-    margin-bottom: -2px;
-    position: relative;
-    z-index: 1;
-
-    & > span {
+  <script>
+    activateNode(node) {
+      node.parent().find('> *').removeClass('active')
+      node.addClass('active')
+    }
+  
+    activate(num) {
+      this.active = parseInt(num)
+      const target = this.$root.find(`> div.header > span:nth-child(${num + 1})`)
+      this.activateNode(target)
+      this.activateNode(this.tabs[num])
+    }
+  
+    connect(props) {
+      const { n, activate } = this;
+  
+      this.tabs = this.childNodes(n => $(n))
+  
+      this.render([
+        n('div.header', this.tabs.map((tab, index) =>
+          n('span', tab.attr('title'), { onclick: ()=> activate(index) })
+        )),
+        n('.body', '<slot />')
+      ]);
+  
+      this.activate(0)
+    }
+  </script>
+  
+  <style>
+    --tabs-border: 1px solid #ccc;
+  
+    max-width: calc(100%);
+  
+    .header {
+      margin-bottom: -2px;
+      position: relative;
+      z-index: 1;
+  
+      & > span {
+        border: var(--tabs-border);
+        padding: 8px 15px;
+        display: inline-block;
+        border-radius: 8px 8px 0 0;
+        margin-right: -1px;
+        background: #eee;
+        cursor: pointer;
+  
+        &.active {
+          background-color: #fff;
+          border-bottom: none;
+        }
+      }
+    }
+  
+    .body {
       border: var(--tabs-border);
       padding: 8px 15px;
-      display: inline-block;
-      border-radius: 8px 8px 0 0;
-      margin-right: -1px;
-      background: #eee;
-      cursor: pointer;
-
-      &.active {
-        background-color: #fff;
-        border-bottom: none;
+      background: #fff;
+  
+      & > div {
+        display: none;
+  
+        &.active {
+          display: block;
+        }
       }
     }
-  }
-
-  .body {
-    border: var(--tabs-border);
-    padding: 8px 15px;
-    background: #fff;
-
-    & > div {
-      display: none;
-
-      &.active {
-        display: block;
-      }
-    }
-  }
-</style>
-
+  </style>
   </template>
 </fez-compile>
 
@@ -2038,66 +2260,67 @@
           name="time"
           :action="applyChanges"
         >
-          &lt;script>
-  NAME = 'div'
-
-  getRandomColor() {
-    const colors = ['red', 'blue', 'green', 'teal', 'black', 'magenta', 'orange', 'lightblue']
-    return colors[Math.floor(Math.random() * colors.length)]
-  }
-
-  setRandomColor() {
-    const color = this.getRandomColor()
-    // this.find('.color-name').innerHTML = color
-    this.root.querySelector('.color-name').innerHTML = color
-    this.root.style.borderColor = color
-  }
-
-  getTime() {
-    return (new Date()).getTime()
-  }
-
-  setTime() {
-    this.val('.time', this.getTime())
-  }
-
-  afterRender() {
-    this.setTime()
-  }
-
-  connect() {
-    this.setInterval(this.setTime, 1000)
-    this.setRandomColor()
-  }
-&lt;/script>
-
-&lt;style>
-  /* styles are applied to body, so this becomes body background color */
-  background-color: #f7f7f7;
-
-  /* local component style applied to mounted component root */
-  :fez {
-    border: 10px solid green;
-    border-radius: 10px;
-    padding: 10px;
-    background-color: #fff;
-
-    button {
-      font-size: 16px;
+          &lt;template fez="ui-time">
+  &lt;script>
+    NAME = 'div'
+  
+    getRandomColor() {
+      const colors = ['red', 'blue', 'green', 'teal', 'black', 'magenta', 'orange', 'lightblue']
+      return colors[Math.floor(Math.random() * colors.length)]
     }
-  }
-&lt;/style>
-
-&lt;p>Param city: {{ @props.city }}&lt;/p>
-&lt;p>Time now: &lt;span class="time">&lt;/span>&lt;/p>
-&lt;p>Random num: &lt;span>{{ Math.random() }}&lt;/span>&lt;/p>
-&lt;button onclick="@setRandomColor()">random color&lt;/button>
-&sdot;
-&lt;button onclick="@render()">refresh & preserve slot&lt;/button>
-&lt;hr />
-
-&lt;slot>&lt;/slot>
-
+  
+    setRandomColor() {
+      const color = this.getRandomColor()
+      // this.find('.color-name').innerHTML = color
+      this.root.querySelector('.color-name').innerHTML = color
+      this.root.style.borderColor = color
+    }
+  
+    getTime() {
+      return (new Date()).getTime()
+    }
+  
+    setTime() {
+      this.val('.time', this.getTime())
+    }
+  
+    afterRender() {
+      this.setTime()
+    }
+  
+    connect() {
+      this.setInterval(this.setTime, 1000)
+      this.setRandomColor()
+    }
+  &lt;/script>
+  
+  &lt;style>
+    /* styles are applied to body, so this becomes body background color */
+    background-color: #f7f7f7;
+  
+    /* local component style applied to mounted component root */
+    :fez {
+      border: 10px solid green;
+      border-radius: 10px;
+      padding: 10px;
+      background-color: #fff;
+  
+      button {
+        font-size: 16px;
+      }
+    }
+  &lt;/style>
+  
+  &lt;p>Param city: {{ @props.city }}&lt;/p>
+  &lt;p>Time now: &lt;span class="time">&lt;/span>&lt;/p>
+  &lt;p>Random num: &lt;span>{{ Math.random() }}&lt;/span>&lt;/p>
+  &lt;button onclick="@setRandomColor()">random color&lt;/button>
+  &sdot;
+  &lt;button onclick="@render()">refresh & preserve slot&lt;/button>
+  &lt;hr />
+  
+  &lt;slot>&lt;/slot>
+  &lt;/template>
         </ui-editor>
       </div>
     </ui-tabs>
@@ -2106,66 +2329,65 @@
 
 <fez-compile>
   <template fez="ui-time">
-    <script>
-  NAME = 'div'
-
-  getRandomColor() {
-    const colors = ['red', 'blue', 'green', 'teal', 'black', 'magenta', 'orange', 'lightblue']
-    return colors[Math.floor(Math.random() * colors.length)]
-  }
-
-  setRandomColor() {
-    const color = this.getRandomColor()
-    // this.find('.color-name').innerHTML = color
-    this.root.querySelector('.color-name').innerHTML = color
-    this.root.style.borderColor = color
-  }
-
-  getTime() {
-    return (new Date()).getTime()
-  }
-
-  setTime() {
-    this.val('.time', this.getTime())
-  }
-
-  afterRender() {
-    this.setTime()
-  }
-
-  connect() {
-    this.setInterval(this.setTime, 1000)
-    this.setRandomColor()
-  }
-</script>
-
-<style>
-  /* styles are applied to body, so this becomes body background color */
-  background-color: #f7f7f7;
-
-  /* local component style applied to mounted component root */
-  :fez {
-    border: 10px solid green;
-    border-radius: 10px;
-    padding: 10px;
-    background-color: #fff;
-
-    button {
-      font-size: 16px;
+  <script>
+    NAME = 'div'
+  
+    getRandomColor() {
+      const colors = ['red', 'blue', 'green', 'teal', 'black', 'magenta', 'orange', 'lightblue']
+      return colors[Math.floor(Math.random() * colors.length)]
     }
-  }
-</style>
-
-<p>Param city: {{ @props.city }}</p>
-<p>Time now: <span class="time"></span></p>
-<p>Random num: <span>{{ Math.random() }}</span></p>
-<button onclick="@setRandomColor()">random color</button>
-&sdot;
-<button onclick="@render()">refresh & preserve slot</button>
-<hr />
-
-<slot></slot>
-
+  
+    setRandomColor() {
+      const color = this.getRandomColor()
+      // this.find('.color-name').innerHTML = color
+      this.root.querySelector('.color-name').innerHTML = color
+      this.root.style.borderColor = color
+    }
+  
+    getTime() {
+      return (new Date()).getTime()
+    }
+  
+    setTime() {
+      this.val('.time', this.getTime())
+    }
+  
+    afterRender() {
+      this.setTime()
+    }
+  
+    connect() {
+      this.setInterval(this.setTime, 1000)
+      this.setRandomColor()
+    }
+  </script>
+  
+  <style>
+    /* styles are applied to body, so this becomes body background color */
+    background-color: #f7f7f7;
+  
+    /* local component style applied to mounted component root */
+    :fez {
+      border: 10px solid green;
+      border-radius: 10px;
+      padding: 10px;
+      background-color: #fff;
+  
+      button {
+        font-size: 16px;
+      }
+    }
+  </style>
+  
+  <p>Param city: {{ @props.city }}</p>
+  <p>Time now: <span class="time"></span></p>
+  <p>Random num: <span>{{ Math.random() }}</span></p>
+  <button onclick="@setRandomColor()">random color</button>
+  &sdot;
+  <button onclick="@render()">refresh & preserve slot</button>
+  <hr />
+  
+  <slot></slot>
   </template>
 </fez-compile>
 
@@ -2211,83 +2433,84 @@
           name="todo"
           :action="applyChanges"
         >
-          &lt;script>
-  clearCompleted() {
-    this.state.tasks = this.state.tasks.filter((t) => !t.done)
-  }
-
-  removeTask(index) {
-    this.state.tasks = this.state.tasks.filter((_, i) => i !== index);
-  }
-
-  addTask() {
-    // no need to force update template, this is automatic because we are using reactiveStore()
-    this.counter ||= 0
-    this.state.tasks.push({
-      name: `new task ${++this.counter}`,
-      done: false,
-      animate: true
-    })
-  }
-
-  animate(node) {
-    // same as in Svelte, uf you define fez-use="methodName", method will be called when node is added to dom.
-    // in this case, we animate show new node
-
-    $(node)
-      .css('display', 'block')
-      .animate({height: '33px', opacity: 1}, 200, () => {
-        delete this.state.tasks[this.state.tasks.length-1].animate
-        $(node).css('height', 'auto')
+          &lt;template fez="ui-todo">
+  &lt;script>
+    clearCompleted() {
+      this.state.tasks = this.state.tasks.filter((t) => !t.done)
+    }
+  
+    removeTask(index) {
+      this.state.tasks = this.state.tasks.filter((_, i) => i !== index);
+    }
+  
+    addTask() {
+      // no need to force update template, this is automatic because we are using reactiveStore()
+      this.counter ||= 0
+      this.state.tasks.push({
+        name: `new task ${++this.counter}`,
+        done: false,
+        animate: true
       })
-  }
-
-  connect() {
-    this.state.tasks = [
-      {name: 'First task', done: false},
-      {name: 'Second task', done: false},
-      {name: 'Third task', done: true },
-    ]
-  }
-&lt;/script>
-
-&lt;h3>Tasks&lt;/h3>
-{{#if !@state.tasks[0] }}
-  &lt;p>No tasks found&lt;/p>
-{{/if}}
-
-{{#for task, index in @state.tasks}}
-  {{#if task.animate}} &lt;!-- this is fine because this is string templating -->
-    &lt;p fez-use="animate" style="display: none; height: 0px; opacity: 0;">
-  {{:else}}
-    &lt;p>
+    }
+  
+    animate(node) {
+      // same as in Svelte, uf you define fez-use="methodName", method will be called when node is added to dom.
+      // in this case, we animate show new node
+  
+      $(node)
+        .css('display', 'block')
+        .animate({height: '33px', opacity: 1}, 200, () => {
+          delete this.state.tasks[this.state.tasks.length-1].animate
+          $(node).css('height', 'auto')
+        })
+    }
+  
+    connect() {
+      this.state.tasks = [
+        {name: 'First task', done: false},
+        {name: 'Second task', done: false},
+        {name: 'Third task', done: true },
+      ]
+    }
+  &lt;/script>
+  
+  &lt;h3>Tasks&lt;/h3>
+  {{#if !@state.tasks[0] }}
+    &lt;p>No tasks found&lt;/p>
   {{/if}}
-    &lt;input
-      type="text"
-      fez-bind="state.tasks[{{index}}].name"
-      style="{{ task.done ? 'background-color: #ccc;' : '' }}"
-    />
+  
+  {{#for task, index in @state.tasks}}
+    {{#if task.animate}} &lt;!-- this is fine because this is string templating -->
+      &lt;p fez-use="animate" style="display: none; height: 0px; opacity: 0;">
+    {{:else}}
+      &lt;p>
+    {{/if}}
+      &lt;input
+        type="text"
+        fez-bind="state.tasks[{{index}}].name"
+        style="{{ task.done ? 'background-color: #ccc;' : '' }}"
+      />
+      &sdot;
+      &lt;input
+        type="checkbox"
+        fez-bind="state.tasks[{{index}}].done"
+      />
+      &sdot;
+      &lt;button onclick="@removeTask({{ index }})">&times;&lt;/button>
+    &lt;/p>
+  {{/for}}
+  &lt;p>
+    &lt;button onclick="@addTask()">add task&lt;/button>
     &sdot;
-    &lt;input
-      type="checkbox"
-      fez-bind="state.tasks[{{index}}].done"
-    />
-    &sdot;
-    &lt;button onclick="@removeTask({{ index }})">&times;&lt;/button>
+    &lt;button onclick="@clearCompleted()">clear completed&lt;/button>
   &lt;/p>
-{{/for}}
-&lt;p>
-  &lt;button onclick="@addTask()">add task&lt;/button>
-  &sdot;
-  &lt;button onclick="@clearCompleted()">clear completed&lt;/button>
-&lt;/p>
-&lt;pre class="code">{{ JSON.stringify(this.state.tasks, null, 2) }}&lt;/pre>
-&lt;p>If you want to preserve state in templates, wrap content in "fez-slot"&lt;/p>
-&lt;p>Refresh: {{Math.random()}}&lt;/p>
-&lt;p class="fez-slot">
-  Do not refresh: {{Math.random()}}.
-&lt;/p>
-
+  &lt;pre class="code">{{ JSON.stringify(this.state.tasks, null, 2) }}&lt;/pre>
+  &lt;p>If you want to preserve state in templates, wrap content in "fez-slot"&lt;/p>
+  &lt;p>Refresh: {{Math.random()}}&lt;/p>
+  &lt;p class="fez-slot">
+    Do not refresh: {{Math.random()}}.
+  &lt;/p>
+  &lt;/template>
         </ui-editor>
       </div>
     </ui-tabs>
@@ -2296,83 +2519,82 @@
 
 <fez-compile>
   <template fez="ui-todo">
-    <script>
-  clearCompleted() {
-    this.state.tasks = this.state.tasks.filter((t) => !t.done)
-  }
-
-  removeTask(index) {
-    this.state.tasks = this.state.tasks.filter((_, i) => i !== index);
-  }
-
-  addTask() {
-    // no need to force update template, this is automatic because we are using reactiveStore()
-    this.counter ||= 0
-    this.state.tasks.push({
-      name: `new task ${++this.counter}`,
-      done: false,
-      animate: true
-    })
-  }
-
-  animate(node) {
-    // same as in Svelte, uf you define fez-use="methodName", method will be called when node is added to dom.
-    // in this case, we animate show new node
-
-    $(node)
-      .css('display', 'block')
-      .animate({height: '33px', opacity: 1}, 200, () => {
-        delete this.state.tasks[this.state.tasks.length-1].animate
-        $(node).css('height', 'auto')
+  <script>
+    clearCompleted() {
+      this.state.tasks = this.state.tasks.filter((t) => !t.done)
+    }
+  
+    removeTask(index) {
+      this.state.tasks = this.state.tasks.filter((_, i) => i !== index);
+    }
+  
+    addTask() {
+      // no need to force update template, this is automatic because we are using reactiveStore()
+      this.counter ||= 0
+      this.state.tasks.push({
+        name: `new task ${++this.counter}`,
+        done: false,
+        animate: true
       })
-  }
-
-  connect() {
-    this.state.tasks = [
-      {name: 'First task', done: false},
-      {name: 'Second task', done: false},
-      {name: 'Third task', done: true },
-    ]
-  }
-</script>
-
-<h3>Tasks</h3>
-{{#if !@state.tasks[0] }}
-  <p>No tasks found</p>
-{{/if}}
-
-{{#for task, index in @state.tasks}}
-  {{#if task.animate}} <!-- this is fine because this is string templating -->
-    <p fez-use="animate" style="display: none; height: 0px; opacity: 0;">
-  {{:else}}
-    <p>
+    }
+  
+    animate(node) {
+      // same as in Svelte, uf you define fez-use="methodName", method will be called when node is added to dom.
+      // in this case, we animate show new node
+  
+      $(node)
+        .css('display', 'block')
+        .animate({height: '33px', opacity: 1}, 200, () => {
+          delete this.state.tasks[this.state.tasks.length-1].animate
+          $(node).css('height', 'auto')
+        })
+    }
+  
+    connect() {
+      this.state.tasks = [
+        {name: 'First task', done: false},
+        {name: 'Second task', done: false},
+        {name: 'Third task', done: true },
+      ]
+    }
+  </script>
+  
+  <h3>Tasks</h3>
+  {{#if !@state.tasks[0] }}
+    <p>No tasks found</p>
   {{/if}}
-    <input
-      type="text"
-      fez-bind="state.tasks[{{index}}].name"
-      style="{{ task.done ? 'background-color: #ccc;' : '' }}"
-    />
+  
+  {{#for task, index in @state.tasks}}
+    {{#if task.animate}} <!-- this is fine because this is string templating -->
+      <p fez-use="animate" style="display: none; height: 0px; opacity: 0;">
+    {{:else}}
+      <p>
+    {{/if}}
+      <input
+        type="text"
+        fez-bind="state.tasks[{{index}}].name"
+        style="{{ task.done ? 'background-color: #ccc;' : '' }}"
+      />
+      &sdot;
+      <input
+        type="checkbox"
+        fez-bind="state.tasks[{{index}}].done"
+      />
+      &sdot;
+      <button onclick="@removeTask({{ index }})">&times;</button>
+    </p>
+  {{/for}}
+  <p>
+    <button onclick="@addTask()">add task</button>
     &sdot;
-    <input
-      type="checkbox"
-      fez-bind="state.tasks[{{index}}].done"
-    />
-    &sdot;
-    <button onclick="@removeTask({{ index }})">&times;</button>
+    <button onclick="@clearCompleted()">clear completed</button>
   </p>
-{{/for}}
-<p>
-  <button onclick="@addTask()">add task</button>
-  &sdot;
-  <button onclick="@clearCompleted()">clear completed</button>
-</p>
-<pre class="code">{{ JSON.stringify(this.state.tasks, null, 2) }}</pre>
-<p>If you want to preserve state in templates, wrap content in "fez-slot"</p>
-<p>Refresh: {{Math.random()}}</p>
-<p class="fez-slot">
-  Do not refresh: {{Math.random()}}.
-</p>
-
+  <pre class="code">{{ JSON.stringify(this.state.tasks, null, 2) }}</pre>
+  <p>If you want to preserve state in templates, wrap content in "fez-slot"</p>
+  <p>Refresh: {{Math.random()}}</p>
+  <p class="fez-slot">
+    Do not refresh: {{Math.random()}}.
+  </p>
   </template>
 </fez-compile>
 
@@ -2386,7 +2608,8 @@
 
   <script>
     window.applyChanges = function(name) {
-      Fez.compile(`ui-${name}`, Fez(`#code-ui-${name}`).getSource())
+      const node = $(Fez(`#code-ui-${name}`).getSource())[0]
+      Fez.compile( node )
       $(`#body-${name}`).html( Fez(`#html-${name}`).getSource() )
     }
   </script>

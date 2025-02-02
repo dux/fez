@@ -14,6 +14,7 @@
   @fez.info = body[0]
   @fez.html = body[1]
   @fez.code = read(@fez.base + '.fez')
+  @fez.code = %[<template fez="ui-#{name}">\n  #{@fez.code.gsub($/, "\n  ")}</template>]
 %>
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
@@ -55,7 +56,5 @@
 </div>
 
 <fez-compile>
-  <template fez="ui-<%= @fez.name %>">
-    <%= @fez.code %>
-  </template>
+  <%= @fez.code %>
 </fez-compile>

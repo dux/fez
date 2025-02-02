@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Test</title>
+  <title>Fez - JavaScript DOM compoennt framework.</title>
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-  <script src="./dist/fez.js"></script>
+  <script src="./dist/fez.js?t=<%= Time.now.to_i %>"></script>
   <script>
     window.L = console.log
   </script>
@@ -42,11 +42,15 @@
     <h1 class="jumbo">&darr;</h1>
     <h1>How FEZ feels and works?</h1>
 
-    <p>Component model is similar to <code>Vue</code> or <code>Svelte</code>, but there is no compile step. You work on HTML doc as it is was allready monuted to root. Render pages from server, and just use custom HTML tags you have created, as you would use any other HTML tag.</p>
+    <p>
+      FEZ brings a familiar <b>component-based approach</b> you know from Vue or React, but strips away the build complexity.
+      It lets you write components naturally, right in your HTML, <b>without needing a compilation step</b>. Think of it as a jQuery for modern component development, <b>with the simplicity of dropping a script tag into your page</b>.
+      You get to use your components as if they were native HTML elements, making the development experience straightforward and intuitive.
+    </p>
 
     <ul>
       <li>🔌 <i>Native Browser Components:</i> Uses standard <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements">custom elements</a>. Create tags like <code>&lt;ui-clock&gt;</code>, place them anywhere in your HTML, and they just work. (Try it now in dev tools - instant magic!)</li>
-      <li>⚡ <i>Zero Build Step Hassle:</i> Works directly in the browser with a tiny runtime (20kb raw, 6kb zipped - smaller than most cat GIFs).</li>
+      <li>⚡ <i>Zero Build Step Hassle:</i> Works directly in the browser with a tiny runtime (20kb raw, 9kb zipped - smaller than most cat GIFs).</li>
       <li>🔄 <i>Smart State Management:</i> Automatically re-renders components using <a href="https://github.com/bigskysoftware/idiomorph">Idiomorph</a> for efficient DOM updates when data changes.</li>
       <li>📜 <i>Flexible Templating:</i> Choose between HTML-like templates (similar to <a href="https://dev.to/cloudcannon/templating-in-sveltekit-3ikm">Svelte</a>) or programmatic <a href="https://github.com/dux/fez/blob/main/src/vendor/n.js">node building</a>.</li>
       <li>🎨 <i>CSS Superpowers:</i> Built-in SCSS support via <a href="https://goober.js.org/">Goober</a> with scoped/global styles and dynamic values.</li>
@@ -99,6 +103,8 @@
   <a herf="#" name="examples"></a>
   <h1>Examples</h1>
 
+  <p class="center" style="margin-bottom: 40px;">You will learn all Fez features, just by inspecting this examples. You can edit and update both HTML and Fez code.</p>
+
   <%= read('tpl/system.fez') %>
 
   <% for code in fileNames('fez/*.fez') %>
@@ -113,7 +119,8 @@
 
   <script>
     window.applyChanges = function(name) {
-      Fez.compile(`ui-${name}`, Fez(`#code-ui-${name}`).getSource())
+      const node = $(Fez(`#code-ui-${name}`).getSource())[0]
+      Fez.compile( node )
       $(`#body-${name}`).html( Fez(`#html-${name}`).getSource() )
     }
   </script>

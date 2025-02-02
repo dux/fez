@@ -6,8 +6,6 @@ window.FezBase = FezBase
 import Fez from './lib/root'
 window.Fez = Fez
 
-import './lib/compile'
-
 // runtime fez tag creation
 //<fez-compile tag="app-editor">
 //  <script>
