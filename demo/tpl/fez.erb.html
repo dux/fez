@@ -1,0 +1,61 @@
+<%
+  name = @arg
+  FezBaae ||= Struct.new :name, :base, :info, :html, :code
+
+  @fez = FezBaae.new name: name, base: "./demo/fez/#{name}"
+
+  body = File.read("#{@fez.base}.html").split(/\n\s*\n/, 2)
+
+  unless body[1]
+    body[1] = body[0]
+    body[0] = ''
+  end
+
+  @fez.info = body[0]
+  @fez.html = body[1]
+  @fez.code = read(@fez.base + '.fez')
+%>
+
+<div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+  <div style="margin-top: 10px;">
+    <h3 style="margin-top: 0;">Demo: ui-<%= @fez.name %></h3>
+
+    <div id="body-<%= @fez.name %>" style="padding-bottom: 20px;">
+      <%= @fez.html %>
+    </div>
+  </div>
+  <div style="margin-top: 20px;">
+    <ui-tabs>
+      <div title="Info" active="true">
+        <%= @fez.info %>
+      </div>
+      <div title="HTML">
+        <ui-editor
+          name="<%= @fez.name %>"
+          id="html-<%= @fez.name %>"
+          file="<%= @fez.base %>.html"
+          language="html"
+          :action="applyChanges"
+        >
+          <%= escape @fez.html %>
+        </ui-editor>
+      </div>
+      <div title="Fez component">
+        <ui-editor
+          id="code-ui-<%= @fez.name %>"
+          file="<%= @fez.base %>.fez"
+          name="<%= @fez.name %>"
+          :action="applyChanges"
+        >
+          <%= escape @fez.code %>
+        </ui-editor>
+      </div>
+    </ui-tabs>
+  </div>
+</div>
+
+<fez-compile tag="ui-<%= @fez.name %>">
+  <template>
+    <%= @fez.code %>
+  </template>
+</fez-compile>

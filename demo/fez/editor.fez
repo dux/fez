@@ -1,9 +1,10 @@
 <script>
   // you need to escape script tag inside fez script block
   Fez.head(`
-    <link rel="stylesheet" href="./demo/hjs-theme.css" />
-    <link rel="stylesheet" href="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.css" />
-    <sc`+`ript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></scr`+`ipt>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+    <s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></sc`+`ript>
+    <s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></sc`+`ript>
+    <s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></sc`+`ript>
   `)
 
   class {
@@ -17,7 +18,12 @@
 
     connect(props) {
       props.language ||= 'html'
-      this.source = this.root.innerHTML
+
+      if (this.root.firstElementChild?.nodeName == 'TEMPLATE') {
+        this.source = Fez.htmlEscape(this.root.firstElementChild.innerHTML)
+      } else {
+        this.source = this.root.innerHTML
+      }
     }
 
     onMount() {
@@ -33,28 +39,34 @@
     }
   }
 </script>
+
 <style>
   code {
     padding: 10px;
+    font-size: 15px;
   }
 
   pre {
-    margin-top: 0;
+    margin-top: 10px;
   }
 </style>
 
 <div class="relative">
   {{#if @props.file}}
-    <div style="font-size: 14px; margin: 4px 0;">
+    <div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
       {{ @props.file }}
       &sdot;
       <span onclick="@copy()">Copy</span>
       {{#if @props.action }}
-        &sdot; <span style="cursor: pointer;" onclick="@props.action('{{ @props.name }}')">Save</span>
+        &sdot;
+        <span
+          style="cursor: pointer; font-weight: 600;"
+          onclick="@props.action('{{ @props.name }}')"
+        >Update</span>
       {{/if}}
     </div>
   {{/if}}
   <pre>
-    <code class="language-js" contenteditable="true"></code>
+    <code class="language-{{ @props.language }}" contenteditable="{{ !!@props.file }}"></code>
   </pre>
 </div>

@@ -4,15 +4,16 @@
 
   connect(props) {
     this.copy('href', 'style')
-
     this.size = (props.size || 64) + 'px'
-
-    this.$root.css('width', this.size)
-    this.$root.css('height', this.size)
+    this.$root.css({width: this.size, height: this.size})
   }
 </script>
 
 <style>
+  img {
+    border-radius: 50%;
+  }
+
   span.avatar {
     display: inline-block;
     text-align: center;
@@ -35,7 +36,7 @@
   <img
     src="{{ @props.src }}"
     class="avatar"
-    style="width: {{ @size }}; height: {{ @size }}; border-radius: 100px;"
+    style="width: {{ @size }}; height: {{ @size }};"
   />
 {{/block}}
 

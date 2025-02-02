@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test</title>
+  <link rel="icon" href="./demo/fez.png">
+  <link rel="stylesheet" href="./demo/main.css" />
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+  <script src="./dist/fez.js"></script>
+  <script>
+    window.L = console.log
+  </script>
+</head>
+<body>
+  <div class="fullscreen">
+    <div>
+      <center>
+        <img src="./demo/fez.png" style="width: 200px;" />
+      </center>
+
+      <h1 class="jumbo" style="margin-bottom: 0px;">
+        Fez &rarr; reactive components
+      </h1>
+
+      <h1 class="center" style="margin-top: 20px;">
+        directly in HTML
+        with zero build steps
+      </h1>
+
+      <p class="center">
+        <a href="#examples">examples</a>
+        &sdot;
+        <a target="playground" href="https://jsbin.com/nitihel/edit?html,output">playground</a>
+        &sdot;
+        <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
+      </p>
+    </div>
+  </div>
+
+  <div class="container-xs" style="margin-top: 300px;">
+    <h1 class="jumbo">&darr;</h1>
+    <h1>How FEZ feels and works?</h1>
+
+    <p>Component model is similar to <code>Vue</code> or <code>Svelte</code>, but there is no compile step. You work on HTML doc as it is was allready monuted to root. Render pages from server, and just use custom HTML tags you have created, as you would use any other HTML tag.</p>
+
+    <ul>
+      <li>🔌 <i>Native Browser Components:</i> Uses standard <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements">custom elements</a>. Create tags like <code>&lt;ui-clock&gt;</code>, place them anywhere in your HTML, and they just work. (Try it now in dev tools - instant magic!)</li>
+      <li>⚡ <i>Zero Build Step Hassle:</i> Works directly in the browser with a tiny runtime (20kb raw, 6kb zipped - smaller than most cat GIFs).</li>
+      <li>🔄 <i>Smart State Management:</i> Automatically re-renders components using <a href="https://github.com/bigskysoftware/idiomorph">Idiomorph</a> for efficient DOM updates when data changes.</li>
+      <li>📜 <i>Flexible Templating:</i> Choose between HTML-like templates (similar to <a href="https://dev.to/cloudcannon/templating-in-sveltekit-3ikm">Svelte</a>) or programmatic <a href="https://github.com/dux/fez/blob/main/src/vendor/n.js">node building</a>.</li>
+      <li>🎨 <i>CSS Superpowers:</i> Built-in SCSS support via <a href="https://goober.js.org/">Goober</a> with scoped/global styles and dynamic values.</li>
+      <li>🤝 <i>Familiar Syntax:</i> Supports Svelte-style <code>use</code>/<code>bind</code> and Vue-like <code>:attribute</code> bindings.</li>
+      <li>🔔 <i>Event System:</i> Built-in pub/sub pattern for cross-component messaging.</li>
+      <li>⏳ <i>Lifecycle Control:</i> Hooks like <code>connect</code>, <code>onMount</code>, <code>beforeRender</code>, and <code>onPropsChange</code> for precise and predictable control.</li>
+    </ul>
+
+    <h1 class="jumbo">&darr;</h1>
+    <h1>Lets build simple counter</h1>
+
+    <p>With reactive state and custom style.</p>
+
+    <ol>
+      <li>Add Fez JS (to HEAD)
+        <ui-editor>
+          <template>
+            <script src="https://dux.github.io/fez/dist/fez.js"></script>
+          </template>
+        </ui-editor>
+      </li>
+      <li>
+        Create ex-counter component
+
+        <%= read('tpl/index_counter.fez') %>
+        <ui-editor id="demo-counter">
+          <template>
+            <%= read('tpl/index_counter.fez') %>
+          </template>
+        </ui-editor>
+      </li>
+      <li>
+        Place ex-counter anywhere in BODY
+        <ui-editor id="demo-counter">
+          <template>
+            <ex-counter></ex-counter>
+          </template>
+        </ui-editor>
+      </li>
+      <li>
+        <p>That is it! Edit this demo on <a target="codepen" href="https://jsbin.com/nitihel/edit?html,output">JSbin</a></p>
+        <ex-counter id="main-counter"></ex-counter>
+      </li>
+    </ol>
+  </div>
+
+  <div style="margin-top: 100px;"></div>
+  <h1 class="jumbo">&darr;</h1>
+  <a herf="#" name="examples"></a>
+  <h1>Examples</h1>
+
+  <%= read('tpl/system.fez') %>
+
+  <% for code in fileNames('fez/*.fez') %>
+    <%= erb(:fez, code) %>
+  <% end %>
+
+  <hr />
+
+  <p class="center">
+    Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024.
+  </p>
+
+  <script>
+    window.applyChanges = function(name) {
+      Fez.compile(`ui-${name}`, Fez(`#code-ui-${name}`).getSource())
+
+      $(`#body-${name}`).html( Fez(`#html-${name}`).getSource() )
+    }
+  </script>
+</body>
+</html>
+

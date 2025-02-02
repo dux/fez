@@ -10,9 +10,16 @@
   </script>
 
   <style>
+    zoom: 2;
+    margin: 10px 0;
+
+    button {
+      position: relative;
+      top: -3px;
+    }
+
     span {
-      margin: 0 10px;
-      color: blue;
+      padding: 0 5px;
     }
   </style>
 

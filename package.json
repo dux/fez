@@ -5,8 +5,8 @@
   "main": "src/fez.js",
   "type": "module",
   "scripts": {
-    "pages": "ruby -r erb -e 'puts ERB.new(File.read(\"./index.tpl.html\")).result' > ./index.html",
-    "build": "bun build.js d",
+    "pages": "ruby demo/helper.rb > ./index.html",
+    "build": "bun build.js b",
     "dev": "bun run pages; open index.html; bun build.js w",
     "sdev": "bun run pages; bun build.js b",
     "xdev": "find . | grep -v '.git' | grep -v 'node_modules' | entr -c bun run sdev"

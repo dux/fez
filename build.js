@@ -40,11 +40,12 @@ if (kind === 'w') {
     console.log('Watching...')
   }
   watch()
-} else if (kind === 'b') {
-  cliRun(`ruby -r erb -e 'puts ERB.new(File.read("./index.tpl.html")).result' > ./index.html`)
+}
+else if (kind === 'b') {
+  cliRun(`ruby demo/helper.rb > ./index.html`)
   await esbuild.build(opts)
-
-} else {
+}
+else {
   console.error('ERROR: OPT w|b not selected')
 }
 
