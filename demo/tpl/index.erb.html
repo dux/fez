@@ -13,7 +13,9 @@
   </script>
 </head>
 <body>
-  <div class="fullscreen">
+  <%= read('tpl/system.fez') %>
+
+  <div class="center" style="max-width: 1100px; ">
     <div>
       <center>
         <img src="./demo/fez.png" style="width: 200px; position: relative; top: 85px;" />
@@ -24,7 +26,7 @@
           Fez &rarr; reactive components
         </h1>
 
-        <h1 class="center" style="margin-top: 20px;">
+        <h1 class="center" style="margin: 20px 0 40px 0; ">
           directly in HTML
           with zero build steps
         </h1>
@@ -38,35 +40,33 @@
         </p>
       </center>
     </div>
-
-    <h1 class="jumbo">&darr;</h1>
-      <div class="cen">
-        <ui-editor>
-<xmp>
-<html>
-  <head>
-    <title>Time</title>
-    <script script="/fez/core.js"></script>
-    <script script="/fez/ui-time.fez"></script>
-  </head>
-  <body>
-    <ui-time city="My place"></ui-time>
-  <body>
-</html>
-</xmp>
-        </ui-editor>
-
-        <span style="width: 200px; padding: 30px;">
-          <ui-clock city="My place"></ui-clock>
-        </span>
-      </center>
-    </div>
   </div>
 
+  <app-arrow></app-arrow>
 
-  <div class="con-xs" style="margin-top: 300px;">
-    <h1 class="jumbo">&darr;</h1>
-    <h1>How does FEZ feel and work?</h1>
+  <div class="cen">
+    <ui-editor>
+      <xmp>
+        <html>
+          <head>
+            <title>Time</title>
+            <script script="/fez/core.js"></script>
+            <script script="/fez/ui-time.fez"></script>
+          </head>
+          <body>
+            <ui-time city="My place"></ui-time>
+          <body>
+        </html>
+      </xmp>
+    </ui-editor>
+
+    <span style="width: 200px; padding: 30px;">
+      <ui-clock city="My place"></ui-clock>
+    </span>
+  </div>
+
+  <div class="con-xs" title="">
+    <app-arrow title="How does FEZ feel and work?"></app-arrow>
 
     <p>
       Fez brings a familiar <b>component-based approach</b> you know from Vue or React, but strips away the build complexity.
@@ -85,8 +85,7 @@
       <li>⏳ <i>Lifecycle Control:</i> Hooks like <code>connect</code>, <code>onMount</code>, <code>beforeRender</code>, and <code>onPropsChange</code> for precise and predictable control.</li>
     </ul>
 
-    <h1 class="jumbo">&darr;</h1>
-    <h1>Lets build simple counter</h1>
+    <app-arrow title="Lets build simple counter"></app-arrow>
 
     <p>With reactive state and custom style.</p>
 
@@ -125,13 +124,10 @@
   </div>
 
   <div style="margin-top: 100px;"></div>
-  <h1 class="jumbo">&darr;</h1>
   <a herf="#" name="examples"></a>
-  <h1>Examples</h1>
+  <app-arrow title="Examples"></app-arrow>
 
-  <p class="center" style="margin-bottom: 40px;">You will learn all Fez features, just by inspecting this examples. You can edit and update both HTML and Fez code.</p>
-
-  <%= read('tpl/system.fez') %>
+  <p class="center" style="margin-bottom: 40px;">You will learn all Fez features, just by inspecting these examples. You can edit and update both HTML and Fez code.</p>
 
   <% for code in fileNames('fez/*.fez') %>
     <%= erb(:fez, code) %>
@@ -148,6 +144,7 @@
       const node = $(Fez(`#code-ui-${name}`).getSource())[0]
       Fez.compile( node )
       $(`#body-${name}`).html( Fez(`#html-${name}`).getSource() )
+      Toast.info('HTML content updated.')
     }
   </script>
 </body>

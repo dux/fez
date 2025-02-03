@@ -7,13 +7,44 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-  <script src="./dist/fez.js?t=1738585477"></script>
+  <script src="./dist/fez.js?t=1738605059"></script>
   <script>
     window.L = console.log
   </script>
 </head>
 <body>
-  <div class="fullscreen">
+  <template fez="app-info">
+  <style>
+    & > div {
+      border: 3px solid #bb8;
+      padding: 10px;
+      border-radius: 8px;
+      background-color: #ffe;
+      margin-bottom: 16px;
+    }
+  </style>
+
+  <div>
+    {{#if @props.small}}
+      <p>
+        <small>{{ @props.small }}</small>
+      </p>
+    {{/if}}
+
+    <slot />
+  </div>
+</template>
+
+<template fez="app-arrow">
+  <h1 class="jumbo" style="margin: 70px auto;">&darr;</h1>
+  {{#if @props.title}}
+    <h1>{{ @props.title }}</h1>
+  {{/if}}
+</template>
+
+
+
+  <div class="center" style="max-width: 1100px; ">
     <div>
       <center>
         <img src="./demo/fez.png" style="width: 200px; position: relative; top: 85px;" />
@@ -24,7 +55,7 @@
           Fez &rarr; reactive components
         </h1>
 
-        <h1 class="center" style="margin-top: 20px;">
+        <h1 class="center" style="margin: 20px 0 40px 0; ">
           directly in HTML
           with zero build steps
         </h1>
@@ -38,35 +69,33 @@
         </p>
       </center>
     </div>
-
-    <h1 class="jumbo">&darr;</h1>
-      <div class="cen">
-        <ui-editor>
-<xmp>
-<html>
-  <head>
-    <title>Time</title>
-    <script script="/fez/core.js"></script>
-    <script script="/fez/ui-time.fez"></script>
-  </head>
-  <body>
-    <ui-time city="My place"></ui-time>
-  <body>
-</html>
-</xmp>
-        </ui-editor>
-
-        <span style="width: 200px; padding: 30px;">
-          <ui-clock city="My place"></ui-clock>
-        </span>
-      </center>
-    </div>
   </div>
 
+  <app-arrow></app-arrow>
 
-  <div class="con-xs" style="margin-top: 300px;">
-    <h1 class="jumbo">&darr;</h1>
-    <h1>How does FEZ feel and work?</h1>
+  <div class="cen">
+    <ui-editor>
+      <xmp>
+        <html>
+          <head>
+            <title>Time</title>
+            <script script="/fez/core.js"></script>
+            <script script="/fez/ui-time.fez"></script>
+          </head>
+          <body>
+            <ui-time city="My place"></ui-time>
+          <body>
+        </html>
+      </xmp>
+    </ui-editor>
+
+    <span style="width: 200px; padding: 30px;">
+      <ui-clock city="My place"></ui-clock>
+    </span>
+  </div>
+
+  <div class="con-xs" title="">
+    <app-arrow title="How does FEZ feel and work?"></app-arrow>
 
     <p>
       Fez brings a familiar <b>component-based approach</b> you know from Vue or React, but strips away the build complexity.
@@ -85,8 +114,7 @@
       <li>⏳ <i>Lifecycle Control:</i> Hooks like <code>connect</code>, <code>onMount</code>, <code>beforeRender</code>, and <code>onPropsChange</code> for precise and predictable control.</li>
     </ul>
 
-    <h1 class="jumbo">&darr;</h1>
-    <h1>Lets build simple counter</h1>
+    <app-arrow title="Lets build simple counter"></app-arrow>
 
     <p>With reactive state and custom style.</p>
 
@@ -195,34 +223,10 @@
   </div>
 
   <div style="margin-top: 100px;"></div>
-  <h1 class="jumbo">&darr;</h1>
   <a herf="#" name="examples"></a>
-  <h1>Examples</h1>
+  <app-arrow title="Examples"></app-arrow>
 
-  <p class="center" style="margin-bottom: 40px;">You will learn all Fez features, just by inspecting this examples. You can edit and update both HTML and Fez code.</p>
-
-  <template fez="app-info">
-  <style>
-    & > div {
-      border: 3px solid #bb8;
-      padding: 10px;
-      border-radius: 8px;
-      background-color: #ffe;
-      margin-bottom: 16px;
-    }
-  </style>
-
-  <div>
-    {{#if @props.small}}
-      <p>
-        <small>{{ @props.small }}</small>
-      </p>
-    {{/if}}
-
-    <slot />
-  </div>
-</template>
-
+  <p class="center" style="margin-bottom: 40px;">You will learn all Fez features, just by inspecting these examples. You can edit and update both HTML and Fez code.</p>
 
   
     
@@ -638,6 +642,17 @@
     flip() {
       this.find('.card').classList.toggle('flipped')
     }
+  
+    autoflip() {
+      setTimeout(()=>{
+        this.flip()
+        this.autoflip()
+      }, 5000  + (Math.random() * 15* 1000))
+    }
+  
+    connect() {
+      this.autoflip()
+    }
   &lt;/script>
   
   &lt;style>
@@ -709,6 +724,17 @@
   <script>
     flip() {
       this.find('.card').classList.toggle('flipped')
+    }
+  
+    autoflip() {
+      setTimeout(()=>{
+        this.flip()
+        this.autoflip()
+      }, 5000  + (Math.random() * 15* 1000))
+    }
+  
+    connect() {
+      this.autoflip()
     }
   </script>
   
@@ -1126,12 +1152,34 @@
     `)
   
     class {
+      reformatIndentation(text) {
+        const lines = text.split('\n').filter(line => line.length > 0);
+  
+        if (lines.length &lt; 2) return text;
+  
+        const secondLine = lines[1];
+        const baseIndent = secondLine.match(/^\s*/)[0].length;
+        const targetIndent = Math.max(0, baseIndent - 2);
+  
+        const processedLines = lines.map(line => {
+          const lineWithSpaces = line.replace(/\t/g, '  ');
+          const leadingSpaces = lineWithSpaces.match(/^\s*/)[0].length;
+  
+          if (leadingSpaces === 0) return line;
+          const newIndent = Math.max(0, leadingSpaces - targetIndent);
+          return ' '.repeat(newIndent) + lineWithSpaces.trim();
+        });
+  
+        return processedLines.join('\n');
+      }
+  
       getSource() {
         return this.codeNode.textContent
       }
   
       copy() {
         navigator.clipboard.writeText(this.getSource())
+        Toast.info('File data copied to clipboard.')
       }
   
       connect(props) {
@@ -1148,11 +1196,11 @@
   
       onMount() {
         const node = this.codeNode = this.find('code')
-        node.innerHTML = this.source.trim()
+        node.innerHTML = this.reformatIndentation(this.source.trim())
   
         Fez.untilTrue(()=>{
           // hljs has a bug on applying styles on first load, this fixes it
-          if (window.hljs) {
+          if (window.hljs && _fez_editor_assets > 1) {
             if (!node.classList.contains('hljs')) {
               hljs.highlightElement(this.codeNode)
             } else {
@@ -1180,13 +1228,13 @@
     &lt;div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
       {{ @props.file }}
       &sdot;
-      &lt;span onclick="@copy()">Copy&lt;/span>
+      &lt;button onclick="@copy()">Copy&lt;/button>
       {{#if @props.action }}
         &sdot;
-        &lt;span
+        &lt;button
           style="cursor: pointer; font-weight: 600;"
           onclick="@props.action('{{ @props.name }}')"
-        >Update&lt;/span>
+        >Update&lt;/button>
       {{/if}}
     &lt;/div>
   {{/if}}
@@ -1213,12 +1261,34 @@
     `)
   
     class {
+      reformatIndentation(text) {
+        const lines = text.split('\n').filter(line => line.length > 0);
+  
+        if (lines.length < 2) return text;
+  
+        const secondLine = lines[1];
+        const baseIndent = secondLine.match(/^\s*/)[0].length;
+        const targetIndent = Math.max(0, baseIndent - 2);
+  
+        const processedLines = lines.map(line => {
+          const lineWithSpaces = line.replace(/\t/g, '  ');
+          const leadingSpaces = lineWithSpaces.match(/^\s*/)[0].length;
+  
+          if (leadingSpaces === 0) return line;
+          const newIndent = Math.max(0, leadingSpaces - targetIndent);
+          return ' '.repeat(newIndent) + lineWithSpaces.trim();
+        });
+  
+        return processedLines.join('\n');
+      }
+  
       getSource() {
         return this.codeNode.textContent
       }
   
       copy() {
         navigator.clipboard.writeText(this.getSource())
+        Toast.info('File data copied to clipboard.')
       }
   
       connect(props) {
@@ -1235,11 +1305,11 @@
   
       onMount() {
         const node = this.codeNode = this.find('code')
-        node.innerHTML = this.source.trim()
+        node.innerHTML = this.reformatIndentation(this.source.trim())
   
         Fez.untilTrue(()=>{
           // hljs has a bug on applying styles on first load, this fixes it
-          if (window.hljs) {
+          if (window.hljs && _fez_editor_assets > 1) {
             if (!node.classList.contains('hljs')) {
               hljs.highlightElement(this.codeNode)
             } else {
@@ -1267,13 +1337,13 @@
     <div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
       {{ @props.file }}
       &sdot;
-      <span onclick="@copy()">Copy</span>
+      <button onclick="@copy()">Copy</button>
       {{#if @props.action }}
         &sdot;
-        <span
+        <button
           style="cursor: pointer; font-weight: 600;"
           onclick="@props.action('{{ @props.name }}')"
-        >Update</span>
+        >Update</button>
       {{/if}}
     </div>
   {{/if}}
@@ -2510,6 +2580,229 @@
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
+    <h3 style="margin-top: 0;">Demo: ui-toast</h3>
+
+    <div id="body-toast" style="padding-bottom: 20px;">
+      <form onsubmit="showToast(this); return false">
+  <input type="text" name="toats" />
+  <button class="btn">Show info</button>
+</form>
+
+<script>
+  function showToast(form) {
+    let input = $(form).find('input')
+    Toast.info(input.val())
+    input.val('')
+  }
+</script>
+
+    </div>
+  </div>
+  <div style="margin-top: 20px;">
+    <ui-tabs>
+      <div title="Info" active="true">
+        <div class="info">
+  <ul>
+    <li>Features: class header that gets executed on component initializer.</li>
+  </ul>
+</div>
+      </div>
+      <div title="HTML">
+        <ui-editor
+          name="toast"
+          id="html-toast"
+          file="./demo/fez/toast.html"
+          language="html"
+          :action="applyChanges"
+        >
+          &lt;form onsubmit="showToast(this); return false">
+  &lt;input type="text" name="toats" />
+  &lt;button class="btn">Show info&lt;/button>
+&lt;/form>
+
+&lt;script>
+  function showToast(form) {
+    let input = $(form).find('input')
+    Toast.info(input.val())
+    input.val('')
+  }
+&lt;/script>
+
+        </ui-editor>
+      </div>
+      <div title="Fez component">
+        <ui-editor
+          id="code-ui-toast"
+          file="./demo/fez/toast.fez"
+          name="toast"
+          :action="applyChanges"
+        >
+          &lt;template fez="ui-toast">
+  &lt;script>
+    // helper function
+    window.Toast = {
+      info: (text) => {
+        document.getElementById('ui-toast').fez.info(text)
+      }
+    }
+  
+    // auto init
+    $(document.body).append('&lt;ui-toast id="ui-toast">&lt;/ui-toast>')
+  
+    class {
+      info(text)  {
+        const node = $('&lt;div class="toast info">').html(text)
+        $(this.find('.parent')).prepend(node)
+  
+        setTimeout(()=>{
+          node.addClass('leave')
+          //node.remove()
+        }, 3000)
+      }
+    }
+  &lt;/script>
+  &lt;style>
+    .parent {
+      width: 300px;
+      position: fixed;
+      top: 20px;
+      right: 20px;
+  
+      div.toast {
+        padding: 10px 20px;
+        background-color: #fff;
+        margin-bottom: 20px;
+        border-radius: 10px;
+        box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+        animation: dropIn 0.5s ease-out;
+  
+        &.leave {
+          animation: dropOut 0.3s ease forwards;
+        }
+  
+        &.info {
+          border: 1px solid lch(50% 50 140);;
+          background-color: lch(90% 50 140);
+        }
+      }
+    }
+  
+    @keyframes dropIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  
+    @keyframes dropOut {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+    }
+  &lt;/style>
+  
+  &lt;div class="parent">&lt;/div>
+  
+  &lt;/template>
+        </ui-editor>
+      </div>
+    </ui-tabs>
+  </div>
+</div>
+
+<fez-compile>
+  <template fez="ui-toast">
+  <script>
+    // helper function
+    window.Toast = {
+      info: (text) => {
+        document.getElementById('ui-toast').fez.info(text)
+      }
+    }
+  
+    // auto init
+    $(document.body).append('<ui-toast id="ui-toast"></ui-toast>')
+  
+    class {
+      info(text)  {
+        const node = $('<div class="toast info">').html(text)
+        $(this.find('.parent')).prepend(node)
+  
+        setTimeout(()=>{
+          node.addClass('leave')
+          //node.remove()
+        }, 3000)
+      }
+    }
+  </script>
+  <style>
+    .parent {
+      width: 300px;
+      position: fixed;
+      top: 20px;
+      right: 20px;
+  
+      div.toast {
+        padding: 10px 20px;
+        background-color: #fff;
+        margin-bottom: 20px;
+        border-radius: 10px;
+        box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+        animation: dropIn 0.5s ease-out;
+  
+        &.leave {
+          animation: dropOut 0.3s ease forwards;
+        }
+  
+        &.info {
+          border: 1px solid lch(50% 50 140);;
+          background-color: lch(90% 50 140);
+        }
+      }
+    }
+  
+    @keyframes dropIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  
+    @keyframes dropOut {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+    }
+  </style>
+  
+  <div class="parent"></div>
+  
+  </template>
+</fez-compile>
+
+  
+    
+
+<div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+  <div style="margin-top: 10px;">
     <h3 style="margin-top: 0;">Demo: ui-todo</h3>
 
     <div id="body-todo" style="padding-bottom: 20px;">
@@ -2725,6 +3018,7 @@
       const node = $(Fez(`#code-ui-${name}`).getSource())[0]
       Fez.compile( node )
       $(`#body-${name}`).html( Fez(`#html-${name}`).getSource() )
+      Toast.info('HTML content updated.')
     }
   </script>
 </body>

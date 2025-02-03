@@ -1,0 +1,18 @@
+<div class="info">
+  <ul>
+    <li>Features: class header that gets executed on component initializer.</li>
+  </ul>
+</div>
+
+<form onsubmit="showToast(this); return false">
+  <input type="text" name="toats" />
+  <button class="btn">Show info</button>
+</form>
+
+<script>
+  function showToast(form) {
+    let input = $(form).find('input')
+    Toast.info(input.val())
+    input.val('')
+  }
+</script>

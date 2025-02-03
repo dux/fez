@@ -1,0 +1,74 @@
+<script>
+  // helper function
+  window.Toast = {
+    info: (text) => {
+      document.getElementById('ui-toast').fez.info(text)
+    }
+  }
+
+  // auto init
+  $(document.body).append('<ui-toast id="ui-toast"></ui-toast>')
+
+  class {
+    info(text)  {
+      const node = $('<div class="toast info">').html(text)
+      $(this.find('.parent')).prepend(node)
+
+      setTimeout(()=>{
+        node.addClass('leave')
+        //node.remove()
+      }, 3000)
+    }
+  }
+</script>
+<style>
+  .parent {
+    width: 300px;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+
+    div.toast {
+      padding: 10px 20px;
+      background-color: #fff;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+      animation: dropIn 0.5s ease-out;
+
+      &.leave {
+        animation: dropOut 0.3s ease forwards;
+      }
+
+      &.info {
+        border: 1px solid lch(50% 50 140);;
+        background-color: lch(90% 50 140);
+      }
+    }
+  }
+
+  @keyframes dropIn {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes dropOut {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+  }
+</style>
+
+<div class="parent"></div>
+

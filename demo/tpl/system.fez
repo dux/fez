@@ -19,3 +19,11 @@
     <slot />
   </div>
 </template>
+
+<template fez="app-arrow">
+  <h1 class="jumbo" style="margin: 70px auto;">&darr;</h1>
+  {{#if @props.title}}
+    <h1>{{ @props.title }}</h1>
+  {{/if}}
+</template>
+

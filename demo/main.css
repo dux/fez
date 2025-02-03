@@ -11,14 +11,6 @@ body {
   cursor: pointer;
 }
 
-pre {
-  overflow: auto;
-
-  code {
-    padding: 20px;
-  }
-}
-
 code {
   border: 1px solid #ccc;
   padding: 3px 5px;
@@ -37,11 +29,17 @@ xmp {
 
 center, .center {
   text-align: center;
+  margin: 0 auto;
 }
 
 input {
-  padding: 5px 10px;
-  font-size: 16px;
+  padding: 6px 10px;
+  font-size: 18px;
+}
+
+button.btn {
+  padding: 4px 10px;
+  font-size: 20px;
 }
 
 *[onclick] {
@@ -116,16 +114,6 @@ div.info {
   margin: 0 auto;
 }
 
-.fullscreen {
-  height: 50vh;
-
-  display: grid;
-  place-items: center;
-
-  margin: 0;
-  padding: 0;
-}
-
 .cen {
   display: flex;
   justify-content: center;
@@ -137,7 +125,7 @@ div.info {
 body {
   font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
   font-size: 18px;
-  line-height: 26px;
+  line-height: 29px;
 }
 
 h1 {
@@ -174,3 +162,12 @@ p {
   margin-bottom: 10px;
 }
 
+pre {
+  overflow: auto;
+
+  code {
+    padding: 20px;
+    line-height: 23px;
+    line-height: 25px;
+  }
+}

@@ -9,12 +9,34 @@
   `)
 
   class {
+    reformatIndentation(text) {
+      const lines = text.split('\n').filter(line => line.length > 0);
+
+      if (lines.length < 2) return text;
+
+      const secondLine = lines[1];
+      const baseIndent = secondLine.match(/^\s*/)[0].length;
+      const targetIndent = Math.max(0, baseIndent - 2);
+
+      const processedLines = lines.map(line => {
+        const lineWithSpaces = line.replace(/\t/g, '  ');
+        const leadingSpaces = lineWithSpaces.match(/^\s*/)[0].length;
+
+        if (leadingSpaces === 0) return line;
+        const newIndent = Math.max(0, leadingSpaces - targetIndent);
+        return ' '.repeat(newIndent) + lineWithSpaces.trim();
+      });
+
+      return processedLines.join('\n');
+    }
+
     getSource() {
       return this.codeNode.textContent
     }
 
     copy() {
       navigator.clipboard.writeText(this.getSource())
+      Toast.info('File data copied to clipboard.')
     }
 
     connect(props) {
@@ -31,7 +53,7 @@
 
     onMount() {
       const node = this.codeNode = this.find('code')
-      node.innerHTML = this.source.trim()
+      node.innerHTML = this.reformatIndentation(this.source.trim())
 
       Fez.untilTrue(()=>{
         // hljs has a bug on applying styles on first load, this fixes it
@@ -63,13 +85,13 @@
   <div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
     {{ @props.file }}
     &sdot;
-    <span onclick="@copy()">Copy</span>
+    <button onclick="@copy()">Copy</button>
     {{#if @props.action }}
       &sdot;
-      <span
+      <button
         style="cursor: pointer; font-weight: 600;"
         onclick="@props.action('{{ @props.name }}')"
-      >Update</span>
+      >Update</button>
     {{/if}}
   </div>
 {{/if}}
