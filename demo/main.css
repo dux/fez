@@ -141,6 +141,7 @@ h1 {
   font-weight: 700;
   margin-top: 50px;
   margin-bottom: 50px;
+  line-height: 40px;
 
   &.jumbo {
     font-size:  59px;

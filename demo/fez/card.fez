@@ -1,3 +1,9 @@
+<script>
+  flip() {
+    this.find('.card').classList.toggle('flipped')
+  }
+</script>
+
 <style>
   .card {
     display: inline-block;
@@ -6,7 +12,7 @@
     height: 400px;
     perspective: 1000px;
     cursor: pointer;
-    margin-right: 20px;
+    margin: 10px;
   }
 
   .fez-slot {
@@ -51,7 +57,7 @@
   }
 </style>
 
-<div class="card" onclick="this.classList.toggle('flipped')">
+<div class="card" onclick="@flip()">
   <slot />
 </div>
 

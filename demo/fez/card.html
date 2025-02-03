@@ -4,12 +4,43 @@
   </ul>
 </div>
 
+<script>
+  function flipAllCards() {
+    let timeout = 150
+    let current = 0
+    $('.fez-ui-card').each((_, n) => {
+      setTimeout(n.fez.flip, current += timeout)
+      setTimeout(n.fez.flip, current + 1300)
+    })
+  }
+</script>
+
+<button onclick="flipAllCards()">Flip all cards</button>
+
 <ui-card>
   <div class="front">
     <h1>The magician</h1>
     <p>Click to flip!</p>
   </div>
   <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m1.webp') no-repeat center/cover;">
+  </div>
+</ui-card>
+
+<ui-card>
+  <div class="front">
+    <h1>The high<br />pristess</h1>
+    <p>Click to flip!</p>
+  </div>
+  <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m2.webp') no-repeat center/cover;">
+  </div>
+</ui-card>
+
+<ui-card>
+  <div class="front">
+    <h1>The empress</h1>
+    <p>Click to flip!</p>
+  </div>
+  <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m3.webp') no-repeat center/cover;">
   </div>
 </ui-card>
 

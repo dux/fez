@@ -7,7 +7,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-  <script src="./dist/fez.js?t=1738546828"></script>
+  <script src="./dist/fez.js?t=1738550606"></script>
   <script>
     window.L = console.log
   </script>
@@ -469,12 +469,43 @@
     <h3 style="margin-top: 0;">Demo: ui-card</h3>
 
     <div id="body-card" style="padding-bottom: 20px;">
-      <ui-card>
+      <script>
+  function flipAllCards() {
+    let timeout = 150
+    let current = 0
+    $('.fez-ui-card').each((_, n) => {
+      setTimeout(n.fez.flip, current += timeout)
+      setTimeout(n.fez.flip, current + 1300)
+    })
+  }
+</script>
+
+<button onclick="flipAllCards()">Flip all cards</button>
+
+<ui-card>
   <div class="front">
     <h1>The magician</h1>
     <p>Click to flip!</p>
   </div>
   <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m1.webp') no-repeat center/cover;">
+  </div>
+</ui-card>
+
+<ui-card>
+  <div class="front">
+    <h1>The high<br />pristess</h1>
+    <p>Click to flip!</p>
+  </div>
+  <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m2.webp') no-repeat center/cover;">
+  </div>
+</ui-card>
+
+<ui-card>
+  <div class="front">
+    <h1>The empress</h1>
+    <p>Click to flip!</p>
+  </div>
+  <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m3.webp') no-repeat center/cover;">
   </div>
 </ui-card>
 
@@ -512,12 +543,43 @@
           language="html"
           :action="applyChanges"
         >
-          &lt;ui-card>
+          &lt;script>
+  function flipAllCards() {
+    let timeout = 150
+    let current = 0
+    $('.fez-ui-card').each((_, n) => {
+      setTimeout(n.fez.flip, current += timeout)
+      setTimeout(n.fez.flip, current + 1300)
+    })
+  }
+&lt;/script>
+
+&lt;button onclick="flipAllCards()">Flip all cards&lt;/button>
+
+&lt;ui-card>
   &lt;div class="front">
     &lt;h1>The magician&lt;/h1>
     &lt;p>Click to flip!&lt;/p>
   &lt;/div>
   &lt;div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m1.webp') no-repeat center/cover;">
+  &lt;/div>
+&lt;/ui-card>
+
+&lt;ui-card>
+  &lt;div class="front">
+    &lt;h1>The high&lt;br />pristess&lt;/h1>
+    &lt;p>Click to flip!&lt;/p>
+  &lt;/div>
+  &lt;div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m2.webp') no-repeat center/cover;">
+  &lt;/div>
+&lt;/ui-card>
+
+&lt;ui-card>
+  &lt;div class="front">
+    &lt;h1>The empress&lt;/h1>
+    &lt;p>Click to flip!&lt;/p>
+  &lt;/div>
+  &lt;div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m3.webp') no-repeat center/cover;">
   &lt;/div>
 &lt;/ui-card>
 
@@ -546,6 +608,12 @@
           :action="applyChanges"
         >
           &lt;template fez="ui-card">
+  &lt;script>
+    flip() {
+      this.find('.card').classList.toggle('flipped')
+    }
+  &lt;/script>
+  
   &lt;style>
     .card {
       display: inline-block;
@@ -554,7 +622,7 @@
       height: 400px;
       perspective: 1000px;
       cursor: pointer;
-      margin-right: 20px;
+      margin: 10px;
     }
   
     .fez-slot {
@@ -599,7 +667,7 @@
     }
   &lt;/style>
   
-  &lt;div class="card" onclick="this.classList.toggle('flipped')">
+  &lt;div class="card" onclick="@flip()">
     &lt;slot />
   &lt;/div>
   
@@ -612,6 +680,12 @@
 
 <fez-compile>
   <template fez="ui-card">
+  <script>
+    flip() {
+      this.find('.card').classList.toggle('flipped')
+    }
+  </script>
+  
   <style>
     .card {
       display: inline-block;
@@ -620,7 +694,7 @@
       height: 400px;
       perspective: 1000px;
       cursor: pointer;
-      margin-right: 20px;
+      margin: 10px;
     }
   
     .fez-slot {
@@ -665,7 +739,7 @@
     }
   </style>
   
-  <div class="card" onclick="this.classList.toggle('flipped')">
+  <div class="card" onclick="@flip()">
     <slot />
   </div>
   
