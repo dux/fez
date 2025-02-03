@@ -16,35 +16,61 @@
   <div class="fullscreen">
     <div>
       <center>
-        <img src="./demo/fez.png" style="width: 200px;" />
+        <img src="./demo/fez.png" style="width: 200px; position: relative; top: 85px;" />
       </center>
 
-      <h1 class="jumbo" style="margin-bottom: 0px;">
-        Fez &rarr; reactive components
-      </h1>
+      <center style="border: 3px solid #ccc; padding: 80px 40px 60px 40px; background-color: #fff; background: #fff; border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 18px; box-shadow: 0 24px 38px rgba(0, 0, 0, 0.08), 0 9px 46px rgba(0, 0, 0, 0.06), 0 11px 15px rgba(0, 0, 0, 0.05);">
+        <h1 class="jumbo" style="margin: 0px auto;">
+          Fez &rarr; reactive components
+        </h1>
 
-      <h1 class="center" style="margin-top: 20px;">
-        directly in HTML
-        with zero build steps
-      </h1>
+        <h1 class="center" style="margin-top: 20px;">
+          directly in HTML
+          with zero build steps
+        </h1>
 
-      <p class="center">
-        <a href="#examples">examples</a>
-        &sdot;
-        <a target="playground" href="https://jsbin.com/nitihel/edit?html,output">playground</a>
-        &sdot;
-        <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
-      </p>
+        <p class="center">
+          <a href="#examples">examples</a>
+          &sdot;
+          <a target="playground" href="https://jsbin.com/nitihel/edit?html,output">playground</a>
+          &sdot;
+          <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
+        </p>
+      </center>
+    </div>
+
+    <h1 class="jumbo">&darr;</h1>
+      <div class="cen">
+        <ui-editor>
+<xmp>
+<html>
+  <head>
+    <title>Time</title>
+    <script script="/fez/core.js"></script>
+    <script script="/fez/ui-time.fez"></script>
+  </head>
+  <body>
+    <ui-time city="My place"></ui-time>
+  <body>
+</html>
+</xmp>
+        </ui-editor>
+
+        <span style="width: 200px; padding: 30px;">
+          <ui-clock city="My place"></ui-clock>
+        </span>
+      </center>
     </div>
   </div>
 
+
   <div class="con-xs" style="margin-top: 300px;">
     <h1 class="jumbo">&darr;</h1>
-    <h1>How FEZ feels and works?</h1>
+    <h1>How does FEZ feel and work?</h1>
 
     <p>
-      FEZ brings a familiar <b>component-based approach</b> you know from Vue or React, but strips away the build complexity.
-      It lets you write components naturally, right in your HTML, <b>without needing a compilation step</b>. Think of it as a jQuery for modern component development, <b>with the simplicity of dropping a script tag into your page</b>.
+      Fez brings a familiar <b>component-based approach</b> you know from Vue or React, but strips away the build complexity.
+      It lets you write components naturally, <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements">right in your HTML</a>, <b>without needing a compilation step</b>. Think of it as a jQuery for modern component development, <b>with the simplicity of dropping a script tag into your page</b>.
       You get to use your components as if they were native HTML elements, making the development experience straightforward and intuitive.
     </p>
 

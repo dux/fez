@@ -6,7 +6,7 @@
 
   setVars() {
     // will only render once on next tick
-    let time = new Date((new Date()).getTime() - this.offsetHours * 60 * 60 * 1000)
+    let time = new Date(Date.now() - (this.offsetHours * 60 * 60 * 1000))
     this.state.hours = time.getHours()
     this.state.minutes = time.getMinutes()
     this.state.seconds = time.getSeconds()

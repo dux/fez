@@ -126,12 +126,18 @@ div.info {
   padding: 0;
 }
 
+.cen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 /* typo */
 
 body {
   font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
   font-size: 18px;
-  line-height: 24px;
+  line-height: 26px;
 }
 
 h1 {
@@ -166,6 +172,5 @@ ul {
 p {
   margin-top: 0;
   margin-bottom: 10px;
-  line-height: 25px;
 }
 

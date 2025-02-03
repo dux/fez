@@ -1,10 +1,11 @@
 <script>
   // you need to escape script tag inside fez script block
 
+  window._fez_editor_assets = 0
+
   Fez.head(`
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
-    <s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></sc`+`ript>
-    <s`+`cript src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></sc`+`ript>
+    <link onload="_fez_editor_assets += 1" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+    <s`+`cript onload="_fez_editor_assets += 1" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></sc`+`ript>
   `)
 
   class {
@@ -19,7 +20,9 @@
     connect(props) {
       props.language ||= 'html'
 
-      if (this.root.firstElementChild?.nodeName == 'TEMPLATE') {
+      const child = this.root.firstElementChild
+
+      if (child?.nodeName == 'TEMPLATE' || child?.nodeName == 'XMP') {
         this.source = Fez.htmlEscape(this.root.firstElementChild.innerHTML)
       } else {
         this.source = this.root.innerHTML
@@ -27,13 +30,17 @@
     }
 
     onMount() {
-      this.codeNode = this.find('code')
-      this.codeNode.innerHTML = this.source.trim()
+      const node = this.codeNode = this.find('code')
+      node.innerHTML = this.source.trim()
 
       Fez.untilTrue(()=>{
-        if (window.hljs) {
-          hljs.highlightElement(this.codeNode);
-          return true
+        // hljs has a bug on applying styles on first load, this fixes it
+        if (window.hljs && _fez_editor_assets > 1) {
+          if (!node.classList.contains('hljs')) {
+            hljs.highlightElement(this.codeNode)
+          } else {
+            return true
+          }
         }
       })
     }
