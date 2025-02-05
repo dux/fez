@@ -1,5 +1,6 @@
 function parseBlock(data, ifStack) {
   data = data
+    .replaceAll('#raw', '@html')
     .replaceAll('#html', '@html')
     .replaceAll('@', 'this.')
 
@@ -61,6 +62,11 @@ function parseBlock(data, ifStack) {
 // tpl({ ... this sate ...})
 export default function createTemplate(text, opts = {}) {
   const ifStack = []
+
+  // {{#for el in @list }}}}
+  //   <ui-comment :comment="el"></ui-comment>
+  //   -> :comment="{{ JSON.stringify(el) }}"
+  text = text.replace(/:(\w+)="([\w\.\[\]]+)"/, (_, m1, m2) => { return `:${m1}="{{ JSON.stringify(${m2}) }}"` })
 
   let result = text.replace(/{{(.*?)}}/g, (match,content) => {
     content = content

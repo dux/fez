@@ -16,8 +16,8 @@
 
       setTimeout(()=>{
         node.addClass('leave')
-        //node.remove()
-      }, 3000)
+        setTimeout(()=>node.remove, 2000)
+      }, 4000)
     }
   }
 </script>

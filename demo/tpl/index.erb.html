@@ -129,9 +129,11 @@
 
   <p class="center" style="margin-bottom: 40px;">You will learn all Fez features, just by inspecting these examples. You can edit and update both HTML and Fez code.</p>
 
-  <% for code in fileNames('fez/*.fez') %>
-    <%= erb(:fez, code) %>
-  <% end %>
+  <div style="max-width: 1400px; margin: auto;">
+    <% for code in fileNames('fez/*.fez') %>
+      <%= erb(:fez, code) %>
+    <% end %>
+  </div>
 
   <hr />
 

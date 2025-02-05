@@ -51,12 +51,14 @@ export default function(name, klass) {
   if (!customElements.get(name)) {
     customElements.define(name, class extends HTMLElement {
       connectedCallback() {
-        // when we render nested fez components, and under Svelte, sometimes node innerHTML is empty, but it should not be
-        // in that case, we need to wait for another tick to get content
-        // this solution looks like it is not efficient, because it slow renders fez components that do not have and are not intended to have body, but by testing this looks like it is not effecting render performance
-        // if you want to force fast render, add static fastBind = true or check
-        // console.log(this)
-        if (this.firstChild || this.getAttribute('data-props') || forceFastRender(this, klass)) {
+        // if you want to force fast render (prevent page flickering), add static fastBind = true or FAST = true
+        // we can not fast load auto for all because that creates hard to debug problems in nested custom nodes
+        // problems with events and slots (I woke up at 2AM, now it is 5AM)
+        // this is usually safe for first order components, as page header or any components that do not have innerHTML or use slots
+        // Example: you can add FAST as a function - render fast nodes that have name attribute
+        //   FAST(node) { return !!node.getAttribute('name') }
+        // to inspect fast / slow components use Fez.info() in console
+        if (forceFastRender(this, klass)) {
           connectDom(name, this, Fez._classCache[name])
         } else {
           window.requestAnimationFrame(()=>{
@@ -85,7 +87,7 @@ function closeCustomTags(html) {
 function connectDom(name, node, klass) {
   const parentNode = node.parentNode
 
-  if (parentNode) {
+  if (node.isConnected) {
     const nodeName = typeof klass.nodeName == 'function' ? klass.nodeName(node) : klass.nodeName
     const newNode = document.createElement(nodeName || 'div')
 

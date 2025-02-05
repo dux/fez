@@ -29,6 +29,7 @@ export default class FezBase {
       const data = newNode.previousSibling?.textContent
       if (data) {
         attrs = JSON.parse(data)
+        newNode.previousSibling.remove()
       }
     }
 
@@ -279,6 +280,7 @@ export default class FezBase {
       slot.parentNode.removeChild(slot)
     }
 
+    //let currentSlot = this.root.querySelector(':not(span.fez):not(div.fez) > .fez-slot, .fez-slot:not(span.fez *):not(div.fez *)');
     let currentSlot = this.find('.fez-slot')
     if (currentSlot) {
       const newSLot = newNode.querySelector('.fez-slot')

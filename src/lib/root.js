@@ -97,6 +97,8 @@ Fez.htmlEscape = (text) => {
       .replaceAll('"', '&quot;')
       .replaceAll('<', '&lt;')
       .replaceAll('>', '&gt;')
+      .replaceAll('@', '&#64;') // needed for template escaping
+
   } else {
     return text
   }
@@ -126,6 +128,9 @@ Fez.fnv1 = (str) => {
 Fez.tag = (tag, opts = {}, html = '') => {
   const json = encodeURIComponent(JSON.stringify(opts))
   return `<${tag} data-props="${json}">${html}</${tag}>`
+  // const json = JSON.stringify(opts, null, 2)
+  // const data = `<script type="text/template">${json}</script><${tag} data-json-template="true">${html}</${tag}>`
+  // return data
 };
 
 Fez.head = (text) => {
