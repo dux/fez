@@ -9,6 +9,11 @@
   <button class="btn">Show info</button>
 </form>
 
+<br />
+
+<button onclick="Toast.info('Hi')">Trigger info</button>
+<button onclick="Toast.error('Graaa')">Trigger error</button>
+
 <script>
   function showToast(form) {
     let input = $(form).find('input')

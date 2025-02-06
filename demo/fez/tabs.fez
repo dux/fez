@@ -12,10 +12,10 @@
   }
 
   connect(props) {
+    this.root.style.width = 'calc(100%)'
+
     const { n, activate } = this;
-
     this.tabs = this.childNodes(n => $(n))
-
     this.render([
       n('div.header', this.tabs.map((tab, index) =>
         n('span', tab.attr('title'), { onclick: ()=> activate(index) })

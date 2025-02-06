@@ -10,18 +10,23 @@
 
   class {
     reformatIndentation(text) {
-      const lines = text.split('\n').filter(line => line.length > 0);
-
+      const lines = text.split('\n');
       if (lines.length < 2) return text;
 
-      const secondLine = lines[1];
-      const baseIndent = secondLine.match(/^\s*/)[0].length;
+      let baseIndent = 0;
+      for (let i = 1; i < lines.length; i++){
+        const line = lines[i].trim();
+        if (line.length > 0) {
+          baseIndent = lines[i].match(/^\s*/)[0].length;
+          break;
+        }
+      }
+
       const targetIndent = Math.max(0, baseIndent - 2);
 
       const processedLines = lines.map(line => {
         const lineWithSpaces = line.replace(/\t/g, '  ');
         const leadingSpaces = lineWithSpaces.match(/^\s*/)[0].length;
-
         if (leadingSpaces === 0) return line;
         const newIndent = Math.max(0, leadingSpaces - targetIndent);
         return ' '.repeat(newIndent) + lineWithSpaces.trim();
@@ -35,9 +40,14 @@
     }
 
     copy() {
-      navigator.clipboard.writeText(this.getSource())
-      Toast.info('File data copied to clipboard.')
-    }
+      try {
+          navigator.clipboard.writeText(this.getSource());
+          Toast.info('File data copied to clipboard.');
+        } catch (err) {
+          console.error('Failed to copy: ', err);
+          Toast.error('Failed to copy to clipboard.');
+        }
+      }
 
     connect(props) {
       props.language ||= 'html'
@@ -78,6 +88,7 @@
   pre {
     margin-top: 10px;
     width: 100%;
+    line-height: 26px;
   }
 </style>
 

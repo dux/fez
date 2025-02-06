@@ -166,6 +166,57 @@ Fez.untilTrue = (func, pingRate) => {
   }
 }
 
+// Script
+//   getScript('https://example.com/script.js');
+// Script with attributes and callback
+//   getScript('https://example.com/script.js', {type: 'module', async: true}, () => { ...  });
+// CSS inclusion
+//   getScript('https://example.com/styles.css');
+// Force CSS type for file without .css extension
+//   getScript('https://example.com/styles', {type: 'css'})
+Fez.getScript = (src, attributesOrCallback, callback) => {
+  let attributes = {};
+  let onLoad = null;
+
+  if (typeof attributesOrCallback === 'function') {
+    onLoad = attributesOrCallback;
+  } else if (typeof attributesOrCallback === 'object') {
+    attributes = attributesOrCallback;
+    onLoad = callback;
+  }
+
+  const isCss = attributes.rel === 'stylesheet';
+  const elementType = isCss ? 'link' : 'script';
+
+  const existingNode = document.querySelector(`${elementType}[src="${src}"], ${elementType}[href="${src}"]`);
+  if (existingNode) {
+    if (onLoad) onLoad();
+    return existingNode;
+  }
+
+  const element = document.createElement(elementType);
+
+  if (isCss) {
+    element.href = src;
+  } else {
+    element.src = src;
+  }
+
+  for (const [key, value] of Object.entries(attributes)) {
+    if (key !== 'type' || value !== 'css') {
+      element.setAttribute(key, value);
+    }
+  }
+
+  if (onLoad) {
+    element.onload = onLoad;
+  }
+
+  document.head.appendChild(element);
+
+  return element;
+}
+
 Fez.compile = compile
 
 export default Fez

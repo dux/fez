@@ -7,7 +7,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-  <script src="./dist/fez.js?t=1738751836"></script>
+  <script src="./dist/fez.js?t=1738874579"></script>
   <script>
     window.L = console.log
   </script>
@@ -73,7 +73,7 @@
 
   <app-arrow></app-arrow>
 
-  <div class="cen">
+  <div class="cen" style="height: 300px;">
     <ui-editor>
       <xmp>
         <html>
@@ -1154,18 +1154,23 @@
   
     class {
       reformatIndentation(text) {
-        const lines = text.split('\n').filter(line => line.length > 0);
-  
+        const lines = text.split('\n');
         if (lines.length &lt; 2) return text;
   
-        const secondLine = lines[1];
-        const baseIndent = secondLine.match(/^\s*/)[0].length;
+        let baseIndent = 0;
+        for (let i = 1; i &lt; lines.length; i++){
+          const line = lines[i].trim();
+          if (line.length > 0) {
+            baseIndent = lines[i].match(/^\s*/)[0].length;
+            break;
+          }
+        }
+  
         const targetIndent = Math.max(0, baseIndent - 2);
   
         const processedLines = lines.map(line => {
           const lineWithSpaces = line.replace(/\t/g, '  ');
           const leadingSpaces = lineWithSpaces.match(/^\s*/)[0].length;
-  
           if (leadingSpaces === 0) return line;
           const newIndent = Math.max(0, leadingSpaces - targetIndent);
           return ' '.repeat(newIndent) + lineWithSpaces.trim();
@@ -1179,9 +1184,14 @@
       }
   
       copy() {
-        navigator.clipboard.writeText(this.getSource())
-        Toast.info('File data copied to clipboard.')
-      }
+        try {
+            navigator.clipboard.writeText(this.getSource());
+            Toast.info('File data copied to clipboard.');
+          } catch (err) {
+            console.error('Failed to copy: ', err);
+            Toast.error('Failed to copy to clipboard.');
+          }
+        }
   
       connect(props) {
         props.language ||= 'html'
@@ -1222,6 +1232,7 @@
     pre {
       margin-top: 10px;
       width: 100%;
+      line-height: 26px;
     }
   &lt;/style>
   
@@ -1263,18 +1274,23 @@
   
     class {
       reformatIndentation(text) {
-        const lines = text.split('\n').filter(line => line.length > 0);
-  
+        const lines = text.split('\n');
         if (lines.length < 2) return text;
   
-        const secondLine = lines[1];
-        const baseIndent = secondLine.match(/^\s*/)[0].length;
+        let baseIndent = 0;
+        for (let i = 1; i < lines.length; i++){
+          const line = lines[i].trim();
+          if (line.length > 0) {
+            baseIndent = lines[i].match(/^\s*/)[0].length;
+            break;
+          }
+        }
+  
         const targetIndent = Math.max(0, baseIndent - 2);
   
         const processedLines = lines.map(line => {
           const lineWithSpaces = line.replace(/\t/g, '  ');
           const leadingSpaces = lineWithSpaces.match(/^\s*/)[0].length;
-  
           if (leadingSpaces === 0) return line;
           const newIndent = Math.max(0, leadingSpaces - targetIndent);
           return ' '.repeat(newIndent) + lineWithSpaces.trim();
@@ -1288,9 +1304,14 @@
       }
   
       copy() {
-        navigator.clipboard.writeText(this.getSource())
-        Toast.info('File data copied to clipboard.')
-      }
+        try {
+            navigator.clipboard.writeText(this.getSource());
+            Toast.info('File data copied to clipboard.');
+          } catch (err) {
+            console.error('Failed to copy: ', err);
+            Toast.error('Failed to copy to clipboard.');
+          }
+        }
   
       connect(props) {
         props.language ||= 'html'
@@ -1331,6 +1352,7 @@
     pre {
       margin-top: 10px;
       width: 100%;
+      line-height: 26px;
     }
   </style>
   
@@ -1731,6 +1753,123 @@
       'opsz' 24
     }
   </style>
+  </template>
+</fez-compile>
+
+    
+      
+
+<div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+  <div style="margin-top: 10px;">
+    <h3 style="margin-top: 0;">Demo: ui-markdown</h3>
+
+    <div id="body-markdown" style="padding-bottom: 20px;">
+      <ui-markdown>
+### Hi
+
+I am **markdown** from Fez custom component called `<ui-markdown>`, created inline in HTML.
+
+* Fez is **too simple** to be true!
+* `index.haml` SPA
+* New way to write wep apps, without the bloat.
+* See this example on [JSbin](https://jsbin.com/dopuram/edit?html,output)
+</ui-markdown>
+
+<h3>I am regualr HTML</h3>
+
+<ui-markdown>`Fez` md **again!** :)</ui-markdown>
+
+    </div>
+  </div>
+  <div style="margin-top: 20px;">
+    <ui-tabs>
+      <div title="Info" active="true">
+        <div class="info">
+  <ul>
+    <li>Fetaures: <code>Fez.getScript(src, attr, callback)</code> that will insert <code>script</code> css in <code>head</code></li>
+  </ul>
+</div>
+      </div>
+      <div title="HTML">
+        <ui-editor
+          name="markdown"
+          id="html-markdown"
+          file="./demo/fez/markdown.html"
+          language="html"
+          :action="applyChanges"
+        >
+          &lt;ui-markdown>
+### Hi
+
+I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created inline in HTML.
+
+* Fez is **too simple** to be true!
+* `index.haml` SPA
+* New way to write wep apps, without the bloat.
+* See this example on [JSbin](https://jsbin.com/dopuram/edit?html,output)
+&lt;/ui-markdown>
+
+&lt;h3>I am regualr HTML&lt;/h3>
+
+&lt;ui-markdown>`Fez` md **again!** :)&lt;/ui-markdown>
+
+        </ui-editor>
+      </div>
+      <div title="Fez component">
+        <ui-editor
+          id="code-ui-markdown"
+          file="./demo/fez/markdown.fez"
+          name="markdown"
+          :action="applyChanges"
+        >
+          &lt;template fez="ui-markdown">
+  &lt;script>
+    Fez.getScript('https://cdnjs.cloudflare.com/ajax/libs/marked/2.1.3/marked.min.js')
+  
+    class {
+      connect(props) {
+        let text = props.html || this.root.innerHTML;
+  
+        this.root.classList.add('markdown');
+  
+        Fez.untilTrue(() => {
+          if (window.marked) {
+            text = window.marked(text)
+            this.root.innerHTML = text;
+            return true
+          }
+        });
+      }
+    }
+  &lt;/script>
+  &lt;/template>
+        </ui-editor>
+      </div>
+    </ui-tabs>
+  </div>
+</div>
+
+<fez-compile>
+  <template fez="ui-markdown">
+  <script>
+    Fez.getScript('https://cdnjs.cloudflare.com/ajax/libs/marked/2.1.3/marked.min.js')
+  
+    class {
+      connect(props) {
+        let text = props.html || this.root.innerHTML;
+  
+        this.root.classList.add('markdown');
+  
+        Fez.untilTrue(() => {
+          if (window.marked) {
+            text = window.marked(text)
+            this.root.innerHTML = text;
+            return true
+          }
+        });
+      }
+    }
+  </script>
   </template>
 </fez-compile>
 
@@ -2251,10 +2390,10 @@
     }
   
     connect(props) {
+      this.root.style.width = 'calc(100%)'
+  
       const { n, activate } = this;
-  
       this.tabs = this.childNodes(n => $(n))
-  
       this.render([
         n('div.header', this.tabs.map((tab, index) =>
           n('span', tab.attr('title'), { onclick: ()=> activate(index) })
@@ -2329,10 +2468,10 @@
     }
   
     connect(props) {
+      this.root.style.width = 'calc(100%)'
+  
       const { n, activate } = this;
-  
       this.tabs = this.childNodes(n => $(n))
-  
       this.render([
         n('div.header', this.tabs.map((tab, index) =>
           n('span', tab.attr('title'), { onclick: ()=> activate(index) })
@@ -2474,7 +2613,6 @@
     }
   
     connect() {
-      this.setInterval(this.setTime, 1000)
       this.setRandomColor()
     }
   &lt;/script>
@@ -2542,7 +2680,6 @@
     }
   
     connect() {
-      this.setInterval(this.setTime, 1000)
       this.setRandomColor()
     }
   </script>
@@ -2589,6 +2726,11 @@
   <button class="btn">Show info</button>
 </form>
 
+<br />
+
+<button onclick="Toast.info('Hi')">Trigger info</button>
+<button onclick="Toast.error('Graaa')">Trigger error</button>
+
 <script>
   function showToast(form) {
     let input = $(form).find('input')
@@ -2621,6 +2763,11 @@
   &lt;button class="btn">Show info&lt;/button>
 &lt;/form>
 
+&lt;br />
+
+&lt;button onclick="Toast.info('Hi')">Trigger info&lt;/button>
+&lt;button onclick="Toast.error('Graaa')">Trigger error&lt;/button>
+
 &lt;script>
   function showToast(form) {
     let input = $(form).find('input')
@@ -2642,8 +2789,12 @@
   &lt;script>
     // helper function
     window.Toast = {
-      info: (text) => {
-        document.getElementById('ui-toast').fez.info(text)
+      info: (text, klass) => {
+        Fez('#ui-toast').info(text, klass)
+      },
+  
+      error: (text) => {
+        Toast.info(text, 'error')
       }
     }
   
@@ -2651,8 +2802,8 @@
     $(document.body).append('&lt;ui-toast id="ui-toast">&lt;/ui-toast>')
   
     class {
-      info(text)  {
-        const node = $('&lt;div class="toast info">').html(text)
+      info(text, klass)  {
+        const node = $(`&lt;div class="toast ${klass || 'info'}">`).html(text)
         $(this.find('.parent')).prepend(node)
   
         setTimeout(()=>{
@@ -2684,6 +2835,11 @@
         &.info {
           border: 1px solid lch(50% 50 140);;
           background-color: lch(90% 50 140);
+        }
+  
+        &.error {
+          border: 1px solid lch(50% 50 350);;
+          background-color: lch(90% 50 350);
         }
       }
     }
@@ -2725,8 +2881,12 @@
   <script>
     // helper function
     window.Toast = {
-      info: (text) => {
-        document.getElementById('ui-toast').fez.info(text)
+      info: (text, klass) => {
+        Fez('#ui-toast').info(text, klass)
+      },
+  
+      error: (text) => {
+        Toast.info(text, 'error')
       }
     }
   
@@ -2734,8 +2894,8 @@
     $(document.body).append('<ui-toast id="ui-toast"></ui-toast>')
   
     class {
-      info(text)  {
-        const node = $('<div class="toast info">').html(text)
+      info(text, klass)  {
+        const node = $(`<div class="toast ${klass || 'info'}">`).html(text)
         $(this.find('.parent')).prepend(node)
   
         setTimeout(()=>{
@@ -2767,6 +2927,11 @@
         &.info {
           border: 1px solid lch(50% 50 140);;
           background-color: lch(90% 50 140);
+        }
+  
+        &.error {
+          border: 1px solid lch(50% 50 350);;
+          background-color: lch(90% 50 350);
         }
       }
     }

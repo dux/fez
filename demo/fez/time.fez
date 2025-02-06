@@ -26,7 +26,6 @@
   }
 
   connect() {
-    this.setInterval(this.setTime, 1000)
     this.setRandomColor()
   }
 </script>

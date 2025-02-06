@@ -58,7 +58,7 @@ export default function(name, klass) {
         // Example: you can add FAST as a function - render fast nodes that have name attribute
         //   FAST(node) { return !!node.getAttribute('name') }
         // to inspect fast / slow components use Fez.info() in console
-        if (forceFastRender(this, klass)) {
+        if (forceFastRender(this, klass) || this.getAttribute('fast_connect')) {
           connectDom(name, this, Fez._classCache[name])
         } else {
           window.requestAnimationFrame(()=>{

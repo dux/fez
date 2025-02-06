@@ -1,0 +1,19 @@
+<script>
+  Fez.getScript('https://cdnjs.cloudflare.com/ajax/libs/marked/2.1.3/marked.min.js')
+
+  class {
+    connect(props) {
+      let text = props.html || this.root.innerHTML;
+
+      this.root.classList.add('markdown');
+
+      Fez.untilTrue(() => {
+        if (window.marked) {
+          text = window.marked(text)
+          this.root.innerHTML = text;
+          return true
+        }
+      });
+    }
+  }
+</script>

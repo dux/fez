@@ -1,8 +1,12 @@
 <script>
   // helper function
   window.Toast = {
-    info: (text) => {
-      document.getElementById('ui-toast').fez.info(text)
+    info: (text, klass) => {
+      Fez('#ui-toast').info(text, klass)
+    },
+
+    error: (text) => {
+      Toast.info(text, 'error')
     }
   }
 
@@ -10,8 +14,8 @@
   $(document.body).append('<ui-toast id="ui-toast"></ui-toast>')
 
   class {
-    info(text)  {
-      const node = $('<div class="toast info">').html(text)
+    info(text, klass)  {
+      const node = $(`<div class="toast ${klass || 'info'}">`).html(text)
       $(this.find('.parent')).prepend(node)
 
       setTimeout(()=>{
@@ -43,6 +47,11 @@
       &.info {
         border: 1px solid lch(50% 50 140);;
         background-color: lch(90% 50 140);
+      }
+
+      &.error {
+        border: 1px solid lch(50% 50 350);;
+        background-color: lch(90% 50 350);
       }
     }
   }
