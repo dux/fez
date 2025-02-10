@@ -8,6 +8,8 @@ export default class FezBase {
   // get node attributes as object
   static getProps(node, newNode) {
     let attrs = {}
+
+    // LOG(node.nodeName, node.attributes)
     for (const attr of node.attributes) {
       attrs[attr.name] = attr.value
     }
@@ -21,6 +23,7 @@ export default class FezBase {
       // console.log(data)
       attrs = JSON.parse(data)
     }
+
 
     // pass props as json template
     // <script type="text/template">{...}</script>
@@ -120,10 +123,13 @@ export default class FezBase {
           }
         }
 
-        if (typeof value == 'string') {
-          this.root.setAttribute(name, value)
-        } else {
-          this.root[name] = value
+        if (!this.root[name]) {
+          if (typeof value == 'string') {
+            this.root.setAttribute(name, value)
+          }
+          else {
+            this.root[name] = value
+          }
         }
       }
     }
