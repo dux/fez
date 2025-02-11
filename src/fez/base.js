@@ -1,6 +1,6 @@
 // HTML node builder
-import parseNode from '../vendor/n'
-import createTemplate from '../vendor/template'
+import parseNode from './lib/n'
+import createTemplate from './lib/template'
 
 export default class FezBase {
   static __objects = []

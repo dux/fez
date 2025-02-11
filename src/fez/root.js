@@ -1,8 +1,8 @@
 // runtime scss
-import Gobber from '../vendor/gobber'
+import Gobber from './vendor/gobber'
 
 // morph dom from one state to another
-import { Idiomorph } from '../vendor/idiomorph'
+import { Idiomorph } from './vendor/idiomorph'
 
 import connect from './connect'
 import compile from './compile'

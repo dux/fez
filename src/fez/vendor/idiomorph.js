@@ -284,8 +284,18 @@ var Idiomorph = (function () {
                     if (ignoreAttribute(fromAttribute.name, to, 'update', ctx)) {
                         continue;
                     }
-                    if (to.getAttribute(fromAttribute.name) !== fromAttribute.value) {
-                        to.setAttribute(fromAttribute.name, fromAttribute.value);
+
+                    try {
+                        if (to.getAttribute(fromAttribute.name) !== fromAttribute.value) {
+                            to.setAttribute(fromAttribute.name, fromAttribute.value);
+                        }
+                    } catch (error) {
+                        // dux fix
+                        console.error('Error setting attribute:', {
+                            badNode: to,
+                            badAttribute: fromAttribute,
+                            error: error.message,
+                        });
                     }
                 }
                 // iterate backwards to avoid skipping over items when a delete occurs

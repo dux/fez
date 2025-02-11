@@ -1,5 +1,5 @@
 // templating
-import createTemplate from '../vendor/template'
+import createTemplate from './lib/template'
 
 export default function(name, klass) {
   // to allow anonymous class and then re-attach (does not work)

@@ -1,9 +1,9 @@
 // base class for custom dom objects
-import FezBase from './lib/base'
+import FezBase from './fez/base'
 window.FezBase = FezBase
 
 // base class for custom dom objects
-import Fez from './lib/root'
+import Fez from './fez/root'
 window.Fez = Fez
 
 // runtime fez tag creation
