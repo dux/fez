@@ -276,6 +276,7 @@ export default class FezBase {
     }
 
     if (renderedTpl) {
+      renderedTpl = renderedTpl.replace(/\s\w+="undefined"/g, '')
       newNode.innerHTML = this.parseHtml(renderedTpl)
     }
 

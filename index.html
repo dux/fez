@@ -7,7 +7,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-  <script src="./dist/fez.js?t=1739203000"></script>
+  <script src="./dist/fez.js?t=1739714045"></script>
   <script>
     window.L = console.log
   </script>
@@ -257,7 +257,7 @@
 
     </div>
   </div>
-  <div style="margin-top: 20px;">
+  <div style="margin-top: 20px; max-width: 690px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -432,7 +432,7 @@
 
     </div>
   </div>
-  <div style="margin-top: 20px;">
+  <div style="margin-top: 20px; max-width: 690px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -557,7 +557,7 @@
 
     </div>
   </div>
-  <div style="margin-top: 20px;">
+  <div style="margin-top: 20px; max-width: 690px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -830,7 +830,7 @@
 
     </div>
   </div>
-  <div style="margin-top: 20px;">
+  <div style="margin-top: 20px; max-width: 690px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -1109,7 +1109,7 @@
 
     </div>
   </div>
-  <div style="margin-top: 20px;">
+  <div style="margin-top: 20px; max-width: 690px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -1145,12 +1145,8 @@
   &lt;script>
     // you need to escape script tag inside fez script block
   
-    window._fez_editor_assets = 0
-  
-    Fez.head(`
-      &lt;link onload="_fez_editor_assets += 1" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
-      &lt;s`+`cript onload="_fez_editor_assets += 1" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js">&lt;/sc`+`ript>
-    `)
+    Fez.head('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css')
+    Fez.head('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js')
   
     class {
       reformatIndentation(text) {
@@ -1211,7 +1207,7 @@
   
         Fez.untilTrue(()=>{
           // hljs has a bug on applying styles on first load, this fixes it
-          if (window.hljs && _fez_editor_assets > 1) {
+          if (window.hljs) {
             if (!node.classList.contains('hljs')) {
               hljs.highlightElement(this.codeNode)
             } else {
@@ -1265,12 +1261,8 @@
   <script>
     // you need to escape script tag inside fez script block
   
-    window._fez_editor_assets = 0
-  
-    Fez.head(`
-      <link onload="_fez_editor_assets += 1" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
-      <s`+`cript onload="_fez_editor_assets += 1" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></sc`+`ript>
-    `)
+    Fez.head('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css')
+    Fez.head('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js')
   
     class {
       reformatIndentation(text) {
@@ -1331,7 +1323,7 @@
   
         Fez.untilTrue(()=>{
           // hljs has a bug on applying styles on first load, this fixes it
-          if (window.hljs && _fez_editor_assets > 1) {
+          if (window.hljs) {
             if (!node.classList.contains('hljs')) {
               hljs.highlightElement(this.codeNode)
             } else {
@@ -1430,7 +1422,7 @@
 
     </div>
   </div>
-  <div style="margin-top: 20px;">
+  <div style="margin-top: 20px; max-width: 690px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -1605,7 +1597,7 @@
 
     </div>
   </div>
-  <div style="margin-top: 20px;">
+  <div style="margin-top: 20px; max-width: 690px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -1781,7 +1773,7 @@ I am **markdown** from Fez custom component called `<ui-markdown>`, created inli
 
     </div>
   </div>
-  <div style="margin-top: 20px;">
+  <div style="margin-top: 20px; max-width: 690px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -1943,7 +1935,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
 
     </div>
   </div>
-  <div style="margin-top: 20px;">
+  <div style="margin-top: 20px; max-width: 690px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -2314,7 +2306,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
 
     </div>
   </div>
-  <div style="margin-top: 20px;">
+  <div style="margin-top: 20px; max-width: 690px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -2546,7 +2538,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
 
     </div>
   </div>
-  <div style="margin-top: 20px;">
+  <div style="margin-top: 20px; max-width: 690px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -2742,7 +2734,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
 
     </div>
   </div>
-  <div style="margin-top: 20px;">
+  <div style="margin-top: 20px; max-width: 690px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -2977,7 +2969,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
 
     </div>
   </div>
-  <div style="margin-top: 20px;">
+  <div style="margin-top: 20px; max-width: 690px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">

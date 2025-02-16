@@ -92,7 +92,7 @@ Fez.morphdom = (target, newNode, opts = {}) => {
 Fez.htmlEscape = (text) => {
   if (typeof text == 'string') {
     return text
-      .replaceAll('&', "&amp;")
+      // .replaceAll('&', "&amp;")
       .replaceAll("'", '&apos;')
       .replaceAll('"', '&quot;')
       .replaceAll('<', '&lt;')
@@ -133,27 +133,42 @@ Fez.tag = (tag, opts = {}, html = '') => {
   // return data
 };
 
-Fez.head = (text) => {
-  const tempDiv = document.createElement('div')
-  tempDiv.innerHTML = text
+Fez.head = (text, kind) => {
+  if (text.includes('<')) {
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = text
 
-  Array.from(tempDiv.childNodes).forEach(node => {
-    if (node.tagName === 'SCRIPT') {
-      const newScript = document.createElement('script')
+    Array.from(tempDiv.childNodes).forEach(node => {
+      if (node.tagName === 'SCRIPT') {
+        const newScript = document.createElement('script')
 
-      Array.from(node.attributes).forEach(attr => {
-        newScript.setAttribute(attr.name, attr.value)
-      })
+        Array.from(node.attributes).forEach(attr => {
+          newScript.setAttribute(attr.name, attr.value)
+        })
 
-      if (node.textContent) {
-        newScript.textContent = node.textContent
+        if (node.textContent) {
+          newScript.textContent = node.textContent
+        }
+
+        document.head.appendChild(newScript)
+      } else {
+        document.head.appendChild(node)
       }
+    })
+  } else {
+    kind ||= text.includes('css') ? 'css' : 'js'
 
-      document.head.appendChild(newScript)
+    if (kind == 'css') {
+      const node = document.createElement('link')
+      node.rel = 'stylesheet'
+      node.href = text
+      document.head.appendChild(node)
     } else {
+      const node = document.createElement('script')
+      node.src = text
       document.head.appendChild(node)
     }
-  })
+  }
 }
 
 // execute function untill it returns true

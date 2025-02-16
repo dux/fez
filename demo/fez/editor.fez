@@ -1,12 +1,8 @@
 <script>
   // you need to escape script tag inside fez script block
 
-  window._fez_editor_assets = 0
-
-  Fez.head(`
-    <link onload="_fez_editor_assets += 1" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
-    <s`+`cript onload="_fez_editor_assets += 1" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></sc`+`ript>
-  `)
+  Fez.head('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css')
+  Fez.head('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js')
 
   class {
     reformatIndentation(text) {
@@ -67,7 +63,7 @@
 
       Fez.untilTrue(()=>{
         // hljs has a bug on applying styles on first load, this fixes it
-        if (window.hljs && _fez_editor_assets > 1) {
+        if (window.hljs) {
           if (!node.classList.contains('hljs')) {
             hljs.highlightElement(this.codeNode)
           } else {
