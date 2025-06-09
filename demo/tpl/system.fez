@@ -1,4 +1,4 @@
-<template fez="app-info">
+<xmp fez="app-info">
   <style>
     & > div {
       border: 3px solid #bb8;
@@ -18,12 +18,12 @@
 
     <slot />
   </div>
-</template>
+</xmp>
 
-<template fez="app-arrow">
+<xmp fez="app-arrow">
   <h1 class="jumbo" style="margin: 70px auto;">&darr;</h1>
   {{#if @props.title}}
     <h1>{{ @props.title }}</h1>
   {{/if}}
-</template>
+</xmp>
 

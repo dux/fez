@@ -1,21 +1,28 @@
 const compileToClass = (html) => {
-  const result = { script: '', style: '', html: '' }
+  const result = { script: '', style: '', html: '', head: '' }
   const lines = html.split('\n')
 
   let currentBlock = []
   let currentType = ''
 
-  for (const line of lines) {
-    if (line.trim().startsWith('<script') && !result.script) {
+  for (var line of lines) {
+    line = line.trim()
+    if (line.startsWith('<script') && !result.script && currentType != 'head') {
       currentType = 'script';
-    } else if (line.trim().startsWith('<style')) {
+    } else if (line.startsWith('<head')) { // you must use XPM tag if you want to define <head> tag
+      currentType = 'head';
+    } else if (line.startsWith('<style')) {
       currentType = 'style';
-    } else if (line.trim().endsWith('</script>') && currentType === 'script' && !result.script) {
+    } else if (line.endsWith('</script>') && currentType === 'script' && !result.script) {
       result.script = currentBlock.join('\n');
       currentBlock = [];
       currentType = null;
-    } else if (line.trim().endsWith('</style>') && currentType === 'style') {
+    } else if (line.endsWith('</style>') && currentType === 'style') {
       result.style = currentBlock.join('\n');
+      currentBlock = [];
+      currentType = null;
+    } else if (line.endsWith('</head>') && currentType === 'head') {
+      result.head = currentBlock.join('\n');
       currentBlock = [];
       currentType = null;
     } else if (currentType) {
@@ -23,6 +30,20 @@ const compileToClass = (html) => {
     } else {
       result.html += line + '\n';
     }
+  }
+
+  if (result.head) {
+    const container = document.createElement('div')
+    container.innerHTML = result.head
+    container.querySelectorAll('script').forEach(node => {
+      node.type ||= 'text/javascript'
+      if (!node.src && node.type.includes('javascript') ) {
+        const fn = new Function(node.textContent)
+        fn()
+      }
+    })
+
+    document.head.innerHTML += result.head
   }
 
   let klass = result.script
@@ -57,7 +78,7 @@ export default function (tagName, html) {
     tagName = tagName.getAttribute('fez')
   }
   else if (typeof html != 'string') {
-    document.body.querySelectorAll('template[fez]').forEach((n) => Fez.compile(n))
+    document.body.querySelectorAll('template[fez], xmp[fez]').forEach((n) => Fez.compile(n))
     return
   }
 

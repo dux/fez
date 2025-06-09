@@ -21,7 +21,16 @@ const Fez = (name, klass) => {
 
 Fez._classCache = {}
 
-Fez.find = (node, name) => {
+Fez.id = () => {
+  Fez._id_count ||= 0
+  Fez._id_count += 1
+  const rand = Math.random().toString(36).substring(2, 6)
+  return `fez_${Fez._id_count}${rand}`
+}
+
+Fez.find = (onode, name) => {
+  let node = onode
+
   if (typeof node == 'string') {
     node = document.body.querySelector(node)
   }
@@ -30,9 +39,14 @@ Fez.find = (node, name) => {
     node = node[0]
   }
 
-  const klass = name ? `.fez-${name}` : '.fez'
+  const klass = name ? `.fez.fez-${name}` : '.fez'
 
-  return node.closest(klass).fez
+  const fez = node.closest(klass).fez
+  if (fez) {
+    return fez
+  } else {
+    console.error('Fez node connector not found', onode, node)
+  }
 }
 
 Fez.cssClass = (text) => {

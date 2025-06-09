@@ -58,7 +58,12 @@ export default function(name, klass) {
         // Example: you can add FAST as a function - render fast nodes that have name attribute
         //   FAST(node) { return !!node.getAttribute('name') }
         // to inspect fast / slow components use Fez.info() in console
-        if (forceFastRender(this, klass) || this.getAttribute('fast_connect')) {
+        let fastConnect = forceFastRender(this, klass) || this.getAttribute('fast_connect')
+        if (this.getAttribute('fast_connect') == 'false') {
+          fastConnect = false
+        }
+
+        if (fastConnect) {
           connectDom(name, this, Fez._classCache[name])
         } else {
           window.requestAnimationFrame(()=>{
@@ -128,7 +133,11 @@ function connectDom(name, node, klass) {
 
     const slot = object.root.querySelector('.fez-slot')
     if (slot) {
-      object.slot(oldRoot, slot)
+      if (object.props.html) {
+        slot.innerHTML = object.props.html
+      } else {
+        object.slot(oldRoot, slot)
+      }
     }
 
     if (object.onSubmit) {
@@ -162,9 +171,12 @@ const observer = new MutationObserver((mutationsList, _) => {
       const fez = mutation.target.fez
       const name = mutation.attributeName
       const value = mutation.target.getAttribute(name)
-      fez.props[name] = value
-      fez.onPropsChange(name, value)
-      // console.log(`The [${name}] attribute was modified to [${value}].`);
+
+      if (fez) {
+        fez.props[name] = value
+        fez.onPropsChange(name, value)
+        // console.log(`The [${name}] attribute was modified to [${value}].`);
+      }
     }
   }
 });

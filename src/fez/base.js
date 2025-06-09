@@ -37,11 +37,10 @@ export default class FezBase {
     }
 
     for (const [key, val] of Object.entries(attrs)) {
-      if (key[0] == ':') {
+      if ([':'].includes(key[0])) {
         delete attrs[key]
-        const context = node.closest('.fez')?.fez || window
-        const newVal = new Function(`return (${val})`).bind(context)()
-        attrs[key.replace(':', '')] = newVal
+        const newVal = new Function(`return (${val})`).bind(newNode)()
+        attrs[key.replace(/[\:_]/, '')] = newVal
       }
     }
 
@@ -123,7 +122,7 @@ export default class FezBase {
           }
         }
 
-        if (!this.root[name]) {
+        if (name == 'style' || !this.root[name]) {
           if (typeof value == 'string') {
             this.root.setAttribute(name, value)
           }
@@ -219,10 +218,14 @@ export default class FezBase {
     // $$. or fez. or @
     // @@foo to escape @foo
     text = text
+      .replaceAll('@@', '__FEZ_HIDE__')
       .replaceAll('$$.', base)
+      .replaceAll('@.', base)
+      .replaceAll('@', base)
       .replace(/(.)@(\w+[\.\(])/g, (_, m1, m2) => m1 == '@' ? `@${m2}` : `${m1}${base}${m2}`)
       .replace(/([^\w\.])fez\./g, `$1${base}`)
       .replace(/>\s+</g, '><')
+      .replaceAll('__FEZ_HIDE__', '@')
 
     // if (this.fezName == 'ex-counter') {
     //   console.log(text)
@@ -442,6 +445,16 @@ export default class FezBase {
     Fez._subs[channel] ||= []
     Fez._subs[channel] = Fez._subs[channel].filter((el) => el[0].isConnected)
     Fez._subs[channel].push([this, func])
+  }
+
+  // get and set root node ID
+  nodeId() {
+    if (!this._id) {
+      this._id = Fez.id()
+      this.root.id = this._id
+    }
+
+    return this._id
   }
 
   fezRegister() {

@@ -1,3 +1,4 @@
+<!-- edit in demo/tpl/index.erb.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,13 +8,13 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-  <script src="./dist/fez.js?t=1739751621"></script>
+  <script src="./dist/fez.js?t=1749457475"></script>
   <script>
     window.L = console.log
   </script>
 </head>
 <body>
-  <template fez="app-info">
+  <xmp fez="app-info">
   <style>
     & > div {
       border: 3px solid #bb8;
@@ -33,16 +34,18 @@
 
     <slot />
   </div>
-</template>
+</xmp>
 
-<template fez="app-arrow">
+<xmp fez="app-arrow">
   <h1 class="jumbo" style="margin: 70px auto;">&darr;</h1>
   {{#if @props.title}}
     <h1>{{ @props.title }}</h1>
   {{/if}}
-</template>
+</xmp>
 
 
+
+  <app-arrow></app-arrow>
 
   <div class="center" style="max-width: 1100px; ">
     <div>
@@ -362,8 +365,7 @@
   </div>
 </div>
 
-<fez-compile>
-  <template fez="ui-avatar">
+<template fez="ui-avatar">
   <script>
     NAME = 'span'
     FAST = true
@@ -415,7 +417,6 @@
     {{#block:avatar}}
   {{/if}}
   </template>
-</fez-compile>
 
     
       
@@ -487,8 +488,7 @@
   </div>
 </div>
 
-<fez-compile>
-  <template fez="ui-border">
+<template fez="ui-border">
   <script>
     onMount() {
       const childNodes = this.fezHide()
@@ -496,7 +496,6 @@
     }
   </script>
   </template>
-</fez-compile>
 
     
       
@@ -729,8 +728,7 @@
   </div>
 </div>
 
-<fez-compile>
-  <template fez="ui-card">
+<template fez="ui-card">
   <script>
     flip() {
       this.find('.card').classList.toggle('flipped')
@@ -806,7 +804,6 @@
   </div>
   
   </template>
-</fez-compile>
 
     
       
@@ -1002,8 +999,7 @@
   </div>
 </div>
 
-<fez-compile>
-  <template fez="ui-clock">
+<template fez="ui-clock">
   <script>
     randomColor() {
       const colors = ['red', 'green', 'blue', 'magenta', 'teal']
@@ -1105,7 +1101,6 @@
     {{/if}}
   </svg>
   </template>
-</fez-compile>
 
     
       
@@ -1271,8 +1266,7 @@
   </div>
 </div>
 
-<fez-compile>
-  <template fez="ui-editor">
+<template fez="ui-editor">
   <script>
     // you need to escape script tag inside fez script block
   
@@ -1381,7 +1375,6 @@
     <code class="language-{{ @props.language }}" contenteditable="{{ !!@props.file }}"></code>
   </pre>
   </template>
-</fez-compile>
 
     
       
@@ -1548,8 +1541,7 @@
   </div>
 </div>
 
-<fez-compile>
-  <template fez="ui-form">
+<template fez="ui-form">
   <script>
     NAME = 'form'
   
@@ -1578,7 +1570,6 @@
     }
   </style>
   </template>
-</fez-compile>
 
     
       
@@ -1721,8 +1712,7 @@
   </div>
 </div>
 
-<fez-compile>
-  <template fez="ui-icon">
+<template fez="ui-icon">
   <script>
     // everything before class gets executed in component registration
     $(document.head).append(`
@@ -1767,7 +1757,6 @@
     }
   </style>
   </template>
-</fez-compile>
 
     
       
@@ -1786,7 +1775,7 @@
 I am **markdown** from Fez custom component called `<ui-markdown>`, created inline in HTML.
 
 * Fez is **too simple** to be true!
-* `index.haml` SPA
+* `index.html` SPA
 * New way to write wep apps, without the bloat.
 * See this example on [JSbin](https://jsbin.com/dopuram/edit?html,output)
 </ui-markdown>
@@ -1821,7 +1810,7 @@ I am **markdown** from Fez custom component called `<ui-markdown>`, created inli
 I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created inline in HTML.
 
 * Fez is **too simple** to be true!
-* `index.haml` SPA
+* `index.html` SPA
 * New way to write wep apps, without the bloat.
 * See this example on [JSbin](https://jsbin.com/dopuram/edit?html,output)
 &lt;/ui-markdown>
@@ -1866,8 +1855,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
   </div>
 </div>
 
-<fez-compile>
-  <template fez="ui-markdown">
+<template fez="ui-markdown">
   <script>
     Fez.getScript('https://cdnjs.cloudflare.com/ajax/libs/marked/2.1.3/marked.min.js')
   
@@ -1888,7 +1876,6 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
     }
   </script>
   </template>
-</fez-compile>
 
     
       
@@ -2171,8 +2158,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
   </div>
 </div>
 
-<fez-compile>
-  <template fez="ui-slider">
+<template fez="ui-slider">
   <script>
     cssVars() {
       return [
@@ -2287,7 +2273,6 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
     </tr>
   </table>
   </template>
-</fez-compile>
 
     
       
@@ -2475,8 +2460,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
   </div>
 </div>
 
-<fez-compile>
-  <template fez="ui-tabs">
+<template fez="ui-tabs">
   <script>
     activateNode(node) {
       node.parent().find('> *').removeClass('active')
@@ -2547,7 +2531,6 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
     }
   </style>
   </template>
-</fez-compile>
 
     
       
@@ -2676,8 +2659,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
   </div>
 </div>
 
-<fez-compile>
-  <template fez="ui-time">
+<template fez="ui-time">
   <script>
     NAME = 'div'
   
@@ -2737,7 +2719,6 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
   
   <slot></slot>
   </template>
-</fez-compile>
 
     
       
@@ -2905,8 +2886,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
   </div>
 </div>
 
-<fez-compile>
-  <template fez="ui-toast">
+<template fez="ui-toast">
   <script>
     // helper function
     window.Toast = {
@@ -2991,7 +2971,6 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
   <div class="parent"></div>
   
   </template>
-</fez-compile>
 
     
       
@@ -3122,8 +3101,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
   </div>
 </div>
 
-<fez-compile>
-  <template fez="ui-todo">
+<template fez="ui-todo">
   <script>
     clearCompleted() {
       this.state.tasks = this.state.tasks.filter((t) => !t.done)
@@ -3201,7 +3179,6 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
     Do not refresh: {{Math.random()}}.
   </p>
   </template>
-</fez-compile>
 
     
   </div>
