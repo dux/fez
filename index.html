@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-  <script src="./dist/fez.js?t=1749458476"></script>
+  <script src="./dist/fez.js?t=1749458718"></script>
   <script>
     window.L = console.log
   </script>
@@ -38,9 +38,11 @@
 
 <xmp fez="app-arrow">
   <h1 class="jumbo" style="margin: 70px auto;">&darr;</h1>
-  {{#if @props.title}}
-    <h1>{{ @props.title }}</h1>
-  {{/if}}
+
+  <!-- you can use {{ or [[ for template blocks -->
+  [[#if @props.title]]
+    <h1>[[ @props.title ]]</h1>
+  [[/if]]
 </xmp>
 
 

@@ -1,6 +1,4 @@
 function parseBlock(data, ifStack) {
-  // console.log(data)
-
   data = data
     .replaceAll('#raw', '@html')
     .replaceAll('#html', '@html')
@@ -64,6 +62,11 @@ function parseBlock(data, ifStack) {
 // tpl({ ... this sate ...})
 export default function createTemplate(text, opts = {}) {
   const ifStack = []
+
+  // some templateing engines, as GoLan-s use {{ for templates. Allow usage of [[ for fez
+  text = text
+    .replaceAll('[[', '{{')
+    .replaceAll(']]', '}}')
 
   // {{#for el in @list }}}}
   //   <ui-comment :comment="el"></ui-comment>
