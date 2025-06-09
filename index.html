@@ -4,11 +4,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fez - JavaScript DOM compoennt framework.</title>
+  <title>Fez - JavaScript DOM component framework.</title>
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-  <script src="./dist/fez.js?t=1749457475"></script>
+  <script src="./dist/fez.js?t=1749458476"></script>
   <script>
     window.L = console.log
   </script>
@@ -532,7 +532,7 @@
 
 <ui-card>
   <div class="front">
-    <h1>The high<br />pristess</h1>
+    <h1>The high<br />priestess</h1>
     <p>Click to flip!</p>
   </div>
   <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m2.webp') no-repeat center/cover;">
@@ -606,7 +606,7 @@
 
 &lt;ui-card>
   &lt;div class="front">
-    &lt;h1>The high&lt;br />pristess&lt;/h1>
+    &lt;h1>The high&lt;br />priestess&lt;/h1>
     &lt;p>Click to flip!&lt;/p>
   &lt;/div>
   &lt;div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m2.webp') no-repeat center/cover;">
@@ -818,7 +818,7 @@
     <div id="body-clock" style="padding-bottom: 20px;">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
   <div>
-    <ui-clock city="Zageb" utc="1"></ui-clock>
+    <ui-clock city="Zagreb" utc="1"></ui-clock>
   </div>
   <div>
     <ui-clock city="Moscow" utc="4"></ui-clock>
@@ -849,7 +849,7 @@
     <li>Features: DOM morph updates - update only changed nodes and attributes</li>
     <li>Features: dynamic styes (seconds line color)</li>
     <li>Features: <code>onDestroy() { ... }</code> - execute code when component is removed from DOM</li>
-    <li>Featuers: <code>setInterval() { ... }</code> to set interval on a instance. No need to clear it, it will be auto cleared on component destroy.</li>
+    <li>Features: <code>setInterval() { ... }</code> to set interval on a instance. No need to clear it, it will be auto cleared on component destroy.</li>
   </ul>
 </div>
       </div>
@@ -863,7 +863,7 @@
         >
           &lt;div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
   &lt;div>
-    &lt;ui-clock city="Zageb" utc="1">&lt;/ui-clock>
+    &lt;ui-clock city="Zagreb" utc="1">&lt;/ui-clock>
   &lt;/div>
   &lt;div>
     &lt;ui-clock city="Moscow" utc="4">&lt;/ui-clock>
@@ -914,7 +914,7 @@
     }
   
     onDestroy() {
-      console.log(`By from ${this.fezName} - ${this.props.city}`)
+      console.log(`Bye from ${this.fezName} - ${this.props.city}`)
     }
   &lt;/script>
   
@@ -1022,7 +1022,7 @@
     }
   
     onDestroy() {
-      console.log(`By from ${this.fezName} - ${this.props.city}`)
+      console.log(`Bye from ${this.fezName} - ${this.props.city}`)
     }
   </script>
   
@@ -1126,7 +1126,7 @@
   <ul>
     <li>this is viewer / editor you see on the right</li>
     <li>Features: <code>Fez.head(...)</code> that will safely insert script tags in the page header</li>
-    <li>Features: <code>Fez.untilTrue(...)</code> that will execute code every 100 miliseconds until it returns true</li>
+    <li>Features: <code>Fez.untilTrue(...)</code> that will execute code every 100 milliseconds until it returns true</li>
   </ul>
 </div>
       </div>
@@ -1438,8 +1438,8 @@
       <div title="Info" active="true">
         <div class="info">
   <ul>
-    <li>Featues: form helper - <code>this.formData()</code>. Get form data as object.</li>
-    <li>Featues: form helper - <code>this.onSubmit()</code>. If present, auto bind form and get form data as object</li>
+    <li>Features: form helper - <code>this.formData()</code>. Get form data as object.</li>
+    <li>Features: form helper - <code>this.onSubmit()</code>. If present, auto bind form and get form data as object</li>
     <li>prefix params with <code>:</code> if you want to calculate attribute value. Same as in Vue, current example <code>:ping="..."</code></li>
     <li>Custom DOM tag name - <code>FORM</code> instead of default <code>DIV</code></li>
   </ul>
@@ -1615,7 +1615,7 @@
         <div class="info">
   <ul>
     <li>Features: component to component communication</li>
-    <li>evalule value of a attribute if prefixed with column <code>:</code> (in this example <code>:size=</code></li>
+    <li>evaluate value of a attribute if prefixed with column <code>:</code> (in this example <code>:size=</code></li>
   </ul>
 </div>
       </div>
@@ -1776,11 +1776,11 @@ I am **markdown** from Fez custom component called `<ui-markdown>`, created inli
 
 * Fez is **too simple** to be true!
 * `index.html` SPA
-* New way to write wep apps, without the bloat.
+* New way to write web apps, without the bloat.
 * See this example on [JSbin](https://jsbin.com/dopuram/edit?html,output)
 </ui-markdown>
 
-<h3>I am regualr HTML</h3>
+<h3>I am regular HTML</h3>
 
 <ui-markdown>`Fez` md **again!** :)</ui-markdown>
 
@@ -1791,8 +1791,8 @@ I am **markdown** from Fez custom component called `<ui-markdown>`, created inli
       <div title="Info" active="true">
         <div class="info">
   <ul>
-    <li>Fetaures: <code>Fez.getScript(src, attr, callback)</code> that will insert <code>script</code> css in <code>head</code></li>
-    <li>Fetaures: <code>Fez.untilTrue()</code> to initialize compoennt when all files are loaded.</li>
+    <li>Features: <code>Fez.getScript(src, attr, callback)</code> that will insert <code>script</code> css in <code>head</code></li>
+    <li>Features: <code>Fez.untilTrue()</code> to initialize component when all files are loaded.</li>
   </ul>
 </div>
       </div>
@@ -1811,11 +1811,11 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
 
 * Fez is **too simple** to be true!
 * `index.html` SPA
-* New way to write wep apps, without the bloat.
+* New way to write web apps, without the bloat.
 * See this example on [JSbin](https://jsbin.com/dopuram/edit?html,output)
 &lt;/ui-markdown>
 
-&lt;h3>I am regualr HTML&lt;/h3>
+&lt;h3>I am regular HTML&lt;/h3>
 
 &lt;ui-markdown>`Fez` md **again!** :)&lt;/ui-markdown>
 
@@ -1909,13 +1909,13 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
 
 <ui-slider>
   <div>
-    <h1>Side 1</h1>
+    <h1>Slide 1</h1>
     <div class="img">
       <img src="https://images.unsplash.com/photo-1737143765999-bd3be790ab4f?w=600" />
      </div>
   </div>
   <div>
-    <h1>Side 2</h1>
+    <h1>Slide 2</h1>
     <div class="img flex">
       <img src="https://images.unsplash.com/photo-1735767975829-71496633d499?w=600" />
       <img src="https://images.unsplash.com/photo-1736158064402-5b68c2cbcc77?w=600" />
@@ -1925,13 +1925,13 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
     </div>
   </div>
   <div>
-    <h1>Side 3</h1>
+    <h1>Slide 3</h1>
     <div class="img">
       <img src="https://images.unsplash.com/photo-1737898415581-7dea57a1905b?w=600" />
      </div>
   </div>
   <div>
-    <h1>Side 4</h1>
+    <h1>Slide 4</h1>
     <div class="img">
       <img src="https://images.unsplash.com/photo-1736158064402-5b68c2cbcc77?w=600" />
     </div>
@@ -1940,7 +1940,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
     </ul>
   </div>
   <div>
-    <h1>Side 5</h1>
+    <h1>Slide 5</h1>
     <div class="img">
       <img src="https://images.unsplash.com/photo-1736185669686-f302d6274f23?w=600" />
     </div>
@@ -1990,13 +1990,13 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
 
 &lt;ui-slider>
   &lt;div>
-    &lt;h1>Side 1&lt;/h1>
+    &lt;h1>Slide 1&lt;/h1>
     &lt;div class="img">
       &lt;img src="https://images.unsplash.com/photo-1737143765999-bd3be790ab4f?w=600" />
      &lt;/div>
   &lt;/div>
   &lt;div>
-    &lt;h1>Side 2&lt;/h1>
+    &lt;h1>Slide 2&lt;/h1>
     &lt;div class="img flex">
       &lt;img src="https://images.unsplash.com/photo-1735767975829-71496633d499?w=600" />
       &lt;img src="https://images.unsplash.com/photo-1736158064402-5b68c2cbcc77?w=600" />
@@ -2006,13 +2006,13 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
     &lt;/div>
   &lt;/div>
   &lt;div>
-    &lt;h1>Side 3&lt;/h1>
+    &lt;h1>Slide 3&lt;/h1>
     &lt;div class="img">
       &lt;img src="https://images.unsplash.com/photo-1737898415581-7dea57a1905b?w=600" />
      &lt;/div>
   &lt;/div>
   &lt;div>
-    &lt;h1>Side 4&lt;/h1>
+    &lt;h1>Slide 4&lt;/h1>
     &lt;div class="img">
       &lt;img src="https://images.unsplash.com/photo-1736158064402-5b68c2cbcc77?w=600" />
     &lt;/div>
@@ -2021,7 +2021,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
     &lt;/ul>
   &lt;/div>
   &lt;div>
-    &lt;h1>Side 5&lt;/h1>
+    &lt;h1>Slide 5&lt;/h1>
     &lt;div class="img">
       &lt;img src="https://images.unsplash.com/photo-1736185669686-f302d6274f23?w=600" />
     &lt;/div>
@@ -2561,7 +2561,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
   <ul>
     <li>Features: slots - preserves original slot (fez tag innerHTML) on re-render</li>
     <li>
-      global and local css. If <code>:fez { ... }</code> is present, anything inside is local, anythig outside is global.
+      global and local css. If <code>:fez { ... }</code> is present, anything inside is local, anything outside is global.
       If no class <code>:fez</code> is present, style is considered local.
       </li>
   </ul>
@@ -2732,7 +2732,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
 
     <div id="body-toast" style="padding-bottom: 20px;">
       <form onsubmit="showToast(this); return false">
-  <input type="text" name="toats" />
+  <input type="text" name="toast" />
   <button class="btn">Show info</button>
 </form>
 
@@ -2769,7 +2769,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
           :action="applyChanges"
         >
           &lt;form onsubmit="showToast(this); return false">
-  &lt;input type="text" name="toats" />
+  &lt;input type="text" name="toast" />
   &lt;button class="btn">Show info&lt;/button>
 &lt;/form>
 
@@ -2992,7 +2992,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
       <div title="Info" active="true">
         <div class="info">
   <ul>
-    <li>fully <b>rective state</b></li>
+    <li>fully <b>reactive state</b></li>
     <li>Features: <code>fez-bind</code> - two way binding of input element</li>
     <li>Features: <code>fez-use</code> - when node is added to dom, call described function and pass node as reference (inspired by Svelte)</li>
   </ul>
@@ -3212,7 +3212,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
       `
 
       const data = {
-        title: `Fez compoennt - ${name}`,
+        title: `Fez component - ${name}`,
         html: body.join("\n\n"),
         css: css,
         js: '',

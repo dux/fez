@@ -20,7 +20,7 @@
   }
 
   onDestroy() {
-    console.log(`By from ${this.fezName} - ${this.props.city}`)
+    console.log(`Bye from ${this.fezName} - ${this.props.city}`)
   }
 </script>
 

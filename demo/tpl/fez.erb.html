@@ -1,8 +1,8 @@
 <%
   name = @arg
-  FezBaae ||= Struct.new :name, :base, :info, :html, :code
+  FezBase ||= Struct.new :name, :base, :info, :html, :code
 
-  @fez = FezBaae.new name: name, base: "./demo/fez/#{name}"
+  @fez = FezBase.new name: name, base: "./demo/fez/#{name}"
 
   body = File.read("#{@fez.base}.html").split(/\n\s*\n/, 2)
 
