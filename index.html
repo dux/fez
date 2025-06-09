@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-  <script src="./dist/fez.js?t=1749458718"></script>
+  <script src="./dist/fez.js?t=1749462642"></script>
   <script>
     window.L = console.log
   </script>
@@ -46,8 +46,6 @@
 </xmp>
 
 
-
-  <app-arrow></app-arrow>
 
   <div class="center" style="max-width: 1100px; ">
     <div>
@@ -2072,58 +2070,68 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
     }
   
     connect() {
-      this.arrowWidth = 100
+      this.arrowWidth = 70
       this.setSlide(0)
       this.onResize(this.render, 100)
+  
+      this.setInterval(()=> {
+        console.log(123)
+      }, 1000)
     }
+  
   &lt;/script>
   
   &lt;style>
     table.slides {
-      td.arrow {
-        cursor: pointer;
+      width: 100%;
+      table-layout: fixed;
   
-        div {
-          min-width: var(--arrow-width);
+      td {
+        &.arrow {
+          cursor: pointer;
+          width: var(--arrow-width);
+  
+          div {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 50px;
+            color: #aaa;
+            width: var(--arrow-width);
+  
+            span {
+              transform: rotate(-90deg);
+            }
+          }
+  
+          &:hover span {
+            color: #111;
+          }
+  
+          &:nth-child(3) {
+            span {
+              transform: rotate(90deg) translateY(10px);
+            }
+          }
+        }
+  
+        div.slot {
+          overflow: hidden;
           display: flex;
-          justify-content: center;
-          align-items: center;
-          font-size: 50px;
-          color: #aaa;
+          align-items: flex-start;
+          max-width: 100%;
   
-          span {
-            transform: rotate(-90deg);
-          }
-        }
+          .slot-parent {
+            max-width: 100%;
+            transition: transform 0.3s ease;
+            transform: translateX(var(--offset));
   
-        &:hover span {
-          color: #111;
-        }
+            .fez-slot {
+              display: flex;
   
-        &:nth-child(3) {
-          span {
-            transform: rotate(90deg) translateY(10px);
-          }
-        }
-      }
-  
-     td {
-       div.slot {
-         overflow: hidden;
-         display: flex;
-         align-items: flex-start;
-         max-width: 100%;
-  
-         .slot-parent {
-           transition: transform 0.3s ease;
-           transform: translateX(var(--offset));
-  
-           .fez-slot {
-             display: flex;
-  
-             & > div {
-               width: 100%;
-               flex-shrink: 0;
+              & > div {
+                width: 100%;
+                flex-shrink: 0;
               }
             }
           }
@@ -2193,58 +2201,68 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
     }
   
     connect() {
-      this.arrowWidth = 100
+      this.arrowWidth = 70
       this.setSlide(0)
       this.onResize(this.render, 100)
+  
+      this.setInterval(()=> {
+        console.log(123)
+      }, 1000)
     }
+  
   </script>
   
   <style>
     table.slides {
-      td.arrow {
-        cursor: pointer;
+      width: 100%;
+      table-layout: fixed;
   
-        div {
-          min-width: var(--arrow-width);
+      td {
+        &.arrow {
+          cursor: pointer;
+          width: var(--arrow-width);
+  
+          div {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 50px;
+            color: #aaa;
+            width: var(--arrow-width);
+  
+            span {
+              transform: rotate(-90deg);
+            }
+          }
+  
+          &:hover span {
+            color: #111;
+          }
+  
+          &:nth-child(3) {
+            span {
+              transform: rotate(90deg) translateY(10px);
+            }
+          }
+        }
+  
+        div.slot {
+          overflow: hidden;
           display: flex;
-          justify-content: center;
-          align-items: center;
-          font-size: 50px;
-          color: #aaa;
+          align-items: flex-start;
+          max-width: 100%;
   
-          span {
-            transform: rotate(-90deg);
-          }
-        }
+          .slot-parent {
+            max-width: 100%;
+            transition: transform 0.3s ease;
+            transform: translateX(var(--offset));
   
-        &:hover span {
-          color: #111;
-        }
+            .fez-slot {
+              display: flex;
   
-        &:nth-child(3) {
-          span {
-            transform: rotate(90deg) translateY(10px);
-          }
-        }
-      }
-  
-     td {
-       div.slot {
-         overflow: hidden;
-         display: flex;
-         align-items: flex-start;
-         max-width: 100%;
-  
-         .slot-parent {
-           transition: transform 0.3s ease;
-           transform: translateX(var(--offset));
-  
-           .fez-slot {
-             display: flex;
-  
-             & > div {
-               width: 100%;
-               flex-shrink: 0;
+              & > div {
+                width: 100%;
+                flex-shrink: 0;
               }
             }
           }
