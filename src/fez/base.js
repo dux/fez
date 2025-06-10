@@ -346,11 +346,15 @@ export default class FezBase {
 
     // <input fez-bind="state.inputNode" -> this.state.inputNode will be the value of input
     fetchAttr('fez-bind', (text, n) => {
-      const value = (new Function(`return this.${text}`)).bind(this)()
-      const isCb = n.type.toLowerCase() == 'checkbox'
-      const eventName = ['SELECT'].includes(n.nodeName) || isCb ? 'onchange' : 'onkeyup'
-      n.setAttribute(eventName, `${this.fezHtmlRoot}${text} = this.${isCb ? 'checked' : 'value'}`)
-      this.val(n, value)
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(n.nodeName)) {
+        const value = (new Function(`return this.${text}`)).bind(this)()
+        const isCb = n.type.toLowerCase() == 'checkbox'
+        const eventName = ['SELECT'].includes(n.nodeName) || isCb ? 'onchange' : 'onkeyup'
+        n.setAttribute(eventName, `${this.fezHtmlRoot}${text} = this.${isCb ? 'checked' : 'value'}`)
+        this.val(n, value)
+      } else {
+        console.error(`Cant fez-bind="${text}" to ${n.nodeName} (needs INPUT, SELECT or TEXTAREA. Want to use fez-this?).`)
+      }
     })
   }
 

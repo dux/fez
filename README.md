@@ -25,15 +25,15 @@ It uses minimal abstraction. You will learn to use it in 15 minutes, just look a
 
 ## Little more details
 
-Uses DOM as a source of truth anf tries to be as close to vanilla JS as possible. There is nothing to learn or "fight", or overload or "monkey patch" or anything. It just works.
+Uses DOM as a source of truth and tries to be as close to vanilla JS as possible. There is nothing to learn or "fight", or overload or "monkey patch" or anything. It just works.
 
-Although fastest, Modifying DOM state directly in React / Vue / etc. is considered an anti-pattern. For `Fez` this is just fine if you want to do it. `Fez` basicly modifies DOM, you just have few helpers to help you do it.
+Although fastest, Modifying DOM state directly in React / Vue / etc. is considered an anti-pattern. For `Fez` this is just fine if you want to do it. `Fez` basically modifies DOM, you just have a few helpers to help you do it.
 
 It replaces modern JS frameworks by using native Autonomous Custom Elements to create new HTML tags. This has been supported for years in [all major browsers](https://caniuse.com/custom-elementsv1).
 
 This article, [Web Components Will Replace Your Frontend Framework](https://www.dannymoerkerke.com/blog/web-components-will-replace-your-frontend-framework/), is from 2019. Join the future, ditch React, Angular and other never defined, always "evolving" monstrosities. Vanilla is the way :)
 
-There is no some "internal state" that is by some magic reflected to DOM. No! All methods Fez use to manupulate DOM are just helpers around native DOM interface. Work on DOM raw, use jQuery, use built in [node builder](https://github.com/dux/fez/blob/main/src/lib/n.js) or full template mapping with [morphing](https://github.com/bigskysoftware/idiomorph).
+There is no some "internal state" that is by some magic reflected to DOM. No! All methods Fez use to manipulate DOM are just helpers around native DOM interface. Work on DOM raw, use jQuery, use built in [node builder](https://github.com/dux/fez/blob/main/src/lib/n.js) or full template mapping with [morphing](https://github.com/bigskysoftware/idiomorph).
 
 It great in combination with another widely used JS libs, as jQuery, Zepto, underscore of loDash.
 
@@ -50,14 +50,14 @@ That is all.
 
 * It can create and define Custom HTML tags, libs main feature. It uses native, fast browser interface to do it.
 * It plays great with server generated code, because this is a component library. You are free to use any routing and server logic you prefer.
-* Before `coonect()`, it will rename custom dom node name and create standard HTML node. For example `<ui-button>` can be converted to `<button class="fez fez-button btn btn-empty">...`. This makes all `Fez` components stylable in root (you can't style `ui-button`).
+* Before `connect()`, it will rename custom dom node name and create standard HTML node. For example `<ui-button>` can be converted to `<button class="fez fez-button btn btn-empty">...`. This makes all `Fez` components stylable in root (you can't style `ui-button`).
 * I will use one file to define CSS, HTML and code.
 * It does not need server side compiling.
 * There is no magic as Svelte runes, React hooks, states and whatever. Plain vanilla JS classes with "few" documented functions.
 * it can style components using SCSS, using [goober](https://goober.js.org/).
 * it has few useful built in helper methods as formData(), setInterval() that triggers only while node is connected, etc
 * it has `<slot />` support
-* It has garbage collector, just add tags to HTML and destroy DOM nodes as you whish.
+* It has garbage collector, just add tags to HTML and destroy DOM nodes as you wish.
 * It will close "HTML invalid" inline items before rendering `<fez-icon name="gear" />` -> `<fez-icon name="gear"></fez-icon>`
 * it has built in publish-subscribe, where only connected nodes will be able to publish and receive subs.
 * It morphs DOM, state is preserved on changes.
@@ -136,7 +136,7 @@ Fez('foo-bar', class {
     // set value to a node, uses value or innerHTML
     this.val(selector, value)
 
-    // you can publish globaly, and subscribe localy
+    // you can publish globally, and subscribe locally
     Fez.publish('channel', foo)
     this.subscribe('channel', (foo) => { ... })
 
@@ -214,7 +214,7 @@ Fez('foo-bar', class {
 
 ## Examples / playground
 
-Examples are avaliable on [jsitor](https://jsitor.com/QoResUvMc) or [local GH pages](dux.github.io/fez/).
+Examples are available on [jsitor](https://jsitor.com/QoResUvMc) or [local GH pages](dux.github.io/fez/).
 
 ## More in detail
 
@@ -222,7 +222,7 @@ Examples are avaliable on [jsitor](https://jsitor.com/QoResUvMc) or [local GH pa
 
 * attaches HTML DOM  to`this.root`
 * renames root node from original name to `static nodeName() // default DIV`
-* classes `fez` and `fez-ui-foo` will be aded to root.
+* classes `fez` and `fez-ui-foo` will be added to root.
 * adds pointer to instance object to `fez` property (`<div class="fez fez-ui-foo" onclick="console.log(this.fez)"`)
   * in parent nodes access it via `Fez(this)` with optional tag name `Fez(this, 'ui-foo')`. It will look for closest FEZ node.
 * creates object for node attributes, accessible via `this.props`. `<ui-foo name="Split">` -> `this.props.name == 'Split'`
@@ -275,7 +275,7 @@ Finds first closest Fez node.
 
 * ### this.class.css(text)
 
-  Static `css()` method adds css globaly, to `document.body`.
+  Static `css()` method adds css globally, to `document.body`.
 
 ## instance attributes
 
@@ -297,7 +297,7 @@ Finds first closest Fez node.
 
   Called after DOM node is connected to Fez instance.
 
-* ### this.copy(attr1, artr2, ...)
+* ### this.copy(attr1, attr2, ...)
 
   Copies atrributes from attribute object to root as node attributes. If attribute is false, it is skipped.
 

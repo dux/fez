@@ -58,12 +58,12 @@ function parseBlock(data, ifStack) {
   }
 }
 
-// let tpl = createTemplate(sting)
-// tpl({ ... this sate ...})
+// let tpl = createTemplate(string)
+// tpl({ ... this state ...})
 export default function createTemplate(text, opts = {}) {
   const ifStack = []
 
-  // some templateing engines, as GoLan-s use {{ for templates. Allow usage of [[ for fez
+  // some templating engines, as GoLangs use {{ for templates. Allow usage of [[ for fez
   text = text
     .replaceAll('[[', '{{')
     .replaceAll(']]', '}}')
@@ -98,7 +98,7 @@ export default function createTemplate(text, opts = {}) {
     }
     return outFunc
   } catch(e) {
-    e.message = `FEZ template compile error: ${e.message}Template source:\n${text.trim()}\n\nCompile result (produced invald JS):\nnew Function(${result})\n`
+    e.message = `FEZ template compile error: ${e.message}Template source:\n${text.trim()}\n\nCompile result (produced invalid JS):\nnew Function(${result})\n`
     console.error(e)
   }
 }

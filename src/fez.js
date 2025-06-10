@@ -13,7 +13,7 @@ setInterval(() => {
   )
 }, 5_000)
 
-/* Inti via observer and not DOMContentLoaded */
+/* Init via observer and not DOMContentLoaded */
 
 // document.addEventListener('DOMContentLoaded', Fez.compile)
 
