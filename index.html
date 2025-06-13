@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-  <script src="./dist/fez.js?t=1749480743"></script>
+  <script src="./dist/fez.js?t=1749808875"></script>
   <script>
     window.L = console.log
   </script>
@@ -509,7 +509,7 @@
 
     <div id="body-card" style="padding-bottom: 20px;">
       <script>
-  function flipAllCards() {
+  function randomFlip() {
     let timeout = 150
     let current = 0
     $('.fez-ui-card').each((_, n) => {
@@ -517,13 +517,19 @@
       setTimeout(n.fez.flip, current + 1300)
     })
   }
+
+  function flipAllCards() {
+    $('.fez-ui-card').each((_, n) => n.fez.flip())
+  }
 </script>
 
-<button onclick="flipAllCards()">Flip all cards</button>
+<button onclick="randomFlip()">Random flip</button>
+<button onclick="flipAllCards()">Flip cards via direct access</button>
+<button onclick="Fez.publish('flip-card')">Flip cards via pub/sub</button>
 
 <ui-card>
   <div class="front">
-    <h1>The magician</h1>
+    <h2>The magician</h2>
     <p>Click to flip!</p>
   </div>
   <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m1.webp') no-repeat center/cover;">
@@ -532,7 +538,7 @@
 
 <ui-card>
   <div class="front">
-    <h1>The high<br />priestess</h1>
+    <h2>The high<br />priestess</h2>
     <p>Click to flip!</p>
   </div>
   <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m2.webp') no-repeat center/cover;">
@@ -541,7 +547,7 @@
 
 <ui-card>
   <div class="front">
-    <h1>The empress</h1>
+    <h2>The empress</h2>
     <p>Click to flip!</p>
   </div>
   <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m3.webp') no-repeat center/cover;">
@@ -550,7 +556,7 @@
 
 <ui-card>
   <div class="front">
-    <h1>Another clock?</h1>
+    <h2>Another clock?</h2>
     <p>Click to see</p>
   </div>
   <div class="back" style="background-color: #aba;">
@@ -571,6 +577,8 @@
         <div class="info">
   <ul>
     <li>Simple UI component</li>
+    <li>Pub/sub for card flip</li>
+    <li>Direct component access (node.fez)</li>
   </ul>
 </div>
       </div>
@@ -583,7 +591,7 @@
           :action="applyChanges"
         >
           &lt;script>
-  function flipAllCards() {
+  function randomFlip() {
     let timeout = 150
     let current = 0
     $('.fez-ui-card').each((_, n) => {
@@ -591,13 +599,19 @@
       setTimeout(n.fez.flip, current + 1300)
     })
   }
+
+  function flipAllCards() {
+    $('.fez-ui-card').each((_, n) => n.fez.flip())
+  }
 &lt;/script>
 
-&lt;button onclick="flipAllCards()">Flip all cards&lt;/button>
+&lt;button onclick="randomFlip()">Random flip&lt;/button>
+&lt;button onclick="flipAllCards()">Flip cards via direct access&lt;/button>
+&lt;button onclick="Fez.publish('flip-card')">Flip cards via pub/sub&lt;/button>
 
 &lt;ui-card>
   &lt;div class="front">
-    &lt;h1>The magician&lt;/h1>
+    &lt;h2>The magician&lt;/h2>
     &lt;p>Click to flip!&lt;/p>
   &lt;/div>
   &lt;div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m1.webp') no-repeat center/cover;">
@@ -606,7 +620,7 @@
 
 &lt;ui-card>
   &lt;div class="front">
-    &lt;h1>The high&lt;br />priestess&lt;/h1>
+    &lt;h2>The high&lt;br />priestess&lt;/h2>
     &lt;p>Click to flip!&lt;/p>
   &lt;/div>
   &lt;div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m2.webp') no-repeat center/cover;">
@@ -615,7 +629,7 @@
 
 &lt;ui-card>
   &lt;div class="front">
-    &lt;h1>The empress&lt;/h1>
+    &lt;h2>The empress&lt;/h2>
     &lt;p>Click to flip!&lt;/p>
   &lt;/div>
   &lt;div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m3.webp') no-repeat center/cover;">
@@ -624,7 +638,7 @@
 
 &lt;ui-card>
   &lt;div class="front">
-    &lt;h1>Another clock?&lt;/h1>
+    &lt;h2>Another clock?&lt;/h2>
     &lt;p>Click to see&lt;/p>
   &lt;/div>
   &lt;div class="back" style="background-color: #aba;">
@@ -661,6 +675,7 @@
   
     connect() {
       this.autoflip()
+      this.subscribe('flip-card', this.flip)
     }
   &lt;/script>
   
@@ -668,7 +683,7 @@
     .card {
       display: inline-block;
       float: left;
-      width: 300px;
+      width: 250px;
       height: 400px;
       perspective: 1000px;
       cursor: pointer;
@@ -743,6 +758,7 @@
   
     connect() {
       this.autoflip()
+      this.subscribe('flip-card', this.flip)
     }
   </script>
   
@@ -750,7 +766,7 @@
     .card {
       display: inline-block;
       float: left;
-      width: 300px;
+      width: 250px;
       height: 400px;
       perspective: 1000px;
       cursor: pointer;
@@ -1882,6 +1898,177 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
+    <small style="float: right;" onclick="openCodePen('pub-sub')">open in CodePen</small>
+    <h3 style="margin-top: 0;">
+      Demo: ui-pub-sub
+    </h3>
+
+    <div id="body-pub-sub" style="padding-bottom: 20px;">
+      <style>
+  .fez-ui-pubsub { margin-top: 10px; }
+</style>
+
+<button onclick="Fez.publish('ping', Math.random())">ping from anywhere</button>
+&sdot;
+Fast ping:
+<button onclick="
+  clearInterval(window.fastPing);
+  window.fastPing = setInterval(()=>Fez.publish('ping', Math.random()), 10);"
+>START</button>
+&sdot;
+<button onclick="clearInterval(window.fastPing)">END</button>
+
+<ui-pubsub>
+  <h4>listener 1</h4>
+  <p class="target"></p>
+</ui-pubsub>
+
+<ui-pubsub>
+  <h4>listener 2</h4>
+  <b class="target"></b>
+</ui-pubsub>
+
+<ui-pubsub>
+  <h4>listener 3</h4>
+  Foo: <span class="target"></span>
+</ui-pubsub>
+
+<template id="pubsub-t">
+  <ui-pubsub>
+    Dynamic listener:
+    <button onclick="Fez(this).$root.remove()">&times;</button>
+    &sdot;
+    <span class="target"></span>
+  </ui-pubsub>
+</template>
+
+<br />
+<button onclick="$(this).after($('#pubsub-t').html())">add listener</button>
+
+<script>
+  setInterval(()=>Fez.publish('ping', Math.random()), 5000)
+</script>
+
+    </div>
+  </div>
+  <div style="margin-top: 20px; max-width: 690px;">
+    <ui-tabs>
+      <div title="Info" active="true">
+        <div class="info">
+  <ul>
+  <li>Features: publish &lt;> subscribe mechanism. Auto disconnect on node destroy.</li>
+  <li>Direct Fez component creation via <code>Fez(tagName, class { ... })</code></li>
+  </ul>
+</div>
+      </div>
+      <div title="HTML">
+        <ui-editor
+          name="pub-sub"
+          id="html-pub-sub"
+          file="./demo/fez/pub-sub.html"
+          language="html"
+          :action="applyChanges"
+        >
+          &lt;style>
+  .fez-ui-pubsub { margin-top: 10px; }
+&lt;/style>
+
+&lt;button onclick="Fez.publish('ping', Math.random())">ping from anywhere&lt;/button>
+&sdot;
+Fast ping:
+&lt;button onclick="
+  clearInterval(window.fastPing);
+  window.fastPing = setInterval(()=>Fez.publish('ping', Math.random()), 10);"
+>START&lt;/button>
+&sdot;
+&lt;button onclick="clearInterval(window.fastPing)">END&lt;/button>
+
+&lt;ui-pubsub>
+  &lt;h4>listener 1&lt;/h4>
+  &lt;p class="target">&lt;/p>
+&lt;/ui-pubsub>
+
+&lt;ui-pubsub>
+  &lt;h4>listener 2&lt;/h4>
+  &lt;b class="target">&lt;/b>
+&lt;/ui-pubsub>
+
+&lt;ui-pubsub>
+  &lt;h4>listener 3&lt;/h4>
+  Foo: &lt;span class="target">&lt;/span>
+&lt;/ui-pubsub>
+
+&lt;template id="pubsub-t">
+  &lt;ui-pubsub>
+    Dynamic listener:
+    &lt;button onclick="Fez(this).$root.remove()">&times;&lt;/button>
+    &sdot;
+    &lt;span class="target">&lt;/span>
+  &lt;/ui-pubsub>
+&lt;/template>
+
+&lt;br />
+&lt;button onclick="$(this).after($('#pubsub-t').html())">add listener&lt;/button>
+
+&lt;script>
+  setInterval(()=>Fez.publish('ping', Math.random()), 5000)
+&lt;/script>
+
+        </ui-editor>
+      </div>
+      <div title="Fez component">
+        <ui-editor
+          id="code-ui-pub-sub"
+          file="./demo/fez/pub-sub.fez"
+          name="pub-sub"
+          :action="applyChanges"
+        >
+          &lt;xmp fez="ui-pub-sub">
+  &lt;head>
+    &lt;script>
+      Fez('ui-pubsub', class {
+        update (info) {
+          this.target.innerHTML = info
+        }
+  
+        connect() {
+          this.target = this.find('.target')
+          this.subscribe('ping', this.update)
+          this.update('waiting for a ping...')
+        }
+      })
+    &lt;/script>
+  &lt;/head>
+  &lt;/xmp>
+        </ui-editor>
+      </div>
+    </ui-tabs>
+  </div>
+</div>
+
+<xmp fez="ui-pub-sub">
+  <head>
+    <script>
+      Fez('ui-pubsub', class {
+        update (info) {
+          this.target.innerHTML = info
+        }
+  
+        connect() {
+          this.target = this.find('.target')
+          this.subscribe('ping', this.update)
+          this.update('waiting for a ping...')
+        }
+      })
+    </script>
+  </head>
+  </xmp>
+
+    
+      
+
+<div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+  <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('slider')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-slider
@@ -2073,10 +2260,6 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
       this.arrowWidth = 70
       this.setSlide(0)
       this.onResize(this.render, 100)
-  
-      this.setInterval(()=> {
-        console.log(123)
-      }, 1000)
     }
   
   &lt;/script>
@@ -2204,10 +2387,6 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
       this.arrowWidth = 70
       this.setSlide(0)
       this.onResize(this.render, 100)
-  
-      this.setInterval(()=> {
-        console.log(123)
-      }, 1000)
     }
   
   </script>

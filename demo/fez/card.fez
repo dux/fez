@@ -12,6 +12,7 @@
 
   connect() {
     this.autoflip()
+    this.subscribe('flip-card', this.flip)
   }
 </script>
 
@@ -19,7 +20,7 @@
   .card {
     display: inline-block;
     float: left;
-    width: 300px;
+    width: 250px;
     height: 400px;
     perspective: 1000px;
     cursor: pointer;

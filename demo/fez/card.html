@@ -1,11 +1,13 @@
 <div class="info">
   <ul>
     <li>Simple UI component</li>
+    <li>Pub/sub for card flip</li>
+    <li>Direct component access (node.fez)</li>
   </ul>
 </div>
 
 <script>
-  function flipAllCards() {
+  function randomFlip() {
     let timeout = 150
     let current = 0
     $('.fez-ui-card').each((_, n) => {
@@ -13,13 +15,19 @@
       setTimeout(n.fez.flip, current + 1300)
     })
   }
+
+  function flipAllCards() {
+    $('.fez-ui-card').each((_, n) => n.fez.flip())
+  }
 </script>
 
-<button onclick="flipAllCards()">Flip all cards</button>
+<button onclick="randomFlip()">Random flip</button>
+<button onclick="flipAllCards()">Flip cards via direct access</button>
+<button onclick="Fez.publish('flip-card')">Flip cards via pub/sub</button>
 
 <ui-card>
   <div class="front">
-    <h1>The magician</h1>
+    <h2>The magician</h2>
     <p>Click to flip!</p>
   </div>
   <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m1.webp') no-repeat center/cover;">
@@ -28,7 +36,7 @@
 
 <ui-card>
   <div class="front">
-    <h1>The high<br />priestess</h1>
+    <h2>The high<br />priestess</h2>
     <p>Click to flip!</p>
   </div>
   <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m2.webp') no-repeat center/cover;">
@@ -37,7 +45,7 @@
 
 <ui-card>
   <div class="front">
-    <h1>The empress</h1>
+    <h2>The empress</h2>
     <p>Click to flip!</p>
   </div>
   <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m3.webp') no-repeat center/cover;">
@@ -46,7 +54,7 @@
 
 <ui-card>
   <div class="front">
-    <h1>Another clock?</h1>
+    <h2>Another clock?</h2>
     <p>Click to see</p>
   </div>
   <div class="back" style="background-color: #aba;">

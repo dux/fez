@@ -214,7 +214,7 @@ Fez('foo-bar', class {
 
 ## Examples / playground
 
-Examples are available on [jsitor](https://jsitor.com/QoResUvMc) or [local GH pages](dux.github.io/fez/).
+Check the Demo site https://dux.github.io/fez/
 
 ## More in detail
 

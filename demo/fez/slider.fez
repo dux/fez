@@ -33,10 +33,6 @@
     this.arrowWidth = 70
     this.setSlide(0)
     this.onResize(this.render, 100)
-
-    this.setInterval(()=> {
-      console.log(123)
-    }, 1000)
   }
 
 </script>
