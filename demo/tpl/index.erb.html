@@ -101,12 +101,16 @@
       <li>
         Create ex-counter component
 
-        <%= read('tpl/index_counter.fez') %>
-
+        <template fez="ex-counter" src="./demo/index_counter.fez.html"></template>
         <ui-editor id="demo-counter">
           <template>
-            <%= read('tpl/index_counter.fez') %>
+            <%= read('./index_counter.fez.html') %>
           </template>
+        </ui-editor>
+
+        <p>Or load via HTTP (as in this case, view source)</p>
+        <ui-editor>
+          &lt;template fez="ex-counter" src="/demo/index_counter.fez.html">&lt;/template>
         </ui-editor>
       </li>
       <li>

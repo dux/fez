@@ -73,9 +73,33 @@ const compileToClass = (html) => {
 // Fez.compile('ui-form', templateNode.innerHTML) # compile string
 export default function (tagName, html) {
   if (tagName instanceof Node) {
-    tagName.remove()
-    html = tagName.innerHTML
-    tagName = tagName.getAttribute('fez')
+    const node = tagName
+    node.remove()
+
+    // Check if src attribute is defined
+    const src = node.getAttribute('src')
+    const fezName = node.getAttribute('fez')
+
+    if (src) {
+      // Load HTML content via AJAX from src path
+      fetch(src)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Failed to load ${src}: ${response.status}`)
+          }
+          return response.text()
+        })
+        .then(htmlContent => {
+          Fez.compile(fezName, htmlContent)
+        })
+        .catch(error => {
+          console.error(`FEZ template load error for "${fezName}": ${error.message}`)
+        })
+      return
+    } else {
+      html = node.innerHTML
+      tagName = fezName
+    }
   }
   else if (typeof html != 'string') {
     document.body.querySelectorAll('template[fez], xmp[fez]').forEach((n) => Fez.compile(n))

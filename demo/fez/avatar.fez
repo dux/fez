@@ -7,6 +7,14 @@
     this.size = (props.size || 64) + 'px'
     this.$root.css({width: this.size, height: this.size})
   }
+
+  image() {
+    return `<img
+      src="${this.props.src}"
+      class="avatar"
+      style="width: ${this.size}; height: ${this.size};"
+    />`
+  }
 </script>
 
 <style>
@@ -32,19 +40,13 @@
   }
 </style>
 
-{{#block avatar}}
-  <img
-    src="{{ @props.src }}"
-    class="avatar"
-    style="width: {{ @size }}; height: {{ @size }};"
-  />
-{{/block}}
-
 {{#if @props.name}}
   <span class="avatar">
     <div class="title">{{ @props.name }}</div>
-    <div>{{#block:avatar}}</div>
+    <div>
+      {{@html @image() }}
+    </div>
   </span>
 {{:else}}
-  {{#block:avatar}}
+   {{@html @image() }}
 {{/if}}

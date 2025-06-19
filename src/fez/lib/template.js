@@ -11,6 +11,11 @@ function parseBlock(data, ifStack) {
     return `\${ ${data} ? \``
   }
   if (data.startsWith('#block') || data.startsWith('block')) {
+    // do not use, but supported
+    // {{#block avatar}}
+    //   <img ... />
+    // {{/block}}
+    // {{#block:avatar}}
     const parts1 = data.split('block ', 2)
     const parts2 = data.split('block:', 2)
 
@@ -19,7 +24,6 @@ function parseBlock(data, ifStack) {
     } else {
       return '${ this.fezBlocks.' + parts2[1] + ' }'
     }
-
   }
   else if (data == '/block') {
     return '`) && \'\'}'

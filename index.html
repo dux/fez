@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-  <script src="./dist/fez.js?t=1750328766"></script>
+  <script src="./dist/fez.js?t=1750335594"></script>
   <script>
     window.L = console.log
   </script>
@@ -132,82 +132,49 @@
       <li>
         Create ex-counter component
 
-        <template fez="ex-counter">
-  <script>
-    connect() {
-      this.state.count = 0
-    }
-
-    more() {
-      this.state.count += this.state.count > 9 ? 0 : 1
-    }
-  </script>
-
-  <style>
-    zoom: 2;
-    margin: 10px 0;
-
-    button {
-      position: relative;
-      top: -3px;
-    }
-
-    span {
-      padding: 0 5px;
-    }
-  </style>
-
-  <button onclick="@state.count -= 1">-</button>
-  <span>
-    {{ @state.count }}
-  </span>
-  <button onclick="@more()">+</button>
-  {{#if @state.count > 0}}
-    <span>&mdash;</span>
-    {{#if @state.count % 2 }} odd {{:else}} even {{/if}}
-  {{/if}}
-</template>
-
-
+        <template fez="ex-counter" src="./demo/index_counter.fez.html"></template>
         <ui-editor id="demo-counter">
           <template>
-            <template fez="ex-counter">
-  <script>
-    connect() {
-      this.state.count = 0
-    }
+            <script>
+  connect() {
+    this.state.count = 0
+  }
 
-    more() {
-      this.state.count += this.state.count > 9 ? 0 : 1
-    }
-  </script>
+  more() {
+    this.state.count += this.state.count > 9 ? 0 : 1
+  }
+</script>
 
-  <style>
-    zoom: 2;
-    margin: 10px 0;
+<style>
+  zoom: 2;
+  margin: 10px 0;
 
-    button {
-      position: relative;
-      top: -3px;
-    }
+  button {
+    position: relative;
+    top: -3px;
+  }
 
-    span {
-      padding: 0 5px;
-    }
-  </style>
+  span {
+    padding: 0 5px;
+  }
+</style>
 
-  <button onclick="@state.count -= 1">-</button>
-  <span>
-    {{ @state.count }}
-  </span>
-  <button onclick="@more()">+</button>
-  {{#if @state.count > 0}}
-    <span>&mdash;</span>
-    {{#if @state.count % 2 }} odd {{:else}} even {{/if}}
-  {{/if}}
-</template>
+<button onclick="@state.count -= 1">-</button>
+<span>
+  {{ @state.count }}
+</span>
+<button onclick="@more()">+</button>
+{{#if @state.count > 0}}
+  <span>&mdash;</span>
+  {{#if @state.count % 2 }} odd {{:else}} even {{/if}}
+{{/if}}
 
           </template>
+        </ui-editor>
+
+        <p>Or load via HTTP (as in this case, view source)</p>
+        <ui-editor>
+          &lt;template fez="ex-counter" src="/demo/index_counter.fez.html">&lt;/template>
         </ui-editor>
       </li>
       <li>
@@ -317,6 +284,14 @@
       this.size = (props.size || 64) + 'px'
       this.$root.css({width: this.size, height: this.size})
     }
+  
+    image() {
+      return `&lt;img
+        src="${this.props.src}"
+        class="avatar"
+        style="width: ${this.size}; height: ${this.size};"
+      />`
+    }
   &lt;/script>
   
   &lt;style>
@@ -342,21 +317,15 @@
     }
   &lt;/style>
   
-  {{#block avatar}}
-    &lt;img
-      src="{{ @props.src }}"
-      class="avatar"
-      style="width: {{ @size }}; height: {{ @size }};"
-    />
-  {{/block}}
-  
   {{#if @props.name}}
     &lt;span class="avatar">
       &lt;div class="title">{{ @props.name }}&lt;/div>
-      &lt;div>{{#block:avatar}}&lt;/div>
+      &lt;div>
+        {{@html @image() }}
+      &lt;/div>
     &lt;/span>
   {{:else}}
-    {{#block:avatar}}
+     {{@html @image() }}
   {{/if}}
   &lt;/template>
         </ui-editor>
@@ -374,6 +343,14 @@
       this.copy('href', 'style')
       this.size = (props.size || 64) + 'px'
       this.$root.css({width: this.size, height: this.size})
+    }
+  
+    image() {
+      return `<img
+        src="${this.props.src}"
+        class="avatar"
+        style="width: ${this.size}; height: ${this.size};"
+      />`
     }
   </script>
   
@@ -400,21 +377,15 @@
     }
   </style>
   
-  {{#block avatar}}
-    <img
-      src="{{ @props.src }}"
-      class="avatar"
-      style="width: {{ @size }}; height: {{ @size }};"
-    />
-  {{/block}}
-  
   {{#if @props.name}}
     <span class="avatar">
       <div class="title">{{ @props.name }}</div>
-      <div>{{#block:avatar}}</div>
+      <div>
+        {{@html @image() }}
+      </div>
     </span>
   {{:else}}
-    {{#block:avatar}}
+     {{@html @image() }}
   {{/if}}
   </template>
 
