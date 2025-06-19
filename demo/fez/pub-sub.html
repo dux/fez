@@ -1,13 +1,13 @@
+<style>
+  .fez-ui-pubsub { margin-top: 10px; }
+</style>
+
 <div class="info">
   <ul>
   <li>Features: publish &lt;> subscribe mechanism. Auto disconnect on node destroy.</li>
   <li>Direct Fez component creation via <code>Fez(tagName, class { ... })</code></li>
   </ul>
 </div>
-
-<style>
-  .fez-ui-pubsub { margin-top: 10px; }
-</style>
 
 <button onclick="Fez.publish('ping', Math.random())">ping from anywhere</button>
 &sdot;
@@ -47,5 +47,17 @@ Fast ping:
 <button onclick="$(this).after($('#pubsub-t').html())">add listener</button>
 
 <script>
+  Fez('ui-pubsub', class {
+    update (info) {
+      this.target.innerHTML = info
+    }
+
+    connect() {
+      this.target = this.find('.target')
+      this.subscribe('ping', this.update)
+      this.update('waiting for a ping...')
+    }
+  })
+
   setInterval(()=>Fez.publish('ping', Math.random()), 5000)
 </script>

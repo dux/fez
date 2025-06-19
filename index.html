@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-  <script src="./dist/fez.js?t=1749809114"></script>
+  <script src="./dist/fez.js?t=1750328766"></script>
   <script>
     window.L = console.log
   </script>
@@ -1910,9 +1910,12 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
     </h3>
 
     <div id="body-pub-sub" style="padding-bottom: 20px;">
-      <style>
-  .fez-ui-pubsub { margin-top: 10px; }
-</style>
+      <div class="info">
+  <ul>
+  <li>Features: publish &lt;> subscribe mechanism. Auto disconnect on node destroy.</li>
+  <li>Direct Fez component creation via <code>Fez(tagName, class { ... })</code></li>
+  </ul>
+</div>
 
 <button onclick="Fez.publish('ping', Math.random())">ping from anywhere</button>
 &sdot;
@@ -1952,6 +1955,18 @@ Fast ping:
 <button onclick="$(this).after($('#pubsub-t').html())">add listener</button>
 
 <script>
+  Fez('ui-pubsub', class {
+    update (info) {
+      this.target.innerHTML = info
+    }
+
+    connect() {
+      this.target = this.find('.target')
+      this.subscribe('ping', this.update)
+      this.update('waiting for a ping...')
+    }
+  })
+
   setInterval(()=>Fez.publish('ping', Math.random()), 5000)
 </script>
 
@@ -1960,12 +1975,9 @@ Fast ping:
   <div style="margin-top: 20px; max-width: 690px;">
     <ui-tabs>
       <div title="Info" active="true">
-        <div class="info">
-  <ul>
-  <li>Features: publish &lt;> subscribe mechanism. Auto disconnect on node destroy.</li>
-  <li>Direct Fez component creation via <code>Fez(tagName, class { ... })</code></li>
-  </ul>
-</div>
+        <style>
+  .fez-ui-pubsub { margin-top: 10px; }
+</style>
       </div>
       <div title="HTML">
         <ui-editor
@@ -1975,9 +1987,12 @@ Fast ping:
           language="html"
           :action="applyChanges"
         >
-          &lt;style>
-  .fez-ui-pubsub { margin-top: 10px; }
-&lt;/style>
+          &lt;div class="info">
+  &lt;ul>
+  &lt;li>Features: publish &lt;> subscribe mechanism. Auto disconnect on node destroy.&lt;/li>
+  &lt;li>Direct Fez component creation via &lt;code>Fez(tagName, class { ... })&lt;/code>&lt;/li>
+  &lt;/ul>
+&lt;/div>
 
 &lt;button onclick="Fez.publish('ping', Math.random())">ping from anywhere&lt;/button>
 &sdot;
@@ -2017,6 +2032,18 @@ Fast ping:
 &lt;button onclick="$(this).after($('#pubsub-t').html())">add listener&lt;/button>
 
 &lt;script>
+  Fez('ui-pubsub', class {
+    update (info) {
+      this.target.innerHTML = info
+    }
+
+    connect() {
+      this.target = this.find('.target')
+      this.subscribe('ping', this.update)
+      this.update('waiting for a ping...')
+    }
+  })
+
   setInterval(()=>Fez.publish('ping', Math.random()), 5000)
 &lt;/script>
 
@@ -2029,46 +2056,18 @@ Fast ping:
           name="pub-sub"
           :action="applyChanges"
         >
-          &lt;xmp fez="ui-pub-sub">
-  &lt;head>
-    &lt;script>
-      Fez('ui-pubsub', class {
-        update (info) {
-          this.target.innerHTML = info
-        }
-  
-        connect() {
-          this.target = this.find('.target')
-          this.subscribe('ping', this.update)
-          this.update('waiting for a ping...')
-        }
-      })
-    &lt;/script>
-  &lt;/head>
-  &lt;/xmp>
+          &lt;template fez="ui-pub-sub">
+  &lt;--! defined in HTML block -->
+  &lt;/template>
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<xmp fez="ui-pub-sub">
-  <head>
-    <script>
-      Fez('ui-pubsub', class {
-        update (info) {
-          this.target.innerHTML = info
-        }
-  
-        connect() {
-          this.target = this.find('.target')
-          this.subscribe('ping', this.update)
-          this.update('waiting for a ping...')
-        }
-      })
-    </script>
-  </head>
-  </xmp>
+<template fez="ui-pub-sub">
+  <--! defined in HTML block -->
+  </template>
 
     
       
