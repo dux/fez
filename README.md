@@ -69,6 +69,8 @@ That is all.
 
 ## Full available interface
 
+### Fez Static Methods
+
 ```js
 // add global scss
 Fez.globalCss(`
@@ -86,21 +88,48 @@ Fez.fnv1('some string')
 // get generated css class name, from scss source string
 Fez.css(text)
 
+// get generated css class name without global attachment
+Fez.cssClass(text)
+
+// display information about fast/slow bind components in console
+Fez.info()
+
+// low-level DOM morphing function
+Fez.morphdom(target, newNode, opts)
+
+// HTML escaping utility
+Fez.htmlEscape(text)
+
+// create HTML tags with encoded props
+Fez.tag(tag, opts, html)
+
+// add scripts/styles to document head
+Fez.head(text, kind)
+
+// execute function until it returns true
+Fez.untilTrue(func, pingRate)
+
+// dynamic script/CSS loader
+Fez.getScript(src, attributesOrCallback, callback)
+
 // define custom DOM node name -> <foo-bar>...
 Fez('foo-bar', class {
   // set element node name, set as property or method, defaults to DIV
   // why? because Fez renames custom dom nodes to regular HTML nodes
   NAME = 'span'
   NAME(node) { ... }
+  // alternative: static nodeName = 'span'
 
   // set element style, set as property or method
   CSS = `scss string... `
 
   // unless node has no innerHTML on initialization, bind will be set to slow (fastBind = false)
   // if you are using components that to not use innerHTML and slots, enable fast bind (fastBind = true)
+  // component will be rendered as parsed, and not on next tick (reduces flickering)
   // <fez-icon name="gear" />
   FAST = true
   FAST(node) { ... }
+  // alternative: static fastBind() { return true }
 
   // define static HTML. calling `this.render()` (no arguments) will refresh current node.
   // if you pair it with `reactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
@@ -110,7 +139,7 @@ Fez('foo-bar', class {
     // copy attributes from attr hash to root node
     this.copy('href', 'onclick', 'style')
 
-    // clasic interval, that rune only while node is attached
+    // clasic interval, that runs only while node is attached
     this.setInterval(func, tick) { ... }
 
     // get closest form data, as object
@@ -125,7 +154,7 @@ Fez('foo-bar', class {
     // node properties as Object
     this.props
 
-    // gets single attribute or property
+    // gets single node attribute or property
     this.prop('onclick')
 
     // shortcut for this.root.querySelector(selector)
@@ -149,8 +178,23 @@ Fez('foo-bar', class {
     // on every "this.data" props change, auto update view.
     this.data = this.reactiveStore()
 
-    // this.store has reactiveStore() attached by default. any change will trigger this,render()
-    this.store.foo = 123
+    // this.state has reactiveStore() attached by default. any change will trigger this.render()
+    this.state.foo = 123
+
+    // window resize event with cleanup
+    this.onResize(func, delay)
+
+    // requestAnimationFrame wrapper with deduplication
+    this.nextTick(func, name)
+
+    // get/set unique ID for root node
+    this.nodeId()
+
+    // get/set attributes on root node
+    this.attr(name, value)
+
+    // hide the custom element wrapper and move children to parent
+    this.fezHide()
 
     // render template and attach result dom to root. uses Idiomorph for DOM morph
     this.render(`
@@ -167,7 +211,7 @@ Fez('foo-bar', class {
           {{#each @list as name, index}}
 
           <!-- you can use for loop -->
-          {{#for name, i in @list}
+          {{#for name, i in @list}}
 
             <!--
               fez-use will call object function by name, and pass current node,
@@ -178,17 +222,35 @@ Fez('foo-bar', class {
               <!-- $$ will point to fez instance, same as Fez(this) -->
               <input onkeyup="$$.list[{{ index }}].name = this.value" value="{{ name }}" />
 
+              <!-- fez-bind for two-way data binding on form elements -->
+              <input type="text" fez-bind="@state.username" />
+
+              <!-- :attribute for evaluated attributes (converts to JSON) -->
+              <div :data-config="@state.config"></div>
+
+              <!-- fez-class for adding classes with optional delay -->
+              <span fez-class="active:100">Delayed class</span>
+
             </li>
-          {{/list}}
+          {{/each}}
         </ul>
       {{/if}}
+
+      <!-- Block definitions and usage -->
+      {{#block header}}
+        <h1>Default header</h1>
+      {{/block}}
+
+      {{#block:header}}  <!-- Use the header block -->
+
+      <!-- Head elements support (inline only in XML tags) -->
+      <head>
+        <script>console.log('Added to document head')</script>
+      </head>
     `)
   }
   // you can render to another root too
   this.render(this.find('.body'), someHtmlTemplate)
-
-  // alias to this.render(), to refresh state from static html template
-  this.refresh()
 
   // execute after connect and initial component render
   this.afterConnect() { ... }
@@ -200,16 +262,35 @@ Fez('foo-bar', class {
 
   // if you want to monitor new or changed node attributes
   this.onPropsChange(name, value) { ... }
+
+  // called when component is destroyed
+  this.onDestroy() { ... }
+
+  // automatic form submission handling if defined
+  this.onSubmit(formData) { ... }
 })
 ```
 
 ```html
+  <!-- Remote loading for a component -->
+  <template fez="ui-button" src="path/to/ui-button.fez"></template>
+  <xmp fez="ui-button" src="path/to/ui-button.fez"></xmp>
+
   <!-- wrap JS in {{ }} to calc before node mount -->
-  <foo-bar
-    id="id-will-be-copied"
-    size="{{ document.getElementById('icon-range').value }}"
-  >
-  </foo-bar>
+  <foo-bar size="{{ document.getElementById('icon-range').value }}"></foo-bar>
+
+  <!-- pass JSON props via data-props -->
+  <foo-bar data-props='{"name": "John", "age": 30}'></foo-bar>
+
+  <!-- pass JSON template via data-json-template -->
+  <!-- <script type="text/template">{...}</script> -->
+  <foo-bar data-json-template="true"></foo-bar>
+
+  <!-- override slow bind behavior -->
+  <foo-bar fast_connect="true"></foo-bar>
+
+  <!-- use : prefix for evaluated attributes -->
+  <foo-bar :config="window.appConfig"></foo-bar>
 ```
 
 ## Examples / playground
@@ -290,6 +371,26 @@ Finds first closest Fez node.
 * ### this.$root
 
   jQuery wrapped root, if jQuery is present.
+
+* ### this.state
+
+  Reactive store that automatically triggers render() on changes (initialized by default)
+
+* ### this.fezName
+
+  Property containing the component's tag name
+
+* ### this.fezHtmlRoot
+
+  Property for getting the component reference string
+
+* ### this.oldRoot
+
+  Reference to original DOM node before transformation
+
+* ### this.fezBlocks
+
+  Internal storage for template blocks
 
 ## instance functions
 
