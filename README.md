@@ -236,6 +236,11 @@ Fez('foo-bar', class {
         </ul>
       {{/if}}
 
+      <!-- unless directive - opposite of if -->
+      {{#unless @list.length}}
+        <p>No items to display</p>
+      {{/unless}}
+
       <!-- Block definitions and usage -->
       {{#block header}}
         <h1>Default header</h1>

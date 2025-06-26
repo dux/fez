@@ -10,7 +10,12 @@ function parseBlock(data, ifStack) {
     data = data.replace(/^#?if/, '')
     return `\${ ${data} ? \``
   }
-  if (data.startsWith('#block') || data.startsWith('block')) {
+  else if (data.startsWith('#unless') || data.startsWith('unless')) {
+    ifStack.push(false)
+    data = data.replace(/^#?unless/, '')
+    return `\${ !(${data}) ? \``
+  }
+  else if (data.startsWith('#block') || data.startsWith('block')) {
     // do not use, but supported
     // {{#block avatar}}
     //   <img ... />
@@ -42,7 +47,7 @@ function parseBlock(data, ifStack) {
     ifStack[ifStack.length - 1] = true
     return '` : `'
   }
-  else if (data == '/if') {
+  else if (data == '/if' || data == '/unless') {
     return ifStack.pop() ? '`}' : '` : ``}'
   }
   else if (data == '/for' || data == '/each') {

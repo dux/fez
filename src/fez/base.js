@@ -24,7 +24,6 @@ export default class FezBase {
       attrs = JSON.parse(data)
     }
 
-
     // pass props as json template
     // <script type="text/template">{...}</script>
     // <foo-bar data-json-template="true"></foo-bar>
