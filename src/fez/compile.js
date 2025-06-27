@@ -9,7 +9,7 @@ const compileToClass = (html) => {
     line = line.trim()
     if (line.startsWith('<script') && !result.script && currentType != 'head') {
       currentType = 'script';
-    } else if (line.startsWith('<head')) { // you must use XPM tag if you want to define <head> tag
+    } else if (line.startsWith('<head') && !result.script) { // you must use XMP tag if you want to define <head> tag, and it has to be first
       currentType = 'head';
     } else if (line.startsWith('<style')) {
       currentType = 'style';
@@ -21,7 +21,7 @@ const compileToClass = (html) => {
       result.style = currentBlock.join('\n');
       currentBlock = [];
       currentType = null;
-    } else if (line.endsWith('</head>') && currentType === 'head') {
+    } else if ((line.endsWith('</head>') || line.endsWith('</header>')) && currentType === 'head') {
       result.head = currentBlock.join('\n');
       currentBlock = [];
       currentType = null;
@@ -35,15 +35,30 @@ const compileToClass = (html) => {
   if (result.head) {
     const container = document.createElement('div')
     container.innerHTML = result.head
-    container.querySelectorAll('script').forEach(node => {
-      node.type ||= 'text/javascript'
-      if (!node.src && node.type.includes('javascript') ) {
-        const fn = new Function(node.textContent)
-        fn()
+
+    // Process all children of the container
+    Array.from(container.children).forEach(node => {
+      if (node.tagName === 'SCRIPT') {
+        const script = document.createElement('script')
+        // Copy all attributes
+        Array.from(node.attributes).forEach(attr => {
+          script.setAttribute(attr.name, attr.value)
+        })
+        script.type ||= 'text/javascript'
+
+        if (node.src) {
+          // External script - will load automatically
+          document.head.appendChild(script)
+        } else if (script.type.includes('javascript')) {
+          // Inline script - set content and execute
+          script.textContent = node.textContent
+          document.head.appendChild(script)
+        }
+      } else {
+        // For other elements (link, meta, etc.), just append them
+        document.head.appendChild(node.cloneNode(true))
       }
     })
-
-    document.head.innerHTML += result.head
   }
 
   let klass = result.script

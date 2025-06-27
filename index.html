@@ -7,7 +7,7 @@
   <title>Fez - JavaScript DOM component framework.</title>
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
-  <script src="./dist/fez.js?t=1751031514"></script>
+  <script src="./dist/fez.js?t=1751032966"></script>
   <script>
     window.L = console.log
     window.DEV = location.port > 999
@@ -1831,54 +1831,54 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
           name="markdown"
           :action="applyChanges"
         >
-          &lt;template fez="ui-markdown">
+          &lt;xmp fez="ui-markdown">
+  &lt;head>
+    &lt;script src="https://cdnjs.cloudflare.com/ajax/libs/marked/2.1.3/marked.min.js">&lt;/script>
+  &lt;/head>
+  
   &lt;script>
-    Fez.getScript('https://cdnjs.cloudflare.com/ajax/libs/marked/2.1.3/marked.min.js')
+    connect(props) {
+      let text = props.html || this.root.innerHTML;
   
-    class {
-      connect(props) {
-        let text = props.html || this.root.innerHTML;
+      this.root.classList.add('markdown');
   
-        this.root.classList.add('markdown');
-  
-        Fez.untilTrue(() => {
-          if (window.marked) {
-            text = window.marked(text)
-            this.root.innerHTML = text;
-            return true
-          }
-        });
-      }
+      Fez.untilTrue(() => {
+        if (window.marked) {
+          text = window.marked(text)
+          this.root.innerHTML = text;
+          return true
+        }
+      });
     }
   &lt;/script>
-  &lt;/template>
+  &lt;/xmp>
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="ui-markdown">
+<xmp fez="ui-markdown">
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/2.1.3/marked.min.js"></script>
+  </head>
+  
   <script>
-    Fez.getScript('https://cdnjs.cloudflare.com/ajax/libs/marked/2.1.3/marked.min.js')
+    connect(props) {
+      let text = props.html || this.root.innerHTML;
   
-    class {
-      connect(props) {
-        let text = props.html || this.root.innerHTML;
+      this.root.classList.add('markdown');
   
-        this.root.classList.add('markdown');
-  
-        Fez.untilTrue(() => {
-          if (window.marked) {
-            text = window.marked(text)
-            this.root.innerHTML = text;
-            return true
-          }
-        });
-      }
+      Fez.untilTrue(() => {
+        if (window.marked) {
+          text = window.marked(text)
+          this.root.innerHTML = text;
+          return true
+        }
+      });
     }
   </script>
-  </template>
+  </xmp>
 
     
       
