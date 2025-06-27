@@ -5,7 +5,8 @@
   connect(props) {
     this.copy('href', 'style')
     this.size = (props.size || 64) + 'px'
-    this.$root.css({width: this.size, height: this.size})
+    this.root.style.width = this.size
+    this.root.style.height = this.size
   }
 
   image() {

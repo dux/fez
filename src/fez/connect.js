@@ -156,11 +156,6 @@ function connectDom(name, node, klass) {
     object.afterConnect()
     object.onMount()
 
-    // Log in development mode
-    if (window.DEV) {
-      console.log(`Fez: DOM node ${name} created`)
-    }
-
     // if onPropsChange method defined, add observer and trigger call on all attributes once component is loaded
     if (object.onPropsChange) {
       observer.observe(newNode, {attributes:true})

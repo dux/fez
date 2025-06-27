@@ -143,13 +143,14 @@ export default function (tagName, html) {
   if (tagName && !tagName.includes('-') && !tagName.includes('.') && !tagName.includes('/')) {
     console.error(`Fez: Invalid custom element name "${tagName}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)
   }
-  
+
   let klass = compileToClass(html)
   let parts = klass.split(/class\s+\{/, 2)
   klass = `${parts[0]};\n\nwindow.Fez('${tagName}', class {\n${parts[1]})`
 
   try {
     new Function(klass)()
+    Fez.log(`${tagName} compiled`)
   } catch(e) {
     console.error(`FEZ template "${tagName}" compile error: ${e.message}`)
     console.log(html)
