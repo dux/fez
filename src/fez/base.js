@@ -21,7 +21,11 @@ export default class FezBase {
       }
       // console.log(data)
       // console.log(data)
-      attrs = JSON.parse(data)
+      try {
+        attrs = JSON.parse(data)
+      } catch (e) {
+        console.error(`Fez: Invalid JSON in data-props for ${baseNode.tagName}: ${e.message}`)
+      }
     }
 
     // pass props as json template
@@ -30,16 +34,24 @@ export default class FezBase {
     if (attrs['data-json-template']) {
       const data = newNode.previousSibling?.textContent
       if (data) {
-        attrs = JSON.parse(data)
-        newNode.previousSibling.remove()
+        try {
+          attrs = JSON.parse(data)
+          newNode.previousSibling.remove()
+        } catch (e) {
+          console.error(`Fez: Invalid JSON in template for ${baseNode.tagName}: ${e.message}`)
+        }
       }
     }
 
     for (const [key, val] of Object.entries(attrs)) {
       if ([':'].includes(key[0])) {
         delete attrs[key]
-        const newVal = new Function(`return (${val})`).bind(newNode)()
-        attrs[key.replace(/[\:_]/, '')] = newVal
+        try {
+          const newVal = new Function(`return (${val})`).bind(newNode)()
+          attrs[key.replace(/[\:_]/, '')] = newVal
+        } catch (e) {
+          console.error(`Fez: Error evaluating attribute ${key}="${val}" for ${baseNode.tagName}: ${e.message}`)
+        }
       }
     }
 
@@ -48,6 +60,10 @@ export default class FezBase {
 
   static formData(node) {
     const formNode = node.closest('form') || node.querySelector('form')
+    if (!formNode) {
+      Fez.log('No form found for formData()')
+      return {}
+    }
     const formData = new FormData(formNode)
     const formObject = {}
     formData.forEach((value, key) => {

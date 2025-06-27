@@ -76,27 +76,60 @@ export default function (tagName, html) {
     const node = tagName
     node.remove()
 
-    // Check if src attribute is defined
-    const src = node.getAttribute('src')
     const fezName = node.getAttribute('fez')
 
-    if (src) {
-      // Load HTML content via AJAX from src path
-      fetch(src)
+    // Check if fezName contains dot or slash (indicates URL)
+    if (fezName && (fezName.includes('.') || fezName.includes('/'))) {
+      const url = fezName
+
+      Fez.log(`Loading from ${url}`)
+
+      // Extract name from path (filename without extension)
+      const extractNameFromPath = (path) => {
+        const fileName = path.split('/').pop()
+        // Remove .fez.html or .html extension
+        return fileName.replace(/\.(fez\.)?html$/, '')
+      }
+
+      // Load HTML content via AJAX from URL
+      fetch(url)
         .then(response => {
           if (!response.ok) {
-            throw new Error(`Failed to load ${src}: ${response.status}`)
+            throw new Error(`Failed to load ${url}: ${response.status}`)
           }
           return response.text()
         })
         .then(htmlContent => {
-          Fez.compile(fezName, htmlContent)
+          // Check if remote HTML has template/xmp tags with fez attribute
+          const parser = new DOMParser()
+          const doc = parser.parseFromString(htmlContent, 'text/html')
+          const fezElements = doc.querySelectorAll('template[fez], xmp[fez]')
+
+          if (fezElements.length > 0) {
+            // Compile each found fez element
+            fezElements.forEach(el => {
+              const name = el.getAttribute('fez')
+              if (name && !name.includes('-') && !name.includes('.') && !name.includes('/')) {
+                console.error(`Fez: Invalid custom element name "${name}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)
+              }
+              const content = el.innerHTML
+              Fez.compile(name, content)
+            })
+          } else {
+            // No fez elements found, use extracted name from URL
+            const name = extractNameFromPath(url)
+            Fez.compile(name, htmlContent)
+          }
         })
         .catch(error => {
           console.error(`FEZ template load error for "${fezName}": ${error.message}`)
         })
       return
     } else {
+      // Validate fezName format for non-URL names
+      if (fezName && !fezName.includes('-')) {
+        console.error(`Fez: Invalid custom element name "${fezName}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)
+      }
       html = node.innerHTML
       tagName = fezName
     }
@@ -106,13 +139,14 @@ export default function (tagName, html) {
     return
   }
 
+  // Validate element name if it's not a URL
+  if (tagName && !tagName.includes('-') && !tagName.includes('.') && !tagName.includes('/')) {
+    console.error(`Fez: Invalid custom element name "${tagName}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)
+  }
+  
   let klass = compileToClass(html)
   let parts = klass.split(/class\s+\{/, 2)
   klass = `${parts[0]};\n\nwindow.Fez('${tagName}', class {\n${parts[1]})`
-
-  // if (tagName == 'x-counter') {
-  //   console.log(klass)
-  // }
 
   try {
     new Function(klass)()

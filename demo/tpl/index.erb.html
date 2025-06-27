@@ -11,6 +11,7 @@
   <script src="./dist/fez.js?t=<%= Time.now.to_i %>"></script>
   <script>
     window.L = console.log
+    window.DEV = location.port > 999
   </script>
 </head>
 <body>
@@ -101,16 +102,16 @@
       <li>
         Create ex-counter component
 
-        <template fez="ex-counter" src="./demo/index_counter.fez.html"></template>
+        <template fez="./demo/ex-counter.fez.html"></template>
         <ui-editor id="demo-counter">
           <template>
-            <%= read('./index_counter.fez.html') %>
+            <%= read('./ex-counter.fez.html') %>
           </template>
         </ui-editor>
 
         <p>Or load via HTTP (as in this case, view source)</p>
         <ui-editor>
-          &lt;template fez="ex-counter" src="/demo/index_counter.fez.html">&lt;/template>
+          &lt;template fez="ex-counter" src="/demo/ex-counter.fez.html">&lt;/template>
         </ui-editor>
       </li>
       <li>

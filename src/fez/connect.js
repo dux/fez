@@ -2,6 +2,11 @@
 import createTemplate from './lib/template'
 
 export default function(name, klass) {
+  // Validate custom element name format (must contain a dash)
+  if (!name.includes('-')) {
+    console.error(`Fez: Invalid custom element name "${name}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)
+  }
+  
   // to allow anonymous class and then re-attach (does not work)
   // Fez('ui-todo', class { ... # instead Fez('ui-todo', class extends FezBase {
   if (!klass.__objects) {
@@ -150,6 +155,11 @@ function connectDom(name, node, klass) {
 
     object.afterConnect()
     object.onMount()
+
+    // Log in development mode
+    if (window.DEV) {
+      console.log(`Fez: DOM node ${name} created`)
+    }
 
     // if onPropsChange method defined, add observer and trigger call on all attributes once component is loaded
     if (object.onPropsChange) {

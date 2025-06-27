@@ -41,9 +41,9 @@ Fez.find = (onode, name) => {
 
   const klass = name ? `.fez.fez-${name}` : '.fez'
 
-  const fez = node.closest(klass).fez
-  if (fez) {
-    return fez
+  const closestNode = node.closest(klass)
+  if (closestNode && closestNode.fez) {
+    return closestNode.fez
   } else {
     console.error('Fez node connector not found', onode, node)
   }
@@ -146,6 +146,12 @@ Fez.tag = (tag, opts = {}, html = '') => {
   // const data = `<script type="text/template">${json}</script><${tag} data-json-template="true">${html}</${tag}>`
   // return data
 };
+
+Fez.log = (text) => {
+  if (window.DEV) {
+    console.log(`Fez: ${text}`)
+  }
+}
 
 Fez.head = (text, kind) => {
   if (text.includes('<')) {

@@ -62,6 +62,7 @@ That is all.
 * it has built in publish-subscribe, where only connected nodes will be able to publish and receive subs.
 * It morphs DOM, state is preserved on changes.
 * It can have full state &lt;> template sync using `reactiveStore()`
+* Development mode logging - set `window.DEV = true` to see when components are created
 
 ## What it does not do?
 
@@ -277,9 +278,13 @@ Fez('foo-bar', class {
 ```
 
 ```html
-  <!-- Remote loading for a component -->
-  <template fez="ui-button" src="path/to/ui-button.fez"></template>
-  <xmp fez="ui-button" src="path/to/ui-button.fez"></xmp>
+  <!-- Remote loading for a component via URL in fez attribute -->
+  <template fez="path/to/ui-button.fez.html"></template>
+  <xmp fez="https://example.com/components/ui-button.html"></xmp>
+  
+  <!-- Component name is extracted from filename (ui-button) -->
+  <!-- If remote HTML contains template/xmp tags with fez attributes, they are compiled -->
+  <!-- Otherwise, the entire content is compiled as the component -->
 
   <!-- wrap JS in {{ }} to calc before node mount -->
   <foo-bar size="{{ document.getElementById('icon-range').value }}"></foo-bar>
