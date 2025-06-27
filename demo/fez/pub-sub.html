@@ -37,14 +37,14 @@ Fast ping:
 <template id="pubsub-t">
   <ui-pubsub>
     Dynamic listener:
-    <button onclick="Fez(this).$root.remove()">&times;</button>
+    <button onclick="Fez(this).root.remove()">&times;</button>
     &sdot;
     <span class="target"></span>
   </ui-pubsub>
 </template>
 
 <br />
-<button onclick="$(this).after($('#pubsub-t').html())">add listener</button>
+<button onclick="this.insertAdjacentHTML('afterend', document.getElementById('pubsub-t').innerHTML)">add listener</button>
 
 <script>
   Fez('ui-pubsub', class {

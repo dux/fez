@@ -10,14 +10,14 @@
   function randomFlip() {
     let timeout = 150
     let current = 0
-    $('.fez-ui-card').each((_, n) => {
-      setTimeout(n.fez.flip, current += timeout)
-      setTimeout(n.fez.flip, current + 1300)
+    document.querySelectorAll('.fez-ui-card').forEach(n => {
+      setTimeout(() => n.fez.flip(), current += timeout)
+      setTimeout(() => n.fez.flip(), current + 1300)
     })
   }
 
   function flipAllCards() {
-    $('.fez-ui-card').each((_, n) => n.fez.flip())
+    document.querySelectorAll('.fez-ui-card').forEach(n => n.fez.flip())
   }
 </script>
 

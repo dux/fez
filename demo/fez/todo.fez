@@ -21,12 +21,16 @@
     // same as in Svelte, uf you define fez-use="methodName", method will be called when node is added to dom.
     // in this case, we animate show new node
 
-    $(node)
-      .css('display', 'block')
-      .animate({height: '33px', opacity: 1}, 200, () => {
-        delete this.state.tasks[this.state.tasks.length-1].animate
-        $(node).css('height', 'auto')
-      })
+    node.style.display = 'block'
+    node.style.transition = 'height 200ms, opacity 200ms'
+    node.style.height = '33px'
+    node.style.opacity = '1'
+    
+    setTimeout(() => {
+      delete this.state.tasks[this.state.tasks.length-1].animate
+      node.style.height = 'auto'
+      node.style.transition = ''
+    }, 200)
   }
 
   connect() {

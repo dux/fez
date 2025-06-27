@@ -16,8 +16,8 @@
 
 <script>
   function showToast(form) {
-    let input = $(form).find('input')
-    Toast.info(input.val())
-    input.val('')
+    let input = form.querySelector('input')
+    Toast.info(input.value)
+    input.value = ''
   }
 </script>

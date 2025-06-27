@@ -47,6 +47,6 @@
 
 <script>
   function updateFormData(obj) {
-    $('#form-data').append(JSON.stringify(obj) + "\n")
+    document.getElementById('form-data').textContent += JSON.stringify(obj) + "\n"
   }
 </script>

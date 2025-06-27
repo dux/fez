@@ -1,19 +1,22 @@
 <script>
   // everything before class gets executed in component registration
-  $(document.head).append(`
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-  `)
+  if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
+    const link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200'
+    document.head.appendChild(link)
+  }
 
   class {
     NAME = 'span'
 
     setSize(size) {
-      this.$root.css('font-size', `${parseInt(size)}px`)
+      this.root.style.fontSize = `${parseInt(size)}px`
     }
 
     onPropsChange(name, value) {
       if (name == 'color') {
-        this.$root.css('color', value)
+        this.root.style.color = value
       }
 
       if (name == 'size') {

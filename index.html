@@ -7,8 +7,7 @@
   <title>Fez - JavaScript DOM component framework.</title>
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-  <script src="./dist/fez.js?t=1751015048"></script>
+  <script src="./dist/fez.js?t=1751020535"></script>
   <script>
     window.L = console.log
     window.DEV = location.port > 999
@@ -450,7 +449,11 @@
   &lt;script>
     onMount() {
       const childNodes = this.fezHide()
-      $(childNodes).css('border', `3px solid ${this.props.color || 'black'}`)
+      childNodes.forEach(node => {
+        if (node.nodeType === 1) { // Element node
+          node.style.border = `3px solid ${this.props.color || 'black'}`
+        }
+      })
     }
   &lt;/script>
   &lt;/template>
@@ -464,7 +467,11 @@
   <script>
     onMount() {
       const childNodes = this.fezHide()
-      $(childNodes).css('border', `3px solid ${this.props.color || 'black'}`)
+      childNodes.forEach(node => {
+        if (node.nodeType === 1) { // Element node
+          node.style.border = `3px solid ${this.props.color || 'black'}`
+        }
+      })
     }
   </script>
   </template>
@@ -484,14 +491,14 @@
   function randomFlip() {
     let timeout = 150
     let current = 0
-    $('.fez-ui-card').each((_, n) => {
-      setTimeout(n.fez.flip, current += timeout)
-      setTimeout(n.fez.flip, current + 1300)
+    document.querySelectorAll('.fez-ui-card').forEach(n => {
+      setTimeout(() => n.fez.flip(), current += timeout)
+      setTimeout(() => n.fez.flip(), current + 1300)
     })
   }
 
   function flipAllCards() {
-    $('.fez-ui-card').each((_, n) => n.fez.flip())
+    document.querySelectorAll('.fez-ui-card').forEach(n => n.fez.flip())
   }
 </script>
 
@@ -566,14 +573,14 @@
   function randomFlip() {
     let timeout = 150
     let current = 0
-    $('.fez-ui-card').each((_, n) => {
-      setTimeout(n.fez.flip, current += timeout)
-      setTimeout(n.fez.flip, current + 1300)
+    document.querySelectorAll('.fez-ui-card').forEach(n => {
+      setTimeout(() => n.fez.flip(), current += timeout)
+      setTimeout(() => n.fez.flip(), current + 1300)
     })
   }
 
   function flipAllCards() {
-    $('.fez-ui-card').each((_, n) => n.fez.flip())
+    document.querySelectorAll('.fez-ui-card').forEach(n => n.fez.flip())
   }
 &lt;/script>
 
@@ -815,9 +822,6 @@
     <ui-clock city="NYC" utc="-5"></ui-clock>
   </div>
   <div>
-    <ui-clock city="Mumbai" utc="5.5"></ui-clock>
-  </div>
-  <div>
     <ui-clock city="Sydney" utc="10"></ui-clock>
   </div>
 </div>
@@ -858,9 +862,6 @@
   &lt;/div>
   &lt;div>
     &lt;ui-clock city="NYC" utc="-5">&lt;/ui-clock>
-  &lt;/div>
-  &lt;div>
-    &lt;ui-clock city="Mumbai" utc="5.5">&lt;/ui-clock>
   &lt;/div>
   &lt;div>
     &lt;ui-clock city="Sydney" utc="10">&lt;/ui-clock>
@@ -1421,7 +1422,7 @@ anywhere in HTML code
 
 <script>
   function updateFormData(obj) {
-    $('#form-data').append(JSON.stringify(obj) + "\n")
+    document.getElementById('form-data').textContent += JSON.stringify(obj) + "\n"
   }
 </script>
 
@@ -1487,7 +1488,7 @@ anywhere in HTML code
 
 &lt;script>
   function updateFormData(obj) {
-    $('#form-data').append(JSON.stringify(obj) + "\n")
+    document.getElementById('form-data').textContent += JSON.stringify(obj) + "\n"
   }
 &lt;/script>
 
@@ -1583,7 +1584,7 @@ anywhere in HTML code
 
 &sdot;
 
-<span onclick="Fez('#icon-blue').attr('color', $(event.target).text())">
+<span onclick="if (event.target.tagName === 'BUTTON') Fez('#icon-blue').attr('color', event.target.textContent)">
   <button>red</button>
   <button>blue</button>
   <button>green</button>
@@ -1628,7 +1629,7 @@ anywhere in HTML code
 
 &sdot;
 
-&lt;span onclick="Fez('#icon-blue').attr('color', $(event.target).text())">
+&lt;span onclick="if (event.target.tagName === 'BUTTON') Fez('#icon-blue').attr('color', event.target.textContent)">
   &lt;button>red&lt;/button>
   &lt;button>blue&lt;/button>
   &lt;button>green&lt;/button>
@@ -1658,20 +1659,23 @@ anywhere in HTML code
           &lt;template fez="ui-icon">
   &lt;script>
     // everything before class gets executed in component registration
-    $(document.head).append(`
-      &lt;link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    `)
+    if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200'
+      document.head.appendChild(link)
+    }
   
     class {
       NAME = 'span'
   
       setSize(size) {
-        this.$root.css('font-size', `${parseInt(size)}px`)
+        this.root.style.fontSize = `${parseInt(size)}px`
       }
   
       onPropsChange(name, value) {
         if (name == 'color') {
-          this.$root.css('color', value)
+          this.root.style.color = value
         }
   
         if (name == 'size') {
@@ -1709,20 +1713,23 @@ anywhere in HTML code
 <template fez="ui-icon">
   <script>
     // everything before class gets executed in component registration
-    $(document.head).append(`
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    `)
+    if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200'
+      document.head.appendChild(link)
+    }
   
     class {
       NAME = 'span'
   
       setSize(size) {
-        this.$root.css('font-size', `${parseInt(size)}px`)
+        this.root.style.fontSize = `${parseInt(size)}px`
       }
   
       onPropsChange(name, value) {
         if (name == 'color') {
-          this.$root.css('color', value)
+          this.root.style.color = value
         }
   
         if (name == 'size') {
@@ -1917,14 +1924,14 @@ Fast ping:
 <template id="pubsub-t">
   <ui-pubsub>
     Dynamic listener:
-    <button onclick="Fez(this).$root.remove()">&times;</button>
+    <button onclick="Fez(this).root.remove()">&times;</button>
     &sdot;
     <span class="target"></span>
   </ui-pubsub>
 </template>
 
 <br />
-<button onclick="$(this).after($('#pubsub-t').html())">add listener</button>
+<button onclick="this.insertAdjacentHTML('afterend', document.getElementById('pubsub-t').innerHTML)">add listener</button>
 
 <script>
   Fez('ui-pubsub', class {
@@ -1994,14 +2001,14 @@ Fast ping:
 &lt;template id="pubsub-t">
   &lt;ui-pubsub>
     Dynamic listener:
-    &lt;button onclick="Fez(this).$root.remove()">&times;&lt;/button>
+    &lt;button onclick="Fez(this).root.remove()">&times;&lt;/button>
     &sdot;
     &lt;span class="target">&lt;/span>
   &lt;/ui-pubsub>
 &lt;/template>
 
 &lt;br />
-&lt;button onclick="$(this).after($('#pubsub-t').html())">add listener&lt;/button>
+&lt;button onclick="this.insertAdjacentHTML('afterend', document.getElementById('pubsub-t').innerHTML)">add listener&lt;/button>
 
 &lt;script>
   Fez('ui-pubsub', class {
@@ -2562,13 +2569,17 @@ Fast ping:
           &lt;template fez="ui-tabs">
   &lt;script>
     activateNode(node) {
-      node.parent().find('> *').removeClass('active')
-      node.addClass('active')
+      // Remove active class from siblings
+      Array.from(node.parentElement.children).forEach(child => {
+        child.classList.remove('active')
+      })
+      node.classList.add('active')
     }
   
     activate(num) {
       this.active = parseInt(num)
-      const target = this.$root.find(`> div.header > span:nth-child(${num + 1})`)
+      const header = this.root.querySelector('div.header')
+      const target = header.children[num]
       this.activateNode(target)
       this.activateNode(this.tabs[num])
     }
@@ -2577,10 +2588,10 @@ Fast ping:
       this.root.style.width = 'calc(100%)'
   
       const { n, activate } = this;
-      this.tabs = this.childNodes(n => $(n))
+      this.tabs = this.childNodes()
       this.render([
         n('div.header', this.tabs.map((tab, index) =>
-          n('span', tab.attr('title'), { onclick: ()=> activate(index) })
+          n('span', tab.getAttribute('title'), { onclick: ()=> activate(index) })
         )),
         n('.body', '&lt;slot />')
       ]);
@@ -2639,13 +2650,17 @@ Fast ping:
 <template fez="ui-tabs">
   <script>
     activateNode(node) {
-      node.parent().find('> *').removeClass('active')
-      node.addClass('active')
+      // Remove active class from siblings
+      Array.from(node.parentElement.children).forEach(child => {
+        child.classList.remove('active')
+      })
+      node.classList.add('active')
     }
   
     activate(num) {
       this.active = parseInt(num)
-      const target = this.$root.find(`> div.header > span:nth-child(${num + 1})`)
+      const header = this.root.querySelector('div.header')
+      const target = header.children[num]
       this.activateNode(target)
       this.activateNode(this.tabs[num])
     }
@@ -2654,10 +2669,10 @@ Fast ping:
       this.root.style.width = 'calc(100%)'
   
       const { n, activate } = this;
-      this.tabs = this.childNodes(n => $(n))
+      this.tabs = this.childNodes()
       this.render([
         n('div.header', this.tabs.map((tab, index) =>
-          n('span', tab.attr('title'), { onclick: ()=> activate(index) })
+          n('span', tab.getAttribute('title'), { onclick: ()=> activate(index) })
         )),
         n('.body', '<slot />')
       ]);
@@ -2919,9 +2934,9 @@ Fast ping:
 
 <script>
   function showToast(form) {
-    let input = $(form).find('input')
-    Toast.info(input.val())
-    input.val('')
+    let input = form.querySelector('input')
+    Toast.info(input.value)
+    input.value = ''
   }
 </script>
 
@@ -2956,9 +2971,9 @@ Fast ping:
 
 &lt;script>
   function showToast(form) {
-    let input = $(form).find('input')
-    Toast.info(input.val())
-    input.val('')
+    let input = form.querySelector('input')
+    Toast.info(input.value)
+    input.value = ''
   }
 &lt;/script>
 
@@ -2985,16 +3000,18 @@ Fast ping:
     }
   
     // auto init
-    $(document.body).append('&lt;ui-toast id="ui-toast">&lt;/ui-toast>')
+    document.body.insertAdjacentHTML('beforeend', '&lt;ui-toast id="ui-toast">&lt;/ui-toast>')
   
     class {
       info(text, klass)  {
-        const node = $(`&lt;div class="toast ${klass || 'info'}">`).html(text)
-        $(this.find('.parent')).prepend(node)
+        const node = document.createElement('div')
+        node.className = `toast ${klass || 'info'}`
+        node.innerHTML = text
+        this.find('.parent').prepend(node)
   
         setTimeout(()=>{
-          node.addClass('leave')
-          setTimeout(()=>node.remove, 2000)
+          node.classList.add('leave')
+          setTimeout(()=>node.remove(), 2000)
         }, 4000)
       }
     }
@@ -3076,16 +3093,18 @@ Fast ping:
     }
   
     // auto init
-    $(document.body).append('<ui-toast id="ui-toast"></ui-toast>')
+    document.body.insertAdjacentHTML('beforeend', '<ui-toast id="ui-toast"></ui-toast>')
   
     class {
       info(text, klass)  {
-        const node = $(`<div class="toast ${klass || 'info'}">`).html(text)
-        $(this.find('.parent')).prepend(node)
+        const node = document.createElement('div')
+        node.className = `toast ${klass || 'info'}`
+        node.innerHTML = text
+        this.find('.parent').prepend(node)
   
         setTimeout(()=>{
-          node.addClass('leave')
-          setTimeout(()=>node.remove, 2000)
+          node.classList.add('leave')
+          setTimeout(()=>node.remove(), 2000)
         }, 4000)
       }
     }
@@ -3217,12 +3236,16 @@ Fast ping:
       // same as in Svelte, uf you define fez-use="methodName", method will be called when node is added to dom.
       // in this case, we animate show new node
   
-      $(node)
-        .css('display', 'block')
-        .animate({height: '33px', opacity: 1}, 200, () => {
-          delete this.state.tasks[this.state.tasks.length-1].animate
-          $(node).css('height', 'auto')
-        })
+      node.style.display = 'block'
+      node.style.transition = 'height 200ms, opacity 200ms'
+      node.style.height = '33px'
+      node.style.opacity = '1'
+      
+      setTimeout(() => {
+        delete this.state.tasks[this.state.tasks.length-1].animate
+        node.style.height = 'auto'
+        node.style.transition = ''
+      }, 200)
     }
   
     connect() {
@@ -3301,12 +3324,16 @@ Fast ping:
       // same as in Svelte, uf you define fez-use="methodName", method will be called when node is added to dom.
       // in this case, we animate show new node
   
-      $(node)
-        .css('display', 'block')
-        .animate({height: '33px', opacity: 1}, 200, () => {
-          delete this.state.tasks[this.state.tasks.length-1].animate
-          $(node).css('height', 'auto')
-        })
+      node.style.display = 'block'
+      node.style.transition = 'height 200ms, opacity 200ms'
+      node.style.height = '33px'
+      node.style.opacity = '1'
+      
+      setTimeout(() => {
+        delete this.state.tasks[this.state.tasks.length-1].animate
+        node.style.height = 'auto'
+        node.style.transition = ''
+      }, 200)
     }
   
     connect() {
@@ -3367,9 +3394,12 @@ Fast ping:
 
   <script>
     window.applyChanges = function(name) {
-      const node = $(Fez(`#code-ui-${name}`).getSource())[0]
+      const htmlString = Fez(`#code-ui-${name}`).getSource()
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = htmlString
+      const node = tempDiv.firstElementChild
       Fez.compile( node )
-      $(`#body-${name}`).html( Fez(`#html-${name}`).getSource() )
+      document.querySelector(`#body-${name}`).innerHTML = Fez(`#html-${name}`).getSource()
       Toast.info('HTML content updated.')
     }
 

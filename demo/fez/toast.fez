@@ -11,16 +11,18 @@
   }
 
   // auto init
-  $(document.body).append('<ui-toast id="ui-toast"></ui-toast>')
+  document.body.insertAdjacentHTML('beforeend', '<ui-toast id="ui-toast"></ui-toast>')
 
   class {
     info(text, klass)  {
-      const node = $(`<div class="toast ${klass || 'info'}">`).html(text)
-      $(this.find('.parent')).prepend(node)
+      const node = document.createElement('div')
+      node.className = `toast ${klass || 'info'}`
+      node.innerHTML = text
+      this.find('.parent').prepend(node)
 
       setTimeout(()=>{
-        node.addClass('leave')
-        setTimeout(()=>node.remove, 2000)
+        node.classList.add('leave')
+        setTimeout(()=>node.remove(), 2000)
       }, 4000)
     }
   }

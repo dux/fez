@@ -7,7 +7,6 @@
   <title>Fez - JavaScript DOM component framework.</title>
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
   <script src="./dist/fez.js?t=<%= Time.now.to_i %>"></script>
   <script>
     window.L = console.log
@@ -149,9 +148,12 @@
 
   <script>
     window.applyChanges = function(name) {
-      const node = $(Fez(`#code-ui-${name}`).getSource())[0]
+      const htmlString = Fez(`#code-ui-${name}`).getSource()
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = htmlString
+      const node = tempDiv.firstElementChild
       Fez.compile( node )
-      $(`#body-${name}`).html( Fez(`#html-${name}`).getSource() )
+      document.querySelector(`#body-${name}`).innerHTML = Fez(`#html-${name}`).getSource()
       Toast.info('HTML content updated.')
     }
 

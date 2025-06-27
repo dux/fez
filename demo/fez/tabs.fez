@@ -1,12 +1,16 @@
 <script>
   activateNode(node) {
-    node.parent().find('> *').removeClass('active')
-    node.addClass('active')
+    // Remove active class from siblings
+    Array.from(node.parentElement.children).forEach(child => {
+      child.classList.remove('active')
+    })
+    node.classList.add('active')
   }
 
   activate(num) {
     this.active = parseInt(num)
-    const target = this.$root.find(`> div.header > span:nth-child(${num + 1})`)
+    const header = this.root.querySelector('div.header')
+    const target = header.children[num]
     this.activateNode(target)
     this.activateNode(this.tabs[num])
   }
@@ -15,10 +19,10 @@
     this.root.style.width = 'calc(100%)'
 
     const { n, activate } = this;
-    this.tabs = this.childNodes(n => $(n))
+    this.tabs = this.childNodes()
     this.render([
       n('div.header', this.tabs.map((tab, index) =>
-        n('span', tab.attr('title'), { onclick: ()=> activate(index) })
+        n('span', tab.getAttribute('title'), { onclick: ()=> activate(index) })
       )),
       n('.body', '<slot />')
     ]);

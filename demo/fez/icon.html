@@ -12,7 +12,7 @@
 
 &sdot;
 
-<span onclick="Fez('#icon-blue').attr('color', $(event.target).text())">
+<span onclick="if (event.target.tagName === 'BUTTON') Fez('#icon-blue').attr('color', event.target.textContent)">
   <button>red</button>
   <button>blue</button>
   <button>green</button>
