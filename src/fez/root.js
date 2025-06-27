@@ -148,10 +148,13 @@ Fez.tag = (tag, opts = {}, html = '') => {
 };
 
 Fez.log = (text) => {
-  if (window.DEV) {
+  if (window.DEV === true) {
     console.log(`Fez: ${text}`)
   }
 }
+document.addEventListener('DOMContentLoaded', () => {
+  Fez.log('window.DEV === true, logging enabled.')
+})
 
 Fez.head = (text, kind) => {
   if (text.includes('<')) {
