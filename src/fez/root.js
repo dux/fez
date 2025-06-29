@@ -35,6 +35,8 @@ Fez.find = (onode, name) => {
     node = document.body.querySelector(node)
   }
 
+  if (!node) return
+
   if (typeof node.val == 'function') {
     node = node[0]
   }
