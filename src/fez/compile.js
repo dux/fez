@@ -73,6 +73,9 @@ const compileToClass = (html) => {
   }
 
   if (/\w/.test(String(result.html))) {
+    // escape backticks in whole template block
+    result.html = result.html.replaceAll('`', '&#x60;')
+
     result.html = result.html.replaceAll('$', '\\$')
     klass = klass.replace(/\}\s*$/, `\n  HTML = \`${result.html}\`\n}`)
   }
@@ -161,6 +164,7 @@ export default function (tagName, html) {
 
   let klass = compileToClass(html)
   let parts = klass.split(/class\s+\{/, 2)
+
   klass = `${parts[0]};\n\nwindow.Fez('${tagName}', class {\n${parts[1]})`
 
   try {

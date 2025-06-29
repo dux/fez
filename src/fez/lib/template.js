@@ -82,7 +82,9 @@ export default function createTemplate(text, opts = {}) {
   //   -> :comment="{{ JSON.stringify(el) }}"
   text = text.replace(/:(\w+)="([\w\.\[\]]+)"/, (_, m1, m2) => { return `:${m1}="{{ JSON.stringify(${m2}) }}"` })
 
-  let result = text.replace(/{{(.*?)}}/g, (match,content) => {
+  let result = text.replace(/{{(.*?)}}/g, (match, content) => {
+    content = content.replaceAll('&#x60;', '`')
+
     content = content
       .replaceAll('&lt;', '<')
       .replaceAll('&gt;', '>')
