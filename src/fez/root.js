@@ -7,16 +7,33 @@ import { Idiomorph } from './vendor/idiomorph'
 import connect from './connect'
 import compile from './compile'
 
+// Fez('ui-slider')                             # first slider
+// Fez('ui-slider', (n)=>alert(n))              # find all and execute
+// Fez(this, 'ui-slider')                       # first parent ui-slider
+// Fez('ui-slider', class { connect() { ... }}) # create Fez dom node
 const Fez = (name, klass) => {
-  if (!name) {
+  if (name) {
+    if (klass) {
+      const isPureFn = typeof klass === 'function' && !/^class\s/.test(klass.toString()) && !/\b(this|new)\b/.test(klass.toString())
+
+      if (isPureFn) {
+        const list = Array
+          .from(document.querySelectorAll(`.fez.fez-${name}`))
+          .filter( n => n.fez )
+
+        list.forEach( el => klass(el.fez) )
+        return list
+      } else if (typeof klass != 'function') {
+        return Fez.find(name, klass)
+      } else {
+        return connect(name, klass)
+      }
+    } else {
+      return document.querySelector(`.fez.fez-${name}`)
+    }
+  } else {
     return FezBase
   }
-
-  if (typeof klass != 'function') {
-    return Fez.find(name, klass)
-  }
-
-  return connect(name, klass)
 }
 
 Fez._classCache = {}
@@ -34,8 +51,6 @@ Fez.find = (onode, name) => {
   if (typeof node == 'string') {
     node = document.body.querySelector(node)
   }
-
-  if (!node) return
 
   if (typeof node.val == 'function') {
     node = node[0]
