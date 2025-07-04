@@ -1,14 +1,21 @@
 <script>
   connect() {
+    // called when Fez node is connected to DOM
+    this.MAX = 6
     this.state.count = 0
   }
 
+  isMax() {
+    return this.state.count >= this.MAX
+  }
+
   more() {
-    this.state.count += this.state.count > 9 ? 0 : 1
+    this.state.count += this.isMax() ? 0 : 1
   }
 </script>
 
 <style>
+  /* SCSS styles scoped to this component */
   zoom: 2;
   margin: 10px 0;
 
@@ -22,12 +29,22 @@
   }
 </style>
 
-<button onclick="@state.count -= 1">-</button>
+<!-- Template with reactive bindings -->
+<!-- @ is shorthand for 'this.' -->
+<button onclick="@state.count -= 1" {{ this.state.count < 1 ? 'disabled=""' : '' }}>-</button>
 <span>
   {{ @state.count }}
 </span>
-<button onclick="@more()">+</button>
+<button onclick="@more()" {{ @isMax() ? 'disabled=""' : '' }}>+</button>
 {{#if @state.count > 0}}
   <span>&mdash;</span>
-  {{#if @state.count % 2 }} odd {{:else}} even {{/if}}
+  {{#if @state.count == @MAX }}
+    MAX
+  {{:else}}
+    {{#if @state.count % 2 }}
+      odd
+    {{:else}}
+      even
+    {{/if}}
+  {{/if}}
 {{/if}}

@@ -29,7 +29,7 @@ const Fez = (name, klass) => {
         return connect(name, klass)
       }
     } else {
-      return document.querySelector(`.fez.fez-${name}`)
+      return document.querySelector(`.fez.fez-${name}`).fez
     }
   } else {
     return FezBase

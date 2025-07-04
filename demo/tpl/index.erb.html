@@ -93,9 +93,9 @@
     <ol>
       <li>Add Fez JS (to HEAD)
         <ui-editor>
-          <template>
+          <xmp>
             <script src="https://dux.github.io/fez/dist/fez.js"></script>
-          </template>
+          </xmp>
         </ui-editor>
       </li>
       <li>
@@ -103,9 +103,9 @@
 
         <template fez="./demo/ex-counter.fez.html"></template>
         <ui-editor id="demo-counter">
-          <template>
-            <%= read('./ex-counter.fez.html') %>
-          </template>
+          <xmp>
+            <%= read('./ex-counter.fez.html').gsub('&', '&amp;') %>
+          </xmp>
         </ui-editor>
 
         <p>Or load via HTTP (as in this case, view source)</p>
@@ -116,9 +116,9 @@
       <li>
         Place ex-counter anywhere in BODY
         <ui-editor id="demo-counter">
-          <template>
+          <xmp>
             <ex-counter></ex-counter>
-          </template>
+          </xmp>
         </ui-editor>
       </li>
       <li>

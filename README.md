@@ -46,6 +46,89 @@ It great in combination with another widely used JS libs, as jQuery, Zepto, unde
 
 That is all.
 
+## Example: Counter Component
+
+Here's a simple counter component that demonstrates Fez's core features:
+
+```html
+<!-- Define a counter component in ex-counter.fez.html -->
+<script>
+  connect() {
+    // Called when component is added to DOM
+    this.MAX = 6                  // Set max count value
+    this.state.count = 0          // Initialize reactive state
+  }
+
+  isMax() {
+    // Helper method to check if counter reached max
+    return this.state.count >= this.MAX
+  }
+
+  more() {
+    // Increment counter if not at max
+    this.state.count += this.isMax() ? 0 : 1
+  }
+</script>
+
+<style>
+  /* SCSS styles scoped to this component */
+  zoom: 2;
+  margin: 10px 0;
+
+  button {
+    position: relative;
+    top: -3px;
+  }
+
+  span {
+    padding: 0 5px;
+  }
+</style>
+
+<!-- Template with reactive bindings -->
+<!-- @ is shorthand for 'this.' -->
+<button onclick="@state.count -= 1" {{ this.state.count < 1 ? 'disabled=""' : '' }}>-</button>
+<span>
+  {{ @state.count }}  <!-- Displays current count -->
+</span>
+<button onclick="@more()" {{ @isMax() ? 'disabled=""' : '' }}>+</button>
+
+<!-- Conditional rendering with if/else blocks -->
+{{#if @state.count > 0}}
+  <span>&mdash;</span>
+  {{#if @state.count == @MAX }}
+    MAX
+  {{:else}}
+    {{#if @state.count % 2 }}
+      odd
+    {{:else}}
+      even
+    {{/if}}
+  {{/if}}
+{{/if}}
+```
+
+To use this component in your HTML:
+
+```html
+<!-- Load Fez library -->
+<script src="https://dux.github.io/fez/dist/fez.js"></script>
+
+<!-- Load component via template tag -->
+<template fez="/fez-libs/ex-counter.fez.html"></template>
+
+<!-- Use the component -->
+<ex-counter></ex-counter>
+```
+
+This example showcases:
+- **Reactive state**: Changes to `this.state` automatically update the DOM
+- **Template syntax**: `{{ }}` for expressions, `@` as shorthand for `this.`
+- **Event handling**: Direct DOM event handlers with access to component methods
+- **Conditional rendering**: `{{#if}}`, `{{:else}}` blocks for dynamic UI
+- **Scoped styling**: SCSS support with styles automatically scoped to component
+- **Component lifecycle**: `connect()` method called when component mounts
+
 ## What can it do and why is it great?
 
 * It can create and define Custom HTML tags, libs main feature. It uses native, fast browser interface to do it.
@@ -281,7 +364,7 @@ Fez('foo-bar', class {
   <!-- Remote loading for a component via URL in fez attribute -->
   <template fez="path/to/ui-button.fez.html"></template>
   <xmp fez="https://example.com/components/ui-button.html"></xmp>
-  
+
   <!-- Component name is extracted from filename (ui-button) -->
   <!-- If remote HTML contains template/xmp tags with fez attributes, they are compiled -->
   <!-- Otherwise, the entire content is compiled as the component -->

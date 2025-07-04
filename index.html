@@ -7,7 +7,7 @@
   <title>Fez - JavaScript DOM component framework.</title>
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
-  <script src="./dist/fez.js?t=1751357635"></script>
+  <script src="./dist/fez.js?t=1751618133"></script>
   <script>
     window.L = console.log
     window.DEV = location.port > 999
@@ -124,9 +124,9 @@
     <ol>
       <li>Add Fez JS (to HEAD)
         <ui-editor>
-          <template>
+          <xmp>
             <script src="https://dux.github.io/fez/dist/fez.js"></script>
-          </template>
+          </xmp>
         </ui-editor>
       </li>
       <li>
@@ -134,18 +134,25 @@
 
         <template fez="./demo/ex-counter.fez.html"></template>
         <ui-editor id="demo-counter">
-          <template>
+          <xmp>
             <script>
   connect() {
+    // called when Fez node is connected to DOM
+    this.MAX = 6
     this.state.count = 0
   }
 
+  isMax() {
+    return this.state.count >= this.MAX
+  }
+
   more() {
-    this.state.count += this.state.count > 9 ? 0 : 1
+    this.state.count += this.isMax() ? 0 : 1
   }
 </script>
 
 <style>
+  /* SCSS styles scoped to this component */
   zoom: 2;
   margin: 10px 0;
 
@@ -159,17 +166,27 @@
   }
 </style>
 
-<button onclick="@state.count -= 1">-</button>
+<!-- Template with reactive bindings -->
+<!-- @ is shorthand for 'this.' -->
+<button onclick="@state.count -= 1" {{ this.state.count < 1 ? 'disabled=""' : '' }}>-</button>
 <span>
   {{ @state.count }}
 </span>
-<button onclick="@more()">+</button>
+<button onclick="@more()" {{ @isMax() ? 'disabled=""' : '' }}>+</button>
 {{#if @state.count > 0}}
-  <span>&mdash;</span>
-  {{#if @state.count % 2 }} odd {{:else}} even {{/if}}
+  <span>&amp;mdash;</span>
+  {{#if @state.count == @MAX }}
+    MAX
+  {{:else}}
+    {{#if @state.count % 2 }}
+      odd
+    {{:else}}
+      even
+    {{/if}}
+  {{/if}}
 {{/if}}
 
-          </template>
+          </xmp>
         </ui-editor>
 
         <p>Or load via HTTP (as in this case, view source)</p>
@@ -180,9 +197,9 @@
       <li>
         Place ex-counter anywhere in BODY
         <ui-editor id="demo-counter">
-          <template>
+          <xmp>
             <ex-counter></ex-counter>
-          </template>
+          </xmp>
         </ui-editor>
       </li>
       <li>
