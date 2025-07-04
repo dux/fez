@@ -68,8 +68,9 @@ const compileToClass = (html) => {
   }
 
   if (String(result.style).includes(':')) {
-    result.style = result.style.includes(':fez') ? result.style : `:fez {\n${result.style}\n}`
+    result.style = result.style.includes(':fez') || /(?:^|\s)body\s*\{/.test(result.style) ? result.style : `:fez {\n${result.style}\n}`
     klass = klass.replace(/\}\s*$/, `\n  CSS = \`${result.style}\`\n}`)
+
   }
 
   if (/\w/.test(String(result.html))) {

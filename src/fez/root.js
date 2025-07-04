@@ -89,11 +89,12 @@ Fez.globalCss = (cssClass, opts = {}) => {
       .split("\n")
       .filter(line => !(/^\s*\/\//.test(line)))
       .join("\n")
-    text = text.replace(/\:fez|\:host/, `.fez.fez-${opts.name}`)
 
     if (opts.wrap) {
-      text = `.fez.fez-${opts.name} { ${text} }`
+      text = `:fez { ${text} }`
     }
+
+    text = text.replace(/\:fez|\:host/, `.fez.fez-${opts.name}`)
 
     cssClass = Fez.cssClass(text)
   }
