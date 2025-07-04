@@ -29,7 +29,16 @@ const Fez = (name, klass) => {
         return connect(name, klass)
       }
     } else {
-      return document.querySelector(`.fez.fez-${name}`).fez
+      const node = document.querySelector( name.includes('#') ? name : `.fez.fez-${name}` )
+      if (node) {
+        if (node.fez) {
+          return node.fez
+        } else {
+          Fez.error(`node "${name}" has no Fez attached.`)
+        }
+      } else {
+        Fez.error(`node "${name}" not found.`)
+      }
     }
   } else {
     return FezBase
@@ -89,11 +98,12 @@ Fez.globalCss = (cssClass, opts = {}) => {
     cssClass = Fez.cssClass(text)
   }
 
-  if (document.body) {
-    document.body.classList.add(cssClass)
+  const htmlNode = document.body.parentElement
+  if (htmlNode) {
+    htmlNode.classList.add(cssClass)
   } else {
     document.addEventListener("DOMContentLoaded", () => {
-      document.body.classList.add(cssClass)
+      htmlNode.classList.add(cssClass)
     })
   }
 
@@ -164,6 +174,9 @@ Fez.tag = (tag, opts = {}, html = '') => {
   // return data
 };
 
+Fez.error = (text) => {
+  console.error(`Fez ERROR: ${text}`)
+}
 Fez.log = (text) => {
   if (window.DEV === true) {
     console.log(`Fez: ${text}`)
