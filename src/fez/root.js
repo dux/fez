@@ -99,12 +99,11 @@ Fez.globalCss = (cssClass, opts = {}) => {
     cssClass = Fez.cssClass(text)
   }
 
-  const htmlNode = document.body.parentElement
-  if (htmlNode) {
-    htmlNode.classList.add(cssClass)
+  if (document.body) {
+    document.body.parentElement.classList.add(cssClass)
   } else {
     document.addEventListener("DOMContentLoaded", () => {
-      htmlNode.classList.add(cssClass)
+      document.body.parentElement.classList.add(cssClass)
     })
   }
 
