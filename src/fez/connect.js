@@ -6,7 +6,7 @@ export default function(name, klass) {
   if (!name.includes('-')) {
     console.error(`Fez: Invalid custom element name "${name}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)
   }
-  
+
   // to allow anonymous class and then re-attach (does not work)
   // Fez('ui-todo', class { ... # instead Fez('ui-todo', class extends FezBase {
   if (!klass.__objects) {
@@ -32,6 +32,10 @@ export default function(name, klass) {
     }
 
     klass = newKlass
+
+    let info = `${name} compiled`
+    if (klassObj.FAST) info += ' (fast bind)'
+    Fez.log(info)
   }
 
   if (klass.html) {

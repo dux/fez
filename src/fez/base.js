@@ -231,13 +231,13 @@ export default class FezBase {
     const base = this.fezHtmlRoot.replaceAll('"', '&quot;')
 
     // $$. or fez. or @
-    // @@foo to escape @foo
+    // @@foo to escape to @foo
     text = text
       .replaceAll('@@', '__FEZ_HIDE__')
       .replaceAll('$$.', base)
-      .replaceAll('@.', base)
-      .replaceAll('@', base)
-      .replace(/(.)@(\w+[\.\(])/g, (_, m1, m2) => m1 == '@' ? `@${m2}` : `${m1}${base}${m2}`)
+      .replace(/([^\w\.])@(\w+[\.\(])/g, (_, m1, m2) => {
+        return m1 + base + m2
+      })
       .replace(/([^\w\.])fez\./g, `$1${base}`)
       .replace(/>\s+</g, '><')
       .replaceAll('__FEZ_HIDE__', '@')

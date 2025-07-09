@@ -132,13 +132,16 @@ Fez.morphdom = (target, newNode, opts = {}) => {
 
 Fez.htmlEscape = (text) => {
   if (typeof text == 'string') {
-    return text
+    text = text
       // .replaceAll('&', "&amp;")
+      .replace(/font-family\s*:\s*(?:&[^;]+;|[^;])*?;/gi, '')
       .replaceAll("'", '&apos;')
       .replaceAll('"', '&quot;')
       .replaceAll('<', '&lt;')
       .replaceAll('>', '&gt;')
       .replaceAll('@', '&#64;') // needed for template escaping
+
+    return text
 
   } else {
     return text
@@ -178,12 +181,12 @@ Fez.error = (text) => {
   console.error(`Fez ERROR: ${text}`)
 }
 Fez.log = (text) => {
-  if (window.DEV === true) {
+  if (window.DEV === true || Fez.LOG === true) {
     console.log(`Fez: ${text}`)
   }
 }
 document.addEventListener('DOMContentLoaded', () => {
-  Fez.log('window.DEV === true, logging enabled.')
+  Fez.log('window.DEV === true || Fez.LOG === true, logging enabled.')
 })
 
 Fez.head = (text, kind) => {

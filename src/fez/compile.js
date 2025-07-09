@@ -170,10 +170,8 @@ export default function (tagName, html) {
 
   try {
     new Function(klass)()
-    Fez.log(`${tagName} compiled`)
   } catch(e) {
     console.error(`FEZ template "${tagName}" compile error: ${e.message}`)
-    console.log(html)
     console.log(klass)
   }
 }
