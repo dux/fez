@@ -7,7 +7,7 @@
   <title>Fez - JavaScript DOM component framework.</title>
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
-  <script src="./dist/fez.js?t=1752138404"></script>
+  <script src="./dist/fez.js?t=1752167647"></script>
   <script>
     window.L = console.log
     window.DEV = location.port > 999
@@ -472,10 +472,9 @@
   &lt;script>
     onMount() {
       const childNodes = this.fezHide()
+  
       childNodes.forEach(node => {
-        if (node.nodeType === 1) { // Element node
-          node.style.border = `3px solid ${this.props.color || 'black'}`
-        }
+        node.style.border = `3px solid ${this.props.color || 'black'}`
       })
     }
   &lt;/script>
@@ -490,10 +489,9 @@
   <script>
     onMount() {
       const childNodes = this.fezHide()
+  
       childNodes.forEach(node => {
-        if (node.nodeType === 1) { // Element node
-          node.style.border = `3px solid ${this.props.color || 'black'}`
-        }
+        node.style.border = `3px solid ${this.props.color || 'black'}`
       })
     }
   </script>
@@ -2611,7 +2609,7 @@ Fast ping:
       this.root.style.width = 'calc(100%)'
   
       const { n, activate } = this;
-      this.tabs = this.childNodes()
+      this.tabs = Array.from(this.root.children)
       this.render([
         n('div.header', this.tabs.map((tab, index) =>
           n('span', tab.getAttribute('title'), { onclick: ()=> activate(index) })
@@ -2692,7 +2690,7 @@ Fast ping:
       this.root.style.width = 'calc(100%)'
   
       const { n, activate } = this;
-      this.tabs = this.childNodes()
+      this.tabs = Array.from(this.root.children)
       this.render([
         n('div.header', this.tabs.map((tab, index) =>
           n('span', tab.getAttribute('title'), { onclick: ()=> activate(index) })

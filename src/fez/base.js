@@ -451,11 +451,23 @@ export default class FezBase {
 
   // get root node child nodes as array
   childNodes(func) {
-    let list = Array.from(this.root.querySelectorAll(":scope > *"))
+    // Create temporary container to avoid ancestor-parent errors
+    const tmpContainer = document.createElement('div')
+    tmpContainer.style.display = 'none'
+    document.body.appendChild(tmpContainer)
+
+    // Move children to temp container first
+    const children = Array.from(this.root.children)
+    children.forEach(child => tmpContainer.appendChild(child))
+
+    let list = Array.from(tmpContainer.children)
 
     if (func) {
       list = list.map(func)
     }
+
+    document.body.removeChild(tmpContainer)
+
     return list
   }
 
@@ -513,7 +525,7 @@ export default class FezBase {
     // parent.classList.add('fez')
     // parent.classList.add(`fez-${this.fezName}`)
     this.root = parent
-    return this.childNodes()
+    return Array.from(this.root.children)
   }
 
   reactiveStore(obj, handler) {

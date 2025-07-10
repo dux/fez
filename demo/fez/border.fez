@@ -1,10 +1,9 @@
 <script>
   onMount() {
     const childNodes = this.fezHide()
+
     childNodes.forEach(node => {
-      if (node.nodeType === 1) { // Element node
-        node.style.border = `3px solid ${this.props.color || 'black'}`
-      }
+      node.style.border = `3px solid ${this.props.color || 'black'}`
     })
   }
 </script>
