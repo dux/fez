@@ -29,7 +29,9 @@ const Fez = (name, klass) => {
         return connect(name, klass)
       }
     } else {
-      const node = document.querySelector( name.includes('#') ? name : `.fez.fez-${name}` )
+      const node = name.nodeName ? name.closest('.fez') : (
+        document.querySelector( name.includes('#') ? name : `.fez.fez-${name}` )
+      )
       if (node) {
         if (node.fez) {
           return node.fez

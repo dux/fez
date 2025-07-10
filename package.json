@@ -9,12 +9,16 @@
     "build": "bun build.js b",
     "dev": "bun run pages; open index.html; bun build.js w",
     "sdev": "bun run pages; bun build.js b",
-    "xdev": "open http://localhost:8000/index.html; find . | grep -v '.git' | grep -v 'node_modules' | entr -c bun run sdev & ruby -run -e httpd . -p 8000"
+    "xdev": "open http://localhost:8000/index.html; find . | grep -v '.git' | grep -v 'node_modules' | entr -c bun run sdev & ruby -run -e httpd . -p 8000",
+    "test": "bun test/simple-test.js",
+    "push": "bun run build && bun run test"
   },
   "devDependencies": {
     "coffeescript": "^2.7.0",
     "esbuild": "0.23.0",
     "esbuild-coffeescript": "^2.2.0",
-    "glob-cli": "^1.0.0"
+    "glob-cli": "^1.0.0",
+    "happy-dom": "^18.0.1",
+    "jsdom": "^26.1.0"
   }
 }
