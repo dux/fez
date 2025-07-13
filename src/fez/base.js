@@ -235,8 +235,8 @@ export default class FezBase {
     text = text
       .replaceAll('@@', '__FEZ_HIDE__')
       .replaceAll('$$.', base)
-      .replace(/([^\w\.])@(\w+[\.\(])/g, (_, m1, m2) => {
-        return m1 + base + m2
+      .replace(/(\w+=["'])@(\w+[\.\(])/g, (_, quote, m2) => {
+        return quote + base + m2
       })
       .replace(/([^\w\.])fez\./g, `$1${base}`)
       .replace(/>\s+</g, '><')
@@ -456,8 +456,13 @@ export default class FezBase {
     tmpContainer.style.display = 'none'
     document.body.appendChild(tmpContainer)
 
-    // Move children to temp container first
     const children = Array.from(this.root.children)
+
+    // if false given, just return children
+    if ( func === false ) {
+      return children
+    }
+
     children.forEach(child => tmpContainer.appendChild(child))
 
     let list = Array.from(tmpContainer.children)
