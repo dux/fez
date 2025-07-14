@@ -141,7 +141,7 @@ Fez.htmlEscape = (text) => {
       .replaceAll('"', '&quot;')
       .replaceAll('<', '&lt;')
       .replaceAll('>', '&gt;')
-      .replaceAll('@', '&#64;') // needed for template escaping
+      // .replaceAll('@', '&#64;') // needed for template escaping
 
     return text
 

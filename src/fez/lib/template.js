@@ -2,7 +2,6 @@ function parseBlock(data, ifStack) {
   data = data
     .replaceAll('#raw', '@html')
     .replaceAll('#html', '@html')
-    .replaceAll('@', 'this.')
 
   // Handle #if directive
   if (data.startsWith('#if') || data.startsWith('if')) {
@@ -54,7 +53,7 @@ function parseBlock(data, ifStack) {
     return '`).join("")}'
   }
   else {
-    const prefix = 'this.html '
+    const prefix = '@html '
 
     if (data.startsWith(prefix)) {
       data = data.replace(prefix, '')
@@ -77,7 +76,7 @@ export default function createTemplate(text, opts = {}) {
     .replaceAll('[[', '{{')
     .replaceAll(']]', '}}')
 
-  // {{#for el in @list }}}}
+  // {{#for el in list }}}}
   //   <ui-comment :comment="el"></ui-comment>
   //   -> :comment="{{ JSON.stringify(el) }}"
   text = text.replace(/:(\w+)="([\w\.\[\]]+)"/, (_, m1, m2) => { return `:${m1}="{{ JSON.stringify(${m2}) }}"` })
@@ -96,15 +95,18 @@ export default function createTemplate(text, opts = {}) {
   });
 
   result = '`' + result.trim() + '`'
-  result = `
-    const state = this.state;
-    const props = this.props;
+
+  const funcBody = `
     const fez = this;
-    return ${result}
-  `
+
+    // Use with statement to make all properties available as variables
+    with (this) {
+      return ${result}
+    }
+  `;
 
   try {
-    const tplFunc = new Function(result)
+    const tplFunc = new Function(funcBody);
     const outFunc = (o) => {
       try {
         return tplFunc.bind(o)()

@@ -45,9 +45,9 @@
   <span class="avatar">
     <div class="title">{{ props.name }}</div>
     <div>
-      {{@html fez.image() }}
+      {{#raw image() }}
     </div>
   </span>
 {{:else}}
-   {{@html fez.image() }}
+   {{#raw image() }}
 {{/if}}

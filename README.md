@@ -91,7 +91,7 @@ Here's a simple counter component that demonstrates Fez's core features:
 <!--
 Template with reactive bindings
 * fez. is reference to fez component instance (you can use this inside code blocks)
-* state and props vars do not need prefix (but you can add them)
+* this.vars do not need prefix (but you can add them)
 -->
 <button onclick="fez.state.count -= 1" {{ state.count < 1 ? 'disabled=""' : '' }}>-</button>
 <span>
@@ -228,6 +228,10 @@ Fez('foo-bar', class {
     // copy attributes from attr hash to root node
     this.copy('href', 'onclick', 'style')
 
+    // set style property to root node. look at a clock example
+    // shortcut to this.root.style.setProperty(key, value)
+    this.style('--color', 'red')
+
     // clasic interval, that runs only while node is attached
     this.setInterval(func, tick) { ... }
 
@@ -264,9 +268,8 @@ Fez('foo-bar', class {
     // check if the this.root node is attached to dom
     this.isConnected()
 
-    // on every "this.data" props change, auto update view.
-    this.data = this.reactiveStore()
-
+    // on every "this.state" props change, auto update view.
+    this.state = this.reactiveStore()
     // this.state has reactiveStore() attached by default. any change will trigger this.render()
     this.state.foo = 123
 

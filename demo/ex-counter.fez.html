@@ -15,11 +15,13 @@
   }
 </script>
 
+<!-- compiles from scss to css and injects class in head -->
 <style>
+  /* body style */
   background-color: #f7f7f7;
 
+  /* scoped to this component */
   :fez {
-    /* SCSS styles scoped to this component */
     zoom: 2;
     margin: 10px 0;
 
@@ -36,17 +38,16 @@
 
 <!--
 Template with reactive bindings
-* fez. is reference to fez component instance (you can use this inside code blocks)
-* state and props vars do not need prefix (but you can add them)
+* fez. is reference to fez component instance
 -->
 <button onclick="fez.state.count -= 1" {{ state.count < 1 ? 'disabled=""' : '' }}>-</button>
 <span>
   {{ state.count }}
 </span>
-<button onclick="fez.more()" {{ fez.isMax() ? 'disabled=""' : '' }}>+</button>
+<button onclick="fez.more()" {{ isMax() ? 'disabled=""' : '' }}>+</button>
 {{#if state.count > 0}}
   <span>&mdash;</span>
-  {{#if state.count == fez.MAX }}
+  {{#if state.count == MAX }}
     MAX
   {{:else}}
     {{#if state.count % 2 }}

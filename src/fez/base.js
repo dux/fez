@@ -24,7 +24,7 @@ export default class FezBase {
       try {
         attrs = JSON.parse(data)
       } catch (e) {
-        console.error(`Fez: Invalid JSON in data-props for ${baseNode.tagName}: ${e.message}`)
+        console.error(`Fez: Invalid JSON in data-props for ${node.tagName}: ${e.message}`)
       }
     }
 
@@ -38,7 +38,7 @@ export default class FezBase {
           attrs = JSON.parse(data)
           newNode.previousSibling.remove()
         } catch (e) {
-          console.error(`Fez: Invalid JSON in template for ${baseNode.tagName}: ${e.message}`)
+          console.error(`Fez: Invalid JSON in template for ${node.tagName}: ${e.message}`)
         }
       }
     }
@@ -50,7 +50,7 @@ export default class FezBase {
           const newVal = new Function(`return (${val})`).bind(newNode)()
           attrs[key.replace(/[\:_]/, '')] = newVal
         } catch (e) {
-          console.error(`Fez: Error evaluating attribute ${key}="${val}" for ${baseNode.tagName}: ${e.message}`)
+          console.error(`Fez: Error evaluating attribute ${key}="${val}" for ${node.tagName}: ${e.message}`)
         }
       }
     }
@@ -117,7 +117,7 @@ export default class FezBase {
   prop(name) {
     let v = this.oldRoot[name] || this.props[name]
     if (typeof v == 'function') {
-      // if @prop('onclick'), we want "this" to point to this.root (dom node)
+      // if this.prop('onclick'), we want "this" to point to this.root (dom node)
       v = v.bind(this.root)
     }
     return v
@@ -211,7 +211,9 @@ export default class FezBase {
     return target
   }
 
-  style() { console.error('call Fez static style') }
+  style(key, value) {
+    this.root.style.setProperty(key, value);
+  }
 
   connect() {}
   onMount() {}
@@ -224,21 +226,9 @@ export default class FezBase {
   parseHtml(text) {
     const base = this.fezHtmlRoot.replaceAll('"', '&quot;')
 
-    // $$. or fez. or @
-    // @@foo to escape to @foo
     text = text
-      .replaceAll('@@', '__FEZ_HIDE__')
-      .replaceAll('$$.', base)
-      .replace(/(\w+=["'])@(\w+[\.\(])/g, (_, quote, m2) => {
-        return quote + base + m2
-      })
       .replace(/([^\w\.])fez\./g, `$1${base}`)
       .replace(/>\s+</g, '><')
-      .replaceAll('__FEZ_HIDE__', '@')
-
-    // if (this.fezName == 'ex-counter') {
-    //   console.log(text)
-    // }
 
     return text.trim()
   }
@@ -497,7 +487,6 @@ export default class FezBase {
     }
 
     this.state ||= this.reactiveStore()
-    this.data ||= {}
 
     this.fezRegisterBindMethods()
   }

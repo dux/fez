@@ -1,52 +1,37 @@
 <script>
-  cssVars() {
-    return [
-      `--arrow-width: ${this.arrowWidth}px`,
-      `--offset: -${this.state.offset}px`,
-    ]
-  }
-
   setSlide(num) {
     this.state.slide = num
+
+    if (this.state.slide < 0) {
+      this.state.slide = this.slidesCount - 1
+    } else if (this.state.slide >= this.slidesCount) {
+      this.state.slide = 0
+    }
+
+    const width = this.find('.slot')?.getBoundingClientRect().width ?? 0
+    this.style('--offset', `-${width * this.state.slide}px`)
   }
 
   changeSlide(direction){
-    this.state.slide += direction
-
-    const slides = this.find('.fez-slot').querySelectorAll(":scope > div")
-
-    if (this.state.slide < 0) {
-      this.state.slide = slides.length - 1
-    } else if (!slides[this.state.slide]) {
-      this.state.slide = 0
-    }
-  }
-
-  beforeRender() {
-    const node = this.find('.slot')
-    if (node) {
-      this.state.offset = node.getBoundingClientRect().width * this.state.slide
-    }
+    this.setSlide( this.state.slide += direction )
   }
 
   connect() {
-    this.arrowWidth = 70
+    this.slidesCount = this.childNodes(false).length
+    this.style('--arrow-width', `70px`)
     this.setSlide(0)
     this.onResize(this.render, 100)
   }
-
 </script>
 
 <style>
   table.slides {
     width: 100%;
     table-layout: fixed;
-
     td {
       &.arrow {
         cursor: pointer;
         width: var(--arrow-width);
-
         div {
           display: flex;
           justify-content: center;
@@ -54,37 +39,30 @@
           font-size: 50px;
           color: #aaa;
           width: var(--arrow-width);
-
           span {
             transform: rotate(-90deg);
           }
         }
-
         &:hover span {
           color: #111;
         }
-
         &:nth-child(3) {
           span {
             transform: rotate(90deg) translateY(10px);
           }
         }
       }
-
       div.slot {
         overflow: hidden;
         display: flex;
         align-items: flex-start;
         max-width: 100%;
-
         .slot-parent {
           max-width: 100%;
           transition: transform 0.3s ease;
           transform: translateX(var(--offset));
-
           .fez-slot {
             display: flex;
-
             & > div {
               width: 100%;
               flex-shrink: 0;
@@ -96,7 +74,7 @@
   }
 </style>
 
-<table class="slides" style="{{ fez.cssVars().join(';') }}">
+<table class="slides">
   <tr>
     <td class="arrow" onclick="fez.changeSlide(-1)">
       <div>

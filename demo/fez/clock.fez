@@ -1,6 +1,6 @@
 <script>
   randomColor() {
-    const colors = ['red', 'green', 'blue', 'magenta', 'teal']
+    const colors = ['red', 'green', 'blue', 'magenta', 'teal', 'orange', 'violet']
     return colors[Math.floor(Math.random() * colors.length)];
   }
 
@@ -10,7 +10,7 @@
     this.state.hours = time.getHours()
     this.state.minutes = time.getMinutes()
     this.state.seconds = time.getSeconds()
-    this.state.color = this.randomColor()
+    this.style('--color', this.randomColor())
   }
 
   connect() {
@@ -67,7 +67,7 @@
   }
 </style>
 
-<svg viewBox="-50 -50 100 100" style="--color: {{ state.color }}">
+<svg viewBox="-50 -50 100 100">
   <circle class="clock-face" r="48" />
 
   <!-- markers -->

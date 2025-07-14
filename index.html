@@ -7,7 +7,7 @@
   <title>Fez - JavaScript DOM component framework.</title>
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
-  <script src="./dist/fez.js?t=1752487561"></script>
+  <script src="./dist/fez.js?t=1752508105"></script>
   <script>
     window.L = console.log
     window.DEV = location.port > 999
@@ -152,11 +152,13 @@
   }
 </script>
 
+<!-- compiles from scss to css and injects class in head -->
 <style>
+  /* body style */
   background-color: #f7f7f7;
 
+  /* scoped to this component */
   :fez {
-    /* SCSS styles scoped to this component */
     zoom: 2;
     margin: 10px 0;
 
@@ -173,17 +175,16 @@
 
 <!--
 Template with reactive bindings
-* fez. is reference to fez component instance (you can use this inside code blocks)
-* state and props vars do not need prefix (but you can add them)
+* fez. is reference to fez component instance
 -->
 <button onclick="fez.state.count -= 1" {{ state.count < 1 ? 'disabled=""' : '' }}>-</button>
 <span>
   {{ state.count }}
 </span>
-<button onclick="fez.more()" {{ fez.isMax() ? 'disabled=""' : '' }}>+</button>
+<button onclick="fez.more()" {{ isMax() ? 'disabled=""' : '' }}>+</button>
 {{#if state.count > 0}}
   <span>&amp;mdash;</span>
-  {{#if state.count == fez.MAX }}
+  {{#if state.count == MAX }}
     MAX
   {{:else}}
     {{#if state.count % 2 }}
@@ -347,11 +348,11 @@ Template with reactive bindings
     &lt;span class="avatar">
       &lt;div class="title">{{ props.name }}&lt;/div>
       &lt;div>
-        {{@html fez.image() }}
+        {{#raw image() }}
       &lt;/div>
     &lt;/span>
   {{:else}}
-     {{@html fez.image() }}
+     {{#raw image() }}
   {{/if}}
   &lt;/template>
         </ui-editor>
@@ -408,11 +409,11 @@ Template with reactive bindings
     <span class="avatar">
       <div class="title">{{ props.name }}</div>
       <div>
-        {{@html fez.image() }}
+        {{#raw image() }}
       </div>
     </span>
   {{:else}}
-     {{@html fez.image() }}
+     {{#raw image() }}
   {{/if}}
   </template>
 
@@ -863,8 +864,8 @@ Template with reactive bindings
   <ul>
     <li>SVG generation</li>
     <li>Features: reactive store - any update to <code>this.state</code> object triggers re-render.</li>
+    <li>Features: this.style(key, value) - set style to base node</li>
     <li>Features: DOM morph updates - update only changed nodes and attributes</li>
-    <li>Features: dynamic styes (seconds line color)</li>
     <li>Features: <code>onDestroy() { ... }</code> - execute code when component is removed from DOM</li>
     <li>Features: <code>setInterval() { ... }</code> to set interval on a instance. No need to clear it, it will be auto cleared on component destroy.</li>
   </ul>
@@ -908,7 +909,7 @@ Template with reactive bindings
           &lt;template fez="ui-clock">
   &lt;script>
     randomColor() {
-      const colors = ['red', 'green', 'blue', 'magenta', 'teal']
+      const colors = ['red', 'green', 'blue', 'magenta', 'teal', 'orange', 'violet']
       return colors[Math.floor(Math.random() * colors.length)];
     }
   
@@ -918,7 +919,7 @@ Template with reactive bindings
       this.state.hours = time.getHours()
       this.state.minutes = time.getMinutes()
       this.state.seconds = time.getSeconds()
-      this.state.color = this.randomColor()
+      this.style('--color', this.randomColor())
     }
   
     connect() {
@@ -975,7 +976,7 @@ Template with reactive bindings
     }
   &lt;/style>
   
-  &lt;svg viewBox="-50 -50 100 100" style="--color: {{ state.color }}">
+  &lt;svg viewBox="-50 -50 100 100">
     &lt;circle class="clock-face" r="48" />
   
     &lt;!-- markers -->
@@ -1016,7 +1017,7 @@ Template with reactive bindings
 <template fez="ui-clock">
   <script>
     randomColor() {
-      const colors = ['red', 'green', 'blue', 'magenta', 'teal']
+      const colors = ['red', 'green', 'blue', 'magenta', 'teal', 'orange', 'violet']
       return colors[Math.floor(Math.random() * colors.length)];
     }
   
@@ -1026,7 +1027,7 @@ Template with reactive bindings
       this.state.hours = time.getHours()
       this.state.minutes = time.getMinutes()
       this.state.seconds = time.getSeconds()
-      this.state.color = this.randomColor()
+      this.style('--color', this.randomColor())
     }
   
     connect() {
@@ -1083,7 +1084,7 @@ Template with reactive bindings
     }
   </style>
   
-  <svg viewBox="-50 -50 100 100" style="--color: {{ state.color }}">
+  <svg viewBox="-50 -50 100 100">
     <circle class="clock-face" r="48" />
   
     <!-- markers -->
@@ -2232,54 +2233,39 @@ Fast ping:
         >
           &lt;template fez="ui-slider">
   &lt;script>
-    cssVars() {
-      return [
-        `--arrow-width: ${this.arrowWidth}px`,
-        `--offset: -${this.state.offset}px`,
-      ]
-    }
-  
     setSlide(num) {
       this.state.slide = num
+  
+      if (this.state.slide &lt; 0) {
+        this.state.slide = this.slidesCount - 1
+      } else if (this.state.slide >= this.slidesCount) {
+        this.state.slide = 0
+      }
+  
+      const width = this.find('.slot')?.getBoundingClientRect().width ?? 0
+      this.style('--offset', `-${width * this.state.slide}px`)
     }
   
     changeSlide(direction){
-      this.state.slide += direction
-  
-      const slides = this.find('.fez-slot').querySelectorAll(":scope > div")
-  
-      if (this.state.slide &lt; 0) {
-        this.state.slide = slides.length - 1
-      } else if (!slides[this.state.slide]) {
-        this.state.slide = 0
-      }
-    }
-  
-    beforeRender() {
-      const node = this.find('.slot')
-      if (node) {
-        this.state.offset = node.getBoundingClientRect().width * this.state.slide
-      }
+      this.setSlide( this.state.slide += direction )
     }
   
     connect() {
-      this.arrowWidth = 70
+      this.slidesCount = this.childNodes(false).length
+      this.style('--arrow-width', `70px`)
       this.setSlide(0)
       this.onResize(this.render, 100)
     }
-  
   &lt;/script>
   
   &lt;style>
     table.slides {
       width: 100%;
       table-layout: fixed;
-  
       td {
         &.arrow {
           cursor: pointer;
           width: var(--arrow-width);
-  
           div {
             display: flex;
             justify-content: center;
@@ -2287,37 +2273,30 @@ Fast ping:
             font-size: 50px;
             color: #aaa;
             width: var(--arrow-width);
-  
             span {
               transform: rotate(-90deg);
             }
           }
-  
           &:hover span {
             color: #111;
           }
-  
           &:nth-child(3) {
             span {
               transform: rotate(90deg) translateY(10px);
             }
           }
         }
-  
         div.slot {
           overflow: hidden;
           display: flex;
           align-items: flex-start;
           max-width: 100%;
-  
           .slot-parent {
             max-width: 100%;
             transition: transform 0.3s ease;
             transform: translateX(var(--offset));
-  
             .fez-slot {
               display: flex;
-  
               & > div {
                 width: 100%;
                 flex-shrink: 0;
@@ -2329,7 +2308,7 @@ Fast ping:
     }
   &lt;/style>
   
-  &lt;table class="slides" style="{{ fez.cssVars().join(';') }}">
+  &lt;table class="slides">
     &lt;tr>
       &lt;td class="arrow" onclick="fez.changeSlide(-1)">
         &lt;div>
@@ -2359,54 +2338,39 @@ Fast ping:
 
 <template fez="ui-slider">
   <script>
-    cssVars() {
-      return [
-        `--arrow-width: ${this.arrowWidth}px`,
-        `--offset: -${this.state.offset}px`,
-      ]
-    }
-  
     setSlide(num) {
       this.state.slide = num
+  
+      if (this.state.slide < 0) {
+        this.state.slide = this.slidesCount - 1
+      } else if (this.state.slide >= this.slidesCount) {
+        this.state.slide = 0
+      }
+  
+      const width = this.find('.slot')?.getBoundingClientRect().width ?? 0
+      this.style('--offset', `-${width * this.state.slide}px`)
     }
   
     changeSlide(direction){
-      this.state.slide += direction
-  
-      const slides = this.find('.fez-slot').querySelectorAll(":scope > div")
-  
-      if (this.state.slide < 0) {
-        this.state.slide = slides.length - 1
-      } else if (!slides[this.state.slide]) {
-        this.state.slide = 0
-      }
-    }
-  
-    beforeRender() {
-      const node = this.find('.slot')
-      if (node) {
-        this.state.offset = node.getBoundingClientRect().width * this.state.slide
-      }
+      this.setSlide( this.state.slide += direction )
     }
   
     connect() {
-      this.arrowWidth = 70
+      this.slidesCount = this.childNodes(false).length
+      this.style('--arrow-width', `70px`)
       this.setSlide(0)
       this.onResize(this.render, 100)
     }
-  
   </script>
   
   <style>
     table.slides {
       width: 100%;
       table-layout: fixed;
-  
       td {
         &.arrow {
           cursor: pointer;
           width: var(--arrow-width);
-  
           div {
             display: flex;
             justify-content: center;
@@ -2414,37 +2378,30 @@ Fast ping:
             font-size: 50px;
             color: #aaa;
             width: var(--arrow-width);
-  
             span {
               transform: rotate(-90deg);
             }
           }
-  
           &:hover span {
             color: #111;
           }
-  
           &:nth-child(3) {
             span {
               transform: rotate(90deg) translateY(10px);
             }
           }
         }
-  
         div.slot {
           overflow: hidden;
           display: flex;
           align-items: flex-start;
           max-width: 100%;
-  
           .slot-parent {
             max-width: 100%;
             transition: transform 0.3s ease;
             transform: translateX(var(--offset));
-  
             .fez-slot {
               display: flex;
-  
               & > div {
                 width: 100%;
                 flex-shrink: 0;
@@ -2456,7 +2413,7 @@ Fast ping:
     }
   </style>
   
-  <table class="slides" style="{{ fez.cssVars().join(';') }}">
+  <table class="slides">
     <tr>
       <td class="arrow" onclick="fez.changeSlide(-1)">
         <div>
