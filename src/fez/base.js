@@ -213,13 +213,7 @@ export default class FezBase {
 
   style() { console.error('call Fez static style') }
 
-  connect() {
-    // if (! this.class.html) {
-    //   console.error('Fez is missing "connect" method.', this.root)
-    // }
-  }
-
-  afterConnect() {}
+  connect() {}
   onMount() {}
   beforeRender() {}
   afterRender() {}

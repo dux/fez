@@ -1,9 +1,9 @@
+<head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+
 <script>
-  // you need to escape script tag inside fez script block
-
-  Fez.head('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css')
-  Fez.head('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js')
-
   class {
     reformatIndentation(text) {
       const lines = text.split('\n');
@@ -88,20 +88,20 @@
   }
 </style>
 
-{{#if @props.file}}
+{{#if props.file}}
   <div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
-    {{ @props.file }}
+    {{ props.file }}
     &sdot;
-    <button onclick="@copy()">Copy</button>
-    {{#if @props.action }}
+    <button onclick="fez.copy()">Copy</button>
+    {{#if props.action }}
       &sdot;
       <button
         style="cursor: pointer; font-weight: 600;"
-        onclick="@props.action('{{ @props.name }}')"
+        onclick="props.action('{{ props.name }}')"
       >Update</button>
     {{/if}}
   </div>
 {{/if}}
 <pre>
-  <code class="language-{{ @props.language }}" contenteditable="{{ !!@props.file }}"></code>
+  <code class="language-{{ props.language }}" contenteditable="{{ !!props.file }}"></code>
 </pre>

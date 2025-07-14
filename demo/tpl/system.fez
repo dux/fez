@@ -10,9 +10,9 @@
   </style>
 
   <div>
-    {{#if @props.small}}
+    {{#if props.small}}
       <p>
-        <small>{{ @props.small }}</small>
+        <small>{{ props.small }}</small>
       </p>
     {{/if}}
 
@@ -24,8 +24,8 @@
   <h1 class="jumbo" style="margin: 70px auto;">&darr;</h1>
 
   <!-- you can use {{ or [[ for template blocks -->
-  [[#if @props.title]]
-    <h1>[[ @props.title ]]</h1>
+  [[#if props.title]]
+    <h1>[[ props.title ]]</h1>
   [[/if]]
 </xmp>
 

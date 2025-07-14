@@ -96,9 +96,9 @@
   }
 </style>
 
-<table class="slides" style="{{ @cssVars().join(';') }}">
+<table class="slides" style="{{ fez.cssVars().join(';') }}">
   <tr>
-    <td class="arrow" onclick="@changeSlide(-1)">
+    <td class="arrow" onclick="fez.changeSlide(-1)">
       <div>
         <span>&#8679;</span>
       </div>
@@ -110,7 +110,7 @@
         </div>
       </div>
     </td>
-    <td class="arrow" onclick="@changeSlide(1)">
+    <td class="arrow" onclick="fez.changeSlide(1)">
       <div>
         <span>&#8679;</span>
       </div>

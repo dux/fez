@@ -6,6 +6,7 @@
   }
 
   isMax() {
+    // is state is changed, template is re-rendered
     return this.state.count >= this.MAX
   }
 
@@ -33,19 +34,22 @@
   }
 </style>
 
-<!-- Template with reactive bindings -->
-<!-- @ is shorthand for 'this.' -->
-<button onclick="@state.count -= 1" {{ this.state.count < 1 ? 'disabled=""' : '' }}>-</button>
+<!--
+Template with reactive bindings
+* fez. is reference to fez component instance (you can use this inside code blocks)
+* state and props vars do not need prefix (but you can add them)
+-->
+<button onclick="fez.state.count -= 1" {{ state.count < 1 ? 'disabled=""' : '' }}>-</button>
 <span>
-  {{ @state.count }}
+  {{ state.count }}
 </span>
-<button onclick="@more()" {{ @isMax() ? 'disabled=""' : '' }}>+</button>
-{{#if @state.count > 0}}
+<button onclick="fez.more()" {{ fez.isMax() ? 'disabled=""' : '' }}>+</button>
+{{#if state.count > 0}}
   <span>&mdash;</span>
-  {{#if @state.count == @MAX }}
+  {{#if state.count == fez.MAX }}
     MAX
   {{:else}}
-    {{#if @state.count % 2 }}
+    {{#if state.count % 2 }}
       odd
     {{:else}}
       even

@@ -41,13 +41,13 @@
   }
 </style>
 
-{{#if @props.name}}
+{{#if props.name}}
   <span class="avatar">
-    <div class="title">{{ @props.name }}</div>
+    <div class="title">{{ props.name }}</div>
     <div>
-      {{@html @image() }}
+      {{@html fez.image() }}
     </div>
   </span>
 {{:else}}
-   {{@html @image() }}
+   {{@html fez.image() }}
 {{/if}}

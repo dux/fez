@@ -67,7 +67,7 @@
   }
 </style>
 
-<svg viewBox="-50 -50 100 100" style="--color: {{ @state.color }}">
+<svg viewBox="-50 -50 100 100" style="--color: {{ state.color }}">
   <circle class="clock-face" r="48" />
 
   <!-- markers -->
@@ -80,21 +80,21 @@
   {{/each}}
 
   <!-- hour hand -->
-  <line class="hour" y1="2" y2="-20" transform="rotate({{30 * @state.hours + @state.minutes / 2}})" />
+  <line class="hour" y1="2" y2="-20" transform="rotate({{30 * state.hours + state.minutes / 2}})" />
 
   <!-- minute hand -->
-  <line class="minute" y1="4" y2="-30" transform="rotate({{6 * @state.minutes + @state.seconds / 10}})" />
+  <line class="minute" y1="4" y2="-30" transform="rotate({{6 * state.minutes + state.seconds / 10}})" />
 
   <!-- second hand -->
-  <g transform="rotate({{6 * @state.seconds}})">
+  <g transform="rotate({{6 * state.seconds}})">
     <line class="second" y1="10" y2="-38" />
     <line class="second-counterweight" y1="10" y2="2" />
   </g>
 
   <!-- City text -->
-  {{#if @props.city }}
+  {{#if props.city }}
     <text x="0" y="-17" text-anchor="middle" dominant-baseline="middle" style="font-size: 10px; fill: #111;">
-      {{ @props.city }}
+      {{ props.city }}
     </text>
   {{/if}}
 </svg>

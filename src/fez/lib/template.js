@@ -96,9 +96,15 @@ export default function createTemplate(text, opts = {}) {
   });
 
   result = '`' + result.trim() + '`'
+  result = `
+    const state = this.state;
+    const props = this.props;
+    const fez = this;
+    return ${result}
+  `
 
   try {
-    const tplFunc = new Function(`return ${result}`)
+    const tplFunc = new Function(result)
     const outFunc = (o) => {
       try {
         return tplFunc.bind(o)()

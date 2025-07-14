@@ -54,52 +54,56 @@ Here's a simple counter component that demonstrates Fez's core features:
 <!-- Define a counter component in ex-counter.fez.html -->
 <script>
   connect() {
-    // Called when component is added to DOM
-    this.MAX = 6                  // Set max count value
-    this.state.count = 0          // Initialize reactive state
+    // called when Fez node is connected to DOM
+    this.MAX = 6
+    this.state.count = 0
   }
 
   isMax() {
-    // Helper method to check if counter reached max
+    // is state is changed, template is re-rendered
     return this.state.count >= this.MAX
   }
 
   more() {
-    // Increment counter if not at max
     this.state.count += this.isMax() ? 0 : 1
   }
 </script>
 
 <style>
-  /* SCSS styles scoped to this component */
-  zoom: 2;
-  margin: 10px 0;
+  background-color: #f7f7f7;
 
-  button {
-    position: relative;
-    top: -3px;
-  }
+  :fez {
+    /* SCSS styles scoped to this component */
+    zoom: 2;
+    margin: 10px 0;
 
-  span {
-    padding: 0 5px;
+    button {
+      position: relative;
+      top: -3px;
+    }
+
+    span {
+      padding: 0 5px;
+    }
   }
 </style>
 
-<!-- Template with reactive bindings -->
-<!-- @ is shorthand for 'this.' -->
-<button onclick="@state.count -= 1" {{ this.state.count < 1 ? 'disabled=""' : '' }}>-</button>
+<!--
+Template with reactive bindings
+* fez. is reference to fez component instance (you can use this inside code blocks)
+* state and props vars do not need prefix (but you can add them)
+-->
+<button onclick="fez.state.count -= 1" {{ state.count < 1 ? 'disabled=""' : '' }}>-</button>
 <span>
-  {{ @state.count }}  <!-- Displays current count -->
+  {{ state.count }}
 </span>
-<button onclick="@more()" {{ @isMax() ? 'disabled=""' : '' }}>+</button>
-
-<!-- Conditional rendering with if/else blocks -->
-{{#if @state.count > 0}}
+<button onclick="fez.more()" {{ fez.isMax() ? 'disabled=""' : '' }}>+</button>
+{{#if state.count > 0}}
   <span>&mdash;</span>
-  {{#if @state.count == @MAX }}
+  {{#if state.count == fez.MAX }}
     MAX
   {{:else}}
-    {{#if @state.count % 2 }}
+    {{#if state.count % 2 }}
       odd
     {{:else}}
       even
@@ -219,6 +223,7 @@ Fez('foo-bar', class {
   // if you pair it with `reactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
   HTML = `...`
 
+  // use connect or created
   connect(props) {
     // copy attributes from attr hash to root node
     this.copy('href', 'onclick', 'style')
@@ -283,34 +288,27 @@ Fez('foo-bar', class {
     // render template and attach result dom to root. uses Idiomorph for DOM morph
     this.render(`
       <!-- resolve any condition -->
-      {{if this.list[0]}}
+      {{if fez.list[0]}}
 
         <!-- fez-this will link DOM node to object property (inspired by Svelte) -->
         <ul fez-this="listRoot">
 
           <!-- runs in node scope -->
-          {{#each this.list as name, index}}
-
-          <!-- @ will be replaced with this. (inspired by CoffeeScript) -->
-          {{#each @list as name, index}}
+          {{#each fez.list as name, index}}
 
           <!-- you can use for loop -->
-          {{#for name, i in @list}}
-
+          {{#for name, index in fez.list}}
             <!--
               fez-use will call object function by name, and pass current node,
               when node is added to dom (Inspired by Svelte)
             -->
             <li fez-use="animate">
-
-              <!-- $$ will point to fez instance, same as Fez(this) -->
-              <input onkeyup="$$.list[{{ index }}].name = this.value" value="{{ name }}" />
-
               <!-- fez-bind for two-way data binding on form elements -->
-              <input type="text" fez-bind="@state.username" />
+              <input type="text" fez-bind="state.username" />
+              <input onkeyup="fez.list[{{ index }}].name = fez.value" value="{{ name }}" />
 
               <!-- :attribute for evaluated attributes (converts to JSON) -->
-              <div :data-config="@state.config"></div>
+              <div :data-config="state.config"></div>
 
               <!-- fez-class for adding classes with optional delay -->
               <span fez-class="active:100">Delayed class</span>
@@ -321,7 +319,7 @@ Fez('foo-bar', class {
       {{/if}}
 
       <!-- unless directive - opposite of if -->
-      {{#unless @list.length}}
+      {{#unless fez.list.length}}
         <p>No items to display</p>
       {{/unless}}
 
@@ -342,8 +340,7 @@ Fez('foo-bar', class {
   this.render(this.find('.body'), someHtmlTemplate)
 
   // execute after connect and initial component render
-  this.afterConnect() { ... }
-  this.onMount() { ... }
+  this.onMount() { ... } // or this.connected() { ... }
 
   // execute before or after every render
   this.beforeRender() { ... }
@@ -380,7 +377,7 @@ Fez('foo-bar', class {
   <foo-bar data-json-template="true"></foo-bar>
 
   <!-- override slow bind behavior -->
-  <foo-bar fast_connect="true"></foo-bar>
+  <foo-bar fez-fast="true"></foo-bar>
 
   <!-- use : prefix for evaluated attributes -->
   <foo-bar :config="window.appConfig"></foo-bar>
@@ -519,7 +516,7 @@ Finds first closest Fez node.
 
   Inject htmlString as root node innerHTML
 
-  * replace `$$.` with local pointer.
+  * replace `fez.` with local pointer.
   * replaces `<slot />` with given root
 
   ```js
@@ -532,11 +529,11 @@ Finds first closest Fez node.
         <ul>
           {{#list}}
             <li>
-              <input type="text" onkeyup="$$.list[{{num}}].name = this.value" value="{{ name }}" class="i1" />
+              <input type="text" onkeyup="fez.list[{{num}}].name = this.value" value="{{ name }}" class="i1" />
             </li>
           {{/list}}
         </ul>
-        <span class="btn" onclick="$$.getData()">read</span>
+        <span class="btn" onclick="fez.getData()">read</span>
       `
     }
   ```

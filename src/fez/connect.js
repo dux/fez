@@ -67,8 +67,8 @@ export default function(name, klass) {
         // Example: you can add FAST as a function - render fast nodes that have name attribute
         //   FAST(node) { return !!node.getAttribute('name') }
         // to inspect fast / slow components use Fez.info() in console
-        let fastConnect = forceFastRender(this, klass) || this.getAttribute('fast_connect')
-        if (this.getAttribute('fast_connect') == 'false') {
+        let fastConnect = forceFastRender(this, klass) || this.getAttribute('fez-fast')
+        if (this.getAttribute('fez-fast') == 'false') {
           fastConnect = false
         }
 
@@ -130,8 +130,8 @@ function connectDom(name, node, klass) {
       newNode.setAttribute('id', object.props.id)
     }
 
-    object.fezRegister()
-    object.connect(object.props)
+    object.fezRegister();
+    (object.created || object.connect).bind(object)(object.props);
     klass.__objects.push(object)
 
     const oldRoot = object.root.cloneNode(true)
@@ -157,8 +157,7 @@ function connectDom(name, node, klass) {
       }
     }
 
-    object.afterConnect()
-    object.onMount()
+    (object.connected || object.onMount).bind(object)()
 
     // if onPropsChange method defined, add observer and trigger call on all attributes once component is loaded
     if (object.onPropsChange) {

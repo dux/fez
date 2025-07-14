@@ -69,7 +69,7 @@
   }
 </style>
 
-<div class="card" onclick="@flip()">
+<div class="card" onclick="fez.flip()">
   <slot />
 </div>
 

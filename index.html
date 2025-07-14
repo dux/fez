@@ -7,7 +7,7 @@
   <title>Fez - JavaScript DOM component framework.</title>
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
-  <script src="./dist/fez.js?t=1752392688"></script>
+  <script src="./dist/fez.js?t=1752487561"></script>
   <script>
     window.L = console.log
     window.DEV = location.port > 999
@@ -26,9 +26,9 @@
   </style>
 
   <div>
-    {{#if @props.small}}
+    {{#if props.small}}
       <p>
-        <small>{{ @props.small }}</small>
+        <small>{{ props.small }}</small>
       </p>
     {{/if}}
 
@@ -40,8 +40,8 @@
   <h1 class="jumbo" style="margin: 70px auto;">&darr;</h1>
 
   <!-- you can use {{ or [[ for template blocks -->
-  [[#if @props.title]]
-    <h1>[[ @props.title ]]</h1>
+  [[#if props.title]]
+    <h1>[[ props.title ]]</h1>
   [[/if]]
 </xmp>
 
@@ -143,6 +143,7 @@
   }
 
   isMax() {
+    // is state is changed, template is re-rendered
     return this.state.count >= this.MAX
   }
 
@@ -170,19 +171,22 @@
   }
 </style>
 
-<!-- Template with reactive bindings -->
-<!-- @ is shorthand for 'this.' -->
-<button onclick="@state.count -= 1" {{ this.state.count < 1 ? 'disabled=""' : '' }}>-</button>
+<!--
+Template with reactive bindings
+* fez. is reference to fez component instance (you can use this inside code blocks)
+* state and props vars do not need prefix (but you can add them)
+-->
+<button onclick="fez.state.count -= 1" {{ state.count < 1 ? 'disabled=""' : '' }}>-</button>
 <span>
-  {{ @state.count }}
+  {{ state.count }}
 </span>
-<button onclick="@more()" {{ @isMax() ? 'disabled=""' : '' }}>+</button>
-{{#if @state.count > 0}}
+<button onclick="fez.more()" {{ fez.isMax() ? 'disabled=""' : '' }}>+</button>
+{{#if state.count > 0}}
   <span>&amp;mdash;</span>
-  {{#if @state.count == @MAX }}
+  {{#if state.count == fez.MAX }}
     MAX
   {{:else}}
-    {{#if @state.count % 2 }}
+    {{#if state.count % 2 }}
       odd
     {{:else}}
       even
@@ -339,15 +343,15 @@
     }
   &lt;/style>
   
-  {{#if @props.name}}
+  {{#if props.name}}
     &lt;span class="avatar">
-      &lt;div class="title">{{ @props.name }}&lt;/div>
+      &lt;div class="title">{{ props.name }}&lt;/div>
       &lt;div>
-        {{@html @image() }}
+        {{@html fez.image() }}
       &lt;/div>
     &lt;/span>
   {{:else}}
-     {{@html @image() }}
+     {{@html fez.image() }}
   {{/if}}
   &lt;/template>
         </ui-editor>
@@ -400,15 +404,15 @@
     }
   </style>
   
-  {{#if @props.name}}
+  {{#if props.name}}
     <span class="avatar">
-      <div class="title">{{ @props.name }}</div>
+      <div class="title">{{ props.name }}</div>
       <div>
-        {{@html @image() }}
+        {{@html fez.image() }}
       </div>
     </span>
   {{:else}}
-     {{@html @image() }}
+     {{@html fez.image() }}
   {{/if}}
   </template>
 
@@ -732,7 +736,7 @@
     }
   &lt;/style>
   
-  &lt;div class="card" onclick="@flip()">
+  &lt;div class="card" onclick="fez.flip()">
     &lt;slot />
   &lt;/div>
   
@@ -815,7 +819,7 @@
     }
   </style>
   
-  <div class="card" onclick="@flip()">
+  <div class="card" onclick="fez.flip()">
     <slot />
   </div>
   
@@ -971,7 +975,7 @@
     }
   &lt;/style>
   
-  &lt;svg viewBox="-50 -50 100 100" style="--color: {{ @state.color }}">
+  &lt;svg viewBox="-50 -50 100 100" style="--color: {{ state.color }}">
     &lt;circle class="clock-face" r="48" />
   
     &lt;!-- markers -->
@@ -984,21 +988,21 @@
     {{/each}}
   
     &lt;!-- hour hand -->
-    &lt;line class="hour" y1="2" y2="-20" transform="rotate({{30 * @state.hours + @state.minutes / 2}})" />
+    &lt;line class="hour" y1="2" y2="-20" transform="rotate({{30 * state.hours + state.minutes / 2}})" />
   
     &lt;!-- minute hand -->
-    &lt;line class="minute" y1="4" y2="-30" transform="rotate({{6 * @state.minutes + @state.seconds / 10}})" />
+    &lt;line class="minute" y1="4" y2="-30" transform="rotate({{6 * state.minutes + state.seconds / 10}})" />
   
     &lt;!-- second hand -->
-    &lt;g transform="rotate({{6 * @state.seconds}})">
+    &lt;g transform="rotate({{6 * state.seconds}})">
       &lt;line class="second" y1="10" y2="-38" />
       &lt;line class="second-counterweight" y1="10" y2="2" />
     &lt;/g>
   
     &lt;!-- City text -->
-    {{#if @props.city }}
+    {{#if props.city }}
       &lt;text x="0" y="-17" text-anchor="middle" dominant-baseline="middle" style="font-size: 10px; fill: #111;">
-        {{ @props.city }}
+        {{ props.city }}
       &lt;/text>
     {{/if}}
   &lt;/svg>
@@ -1079,7 +1083,7 @@
     }
   </style>
   
-  <svg viewBox="-50 -50 100 100" style="--color: {{ @state.color }}">
+  <svg viewBox="-50 -50 100 100" style="--color: {{ state.color }}">
     <circle class="clock-face" r="48" />
   
     <!-- markers -->
@@ -1092,21 +1096,21 @@
     {{/each}}
   
     <!-- hour hand -->
-    <line class="hour" y1="2" y2="-20" transform="rotate({{30 * @state.hours + @state.minutes / 2}})" />
+    <line class="hour" y1="2" y2="-20" transform="rotate({{30 * state.hours + state.minutes / 2}})" />
   
     <!-- minute hand -->
-    <line class="minute" y1="4" y2="-30" transform="rotate({{6 * @state.minutes + @state.seconds / 10}})" />
+    <line class="minute" y1="4" y2="-30" transform="rotate({{6 * state.minutes + state.seconds / 10}})" />
   
     <!-- second hand -->
-    <g transform="rotate({{6 * @state.seconds}})">
+    <g transform="rotate({{6 * state.seconds}})">
       <line class="second" y1="10" y2="-38" />
       <line class="second-counterweight" y1="10" y2="2" />
     </g>
   
     <!-- City text -->
-    {{#if @props.city }}
+    {{#if props.city }}
       <text x="0" y="-17" text-anchor="middle" dominant-baseline="middle" style="font-size: 10px; fill: #111;">
-        {{ @props.city }}
+        {{ props.city }}
       </text>
     {{/if}}
   </svg>
@@ -1167,13 +1171,13 @@ anywhere in HTML code
           name="editor"
           :action="applyChanges"
         >
-          &lt;template fez="ui-editor">
+          &lt;xmp fez="ui-editor">
+  &lt;head>
+    &lt;link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css" />
+    &lt;script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js">&lt;/script>
+  &lt;/head>
+  
   &lt;script>
-    // you need to escape script tag inside fez script block
-  
-    Fez.head('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css')
-    Fez.head('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js')
-  
     class {
       reformatIndentation(text) {
         const lines = text.split('\n');
@@ -1258,37 +1262,37 @@ anywhere in HTML code
     }
   &lt;/style>
   
-  {{#if @props.file}}
+  {{#if props.file}}
     &lt;div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
-      {{ @props.file }}
+      {{ props.file }}
       &sdot;
-      &lt;button onclick="@copy()">Copy&lt;/button>
-      {{#if @props.action }}
+      &lt;button onclick="fez.copy()">Copy&lt;/button>
+      {{#if props.action }}
         &sdot;
         &lt;button
           style="cursor: pointer; font-weight: 600;"
-          onclick="@props.action('{{ @props.name }}')"
+          onclick="props.action('{{ props.name }}')"
         >Update&lt;/button>
       {{/if}}
     &lt;/div>
   {{/if}}
   &lt;pre>
-    &lt;code class="language-{{ @props.language }}" contenteditable="{{ !!@props.file }}">&lt;/code>
+    &lt;code class="language-{{ props.language }}" contenteditable="{{ !!props.file }}">&lt;/code>
   &lt;/pre>
-  &lt;/template>
+  &lt;/xmp>
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="ui-editor">
+<xmp fez="ui-editor">
+  <head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  </head>
+  
   <script>
-    // you need to escape script tag inside fez script block
-  
-    Fez.head('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css')
-    Fez.head('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js')
-  
     class {
       reformatIndentation(text) {
         const lines = text.split('\n');
@@ -1373,24 +1377,24 @@ anywhere in HTML code
     }
   </style>
   
-  {{#if @props.file}}
+  {{#if props.file}}
     <div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
-      {{ @props.file }}
+      {{ props.file }}
       &sdot;
-      <button onclick="@copy()">Copy</button>
-      {{#if @props.action }}
+      <button onclick="fez.copy()">Copy</button>
+      {{#if props.action }}
         &sdot;
         <button
           style="cursor: pointer; font-weight: 600;"
-          onclick="@props.action('{{ @props.name }}')"
+          onclick="props.action('{{ props.name }}')"
         >Update</button>
       {{/if}}
     </div>
   {{/if}}
   <pre>
-    <code class="language-{{ @props.language }}" contenteditable="{{ !!@props.file }}"></code>
+    <code class="language-{{ props.language }}" contenteditable="{{ !!props.file }}"></code>
   </pre>
-  </template>
+  </xmp>
 
     
       
@@ -1910,12 +1914,9 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
     </h3>
 
     <div id="body-pub-sub" style="padding-bottom: 20px;">
-      <div class="info">
-  <ul>
-  <li>Features: publish &lt;> subscribe mechanism. Auto disconnect on node destroy.</li>
-  <li>Direct Fez component creation via <code>Fez(tagName, class { ... })</code></li>
-  </ul>
-</div>
+      <style>
+  .fez-ui-pubsub { margin-top: 10px; }
+</style>
 
 <button onclick="Fez.publish('ping', Math.random())">ping from anywhere</button>
 &sdot;
@@ -1967,7 +1968,7 @@ Fast ping:
     }
   })
 
-  setInterval(()=>Fez.publish('ping', Math.random()), 5000)
+  setInterval(()=>Fez.publish('ping', Math.random()), 1000)
 </script>
 
     </div>
@@ -1975,9 +1976,12 @@ Fast ping:
   <div style="margin-top: 20px; max-width: 690px;">
     <ui-tabs>
       <div title="Info" active="true">
-        <style>
-  .fez-ui-pubsub { margin-top: 10px; }
-</style>
+        <div class="info">
+  <ul>
+  <li>Features: publish &lt;> subscribe mechanism. Auto disconnect on node destroy.</li>
+  <li>Direct Fez component creation via <code>Fez(tagName, class { ... })</code></li>
+  </ul>
+</div>
       </div>
       <div title="HTML">
         <ui-editor
@@ -1987,12 +1991,9 @@ Fast ping:
           language="html"
           :action="applyChanges"
         >
-          &lt;div class="info">
-  &lt;ul>
-  &lt;li>Features: publish &lt;> subscribe mechanism. Auto disconnect on node destroy.&lt;/li>
-  &lt;li>Direct Fez component creation via &lt;code>Fez(tagName, class { ... })&lt;/code>&lt;/li>
-  &lt;/ul>
-&lt;/div>
+          &lt;style>
+  .fez-ui-pubsub { margin-top: 10px; }
+&lt;/style>
 
 &lt;button onclick="Fez.publish('ping', Math.random())">ping from anywhere&lt;/button>
 &sdot;
@@ -2044,7 +2045,7 @@ Fast ping:
     }
   })
 
-  setInterval(()=>Fez.publish('ping', Math.random()), 5000)
+  setInterval(()=>Fez.publish('ping', Math.random()), 1000)
 &lt;/script>
 
         </ui-editor>
@@ -2328,9 +2329,9 @@ Fast ping:
     }
   &lt;/style>
   
-  &lt;table class="slides" style="{{ @cssVars().join(';') }}">
+  &lt;table class="slides" style="{{ fez.cssVars().join(';') }}">
     &lt;tr>
-      &lt;td class="arrow" onclick="@changeSlide(-1)">
+      &lt;td class="arrow" onclick="fez.changeSlide(-1)">
         &lt;div>
           &lt;span>&#8679;&lt;/span>
         &lt;/div>
@@ -2342,7 +2343,7 @@ Fast ping:
           &lt;/div>
         &lt;/div>
       &lt;/td>
-      &lt;td class="arrow" onclick="@changeSlide(1)">
+      &lt;td class="arrow" onclick="fez.changeSlide(1)">
         &lt;div>
           &lt;span>&#8679;&lt;/span>
         &lt;/div>
@@ -2455,9 +2456,9 @@ Fast ping:
     }
   </style>
   
-  <table class="slides" style="{{ @cssVars().join(';') }}">
+  <table class="slides" style="{{ fez.cssVars().join(';') }}">
     <tr>
-      <td class="arrow" onclick="@changeSlide(-1)">
+      <td class="arrow" onclick="fez.changeSlide(-1)">
         <div>
           <span>&#8679;</span>
         </div>
@@ -2469,7 +2470,7 @@ Fast ping:
           </div>
         </div>
       </td>
-      <td class="arrow" onclick="@changeSlide(1)">
+      <td class="arrow" onclick="fez.changeSlide(1)">
         <div>
           <span>&#8679;</span>
         </div>
@@ -2609,7 +2610,7 @@ Fast ping:
       this.root.style.width = 'calc(100%)'
   
       const { n, activate } = this;
-      this.tabs = Array.from(this.root.children)
+      this.tabs = this.childNodes(false)
       this.render([
         n('div.header', this.tabs.map((tab, index) =>
           n('span', tab.getAttribute('title'), { onclick: ()=> activate(index) })
@@ -2690,7 +2691,7 @@ Fast ping:
       this.root.style.width = 'calc(100%)'
   
       const { n, activate } = this;
-      this.tabs = Array.from(this.root.children)
+      this.tabs = this.childNodes(false)
       this.render([
         n('div.header', this.tabs.map((tab, index) =>
           n('span', tab.getAttribute('title'), { onclick: ()=> activate(index) })
@@ -2855,12 +2856,12 @@ Fast ping:
     }
   &lt;/style>
   
-  &lt;p>Param city: {{ @props.city }}&lt;/p>
+  &lt;p>Param city: {{ props.city }}&lt;/p>
   &lt;p>Time now: &lt;span class="time">&lt;/span>&lt;/p>
   &lt;p>Random num: &lt;span>{{ Math.random() }}&lt;/span>&lt;/p>
-  &lt;button onclick="@setRandomColor()">random color&lt;/button>
+  &lt;button onclick="fez.setRandomColor()">random color&lt;/button>
   &sdot;
-  &lt;button onclick="@render()">refresh & preserve slot&lt;/button>
+  &lt;button onclick="fez.render()">refresh & preserve slot&lt;/button>
   &lt;hr />
   
   &lt;slot>&lt;/slot>
@@ -2921,12 +2922,12 @@ Fast ping:
     }
   </style>
   
-  <p>Param city: {{ @props.city }}</p>
+  <p>Param city: {{ props.city }}</p>
   <p>Time now: <span class="time"></span></p>
   <p>Random num: <span>{{ Math.random() }}</span></p>
-  <button onclick="@setRandomColor()">random color</button>
+  <button onclick="fez.setRandomColor()">random color</button>
   &sdot;
-  <button onclick="@render()">refresh & preserve slot</button>
+  <button onclick="fez.render()">refresh & preserve slot</button>
   <hr />
   
   <slot></slot>
@@ -3279,11 +3280,11 @@ Fast ping:
   &lt;/script>
   
   &lt;h3>Tasks&lt;/h3>
-  {{#if !@state.tasks[0] }}
+  {{#if !state.tasks[0] }}
     &lt;p>No tasks found&lt;/p>
   {{/if}}
   
-  {{#for task, index in @state.tasks}}
+  {{#for task, index in state.tasks}}
     {{#if task.animate}} &lt;!-- this is fine because this is string templating -->
       &lt;p fez-use="animate" style="display: none; height: 0px; opacity: 0;">
     {{:else}}
@@ -3300,15 +3301,15 @@ Fast ping:
         fez-bind="state.tasks[{{index}}].done"
       />
       &sdot;
-      &lt;button onclick="@removeTask({{ index }})">&times;&lt;/button>
+      &lt;button onclick="fez.removeTask({{ index }})">&times;&lt;/button>
     &lt;/p>
   {{/for}}
   &lt;p>
-    &lt;button onclick="@addTask()">add task&lt;/button>
+    &lt;button onclick="fez.addTask()">add task&lt;/button>
     &sdot;
-    &lt;button onclick="@clearCompleted()">clear completed&lt;/button>
+    &lt;button onclick="fez.clearCompleted()">clear completed&lt;/button>
   &lt;/p>
-  &lt;pre class="code">{{ JSON.stringify(this.state.tasks, null, 2) }}&lt;/pre>
+  &lt;pre class="code">{{ JSON.stringify(state.tasks, null, 2) }}&lt;/pre>
   &lt;p>If you want to preserve state in templates, wrap content in "fez-slot"&lt;/p>
   &lt;p>Refresh: {{Math.random()}}&lt;/p>
   &lt;p class="fez-slot">
@@ -3367,11 +3368,11 @@ Fast ping:
   </script>
   
   <h3>Tasks</h3>
-  {{#if !@state.tasks[0] }}
+  {{#if !state.tasks[0] }}
     <p>No tasks found</p>
   {{/if}}
   
-  {{#for task, index in @state.tasks}}
+  {{#for task, index in state.tasks}}
     {{#if task.animate}} <!-- this is fine because this is string templating -->
       <p fez-use="animate" style="display: none; height: 0px; opacity: 0;">
     {{:else}}
@@ -3388,15 +3389,15 @@ Fast ping:
         fez-bind="state.tasks[{{index}}].done"
       />
       &sdot;
-      <button onclick="@removeTask({{ index }})">&times;</button>
+      <button onclick="fez.removeTask({{ index }})">&times;</button>
     </p>
   {{/for}}
   <p>
-    <button onclick="@addTask()">add task</button>
+    <button onclick="fez.addTask()">add task</button>
     &sdot;
-    <button onclick="@clearCompleted()">clear completed</button>
+    <button onclick="fez.clearCompleted()">clear completed</button>
   </p>
-  <pre class="code">{{ JSON.stringify(this.state.tasks, null, 2) }}</pre>
+  <pre class="code">{{ JSON.stringify(state.tasks, null, 2) }}</pre>
   <p>If you want to preserve state in templates, wrap content in "fez-slot"</p>
   <p>Refresh: {{Math.random()}}</p>
   <p class="fez-slot">
