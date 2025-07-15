@@ -41,7 +41,7 @@ It great in combination with another widely used JS libs, as jQuery, Zepto, unde
 
 * define your custom component - `Fez('ui-foo', class UiFoo extends FezBase)`
 * add HTML - `<ui-foo bar="baz" id="node1"></ui-foo>`
-  * lib will call `node1.fez.connect()` when node is added to DOM and connect your component to dom.
+  * lib will call `node1.fez.init()` when node is added to DOM and connect your component to dom.
   * use `Fez` helper methods, or do all by yourself, all good.
 
 That is all.
@@ -53,7 +53,7 @@ Here's a simple counter component that demonstrates Fez's core features:
 ```html
 <!-- Define a counter component in ex-counter.fez.html -->
 <script>
-  connect() {
+  init() {
     // called when Fez node is connected to DOM
     this.MAX = 6
     this.state.count = 0
@@ -131,13 +131,13 @@ This example showcases:
 - **Event handling**: Direct DOM event handlers with access to component methods
 - **Conditional rendering**: `{{#if}}`, `{{:else}}` blocks for dynamic UI
 - **Scoped styling**: SCSS support with styles automatically scoped to component
-- **Component lifecycle**: `connect()` method called when component mounts
+- **Component lifecycle**: `init()` method called when component mounts
 
 ## What can it do and why is it great?
 
 * It can create and define Custom HTML tags, libs main feature. It uses native, fast browser interface to do it.
 * It plays great with server generated code, because this is a component library. You are free to use any routing and server logic you prefer.
-* Before `connect()`, it will rename custom dom node name and create standard HTML node. For example `<ui-button>` can be converted to `<button class="fez fez-button btn btn-empty">...`. This makes all `Fez` components stylable in root (you can't style `ui-button`).
+* Before `init()`, it will rename custom dom node name and create standard HTML node. For example `<ui-button>` can be converted to `<button class="fez fez-button btn btn-empty">...`. This makes all `Fez` components stylable in root (you can't style `ui-button`).
 * I will use one file to define CSS, HTML and code.
 * It does not need server side compiling.
 * There is no magic as Svelte runes, React hooks, states and whatever. Plain vanilla JS classes with "few" documented functions.
@@ -224,7 +224,7 @@ Fez('foo-bar', class {
   HTML = `...`
 
   // use connect or created
-  connect(props) {
+  init(props) {
     // copy attributes from attr hash to root node
     this.copy('href', 'onclick', 'style')
 
@@ -413,7 +413,7 @@ You can pass node DOM refrence, for a form you want to capture data from.
 
 ### how to call custom FEZ node from the outside, anywhere in HTML
 
-Inside `connect()`, you have pointer to `this`. Pass it anywhere you need, even store in window.
+Inside `init()`, you have pointer to `this`. Pass it anywhere you need, even store in window.
 
 Example: Dialog controller
 
@@ -423,16 +423,15 @@ Example: Dialog controller
 
 ```js
 Fez('ui-dialog', class {
-  close() {
-    ...
-  }
-
-  connect() {
+  init() {
     // makes dialog globally available
     window.Dialog = this
   }
-})
 
+  close() {
+    ...
+  }
+})
 
 // close dialog window, from anywhere
 Dialog.close()
@@ -487,7 +486,7 @@ Finds first closest Fez node.
 
 ## instance functions
 
-* ### this.connect(root, props)
+* ### this.init(root, props)
 
   Called after DOM node is connected to Fez instance.
 
@@ -496,7 +495,7 @@ Finds first closest Fez node.
   Copies atrributes from attribute object to root as node attributes. If attribute is false, it is skipped.
 
   ```js
-    connect() => {
+    init() => {
       this.copy('href', 'onclick', 'style', 'target')
     }
   ```
@@ -506,7 +505,7 @@ Finds first closest Fez node.
   Moves all child nodes from one node to another node.
 
   ```js
-    connect() => {
+    init() => {
       // move all current child nodes to tmpNode
       const tmpNode = this.slot(this)
 
@@ -527,7 +526,7 @@ Finds first closest Fez node.
       alert('data!')
     }
 
-    connect() => {
+    init() => {
       this.render`
         <ul>
           {{#list}}

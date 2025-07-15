@@ -16,7 +16,7 @@
     this.setSlide( this.state.slide += direction )
   }
 
-  connect() {
+  init() {
     this.slidesCount = this.childNodes(false).length
     this.style('--arrow-width', `70px`)
     this.setSlide(0)

@@ -10,7 +10,7 @@
     }, 5000  + (Math.random() * 15* 1000))
   }
 
-  connect() {
+  init() {
     this.autoflip()
     this.subscribe('flip-card', this.flip)
   }

@@ -24,7 +24,7 @@
       }
     }
 
-    connect(props) {
+    init(props) {
       this.copy('onclick')
 
       const icon = props.name || this.root.innerHTML.trim()

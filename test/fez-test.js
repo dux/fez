@@ -25,13 +25,13 @@ const assert = {
       throw new Error(message || `Expected ${expected}, got ${actual}`);
     }
   },
-  
+
   ok(value, message = '') {
     if (!value) {
       throw new Error(message || `Expected truthy value, got ${value}`);
     }
   },
-  
+
   includes(str, substring, message = '') {
     if (!str.includes(substring)) {
       throw new Error(message || `Expected "${str}" to include "${substring}"`);
@@ -53,7 +53,7 @@ class TestRunner {
 
   async run() {
     console.log('🧪 Running Fez tests...\n');
-    
+
     for (const test of this.tests) {
       try {
         await test.fn();
@@ -81,7 +81,7 @@ const runner = new TestRunner();
 
 // Define test counter component
 Fez('test-counter', class {
-  connect() {
+  init() {
     this.MAX = 6;
     this.state.count = 0;
   }
@@ -100,63 +100,63 @@ async function createCounter() {
   const container = document.createElement('div');
   container.innerHTML = '<test-counter></test-counter>';
   document.body.appendChild(container);
-  
+
   await wait(100);
-  
+
   const element = container.querySelector('test-counter');
   const component = element._fez;
-  
+
   return { container, element, component };
 }
 
 // Test 1: Component initialization
 runner.test('Counter initializes with count = 0', async () => {
   const { component, container } = await createCounter();
-  
+
   assert.equal(component.state.count, 0, 'Initial count should be 0');
   assert.equal(component.MAX, 6, 'MAX should be 6');
-  
+
   container.remove();
 });
 
 // Test 2: State changes trigger re-render
 runner.test('State changes update the DOM', async () => {
   const { component, element, container } = await createCounter();
-  
+
   // Change state
   component.state.count = 3;
   await wait(100);
-  
+
   // Check DOM updated
   const html = element.innerHTML;
   assert.includes(html, '3', 'DOM should show count 3');
-  
+
   container.remove();
 });
 
 // Test 3: more() method
 runner.test('more() increments until MAX', async () => {
   const { component, container } = await createCounter();
-  
+
   // Call more() multiple times
   for (let i = 0; i < 10; i++) {
     component.more();
   }
-  
+
   assert.equal(component.state.count, 6, 'Count should stop at MAX (6)');
-  
+
   container.remove();
 });
 
 // Test 4: isMax() method
 runner.test('isMax() returns correct boolean', async () => {
   const { component, container } = await createCounter();
-  
+
   assert.equal(component.isMax(), false, 'Initially not at max');
-  
+
   component.state.count = 6;
   assert.equal(component.isMax(), true, 'Should be at max when count = 6');
-  
+
   container.remove();
 });
 
@@ -164,13 +164,13 @@ runner.test('isMax() returns correct boolean', async () => {
 runner.test('Multiple instances have independent state', async () => {
   const counter1 = await createCounter();
   const counter2 = await createCounter();
-  
+
   counter1.component.state.count = 2;
   counter2.component.state.count = 4;
-  
+
   assert.equal(counter1.component.state.count, 2, 'Counter 1 = 2');
   assert.equal(counter2.component.state.count, 4, 'Counter 2 = 4');
-  
+
   counter1.container.remove();
   counter2.container.remove();
 });

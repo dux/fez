@@ -71,7 +71,7 @@ global.window = {
       this.callback = callback;
     }
     observe() {}
-    disconnect() {}
+    disinit() {}
   },
   DEV: false,
   requestAnimationFrame: (cb) => setTimeout(cb, 16)
@@ -144,11 +144,11 @@ test('Fez is loaded and available', () => {
 test('Can register a component', () => {
   // Register a component
   const result = Fez('test-component', class {
-    connect() {
+    init() {
       this.state.registered = true;
     }
   });
-  
+
   // Check if component was registered
   assert(customElements.get('test-component'), 'Component should be registered');
 });
@@ -156,33 +156,33 @@ test('Can register a component', () => {
 // Test 3: State reactivity
 test('State object is reactive', () => {
   let renderCount = 0;
-  
+
   class TestComponent extends FezBase {
-    connect() {
+    init() {
       this.state.value = 0;
     }
-    
+
     render() {
       renderCount++;
       return `Value: ${this.state.value}`;
     }
   }
-  
+
   const component = new TestComponent();
   component._node = new window.HTMLElement();
   component.root = component._node;
   component.class = TestComponent; // Add class reference
-  
+
   // Call fezRegister to initialize state
   component.fezRegister();
-  component.connect();
-  
+  component.init();
+
   // Initial render
   const initial = renderCount;
-  
+
   // Change state
   component.state.value = 42;
-  
+
   // Wait a bit for async render
   setTimeout(() => {
     assert(renderCount > initial, 'Render should be called after state change');
@@ -192,22 +192,22 @@ test('State object is reactive', () => {
 // Test 4: Multiple state properties
 test('Multiple state properties work independently', () => {
   class TestComponent extends FezBase {
-    connect() {
+    init() {
       this.state.a = 1;
       this.state.b = 2;
     }
   }
-  
+
   const component = new TestComponent();
   component._node = new window.HTMLElement();
   component.root = component._node;
   component.class = TestComponent;
   component.fezRegister();
-  component.connect();
-  
+  component.init();
+
   assert(component.state.a === 1, 'State.a should be 1');
   assert(component.state.b === 2, 'State.b should be 2');
-  
+
   component.state.a = 10;
   assert(component.state.a === 10, 'State.a should update to 10');
   assert(component.state.b === 2, 'State.b should remain 2');
@@ -216,66 +216,66 @@ test('Multiple state properties work independently', () => {
 // Test 5: Component methods
 test('Component methods are accessible', () => {
   class TestComponent extends FezBase {
-    connect() {
+    init() {
       this.state.count = 0;
     }
-    
+
     increment() {
       this.state.count++;
     }
-    
+
     getDouble() {
       return this.state.count * 2;
     }
   }
-  
+
   const component = new TestComponent();
   component._node = new window.HTMLElement();
   component.root = component._node;
   component.class = TestComponent;
   component.fezRegister();
-  component.connect();
-  
+  component.init();
+
   assert(component.state.count === 0, 'Initial count should be 0');
-  
+
   component.increment();
   assert(component.state.count === 1, 'Count should be 1 after increment');
-  
+
   assert(component.getDouble() === 2, 'getDouble should return 2');
 });
 
 // Test 6: Counter-like functionality
 test('Counter component works correctly', () => {
   class Counter extends FezBase {
-    connect() {
+    init() {
       this.MAX = 6;
       this.state.count = 0;
     }
-    
+
     isMax() {
       return this.state.count >= this.MAX;
     }
-    
+
     more() {
       this.state.count += this.isMax() ? 0 : 1;
     }
   }
-  
+
   const counter = new Counter();
   counter._node = new window.HTMLElement();
   counter.root = counter._node;
   counter.class = Counter;
   counter.fezRegister();
-  counter.connect();
-  
+  counter.init();
+
   assert(counter.state.count === 0, 'Initial count should be 0');
   assert(!counter.isMax(), 'Should not be at max initially');
-  
+
   // Increment to max
   for (let i = 0; i < 10; i++) {
     counter.more();
   }
-  
+
   assert(counter.state.count === 6, 'Count should stop at MAX (6)');
   assert(counter.isMax(), 'Should be at max');
 });

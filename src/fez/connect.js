@@ -131,7 +131,7 @@ function connectDom(name, node, klass) {
     }
 
     object.fezRegister();
-    (object.created || object.connect).bind(object)(object.props);
+    (object.init || object.created || object.connect).bind(object)(object.props);
     klass.__objects.push(object)
 
     const oldRoot = object.root.cloneNode(true)
@@ -157,7 +157,7 @@ function connectDom(name, node, klass) {
       }
     }
 
-    (object.connected || object.onMount).bind(object)()
+    object.onMount(object.props)
 
     // if onPropsChange method defined, add observer and trigger call on all attributes once component is loaded
     if (object.onPropsChange) {

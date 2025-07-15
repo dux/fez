@@ -2,7 +2,7 @@
   NAME = 'span'
   FAST = true
 
-  connect(props) {
+  init(props) {
     this.copy('href', 'style')
     this.size = (props.size || 64) + 'px'
     this.root.style.width = this.size

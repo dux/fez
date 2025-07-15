@@ -15,7 +15,7 @@
     this.activateNode(this.tabs[num])
   }
 
-  connect(props) {
+  init(props) {
     this.root.style.width = 'calc(100%)'
 
     const { n, activate } = this;

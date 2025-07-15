@@ -45,7 +45,7 @@
         }
       }
 
-    connect(props) {
+    init(props) {
       props.language ||= 'html'
 
       const child = this.root.firstElementChild

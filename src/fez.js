@@ -21,7 +21,7 @@ setInterval(() => {
 //<fez-compile tag="app-editor">
 //  <script>
 // Fez('fez-compile', class {
-//   connect(params) {
+//   init(params) {
 
 //     this.root.querySelectorAll('template[fez]').forEach(n=>{
 //       Fez.compile(n)

@@ -25,7 +25,7 @@
     node.style.transition = 'height 200ms, opacity 200ms'
     node.style.height = '33px'
     node.style.opacity = '1'
-    
+
     setTimeout(() => {
       delete this.state.tasks[this.state.tasks.length-1].animate
       node.style.height = 'auto'
@@ -33,7 +33,7 @@
     }, 200)
   }
 
-  connect() {
+  init() {
     this.state.tasks = [
       {name: 'First task', done: false},
       {name: 'Second task', done: false},

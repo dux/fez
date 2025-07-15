@@ -10,7 +10,7 @@ import compile from './compile'
 // Fez('ui-slider')                             # first slider
 // Fez('ui-slider', (n)=>alert(n))              # find all and execute
 // Fez(this, 'ui-slider')                       # first parent ui-slider
-// Fez('ui-slider', class { connect() { ... }}) # create Fez dom node
+// Fez('ui-slider', class { init() { ... }}) # create Fez dom node
 const Fez = (name, klass) => {
   if (name) {
     if (klass) {

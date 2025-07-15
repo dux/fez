@@ -42,14 +42,14 @@ To add new tests:
 2. Use `assert()` functions to verify behavior
 3. For components, remember to:
    - Set up the component with `_node`, `root`, and `class` properties
-   - Call `fezRegister()` before `connect()`
+   - Call `fezRegister()` before `init()`
    - Use `setTimeout` or similar for async state changes
 
 Example:
 ```javascript
 test('My new test', () => {
   class MyComponent extends FezBase {
-    connect() {
+    init() {
       this.state.value = 'initial';
     }
   }
@@ -59,7 +59,7 @@ test('My new test', () => {
   component.root = component._node;
   component.class = MyComponent;
   component.fezRegister();
-  component.connect();
+  component.init();
 
   assert(component.state.value === 'initial', 'State should be initialized');
 });

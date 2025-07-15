@@ -7,7 +7,7 @@
   <title>Fez - JavaScript DOM component framework.</title>
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
-  <script src="./dist/fez.js?t=1752508105"></script>
+  <script src="./dist/fez.js?t=1752575481"></script>
   <script>
     window.L = console.log
     window.DEV = location.port > 999
@@ -136,7 +136,7 @@
         <ui-editor id="demo-counter">
           <xmp>
             <script>
-  connect() {
+  init() {
     // called when Fez node is connected to DOM
     this.MAX = 6
     this.state.count = 0
@@ -198,7 +198,7 @@ Template with reactive bindings
           </xmp>
         </ui-editor>
 
-        <p>Or load via HTTP (as in this case, view source)</p>
+        <p>Or load via HTTP (as in this case)</p>
         <ui-editor>
           &lt;template fez="/demo/ex-counter.fez.html">&lt;/template>
         </ui-editor>
@@ -305,7 +305,7 @@ Template with reactive bindings
     NAME = 'span'
     FAST = true
   
-    connect(props) {
+    init(props) {
       this.copy('href', 'style')
       this.size = (props.size || 64) + 'px'
       this.root.style.width = this.size
@@ -366,7 +366,7 @@ Template with reactive bindings
     NAME = 'span'
     FAST = true
   
-    connect(props) {
+    init(props) {
       this.copy('href', 'style')
       this.size = (props.size || 64) + 'px'
       this.root.style.width = this.size
@@ -678,7 +678,7 @@ Template with reactive bindings
       }, 5000  + (Math.random() * 15* 1000))
     }
   
-    connect() {
+    init() {
       this.autoflip()
       this.subscribe('flip-card', this.flip)
     }
@@ -761,7 +761,7 @@ Template with reactive bindings
       }, 5000  + (Math.random() * 15* 1000))
     }
   
-    connect() {
+    init() {
       this.autoflip()
       this.subscribe('flip-card', this.flip)
     }
@@ -922,7 +922,7 @@ Template with reactive bindings
       this.style('--color', this.randomColor())
     }
   
-    connect() {
+    init() {
       this.offsetHours = parseFloat(this.props.utc || 0)
       this.setVars()
       this.setInterval(this.setVars, 1000)
@@ -1030,7 +1030,7 @@ Template with reactive bindings
       this.style('--color', this.randomColor())
     }
   
-    connect() {
+    init() {
       this.offsetHours = parseFloat(this.props.utc || 0)
       this.setVars()
       this.setInterval(this.setVars, 1000)
@@ -1220,7 +1220,7 @@ anywhere in HTML code
           }
         }
   
-      connect(props) {
+      init(props) {
         props.language ||= 'html'
   
         const child = this.root.firstElementChild
@@ -1335,7 +1335,7 @@ anywhere in HTML code
           }
         }
   
-      connect(props) {
+      init(props) {
         props.language ||= 'html'
   
         const child = this.root.firstElementChild
@@ -1709,7 +1709,7 @@ anywhere in HTML code
         }
       }
   
-      connect(props) {
+      init(props) {
         this.copy('onclick')
   
         const icon = props.name || this.root.innerHTML.trim()
@@ -1763,7 +1763,7 @@ anywhere in HTML code
         }
       }
   
-      connect(props) {
+      init(props) {
         this.copy('onclick')
   
         const icon = props.name || this.root.innerHTML.trim()
@@ -1861,7 +1861,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
   &lt;/head>
   
   &lt;script>
-    connect(props) {
+    init(props) {
       let text = props.html || this.root.innerHTML;
   
       this.root.classList.add('markdown');
@@ -1888,7 +1888,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
   </head>
   
   <script>
-    connect(props) {
+    init(props) {
       let text = props.html || this.root.innerHTML;
   
       this.root.classList.add('markdown');
@@ -1962,7 +1962,7 @@ Fast ping:
       this.target.innerHTML = info
     }
 
-    connect() {
+    init() {
       this.target = this.find('.target')
       this.subscribe('ping', this.update)
       this.update('waiting for a ping...')
@@ -2039,7 +2039,7 @@ Fast ping:
       this.target.innerHTML = info
     }
 
-    connect() {
+    init() {
       this.target = this.find('.target')
       this.subscribe('ping', this.update)
       this.update('waiting for a ping...')
@@ -2250,7 +2250,7 @@ Fast ping:
       this.setSlide( this.state.slide += direction )
     }
   
-    connect() {
+    init() {
       this.slidesCount = this.childNodes(false).length
       this.style('--arrow-width', `70px`)
       this.setSlide(0)
@@ -2355,7 +2355,7 @@ Fast ping:
       this.setSlide( this.state.slide += direction )
     }
   
-    connect() {
+    init() {
       this.slidesCount = this.childNodes(false).length
       this.style('--arrow-width', `70px`)
       this.setSlide(0)
@@ -2563,7 +2563,7 @@ Fast ping:
       this.activateNode(this.tabs[num])
     }
   
-    connect(props) {
+    init(props) {
       this.root.style.width = 'calc(100%)'
   
       const { n, activate } = this;
@@ -2644,7 +2644,7 @@ Fast ping:
       this.activateNode(this.tabs[num])
     }
   
-    connect(props) {
+    init(props) {
       this.root.style.width = 'calc(100%)'
   
       const { n, activate } = this;
@@ -2791,7 +2791,7 @@ Fast ping:
       this.setTime()
     }
   
-    connect() {
+    init() {
       this.setRandomColor()
     }
   &lt;/script>
@@ -2857,7 +2857,7 @@ Fast ping:
       this.setTime()
     }
   
-    connect() {
+    init() {
       this.setRandomColor()
     }
   </script>
@@ -3219,7 +3219,7 @@ Fast ping:
       node.style.transition = 'height 200ms, opacity 200ms'
       node.style.height = '33px'
       node.style.opacity = '1'
-      
+  
       setTimeout(() => {
         delete this.state.tasks[this.state.tasks.length-1].animate
         node.style.height = 'auto'
@@ -3227,7 +3227,7 @@ Fast ping:
       }, 200)
     }
   
-    connect() {
+    init() {
       this.state.tasks = [
         {name: 'First task', done: false},
         {name: 'Second task', done: false},
@@ -3307,7 +3307,7 @@ Fast ping:
       node.style.transition = 'height 200ms, opacity 200ms'
       node.style.height = '33px'
       node.style.opacity = '1'
-      
+  
       setTimeout(() => {
         delete this.state.tasks[this.state.tasks.length-1].animate
         node.style.height = 'auto'
@@ -3315,7 +3315,7 @@ Fast ping:
       }, 200)
     }
   
-    connect() {
+    init() {
       this.state.tasks = [
         {name: 'First task', done: false},
         {name: 'Second task', done: false},

@@ -52,7 +52,7 @@ Fast ping:
       this.target.innerHTML = info
     }
 
-    connect() {
+    init() {
       this.target = this.find('.target')
       this.subscribe('ping', this.update)
       this.update('waiting for a ping...')

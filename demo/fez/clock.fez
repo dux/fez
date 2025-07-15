@@ -13,7 +13,7 @@
     this.style('--color', this.randomColor())
   }
 
-  connect() {
+  init() {
     this.offsetHours = parseFloat(this.props.utc || 0)
     this.setVars()
     this.setInterval(this.setVars, 1000)

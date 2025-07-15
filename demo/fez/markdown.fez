@@ -3,7 +3,7 @@
 </head>
 
 <script>
-  connect(props) {
+  init(props) {
     let text = props.html || this.root.innerHTML;
 
     this.root.classList.add('markdown');
