@@ -15,8 +15,8 @@
   }
 </script>
 
-<!-- compiles from scss to css and injects class in head -->
 <style>
+  /* compiles from scss to css and injects class in head */
   /* body style */
   background-color: #f7f7f7;
 
@@ -36,15 +36,13 @@
   }
 </style>
 
-<!--
-Template with reactive bindings
-* fez. is reference to fez component instance
--->
-<button onclick="fez.state.count -= 1" {{ state.count < 1 ? 'disabled=""' : '' }}>-</button>
+<button onclick="fez.state.count -= 1" disabled="{{ state.count < 1 }}">-</button>
+
 <span>
   {{ state.count }}
 </span>
-<button onclick="fez.more()" {{ isMax() ? 'disabled=""' : '' }}>+</button>
+
+<button onclick="fez.more()" disabled="{{ isMax() }}">+</button>
 {{#if state.count > 0}}
   <span>&mdash;</span>
   {{#if state.count == MAX }}

@@ -7,7 +7,7 @@
   <title>Fez - JavaScript DOM component framework.</title>
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
-  <script src="./dist/fez.js?t=1752575481"></script>
+  <script src="./dist/fez.js?t=1752591902"></script>
   <script>
     window.L = console.log
     window.DEV = location.port > 999
@@ -130,90 +130,90 @@
         </ui-editor>
       </li>
       <li>
-        Create ex-counter component
+        Create ui-counter component
 
-        <template fez="./demo/ex-counter.fez.html"></template>
+        <template fez="./demo/fez/ui-counter.fez"></template>
         <ui-editor id="demo-counter">
           <xmp>
-            <script>
-  init() {
-    // called when Fez node is connected to DOM
-    this.MAX = 6
-    this.state.count = 0
-  }
-
-  isMax() {
-    // is state is changed, template is re-rendered
-    return this.state.count >= this.MAX
-  }
-
-  more() {
-    this.state.count += this.isMax() ? 0 : 1
-  }
-</script>
-
-<!-- compiles from scss to css and injects class in head -->
-<style>
-  /* body style */
-  background-color: #f7f7f7;
-
-  /* scoped to this component */
-  :fez {
-    zoom: 2;
-    margin: 10px 0;
-
-    button {
-      position: relative;
-      top: -3px;
+              <template fez="ui-counter">
+  <script>
+    init() {
+      // called when Fez node is connected to DOM
+      this.MAX = 6
+      this.state.count = 0
     }
-
-    span {
-      padding: 0 5px;
+  
+    isMax() {
+      // is state is changed, template is re-rendered
+      return this.state.count >= this.MAX
     }
-  }
-</style>
-
-<!--
-Template with reactive bindings
-* fez. is reference to fez component instance
--->
-<button onclick="fez.state.count -= 1" {{ state.count < 1 ? 'disabled=""' : '' }}>-</button>
-<span>
-  {{ state.count }}
-</span>
-<button onclick="fez.more()" {{ isMax() ? 'disabled=""' : '' }}>+</button>
-{{#if state.count > 0}}
-  <span>&amp;mdash;</span>
-  {{#if state.count == MAX }}
-    MAX
-  {{:else}}
-    {{#if state.count % 2 }}
-      odd
+  
+    more() {
+      this.state.count += this.isMax() ? 0 : 1
+    }
+  </script>
+  
+  <style>
+    /* compiles from scss to css and injects class in head */
+    /* body style */
+    background-color: #f7f7f7;
+  
+    /* scoped to this component */
+    :fez {
+      zoom: 2;
+      margin: 10px 0;
+  
+      button {
+        position: relative;
+        top: -3px;
+      }
+  
+      span {
+        padding: 0 5px;
+      }
+    }
+  </style>
+  
+  <button onclick="fez.state.count -= 1" disabled="{{ state.count < 1 }}">-</button>
+  
+  <span>
+    {{ state.count }}
+  </span>
+  
+  <button onclick="fez.more()" disabled="{{ isMax() }}">+</button>
+  {{#if state.count > 0}}
+    <span>&amp;mdash;</span>
+    {{#if state.count == MAX }}
+      MAX
     {{:else}}
-      even
+      {{#if state.count % 2 }}
+        odd
+      {{:else}}
+        even
+      {{/if}}
     {{/if}}
   {{/if}}
-{{/if}}
+  
 
           </xmp>
         </ui-editor>
 
         <p>Or load via HTTP (as in this case)</p>
         <ui-editor>
-          &lt;template fez="/demo/ex-counter.fez.html">&lt;/template>
+          &lt;template fez="/demo/ui-counter.fez">&lt;/template>
         </ui-editor>
       </li>
       <li>
-        Place ex-counter anywhere in BODY
+        Place ui-counter anywhere in BODY
         <ui-editor id="demo-counter">
           <xmp>
-            <ex-counter></ex-counter>
+            <ui-counter></ui-counter>
           </xmp>
         </ui-editor>
       </li>
       <li>
         <p>That is it! Edit this demo on <a target="jsbin" href="https://jsbin.com/nitihel/edit?html,output">JSbin</a></p>
-        <ex-counter id="main-counter"></ex-counter>
+        <ui-counter id="main-counter"></ui-counter>
       </li>
     </ol>
   </div>
@@ -230,12 +230,12 @@ Template with reactive bindings
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
-    <small style="float: right;" onclick="openCodePen('avatar')">open in CodePen</small>
+    <small style="float: right;" onclick="openCodePen('ui-avatar')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-avatar
     </h3>
 
-    <div id="body-avatar" style="padding-bottom: 20px;">
+    <div id="body-ui-avatar" style="padding-bottom: 20px;">
       <style>
   .avatars {
     img.avatar {
@@ -267,9 +267,9 @@ Template with reactive bindings
       </div>
       <div title="HTML">
         <ui-editor
-          name="avatar"
-          id="html-avatar"
-          file="./demo/fez/avatar.html"
+          name="ui-avatar"
+          id="html-ui-avatar"
+          file="./demo/fez/ui-avatar.html"
           language="html"
           :action="applyChanges"
         >
@@ -296,8 +296,8 @@ Template with reactive bindings
       <div title="Fez component">
         <ui-editor
           id="code-ui-avatar"
-          file="./demo/fez/avatar.fez"
-          name="avatar"
+          file="./demo/fez/ui-avatar.fez"
+          name="ui-avatar"
           :action="applyChanges"
         >
           &lt;template fez="ui-avatar">
@@ -422,12 +422,12 @@ Template with reactive bindings
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
-    <small style="float: right;" onclick="openCodePen('border')">open in CodePen</small>
+    <small style="float: right;" onclick="openCodePen('ui-border')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-border
     </h3>
 
-    <div id="body-border" style="padding-bottom: 20px;">
+    <div id="body-ui-border" style="padding-bottom: 20px;">
       <div class="should-be-first-parent">
   <ui-border color="violet">
     <div style="padding: 20px; max-width: 200px;">
@@ -450,9 +450,9 @@ Template with reactive bindings
       </div>
       <div title="HTML">
         <ui-editor
-          name="border"
-          id="html-border"
-          file="./demo/fez/border.html"
+          name="ui-border"
+          id="html-ui-border"
+          file="./demo/fez/ui-border.html"
           language="html"
           :action="applyChanges"
         >
@@ -469,8 +469,8 @@ Template with reactive bindings
       <div title="Fez component">
         <ui-editor
           id="code-ui-border"
-          file="./demo/fez/border.fez"
-          name="border"
+          file="./demo/fez/ui-border.fez"
+          name="ui-border"
           :action="applyChanges"
         >
           &lt;template fez="ui-border">
@@ -507,12 +507,12 @@ Template with reactive bindings
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
-    <small style="float: right;" onclick="openCodePen('card')">open in CodePen</small>
+    <small style="float: right;" onclick="openCodePen('ui-card')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-card
     </h3>
 
-    <div id="body-card" style="padding-bottom: 20px;">
+    <div id="body-ui-card" style="padding-bottom: 20px;">
       <script>
   function randomFlip() {
     let timeout = 150
@@ -589,9 +589,9 @@ Template with reactive bindings
       </div>
       <div title="HTML">
         <ui-editor
-          name="card"
-          id="html-card"
-          file="./demo/fez/card.html"
+          name="ui-card"
+          id="html-ui-card"
+          file="./demo/fez/ui-card.html"
           language="html"
           :action="applyChanges"
         >
@@ -661,8 +661,8 @@ Template with reactive bindings
       <div title="Fez component">
         <ui-editor
           id="code-ui-card"
-          file="./demo/fez/card.fez"
-          name="card"
+          file="./demo/fez/ui-card.fez"
+          name="ui-card"
           :action="applyChanges"
         >
           &lt;template fez="ui-card">
@@ -831,12 +831,12 @@ Template with reactive bindings
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
-    <small style="float: right;" onclick="openCodePen('clock')">open in CodePen</small>
+    <small style="float: right;" onclick="openCodePen('ui-clock')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-clock
     </h3>
 
-    <div id="body-clock" style="padding-bottom: 20px;">
+    <div id="body-ui-clock" style="padding-bottom: 20px;">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
   <div>
     <ui-clock city="Zagreb" utc="1"></ui-clock>
@@ -873,9 +873,9 @@ Template with reactive bindings
       </div>
       <div title="HTML">
         <ui-editor
-          name="clock"
-          id="html-clock"
-          file="./demo/fez/clock.html"
+          name="ui-clock"
+          id="html-ui-clock"
+          file="./demo/fez/ui-clock.html"
           language="html"
           :action="applyChanges"
         >
@@ -902,8 +902,8 @@ Template with reactive bindings
       <div title="Fez component">
         <ui-editor
           id="code-ui-clock"
-          file="./demo/fez/clock.fez"
-          name="clock"
+          file="./demo/fez/ui-clock.fez"
+          name="ui-clock"
           :action="applyChanges"
         >
           &lt;template fez="ui-clock">
@@ -1122,12 +1122,182 @@ Template with reactive bindings
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
-    <small style="float: right;" onclick="openCodePen('editor')">open in CodePen</small>
+    <small style="float: right;" onclick="openCodePen('ui-counter')">open in CodePen</small>
+    <h3 style="margin-top: 0;">
+      Demo: ui-counter
+    </h3>
+
+    <div id="body-ui-counter" style="padding-bottom: 20px;">
+      <ui-counter></ui-counter>
+
+    </div>
+  </div>
+  <div style="margin-top: 20px; max-width: 690px;">
+    <ui-tabs>
+      <div title="Info" active="true">
+        <div class="info">
+  <ul>
+    <li>disabled state - attribute removed when value is false</li>
+    <li>access current Fez component instance via <code>fez.</code> pointer</li>
+    <li>global and local CSS</li>
+  </ul>
+</div>
+      </div>
+      <div title="HTML">
+        <ui-editor
+          name="ui-counter"
+          id="html-ui-counter"
+          file="./demo/fez/ui-counter.html"
+          language="html"
+          :action="applyChanges"
+        >
+          &lt;ui-counter>&lt;/ui-counter>
+
+        </ui-editor>
+      </div>
+      <div title="Fez component">
+        <ui-editor
+          id="code-ui-counter"
+          file="./demo/fez/ui-counter.fez"
+          name="ui-counter"
+          :action="applyChanges"
+        >
+          &lt;template fez="ui-counter">
+  &lt;script>
+    init() {
+      // called when Fez node is connected to DOM
+      this.MAX = 6
+      this.state.count = 0
+    }
+  
+    isMax() {
+      // is state is changed, template is re-rendered
+      return this.state.count >= this.MAX
+    }
+  
+    more() {
+      this.state.count += this.isMax() ? 0 : 1
+    }
+  &lt;/script>
+  
+  &lt;style>
+    /* compiles from scss to css and injects class in head */
+    /* body style */
+    background-color: #f7f7f7;
+  
+    /* scoped to this component */
+    :fez {
+      zoom: 2;
+      margin: 10px 0;
+  
+      button {
+        position: relative;
+        top: -3px;
+      }
+  
+      span {
+        padding: 0 5px;
+      }
+    }
+  &lt;/style>
+  
+  &lt;button onclick="fez.state.count -= 1" disabled="{{ state.count &lt; 1 }}">-&lt;/button>
+  
+  &lt;span>
+    {{ state.count }}
+  &lt;/span>
+  
+  &lt;button onclick="fez.more()" disabled="{{ isMax() }}">+&lt;/button>
+  {{#if state.count > 0}}
+    &lt;span>&mdash;&lt;/span>
+    {{#if state.count == MAX }}
+      MAX
+    {{:else}}
+      {{#if state.count % 2 }}
+        odd
+      {{:else}}
+        even
+      {{/if}}
+    {{/if}}
+  {{/if}}
+  &lt;/template>
+        </ui-editor>
+      </div>
+    </ui-tabs>
+  </div>
+</div>
+
+<template fez="ui-counter">
+  <script>
+    init() {
+      // called when Fez node is connected to DOM
+      this.MAX = 6
+      this.state.count = 0
+    }
+  
+    isMax() {
+      // is state is changed, template is re-rendered
+      return this.state.count >= this.MAX
+    }
+  
+    more() {
+      this.state.count += this.isMax() ? 0 : 1
+    }
+  </script>
+  
+  <style>
+    /* compiles from scss to css and injects class in head */
+    /* body style */
+    background-color: #f7f7f7;
+  
+    /* scoped to this component */
+    :fez {
+      zoom: 2;
+      margin: 10px 0;
+  
+      button {
+        position: relative;
+        top: -3px;
+      }
+  
+      span {
+        padding: 0 5px;
+      }
+    }
+  </style>
+  
+  <button onclick="fez.state.count -= 1" disabled="{{ state.count < 1 }}">-</button>
+  
+  <span>
+    {{ state.count }}
+  </span>
+  
+  <button onclick="fez.more()" disabled="{{ isMax() }}">+</button>
+  {{#if state.count > 0}}
+    <span>&mdash;</span>
+    {{#if state.count == MAX }}
+      MAX
+    {{:else}}
+      {{#if state.count % 2 }}
+        odd
+      {{:else}}
+        even
+      {{/if}}
+    {{/if}}
+  {{/if}}
+  </template>
+
+    
+      
+
+<div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+  <div style="margin-top: 10px;">
+    <small style="float: right;" onclick="openCodePen('ui-editor')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-editor
     </h3>
 
-    <div id="body-editor" style="padding-bottom: 20px;">
+    <div id="body-ui-editor" style="padding-bottom: 20px;">
       <ui-editor file="demo.html">
 Hi, I am UI-EDITOR component.
 
@@ -1150,9 +1320,9 @@ anywhere in HTML code
       </div>
       <div title="HTML">
         <ui-editor
-          name="editor"
-          id="html-editor"
-          file="./demo/fez/editor.html"
+          name="ui-editor"
+          id="html-ui-editor"
+          file="./demo/fez/ui-editor.html"
           language="html"
           :action="applyChanges"
         >
@@ -1168,8 +1338,8 @@ anywhere in HTML code
       <div title="Fez component">
         <ui-editor
           id="code-ui-editor"
-          file="./demo/fez/editor.fez"
-          name="editor"
+          file="./demo/fez/ui-editor.fez"
+          name="ui-editor"
           :action="applyChanges"
         >
           &lt;xmp fez="ui-editor">
@@ -1402,12 +1572,12 @@ anywhere in HTML code
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
-    <small style="float: right;" onclick="openCodePen('form')">open in CodePen</small>
+    <small style="float: right;" onclick="openCodePen('ui-form')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-form
     </h3>
 
-    <div id="body-form" style="padding-bottom: 20px;">
+    <div id="body-ui-form" style="padding-bottom: 20px;">
       <div class="flex">
   <ui-form target="/api" :ping="updateFormData">
     <p>
@@ -1468,9 +1638,9 @@ anywhere in HTML code
       </div>
       <div title="HTML">
         <ui-editor
-          name="form"
-          id="html-form"
-          file="./demo/fez/form.html"
+          name="ui-form"
+          id="html-ui-form"
+          file="./demo/fez/ui-form.html"
           language="html"
           :action="applyChanges"
         >
@@ -1523,8 +1693,8 @@ anywhere in HTML code
       <div title="Fez component">
         <ui-editor
           id="code-ui-form"
-          file="./demo/fez/form.fez"
-          name="form"
+          file="./demo/fez/ui-form.fez"
+          name="ui-form"
           :action="applyChanges"
         >
           &lt;template fez="ui-form">
@@ -1597,12 +1767,12 @@ anywhere in HTML code
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
-    <small style="float: right;" onclick="openCodePen('icon')">open in CodePen</small>
+    <small style="float: right;" onclick="openCodePen('ui-icon')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-icon
     </h3>
 
-    <div id="body-icon" style="padding-bottom: 20px;">
+    <div id="body-ui-icon" style="padding-bottom: 20px;">
       <input
   type="range" min="24" max="100" class="slider" id="icon-range"
   oninput="Fez('#icon-blue').setSize(this.value)"
@@ -1642,9 +1812,9 @@ anywhere in HTML code
       </div>
       <div title="HTML">
         <ui-editor
-          name="icon"
-          id="html-icon"
-          file="./demo/fez/icon.html"
+          name="ui-icon"
+          id="html-ui-icon"
+          file="./demo/fez/ui-icon.html"
           language="html"
           :action="applyChanges"
         >
@@ -1678,8 +1848,8 @@ anywhere in HTML code
       <div title="Fez component">
         <ui-editor
           id="code-ui-icon"
-          file="./demo/fez/icon.fez"
-          name="icon"
+          file="./demo/fez/ui-icon.fez"
+          name="ui-icon"
           :action="applyChanges"
         >
           &lt;template fez="ui-icon">
@@ -1790,12 +1960,12 @@ anywhere in HTML code
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
-    <small style="float: right;" onclick="openCodePen('markdown')">open in CodePen</small>
+    <small style="float: right;" onclick="openCodePen('ui-markdown')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-markdown
     </h3>
 
-    <div id="body-markdown" style="padding-bottom: 20px;">
+    <div id="body-ui-markdown" style="padding-bottom: 20px;">
       <ui-markdown>
 ### Hi
 
@@ -1825,9 +1995,9 @@ I am **markdown** from Fez custom component called `<ui-markdown>`, created inli
       </div>
       <div title="HTML">
         <ui-editor
-          name="markdown"
-          id="html-markdown"
-          file="./demo/fez/markdown.html"
+          name="ui-markdown"
+          id="html-ui-markdown"
+          file="./demo/fez/ui-markdown.html"
           language="html"
           :action="applyChanges"
         >
@@ -1851,8 +2021,8 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
       <div title="Fez component">
         <ui-editor
           id="code-ui-markdown"
-          file="./demo/fez/markdown.fez"
-          name="markdown"
+          file="./demo/fez/ui-markdown.fez"
+          name="ui-markdown"
           :action="applyChanges"
         >
           &lt;xmp fez="ui-markdown">
@@ -1909,12 +2079,12 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
-    <small style="float: right;" onclick="openCodePen('pub-sub')">open in CodePen</small>
+    <small style="float: right;" onclick="openCodePen('ui-pub-sub')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-pub-sub
     </h3>
 
-    <div id="body-pub-sub" style="padding-bottom: 20px;">
+    <div id="body-ui-pub-sub" style="padding-bottom: 20px;">
       <style>
   .fez-ui-pubsub { margin-top: 10px; }
 </style>
@@ -1986,9 +2156,9 @@ Fast ping:
       </div>
       <div title="HTML">
         <ui-editor
-          name="pub-sub"
-          id="html-pub-sub"
-          file="./demo/fez/pub-sub.html"
+          name="ui-pub-sub"
+          id="html-ui-pub-sub"
+          file="./demo/fez/ui-pub-sub.html"
           language="html"
           :action="applyChanges"
         >
@@ -2054,8 +2224,8 @@ Fast ping:
       <div title="Fez component">
         <ui-editor
           id="code-ui-pub-sub"
-          file="./demo/fez/pub-sub.fez"
-          name="pub-sub"
+          file="./demo/fez/ui-pub-sub.fez"
+          name="ui-pub-sub"
           :action="applyChanges"
         >
           &lt;template fez="ui-pub-sub">
@@ -2076,12 +2246,12 @@ Fast ping:
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
-    <small style="float: right;" onclick="openCodePen('slider')">open in CodePen</small>
+    <small style="float: right;" onclick="openCodePen('ui-slider')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-slider
     </h3>
 
-    <div id="body-slider" style="padding-bottom: 20px;">
+    <div id="body-ui-slider" style="padding-bottom: 20px;">
       <style>
   .fez-c-slider {
     .fez-slot {
@@ -2157,9 +2327,9 @@ Fast ping:
       </div>
       <div title="HTML">
         <ui-editor
-          name="slider"
-          id="html-slider"
-          file="./demo/fez/slider.html"
+          name="ui-slider"
+          id="html-ui-slider"
+          file="./demo/fez/ui-slider.html"
           language="html"
           :action="applyChanges"
         >
@@ -2227,8 +2397,8 @@ Fast ping:
       <div title="Fez component">
         <ui-editor
           id="code-ui-slider"
-          file="./demo/fez/slider.fez"
-          name="slider"
+          file="./demo/fez/ui-slider.fez"
+          name="ui-slider"
           :action="applyChanges"
         >
           &lt;template fez="ui-slider">
@@ -2441,12 +2611,12 @@ Fast ping:
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
-    <small style="float: right;" onclick="openCodePen('tabs')">open in CodePen</small>
+    <small style="float: right;" onclick="openCodePen('ui-tabs')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-tabs
     </h3>
 
-    <div id="body-tabs" style="padding-bottom: 20px;">
+    <div id="body-ui-tabs" style="padding-bottom: 20px;">
       <ui-tabs>
   <div title="Bar">
     <p>First tab</p>
@@ -2496,9 +2666,9 @@ Fast ping:
       </div>
       <div title="HTML">
         <ui-editor
-          name="tabs"
-          id="html-tabs"
-          file="./demo/fez/tabs.html"
+          name="ui-tabs"
+          id="html-ui-tabs"
+          file="./demo/fez/ui-tabs.html"
           language="html"
           :action="applyChanges"
         >
@@ -2541,8 +2711,8 @@ Fast ping:
       <div title="Fez component">
         <ui-editor
           id="code-ui-tabs"
-          file="./demo/fez/tabs.fez"
-          name="tabs"
+          file="./demo/fez/ui-tabs.fez"
+          name="ui-tabs"
           :action="applyChanges"
         >
           &lt;template fez="ui-tabs">
@@ -2707,12 +2877,12 @@ Fast ping:
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
-    <small style="float: right;" onclick="openCodePen('time')">open in CodePen</small>
+    <small style="float: right;" onclick="openCodePen('ui-time')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-time
     </h3>
 
-    <div id="body-time" style="padding-bottom: 20px;">
+    <div id="body-ui-time" style="padding-bottom: 20px;">
       <ui-time city="Zagreb">
   <ul>
     <li>
@@ -2739,9 +2909,9 @@ Fast ping:
       </div>
       <div title="HTML">
         <ui-editor
-          name="time"
-          id="html-time"
-          file="./demo/fez/time.html"
+          name="ui-time"
+          id="html-ui-time"
+          file="./demo/fez/ui-time.html"
           language="html"
           :action="applyChanges"
         >
@@ -2759,8 +2929,8 @@ Fast ping:
       <div title="Fez component">
         <ui-editor
           id="code-ui-time"
-          file="./demo/fez/time.fez"
-          name="time"
+          file="./demo/fez/ui-time.fez"
+          name="ui-time"
           :action="applyChanges"
         >
           &lt;template fez="ui-time">
@@ -2895,12 +3065,12 @@ Fast ping:
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
-    <small style="float: right;" onclick="openCodePen('toast')">open in CodePen</small>
+    <small style="float: right;" onclick="openCodePen('ui-toast')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-toast
     </h3>
 
-    <div id="body-toast" style="padding-bottom: 20px;">
+    <div id="body-ui-toast" style="padding-bottom: 20px;">
       <form onsubmit="showToast(this); return false">
   <input type="text" name="toast" />
   <button class="btn">Show info</button>
@@ -2932,9 +3102,9 @@ Fast ping:
       </div>
       <div title="HTML">
         <ui-editor
-          name="toast"
-          id="html-toast"
-          file="./demo/fez/toast.html"
+          name="ui-toast"
+          id="html-ui-toast"
+          file="./demo/fez/ui-toast.html"
           language="html"
           :action="applyChanges"
         >
@@ -2961,8 +3131,8 @@ Fast ping:
       <div title="Fez component">
         <ui-editor
           id="code-ui-toast"
-          file="./demo/fez/toast.fez"
-          name="toast"
+          file="./demo/fez/ui-toast.fez"
+          name="ui-toast"
           :action="applyChanges"
         >
           &lt;template fez="ui-toast">
@@ -3151,12 +3321,12 @@ Fast ping:
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
-    <small style="float: right;" onclick="openCodePen('todo')">open in CodePen</small>
+    <small style="float: right;" onclick="openCodePen('ui-todo')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-todo
     </h3>
 
-    <div id="body-todo" style="padding-bottom: 20px;">
+    <div id="body-ui-todo" style="padding-bottom: 20px;">
       <ui-todo></ui-todo>
 
     </div>
@@ -3167,6 +3337,7 @@ Fast ping:
         <div class="info">
   <ul>
     <li>fully <b>reactive state</b></li>
+    <li>template for loop</li>
     <li>Features: <code>fez-bind</code> - two way binding of input element</li>
     <li>Features: <code>fez-use</code> - when node is added to dom, call described function and pass node as reference (inspired by Svelte)</li>
   </ul>
@@ -3174,9 +3345,9 @@ Fast ping:
       </div>
       <div title="HTML">
         <ui-editor
-          name="todo"
-          id="html-todo"
-          file="./demo/fez/todo.html"
+          name="ui-todo"
+          id="html-ui-todo"
+          file="./demo/fez/ui-todo.html"
           language="html"
           :action="applyChanges"
         >
@@ -3187,8 +3358,8 @@ Fast ping:
       <div title="Fez component">
         <ui-editor
           id="code-ui-todo"
-          file="./demo/fez/todo.fez"
-          name="todo"
+          file="./demo/fez/ui-todo.fez"
+          name="ui-todo"
           :action="applyChanges"
         >
           &lt;template fez="ui-todo">

@@ -355,6 +355,15 @@ export default class FezBase {
         console.error(`Cant fez-bind="${text}" to ${n.nodeName} (needs INPUT, SELECT or TEXTAREA. Want to use fez-this?).`)
       }
     })
+
+    this.root.querySelectorAll(`*[disabled]`).forEach((n)=>{
+      let value = n.getAttribute('disabled')
+      if (['false'].includes(value)) {
+        n.removeAttribute('disabled')
+      } else {
+        n.setAttribute('disabled', 'true')
+      }
+    })
   }
 
   // refresh single node only

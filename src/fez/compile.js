@@ -103,13 +103,6 @@ export default function (tagName, html) {
 
       Fez.log(`Loading from ${url}`)
 
-      // Extract name from path (filename without extension)
-      const extractNameFromPath = (path) => {
-        const fileName = path.split('/').pop()
-        // Remove .fez.html or .html extension
-        return fileName.replace(/\.(fez\.)?html$/, '')
-      }
-
       // Load HTML content via AJAX from URL
       fetch(url)
         .then(response => {
@@ -136,7 +129,7 @@ export default function (tagName, html) {
             })
           } else {
             // No fez elements found, use extracted name from URL
-            const name = extractNameFromPath(url)
+            const name = url.split('/').pop().split('.')[0]
             Fez.compile(name, htmlContent)
           }
         })

@@ -15,14 +15,14 @@
   @fez.html = body[1]
   @fez.code = read(@fez.base + '.fez')
   tag_name = @fez.code.include?('</hea') ? :xmp : :template
-  @fez.code = %[<#{tag_name} fez="ui-#{name}">\n  #{@fez.code.gsub($/, "\n  ")}</#{tag_name}>]
+  @fez.code = %[<#{tag_name} fez="#{name}">\n  #{@fez.code.gsub($/, "\n  ")}</#{tag_name}>]
 %>
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('<%= @fez.name %>')">open in CodePen</small>
     <h3 style="margin-top: 0;">
-      Demo: ui-<%= @fez.name %>
+      Demo: <%= @fez.name %>
     </h3>
 
     <div id="body-<%= @fez.name %>" style="padding-bottom: 20px;">
@@ -47,7 +47,7 @@
       </div>
       <div title="Fez component">
         <ui-editor
-          id="code-ui-<%= @fez.name %>"
+          id="code-<%= @fez.name %>"
           file="<%= @fez.base %>.fez"
           name="<%= @fez.name %>"
           :action="applyChanges"

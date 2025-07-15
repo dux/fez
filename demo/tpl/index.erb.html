@@ -99,31 +99,35 @@
         </ui-editor>
       </li>
       <li>
-        Create ex-counter component
+        Create ui-counter component
 
-        <template fez="./demo/ex-counter.fez.html"></template>
+        <template fez="./demo/fez/ui-counter.fez"></template>
         <ui-editor id="demo-counter">
           <xmp>
-            <%= read('./ex-counter.fez.html').gsub('&', '&amp;') %>
+              <%=
+                data = read('fez/ui-counter.fez').gsub("\n", "\n  ")
+                data = %[<template fez="ui-counter">\n  #{data}\n]
+                data.gsub('&', '&amp;')
+              %>
           </xmp>
         </ui-editor>
 
         <p>Or load via HTTP (as in this case)</p>
         <ui-editor>
-          &lt;template fez="/demo/ex-counter.fez.html">&lt;/template>
+          &lt;template fez="/demo/ui-counter.fez">&lt;/template>
         </ui-editor>
       </li>
       <li>
-        Place ex-counter anywhere in BODY
+        Place ui-counter anywhere in BODY
         <ui-editor id="demo-counter">
           <xmp>
-            <ex-counter></ex-counter>
+            <ui-counter></ui-counter>
           </xmp>
         </ui-editor>
       </li>
       <li>
         <p>That is it! Edit this demo on <a target="jsbin" href="https://jsbin.com/nitihel/edit?html,output">JSbin</a></p>
-        <ex-counter id="main-counter"></ex-counter>
+        <ui-counter id="main-counter"></ui-counter>
       </li>
     </ol>
   </div>
