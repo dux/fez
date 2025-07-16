@@ -5,6 +5,7 @@ const compileToClass = (html) => {
   let currentBlock = []
   let currentType = ''
 
+
   for (var line of lines) {
     line = line.trim()
     if (line.startsWith('<script') && !result.script && currentType != 'head') {
@@ -76,7 +77,6 @@ const compileToClass = (html) => {
   if (/\w/.test(String(result.html))) {
     // escape backticks in whole template block
     result.html = result.html.replaceAll('`', '&#x60;')
-
     result.html = result.html.replaceAll('$', '\\$')
     klass = klass.replace(/\}\s*$/, `\n  HTML = \`${result.html}\`\n}`)
   }

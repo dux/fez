@@ -36,13 +36,13 @@
   }
 </style>
 
-<button onclick="fez.state.count -= 1" disabled="{{ state.count < 1 }}">-</button>
+<button onclick="fez.state.count -= 1" disabled={{ state.count == 1 }}>-</button>
 
 <span>
   {{ state.count }}
 </span>
 
-<button onclick="fez.more()" disabled="{{ isMax() }}">+</button>
+<button onclick="fez.more()" disabled={{ isMax() }}>+</button>
 {{#if state.count > 0}}
   <span>&mdash;</span>
   {{#if state.count == MAX }}

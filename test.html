@@ -1,0 +1,33 @@
+<!-- edit in demo/tpl/index.erb.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test zone</title>
+  <link rel="icon" href="./demo/fez.png">
+  <link rel="stylesheet" href="./demo/main.css" />
+  <script src="./demo/log.js"></script>
+  <script src="./dist/fez.js"></script>
+  <template fez="./demo/fez/ui-counter.fez"></template>
+  <script>
+    window.L = console.log
+    window.DEV = location.port > 999
+  </script>
+</head>
+<body>
+  <ui-counter id="foo"></ui-counter>
+
+  <xmp id="bar"></xmp>
+
+  <script>
+    setInterval(
+      ()=>document.getElementById('bar').innerHTML = document.getElementById('foo').innerHTML
+      , 100
+    )
+  </script>
+
+
+
+</body>
+</html>

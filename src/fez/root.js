@@ -191,6 +191,16 @@ document.addEventListener('DOMContentLoaded', () => {
   Fez.log('window.DEV === true || Fez.LOG === true, logging enabled.')
 })
 
+// execute function untill it returns true
+Fez.untilTrue = (func, pingRate) => {
+  if (!func()) {
+    setTimeout(
+      func,
+      pingRate || 200
+    )
+  }
+}
+
 Fez.head = (text, kind) => {
   if (text.includes('<')) {
     const tempDiv = document.createElement('div')
@@ -226,16 +236,6 @@ Fez.head = (text, kind) => {
       node.src = text
       document.head.appendChild(node)
     }
-  }
-}
-
-// execute function untill it returns true
-Fez.untilTrue = (func, pingRate) => {
-  if (!func()) {
-    setTimeout(
-      func,
-      pingRate || 200
-    )
   }
 }
 

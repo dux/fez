@@ -76,12 +76,16 @@ export default function createTemplate(text, opts = {}) {
     .replaceAll('[[', '{{')
     .replaceAll(']]', '}}')
 
+  text = text.replace(/(\w+)=\{\{\s*(.*?)\s*\}\}([\s>])/g, (match, p1, p2, p3) => {
+    return `${p1}="{`+`{ ${p2} }`+`}"${p3}`
+  })
+
   // {{#for el in list }}}}
   //   <ui-comment :comment="el"></ui-comment>
   //   -> :comment="{{ JSON.stringify(el) }}"
   text = text.replace(/:(\w+)="([\w\.\[\]]+)"/, (_, m1, m2) => { return `:${m1}="{{ JSON.stringify(${m2}) }}"` })
 
-  let result = text.replace(/{{(.*?)}}/g, (match, content) => {
+  let result = text.replace(/{{(.*?)}}/g, (_, content) => {
     content = content.replaceAll('&#x60;', '`')
 
     content = content
@@ -90,34 +94,29 @@ export default function createTemplate(text, opts = {}) {
       .replaceAll('&amp;', '&')
     const parsedData = parseBlock(content, ifStack);
 
-    // return prefix == '=' ? `="${parsedData}"` : `${prefix}${parsedData}`
     return parsedData
   });
 
   result = '`' + result.trim() + '`'
 
-  const funcBody = `
-    const fez = this;
-
-    // Use with statement to make all properties available as variables
-    with (this) {
-      return ${result}
-    }
-  `;
-
   try {
+    const funcBody = `const fez = this;
+      with (this) {
+        return ${result}
+      }
+    `
     const tplFunc = new Function(funcBody);
     const outFunc = (o) => {
       try {
         return tplFunc.bind(o)()
       } catch(e) {
-        e.message = `FEZ template runtime error: ${e.message}\n\nTemplate source: ${text}`
+        e.message = `FEZ template runtime error: ${e.message}\n\nTemplate source: ${result}`
         console.error(e)
       }
     }
     return outFunc
   } catch(e) {
-    e.message = `FEZ template compile error: ${e.message}Template source:\n${text.trim()}\n\nCompile result (produced invalid JS):\nnew Function(${result})\n`
+    e.message = `FEZ template compile error: ${e.message}Template source:\n${result}`
     console.error(e)
   }
 }

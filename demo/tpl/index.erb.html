@@ -7,6 +7,7 @@
   <title>Fez - JavaScript DOM component framework.</title>
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
+  <script src="./demo/log.js"></script>
   <script src="./dist/fez.js?t=<%= Time.now.to_i %>"></script>
   <script>
     window.L = console.log
@@ -101,7 +102,6 @@
       <li>
         Create ui-counter component
 
-        <template fez="./demo/fez/ui-counter.fez"></template>
         <ui-editor id="demo-counter">
           <xmp>
               <%=

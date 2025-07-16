@@ -70,10 +70,12 @@ Here's a simple counter component that demonstrates Fez's core features:
 </script>
 
 <style>
+  /* compiles from scss to css and injects class in head */
+  /* body style */
   background-color: #f7f7f7;
 
+  /* scoped to this component */
   :fez {
-    /* SCSS styles scoped to this component */
     zoom: 2;
     margin: 10px 0;
 
@@ -88,19 +90,16 @@ Here's a simple counter component that demonstrates Fez's core features:
   }
 </style>
 
-<!--
-Template with reactive bindings
-* fez. is reference to fez component instance (you can use this inside code blocks)
-* this.vars do not need prefix (but you can add them)
--->
-<button onclick="fez.state.count -= 1" {{ state.count < 1 ? 'disabled=""' : '' }}>-</button>
+<button onclick="fez.state.count -= 1" disabled={{ state.count == 1 }}>-</button>
+
 <span>
   {{ state.count }}
 </span>
-<button onclick="fez.more()" {{ fez.isMax() ? 'disabled=""' : '' }}>+</button>
+
+<button onclick="fez.more()" disabled={{ isMax() }}>+</button>
 {{#if state.count > 0}}
   <span>&mdash;</span>
-  {{#if state.count == fez.MAX }}
+  {{#if state.count == MAX }}
     MAX
   {{:else}}
     {{#if state.count % 2 }}

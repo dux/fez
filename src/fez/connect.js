@@ -67,12 +67,7 @@ export default function(name, klass) {
         // Example: you can add FAST as a function - render fast nodes that have name attribute
         //   FAST(node) { return !!node.getAttribute('name') }
         // to inspect fast / slow components use Fez.info() in console
-        let fastConnect = forceFastRender(this, klass) || this.getAttribute('fez-fast')
-        if (this.getAttribute('fez-fast') == 'false') {
-          fastConnect = false
-        }
-
-        if (fastConnect) {
+        if (forceFastRender(this, klass)) {
           connectDom(name, this, Fez._classCache[name])
         } else {
           window.requestAnimationFrame(()=>{
@@ -170,7 +165,14 @@ function connectDom(name, node, klass) {
 }
 
 function forceFastRender(n, klass) {
-  return typeof klass.fastBind === 'function' ? klass.fastBind(n) : klass.fastBind
+  const fezFast = n.getAttribute('fez-fast')
+  var isFast = typeof klass.fastBind === 'function' ? klass.fastBind(n) : klass.fastBind
+
+  if (fezFast == 'false') {
+    return false
+  } else {
+    return fezFast || isFast
+  }
 }
 
 const observer = new MutationObserver((mutationsList, _) => {

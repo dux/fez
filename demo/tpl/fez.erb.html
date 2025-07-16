@@ -14,8 +14,7 @@
   @fez.info = body[0]
   @fez.html = body[1]
   @fez.code = read(@fez.base + '.fez')
-  tag_name = @fez.code.include?('</hea') ? :xmp : :template
-  @fez.code = %[<#{tag_name} fez="#{name}">\n  #{@fez.code.gsub($/, "\n  ")}</#{tag_name}>]
+  @fez.code = %[<template fez="./demo/fez/#{name}.fez"></template>]
 %>
 
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">

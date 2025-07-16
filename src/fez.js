@@ -34,7 +34,7 @@ const observer = new MutationObserver((mutations) => {
     addedNodes.forEach((node) => {
       if (node.nodeType !== 1) return; // only elements
       // check the node itself
-      if (node.matches('template[fez], xmp[fez]')) {
+      if (node.matches('template[fez], xmp[fez], script[fez]')) {
         window.requestAnimationFrame(()=>{
           Fez.compile(node);
           node.remove();
