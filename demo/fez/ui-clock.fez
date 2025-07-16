@@ -71,10 +71,10 @@
   <circle class="clock-face" r="48" />
 
   <!-- markers -->
-  {{#each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}}
+  {{each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}}
     <line class="major" y1="35" y2="45" transform="rotate({{30 * minute}})" />
 
-    {{#each [1, 2, 3, 4] as offset}}
+    {{each [1, 2, 3, 4] as offset}}
       <line class="minor" y1="42" y2="45" transform="rotate({{6 * (minute + offset)}})" />
     {{/each}}
   {{/each}}
@@ -92,7 +92,7 @@
   </g>
 
   <!-- City text -->
-  {{#if props.city }}
+  {{if props.city }}
     <text x="0" y="-17" text-anchor="middle" dominant-baseline="middle" style="font-size: 10px; fill: #111;">
       {{ props.city }}
     </text>

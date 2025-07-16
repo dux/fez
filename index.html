@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="./demo/log.js"></script>
-  <script src="./dist/fez.js?t=1752657775"></script>
+  <script src="./dist/fez.js?t=1752658657"></script>
   <script>
     window.L = console.log
     window.DEV = location.port > 999
@@ -181,14 +181,14 @@
   </span>
   
   <button onclick="fez.more()" disabled={{ isMax() }}>+</button>
-  {{#if state.count > 0}}
+  {{if state.count > 0}}
     <span>&amp;mdash;</span>
-    {{#if state.count == MAX }}
+    {{if state.count == MAX }}
       MAX
-    {{:else}}
-      {{#if state.count % 2 }}
+    {{else}}
+      {{if state.count % 2 }}
         odd
-      {{:else}}
+      {{else}}
         even
       {{/if}}
     {{/if}}
@@ -261,7 +261,7 @@
       <div title="Info" active="true">
         <div class="info">
   <ul>
-    <li>features blocks <code>{{#block ...}}</code></li>
+    <li>features blocks <code>{{block ...}}</code></li>
   </ul>
 </div>
       </div>

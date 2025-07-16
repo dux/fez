@@ -97,14 +97,14 @@ Here's a simple counter component that demonstrates Fez's core features:
 </span>
 
 <button onclick="fez.more()" disabled={{ isMax() }}>+</button>
-{{#if state.count > 0}}
+{{if state.count > 0}}
   <span>&mdash;</span>
-  {{#if state.count == MAX }}
+  {{if state.count == MAX }}
     MAX
-  {{:else}}
+  {{else}}
     {{#if state.count % 2 }}
       odd
-    {{:else}}
+    {{else}}
       even
     {{/if}}
   {{/if}}

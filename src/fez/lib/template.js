@@ -1,7 +1,7 @@
 function parseBlock(data, ifStack) {
   data = data
-    .replaceAll('#raw', '@html')
-    .replaceAll('#html', '@html')
+    .replace(/^#?raw/, '@html')
+    .replace(/^#?html/, '@html')
 
   // Handle #if directive
   if (data.startsWith('#if') || data.startsWith('if')) {
