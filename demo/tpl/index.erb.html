@@ -10,8 +10,8 @@
   <script src="./demo/log.js"></script>
   <script src="./dist/fez.js?t=<%= Time.now.to_i %>"></script>
   <script>
-    window.L = console.log
-    window.DEV = location.port > 999
+    window.L = console.log;
+    Fez.LOG = true; // location.port > 999
   </script>
 </head>
 <body>
@@ -152,7 +152,8 @@
 
   <script>
     window.applyChanges = function(name) {
-      const htmlString = Fez(`#code-ui-${name}`).getSource()
+      let htmlString = Fez(`#code-${name}`).getSource()
+      htmlString = `<xmp fez="${name}">${htmlString}</xmp>`
       const tempDiv = document.createElement('div')
       tempDiv.innerHTML = htmlString
       const node = tempDiv.firstElementChild

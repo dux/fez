@@ -97,7 +97,7 @@
       &sdot;
       <button
         style="cursor: pointer; font-weight: 600;"
-        onclick="props.action('{{ props.name }}')"
+        onclick="fez.props.action('{{ props.name }}')"
       >Update</button>
     {{/if}}
   </div>

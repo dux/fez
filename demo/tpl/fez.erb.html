@@ -13,10 +13,10 @@
 
   @fez.info = body[0]
   @fez.html = body[1]
-  @fez.code = read(@fez.base + '.fez')
-  @fez.code = %[<template fez="./demo/fez/#{name}.fez"></template>]
+  @fez.code = read(@fez.base + '.fez').gsub('<', '&lt;')
 %>
 
+<template fez="./demo/fez/<%= @fez.name %>.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('<%= @fez.name %>')">open in CodePen</small>
@@ -57,5 +57,3 @@
     </ui-tabs>
   </div>
 </div>
-
-<%= @fez.code %>

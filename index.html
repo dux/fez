@@ -8,10 +8,10 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="./demo/log.js"></script>
-  <script src="./dist/fez.js?t=1752693679"></script>
+  <script src="./dist/fez.js?t=1752697044"></script>
   <script>
-    window.L = console.log
-    window.DEV = location.port > 999
+    window.L = console.log;
+    Fez.LOG = true; // location.port > 999
   </script>
 </head>
 <body>
@@ -228,6 +228,7 @@
     
       
 
+<template fez="./demo/fez/ui-avatar.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-avatar')">open in CodePen</small>
@@ -300,18 +301,70 @@
           name="ui-avatar"
           :action="applyChanges"
         >
-          &lt;template fez="./demo/fez/ui-avatar.fez">&lt;/template>
+          &lt;script>
+  NAME = 'span'
+  FAST = true
+
+  init(props) {
+    this.copy('href', 'style')
+    this.size = (props.size || 64) + 'px'
+    this.root.style.width = this.size
+    this.root.style.height = this.size
+  }
+
+  image() {
+    return `&lt;img
+      src="${this.props.src}"
+      class="avatar"
+      style="width: ${this.size}; height: ${this.size};"
+    />`
+  }
+&lt;/script>
+
+&lt;style>
+  img {
+    border-radius: 50%;
+  }
+
+  span.avatar {
+    display: inline-block;
+    text-align: center;
+
+    .title {
+      display: inline-block;
+      border: 1px solid #ccc;
+      background-color: #eee;
+      padding: 1px 5px;
+      font-size: 13px;
+      position: relative;
+      left: 3px;
+      top: 8px;
+      border-radius: 4px;
+    }
+  }
+&lt;/style>
+
+{{if props.name}}
+  &lt;span class="avatar">
+    &lt;div class="title">{{ props.name }}&lt;/div>
+    &lt;div>
+      {{raw image() }}
+    &lt;/div>
+  &lt;/span>
+{{else}}
+   {{#raw image() }}
+{{/if}}
+
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="./demo/fez/ui-avatar.fez"></template>
-
     
       
 
+<template fez="./demo/fez/ui-border.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-border')">open in CodePen</small>
@@ -365,18 +418,26 @@
           name="ui-border"
           :action="applyChanges"
         >
-          &lt;template fez="./demo/fez/ui-border.fez">&lt;/template>
+          &lt;script>
+  onMount() {
+    const childNodes = this.fezHide()
+
+    childNodes.forEach(node => {
+      node.style.border = `3px solid ${this.props.color || 'black'}`
+    })
+  }
+&lt;/script>
+
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="./demo/fez/ui-border.fez"></template>
-
     
       
 
+<template fez="./demo/fez/ui-card.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-card')">open in CodePen</small>
@@ -537,18 +598,92 @@
           name="ui-card"
           :action="applyChanges"
         >
-          &lt;template fez="./demo/fez/ui-card.fez">&lt;/template>
+          &lt;script>
+  flip() {
+    this.find('.card').classList.toggle('flipped')
+  }
+
+  autoflip() {
+    setTimeout(()=>{
+      this.flip()
+      this.autoflip()
+    }, 5000  + (Math.random() * 15* 1000))
+  }
+
+  init() {
+    this.autoflip()
+    this.subscribe('flip-card', this.flip)
+  }
+&lt;/script>
+
+&lt;style>
+  .card {
+    display: inline-block;
+    float: left;
+    width: 250px;
+    height: 400px;
+    perspective: 1000px;
+    cursor: pointer;
+    margin: 10px;
+  }
+
+  .fez-slot {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.8s;
+    transform-style: preserve-3d;
+  }
+
+  .card.flipped .fez-slot {
+    transform: rotateY(180deg);
+  }
+
+  .front, .back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+
+  .front {
+    background: #fff;
+    color: #333;
+  }
+
+  .back {
+    background: #fff;
+    transform: rotateY(180deg);
+  }
+
+  .card:hover {
+    transform: scale(1.02);
+    transition: transform 0.3s ease;
+  }
+&lt;/style>
+
+&lt;div class="card" onclick="fez.flip()">
+  &lt;slot />
+&lt;/div>
+
+
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="./demo/fez/ui-card.fez"></template>
-
     
       
 
+<template fez="./demo/fez/ui-clock.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-clock')">open in CodePen</small>
@@ -626,18 +761,117 @@
           name="ui-clock"
           :action="applyChanges"
         >
-          &lt;template fez="./demo/fez/ui-clock.fez">&lt;/template>
+          &lt;script>
+  randomColor() {
+    const colors = ['red', 'green', 'blue', 'magenta', 'teal', 'orange', 'violet']
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
+
+  setVars() {
+    // will only render once on next tick
+    let time = new Date(Date.now() - (this.offsetHours * 60 * 60 * 1000))
+    this.state.hours = time.getHours()
+    this.state.minutes = time.getMinutes()
+    this.state.seconds = time.getSeconds()
+    this.style('--color', this.randomColor())
+  }
+
+  init() {
+    this.offsetHours = parseFloat(this.props.utc || 0)
+    this.setVars()
+    this.setInterval(this.setVars, 1000)
+  }
+
+  onDestroy() {
+    console.log(`Bye from ${this.fezName} - ${this.props.city}`)
+  }
+&lt;/script>
+
+&lt;style>
+  input {
+    border: 3px solid red !important;
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .clock-face {
+    stroke: #333;
+    fill: white;
+  }
+
+  .minor {
+    stroke: #999;
+    stroke-width: 0.5;
+  }
+
+  .major {
+    stroke: #333;
+    stroke-width: 1;
+  }
+
+  .hour {
+    stroke: #333;
+    stroke-width: 1.5;
+  }
+
+  .minute {
+    stroke: #666;
+  }
+
+  .second, .second-counterweight {
+    stroke: var(--color);
+  }
+
+  .second-counterweight {
+    stroke-width: 3;
+  }
+&lt;/style>
+
+&lt;svg viewBox="-50 -50 100 100">
+  &lt;circle class="clock-face" r="48" />
+
+  &lt;!-- markers -->
+  {{each [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as minute}}
+    &lt;line class="major" y1="35" y2="45" transform="rotate({{30 * minute}})" />
+
+    {{each [1, 2, 3, 4] as offset}}
+      &lt;line class="minor" y1="42" y2="45" transform="rotate({{6 * (minute + offset)}})" />
+    {{/each}}
+  {{/each}}
+
+  &lt;!-- hour hand -->
+  &lt;line class="hour" y1="2" y2="-20" transform="rotate({{30 * state.hours + state.minutes / 2}})" />
+
+  &lt;!-- minute hand -->
+  &lt;line class="minute" y1="4" y2="-30" transform="rotate({{6 * state.minutes + state.seconds / 10}})" />
+
+  &lt;!-- second hand -->
+  &lt;g transform="rotate({{6 * state.seconds}})">
+    &lt;line class="second" y1="10" y2="-38" />
+    &lt;line class="second-counterweight" y1="10" y2="2" />
+  &lt;/g>
+
+  &lt;!-- City text -->
+  {{if props.city }}
+    &lt;text x="0" y="-17" text-anchor="middle" dominant-baseline="middle" style="font-size: 10px; fill: #111;">
+      {{ props.city }}
+    &lt;/text>
+  {{/if}}
+&lt;/svg>
+
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="./demo/fez/ui-clock.fez"></template>
-
     
       
 
+<template fez="./demo/fez/ui-counter.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-counter')">open in CodePen</small>
@@ -680,18 +914,74 @@
           name="ui-counter"
           :action="applyChanges"
         >
-          &lt;template fez="./demo/fez/ui-counter.fez">&lt;/template>
+          &lt;script>
+  init() {
+    // called when Fez node is connected to DOM
+    this.MAX = 6
+    this.state.count = 0
+  }
+
+  isMax() {
+    // is state is changed, template is re-rendered
+    return this.state.count >= this.MAX
+  }
+
+  more() {
+    this.state.count += this.isMax() ? 0 : 1
+  }
+&lt;/script>
+
+&lt;style>
+  /* compiles from scss to css and injects class in head */
+  /* body style */
+  background-color: #f7f7f7;
+
+  /* scoped to this component */
+  :fez {
+    zoom: 2;
+    margin: 10px 0;
+
+    button {
+      position: relative;
+      top: -3px;
+    }
+
+    span {
+      padding: 0 5px;
+    }
+  }
+&lt;/style>
+
+&lt;button onclick="fez.state.count -= 1" disabled={{ state.count == 1 }}>-&lt;/button>
+
+&lt;span>
+  {{ state.count }}
+&lt;/span>
+
+&lt;button onclick="fez.more()" disabled={{ isMax() }}>+&lt;/button>
+{{if state.count > 0}}
+  &lt;span>&mdash;&lt;/span>
+  {{if state.count == MAX }}
+    MAX
+  {{else}}
+    {{if state.count % 2 }}
+      odd
+    {{else}}
+      even
+    {{/if}}
+  {{/if}}
+{{/if}}
+
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="./demo/fez/ui-counter.fez"></template>
-
     
       
 
+<template fez="./demo/fez/ui-editor.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-editor')">open in CodePen</small>
@@ -744,18 +1034,277 @@ anywhere in HTML code
           name="ui-editor"
           :action="applyChanges"
         >
-          &lt;template fez="./demo/fez/ui-editor.fez">&lt;/template>
+          &lt;head>
+  &lt;link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs2015.min.css" />
+  &lt;script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js">&lt;/script>
+&lt;/head>
+
+&lt;script>
+  class {
+    reformatIndentation(text) {
+      const lines = text.split('\n');
+      if (lines.length &lt; 2) return text;
+
+      let baseIndent = 0;
+      for (let i = 1; i &lt; lines.length; i++){
+        const line = lines[i].trim();
+        if (line.length > 0) {
+          baseIndent = lines[i].match(/^\s*/)[0].length;
+          break;
+        }
+      }
+
+      const targetIndent = Math.max(0, baseIndent - 2);
+
+      const processedLines = lines.map(line => {
+        const lineWithSpaces = line.replace(/\t/g, '  ');
+        const leadingSpaces = lineWithSpaces.match(/^\s*/)[0].length;
+        if (leadingSpaces === 0) return line;
+        const newIndent = Math.max(0, leadingSpaces - targetIndent);
+        return ' '.repeat(newIndent) + lineWithSpaces.trim();
+      });
+
+      return processedLines.join('\n');
+    }
+
+    getSource() {
+      return this.codeNode.textContent
+    }
+
+    copy() {
+      try {
+          navigator.clipboard.writeText(this.getSource());
+          Toast.info('File data copied to clipboard.');
+        } catch (err) {
+          console.error('Failed to copy: ', err);
+          Toast.error('Failed to copy to clipboard.');
+        }
+      }
+
+    init(props) {
+      props.language ||= 'html'
+
+      const child = this.root.firstElementChild
+
+      if (child?.nodeName == 'TEMPLATE' || child?.nodeName == 'XMP') {
+        this.source = Fez.htmlEscape(this.root.firstElementChild.innerHTML)
+      } else {
+        this.source = this.root.innerHTML
+      }
+    }
+
+    onMount() {
+      const node = this.codeNode = this.find('code')
+      node.innerHTML = this.reformatIndentation(this.source.trim())
+
+      Fez.untilTrue(()=>{
+        // hljs has a bug on applying styles on first load, this fixes it
+        if (window.hljs) {
+          if (!node.classList.contains('hljs')) {
+            hljs.highlightElement(this.codeNode)
+          } else {
+            return true
+          }
+        }
+      })
+    }
+  }
+&lt;/script>
+
+&lt;style>
+  code {
+    padding: 10px;
+    font-size: 15px;
+  }
+
+  pre {
+    margin-top: 10px;
+    width: 100%;
+    line-height: 26px;
+  }
+&lt;/style>
+
+{{#if props.file}}
+  &lt;div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
+    {{ props.file }}
+    &sdot;
+    &lt;button onclick="fez.copy()">Copy&lt;/button>
+    {{#if props.action }}
+      &sdot;
+      &lt;button
+        style="cursor: pointer; font-weight: 600;"
+        onclick="fez.props.action('{{ props.name }}')"
+      >Update&lt;/button>
+    {{/if}}
+  &lt;/div>
+{{/if}}
+&lt;pre>
+  &lt;code class="language-{{ props.language }}" contenteditable="{{ !!props.file }}">&lt;/code>
+&lt;/pre>
+
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="./demo/fez/ui-editor.fez"></template>
+    
+      
+
+<template fez="./demo/fez/ui-fa.fez"></template>
+<div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+  <div style="margin-top: 10px;">
+    <small style="float: right;" onclick="openCodePen('ui-fa')">open in CodePen</small>
+    <h3 style="margin-top: 0;">
+      Demo: ui-fa
+    </h3>
+
+    <div id="body-ui-fa" style="padding-bottom: 20px;">
+      <input
+  type="range" min="16" max="64" class="slider" id="fa_range" value="24"
+  oninput="s = this.value; Fez('ui-fa', (el) => el.setSize(s) )"
+/>
+
+<script>setTimeout(() => Fez('ui-fa', (el) => el.setSize(fa_range.value)), 500)</script>
+
+<br />
+
+<ui-fa name="home"></ui-fa>
+<ui-fa name="heart" color="red"></ui-fa>
+<ui-fa name="star" color="gold" size="28"></ui-fa>
+<ui-fa name="cog"  color="blue"></ui-fa>
+
+<h4>Brand Icons</h4>
+<ui-fa name="fab fa-github" size="32"></ui-fa>
+<ui-fa brand="twitter" color="#1DA1F2" size="32"></ui-fa>
+<ui-fa brand="facebook" color="#1877F2" size="32"></ui-fa>
+<ui-fa brand="instagram" color="#E4405F" size="32"></ui-fa>
+
+<h4>Regular Icons</h4>
+<ui-fa name="far fa-user" size="24"></ui-fa>
+<ui-fa regular="heart" color="red" size="24"></ui-fa>
+<ui-fa regular="star" color="gold" size="24"></ui-fa>
+
+
+    </div>
+  </div>
+  <div style="margin-top: 20px; max-width: 690px;">
+    <ui-tabs>
+      <div title="Info" active="true">
+        <div class="info">
+  <ul>
+    <li>Font Awesome icon component with name parameter</li>
+    <li>Supports size and color props</li>
+    <li>Accepts full Font Awesome class names (e.g., "fab fa-github") or shorthand (e.g., "home")</li>
+    <li>Supports regular attribute for regular icons (e.g., regular="user" = "far fa-user")</li>
+    <li>Supports brand attribute for brand icons (e.g., brand="github" = "fab fa-github")</li>
+    <li>Dynamic size control via range input</li>
+  </ul>
+</div>
+      </div>
+      <div title="HTML">
+        <ui-editor
+          name="ui-fa"
+          id="html-ui-fa"
+          file="./demo/fez/ui-fa.html"
+          language="html"
+          :action="applyChanges"
+        >
+          &lt;input
+  type="range" min="16" max="64" class="slider" id="fa_range" value="24"
+  oninput="s = this.value; Fez('ui-fa', (el) => el.setSize(s) )"
+/>
+
+&lt;script>setTimeout(() => Fez('ui-fa', (el) => el.setSize(fa_range.value)), 500)&lt;/script>
+
+&lt;br />
+
+&lt;ui-fa name="home">&lt;/ui-fa>
+&lt;ui-fa name="heart" color="red">&lt;/ui-fa>
+&lt;ui-fa name="star" color="gold" size="28">&lt;/ui-fa>
+&lt;ui-fa name="cog"  color="blue">&lt;/ui-fa>
+
+&lt;h4>Brand Icons&lt;/h4>
+&lt;ui-fa name="fab fa-github" size="32">&lt;/ui-fa>
+&lt;ui-fa brand="twitter" color="#1DA1F2" size="32">&lt;/ui-fa>
+&lt;ui-fa brand="facebook" color="#1877F2" size="32">&lt;/ui-fa>
+&lt;ui-fa brand="instagram" color="#E4405F" size="32">&lt;/ui-fa>
+
+&lt;h4>Regular Icons&lt;/h4>
+&lt;ui-fa name="far fa-user" size="24">&lt;/ui-fa>
+&lt;ui-fa regular="heart" color="red" size="24">&lt;/ui-fa>
+&lt;ui-fa regular="star" color="gold" size="24">&lt;/ui-fa>
+
+
+        </ui-editor>
+      </div>
+      <div title="Fez component">
+        <ui-editor
+          id="code-ui-fa"
+          file="./demo/fez/ui-fa.fez"
+          name="ui-fa"
+          :action="applyChanges"
+        >
+          &lt;script>
+  Fez.head({css: 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css'})
+
+  class {
+    NAME = 'i'
+
+    setSize(size) {
+      this.root.style.fontSize = `${parseInt(size)}px`
+    }
+
+    setIcon(name) {
+      // Remove existing FA classes
+      this.root.className = this.root.className.replace(/\bfa[a-z]?\s+fa-[\w-]+/g, '')
+
+      // Parse icon name - supports formats like "fas fa-home" or just "home"
+      if (name.includes(' ')) {
+        this.root.className += ` ${name}`
+      } else {
+        // Default to solid style
+        this.root.className += ` fas fa-${name}`
+      }
+    }
+
+    init(props) {
+      this.copy('onclick', 'title')
+
+      if (props.name) {
+        this.setIcon(props.name)
+      } else if (props.regular) {
+        this.setIcon(`far fa-${props.regular}`)
+      } else if (props.brand) {
+        this.setIcon(`fab fa-${props.brand}`)
+      }
+
+      if (props.color) {
+        this.root.style.color = props.color
+      }
+
+      if (props.size) {
+        this.setSize(props.size)
+      }
+    }
+  }
+&lt;/script>
+
+&lt;style>
+  display: inline-block;
+  line-height: 1;
+&lt;/style>
+
+        </ui-editor>
+      </div>
+    </ui-tabs>
+  </div>
+</div>
 
     
       
 
+<template fez="./demo/fez/ui-form.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-form')">open in CodePen</small>
@@ -883,18 +1432,44 @@ anywhere in HTML code
           name="ui-form"
           :action="applyChanges"
         >
-          &lt;template fez="./demo/fez/ui-form.fez">&lt;/template>
+          &lt;script>
+  NAME = 'form'
+
+  // if you define onSubmit, you will get submited form data object
+  // and event.preventDefault will allready be applied
+  onSubmit(data) {
+    this.props.ping(data)
+  }
+&lt;/script>
+
+&lt;style>
+  border: 2px solid green;
+  border-radius: 5px;
+  padding: 15px;
+  margin: 15px 0;
+  background-color: #efe;
+
+  label {
+    display: block;
+    cursor: pointer;
+    margin-bottom: 5px;
+  }
+
+  select option {
+    font-size: 16px;
+  }
+&lt;/style>
+
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="./demo/fez/ui-form.fez"></template>
-
     
       
 
+<template fez="./demo/fez/ui-icon.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-icon')">open in CodePen</small>
@@ -982,18 +1557,63 @@ anywhere in HTML code
           name="ui-icon"
           :action="applyChanges"
         >
-          &lt;template fez="./demo/fez/ui-icon.fez">&lt;/template>
+          &lt;script>
+  // everything before class gets executed in component registration
+  if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
+    const link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200'
+    document.head.appendChild(link)
+  }
+
+  class {
+    NAME = 'span'
+
+    setSize(size) {
+      this.root.style.fontSize = `${parseInt(size)}px`
+    }
+
+    onPropsChange(name, value) {
+      if (name == 'color') {
+        this.root.style.color = value
+      }
+
+      if (name == 'size') {
+        this.setSize(value)
+      }
+    }
+
+    init(props) {
+      this.copy('onclick')
+
+      const icon = props.name || this.root.innerHTML.trim()
+      this.color = props.color || '#00'
+      this.root.classList.add('material-symbols-outlined')
+      this.root.innerHTML = icon
+    }
+  }
+&lt;/script>
+
+&lt;style>
+  &.material-symbols-outlined {
+    font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24
+  }
+&lt;/style>
+
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="./demo/fez/ui-icon.fez"></template>
-
     
       
 
+<template fez="./demo/fez/ui-markdown.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-markdown')">open in CodePen</small>
@@ -1061,18 +1681,36 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
           name="ui-markdown"
           :action="applyChanges"
         >
-          &lt;template fez="./demo/fez/ui-markdown.fez">&lt;/template>
+          &lt;head>
+  &lt;script src="https://cdnjs.cloudflare.com/ajax/libs/marked/2.1.3/marked.min.js">&lt;/script>
+&lt;/head>
+
+&lt;script>
+  init(props) {
+    let text = props.html || this.root.innerHTML;
+
+    this.root.classList.add('markdown');
+
+    Fez.untilTrue(() => {
+      if (window.marked) {
+        text = window.marked(text)
+        this.root.innerHTML = text;
+        return true
+      }
+    });
+  }
+&lt;/script>
+
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="./demo/fez/ui-markdown.fez"></template>
-
     
       
 
+<template fez="./demo/fez/ui-pub-sub.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-pub-sub')">open in CodePen</small>
@@ -1224,18 +1862,18 @@ Fast ping:
           name="ui-pub-sub"
           :action="applyChanges"
         >
-          &lt;template fez="./demo/fez/ui-pub-sub.fez">&lt;/template>
+          &lt;--! defined in HTML block -->
+
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="./demo/fez/ui-pub-sub.fez"></template>
-
     
       
 
+<template fez="./demo/fez/ui-slider.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-slider')">open in CodePen</small>
@@ -1393,18 +2031,114 @@ Fast ping:
           name="ui-slider"
           :action="applyChanges"
         >
-          &lt;template fez="./demo/fez/ui-slider.fez">&lt;/template>
+          &lt;script>
+  setSlide(num) {
+    this.state.slide = num
+
+    if (this.state.slide &lt; 0) {
+      this.state.slide = this.slidesCount - 1
+    } else if (this.state.slide >= this.slidesCount) {
+      this.state.slide = 0
+    }
+
+    const width = this.find('.slot')?.getBoundingClientRect().width ?? 0
+    this.style('--offset', `-${width * this.state.slide}px`)
+  }
+
+  changeSlide(direction){
+    this.setSlide( this.state.slide += direction )
+  }
+
+  init() {
+    this.slidesCount = this.childNodes(false).length
+    this.style('--arrow-width', `70px`)
+    this.setSlide(0)
+    this.onResize(this.render, 100)
+  }
+&lt;/script>
+
+&lt;style>
+  table.slides {
+    width: 100%;
+    table-layout: fixed;
+    td {
+      &.arrow {
+        cursor: pointer;
+        width: var(--arrow-width);
+        div {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          font-size: 50px;
+          color: #aaa;
+          width: var(--arrow-width);
+          span {
+            transform: rotate(-90deg);
+          }
+        }
+        &:hover span {
+          color: #111;
+        }
+        &:nth-child(3) {
+          span {
+            transform: rotate(90deg) translateY(10px);
+          }
+        }
+      }
+      div.slot {
+        overflow: hidden;
+        display: flex;
+        align-items: flex-start;
+        max-width: 100%;
+        .slot-parent {
+          max-width: 100%;
+          transition: transform 0.3s ease;
+          transform: translateX(var(--offset));
+          .fez-slot {
+            display: flex;
+            & > div {
+              width: 100%;
+              flex-shrink: 0;
+            }
+          }
+        }
+      }
+    }
+  }
+&lt;/style>
+
+&lt;table class="slides">
+  &lt;tr>
+    &lt;td class="arrow" onclick="fez.changeSlide(-1)">
+      &lt;div>
+        &lt;span>&#8679;&lt;/span>
+      &lt;/div>
+    &lt;/td>
+    &lt;td>
+      &lt;div class="slot">
+        &lt;div class="slot-parent">
+          &lt;slot />
+        &lt;/div>
+      &lt;/div>
+    &lt;/td>
+    &lt;td class="arrow" onclick="fez.changeSlide(1)">
+      &lt;div>
+        &lt;span>&#8679;&lt;/span>
+      &lt;/div>
+    &lt;/td>
+  &lt;/tr>
+&lt;/table>
+
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="./demo/fez/ui-slider.fez"></template>
-
     
       
 
+<template fez="./demo/fez/ui-tabs.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-tabs')">open in CodePen</small>
@@ -1511,18 +2245,90 @@ Fast ping:
           name="ui-tabs"
           :action="applyChanges"
         >
-          &lt;template fez="./demo/fez/ui-tabs.fez">&lt;/template>
+          &lt;script>
+  activateNode(node) {
+    // Remove active class from siblings
+    Array.from(node.parentElement.children).forEach(child => {
+      child.classList.remove('active')
+    })
+    node.classList.add('active')
+  }
+
+  activate(num) {
+    this.active = parseInt(num)
+    const header = this.root.querySelector('div.header')
+    const target = header.children[num]
+    this.activateNode(target)
+    this.activateNode(this.tabs[num])
+  }
+
+  init(props) {
+    this.root.style.width = 'calc(100%)'
+
+    const { n, activate } = this;
+    this.tabs = this.childNodes(false)
+    this.render([
+      n('div.header', this.tabs.map((tab, index) =>
+        n('span', tab.getAttribute('title'), { onclick: ()=> activate(index) })
+      )),
+      n('.body', '&lt;slot />')
+    ]);
+
+    this.activate(0)
+  }
+&lt;/script>
+
+&lt;style>
+  --tabs-border: 1px solid #ccc;
+
+  max-width: calc(100%);
+
+  .header {
+    margin-bottom: -2px;
+    position: relative;
+    z-index: 1;
+
+    & > span {
+      border: var(--tabs-border);
+      padding: 8px 15px;
+      display: inline-block;
+      border-radius: 8px 8px 0 0;
+      margin-right: -1px;
+      background: #eee;
+      cursor: pointer;
+
+      &.active {
+        background-color: #fff;
+        border-bottom: none;
+      }
+    }
+  }
+
+  .body {
+    border: var(--tabs-border);
+    padding: 8px 15px;
+    background: #fff;
+
+    & > div {
+      display: none;
+
+      &.active {
+        display: block;
+      }
+    }
+  }
+&lt;/style>
+
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="./demo/fez/ui-tabs.fez"></template>
-
     
       
 
+<template fez="./demo/fez/ui-time.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-time')">open in CodePen</small>
@@ -1581,18 +2387,75 @@ Fast ping:
           name="ui-time"
           :action="applyChanges"
         >
-          &lt;template fez="./demo/fez/ui-time.fez">&lt;/template>
+          &lt;script>
+  NAME = 'div'
+
+  getRandomColor() {
+    const colors = ['red', 'blue', 'green', 'teal', 'black', 'magenta', 'orange', 'lightblue']
+    return colors[Math.floor(Math.random() * colors.length)]
+  }
+
+  setRandomColor() {
+    const color = this.getRandomColor()
+    // this.find('.color-name').innerHTML = color
+    this.root.querySelector('.color-name').innerHTML = color
+    this.root.style.borderColor = color
+  }
+
+  getTime() {
+    return (new Date()).getTime()
+  }
+
+  setTime() {
+    this.val('.time', this.getTime())
+  }
+
+  afterRender() {
+    this.setTime()
+  }
+
+  init() {
+    this.setRandomColor()
+  }
+&lt;/script>
+
+&lt;style>
+  /* styles are applied to body, so this becomes body background color */
+  background-color: #f7f7f7;
+
+  /* local component style applied to mounted component root */
+  :fez {
+    border: 10px solid green;
+    border-radius: 10px;
+    padding: 10px;
+    background-color: #fff;
+
+    button {
+      font-size: 16px;
+    }
+  }
+&lt;/style>
+
+&lt;p>Param city: {{ props.city }}&lt;/p>
+&lt;p>Time now: &lt;span class="time">&lt;/span>&lt;/p>
+&lt;p>Random num: &lt;span>{{ Math.random() }}&lt;/span>&lt;/p>
+&lt;button onclick="fez.setRandomColor()">random color&lt;/button>
+&sdot;
+&lt;button onclick="fez.render()">refresh & preserve slot&lt;/button>
+&lt;hr />
+
+&lt;slot>&lt;/slot>
+
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="./demo/fez/ui-time.fez"></template>
-
     
       
 
+<template fez="./demo/fez/ui-toast.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-toast')">open in CodePen</small>
@@ -1665,18 +2528,102 @@ Fast ping:
           name="ui-toast"
           :action="applyChanges"
         >
-          &lt;template fez="./demo/fez/ui-toast.fez">&lt;/template>
+          &lt;script>
+  // helper function
+  window.Toast = {
+    info: (text, klass) => {
+      Fez('#ui-toast').info(text, klass)
+    },
+
+    error: (text) => {
+      Toast.info(text, 'error')
+    }
+  }
+
+  // auto init
+  document.body.insertAdjacentHTML('beforeend', '&lt;ui-toast id="ui-toast">&lt;/ui-toast>')
+
+  class {
+    info(text, klass)  {
+      const node = document.createElement('div')
+      node.className = `toast ${klass || 'info'}`
+      node.innerHTML = text
+      this.find('.parent').prepend(node)
+
+      setTimeout(()=>{
+        node.classList.add('leave')
+        setTimeout(()=>node.remove(), 2000)
+      }, 4000)
+    }
+  }
+&lt;/script>
+&lt;style>
+  .parent {
+    width: 300px;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+
+    div.toast {
+      padding: 10px 20px;
+      background-color: #fff;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+      animation: dropIn 0.5s ease-out;
+
+      &.leave {
+        animation: dropOut 0.3s ease forwards;
+      }
+
+      &.info {
+        border: 1px solid lch(50% 50 140);;
+        background-color: lch(90% 50 140);
+      }
+
+      &.error {
+        border: 1px solid lch(50% 50 350);;
+        background-color: lch(90% 50 350);
+      }
+    }
+  }
+
+  @keyframes dropIn {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes dropOut {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+  }
+&lt;/style>
+
+&lt;div class="parent">&lt;/div>
+
+
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
 
-<template fez="./demo/fez/ui-toast.fez"></template>
-
     
       
 
+<template fez="./demo/fez/ui-todo.fez"></template>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-todo')">open in CodePen</small>
@@ -1720,14 +2667,92 @@ Fast ping:
           name="ui-todo"
           :action="applyChanges"
         >
-          &lt;template fez="./demo/fez/ui-todo.fez">&lt;/template>
+          &lt;script>
+  clearCompleted() {
+    this.state.tasks = this.state.tasks.filter((t) => !t.done)
+  }
+
+  removeTask(index) {
+    this.state.tasks = this.state.tasks.filter((_, i) => i !== index);
+  }
+
+  addTask() {
+    // no need to force update template, this is automatic because we are using reactiveStore()
+    this.counter ||= 0
+    this.state.tasks.push({
+      name: `new task ${++this.counter}`,
+      done: false,
+      animate: true
+    })
+  }
+
+  animate(node) {
+    // same as in Svelte, uf you define fez-use="methodName", method will be called when node is added to dom.
+    // in this case, we animate show new node
+
+    node.style.display = 'block'
+    node.style.transition = 'height 200ms, opacity 200ms'
+    node.style.height = '33px'
+    node.style.opacity = '1'
+
+    setTimeout(() => {
+      delete this.state.tasks[this.state.tasks.length-1].animate
+      node.style.height = 'auto'
+      node.style.transition = ''
+    }, 200)
+  }
+
+  init() {
+    this.state.tasks = [
+      {name: 'First task', done: false},
+      {name: 'Second task', done: false},
+      {name: 'Third task', done: true },
+    ]
+  }
+&lt;/script>
+
+&lt;h3>Tasks&lt;/h3>
+{{if !state.tasks[0] }}
+  &lt;p>No tasks found&lt;/p>
+{{/if}}
+
+{{for task, index in state.tasks}}
+  {{if task.animate}} &lt;!-- this is fine because this is string templating -->
+    &lt;p fez-use="animate" style="display: none; height: 0px; opacity: 0;">
+  {{:else}}
+    &lt;p>
+  {{/if}}
+    &lt;input
+      type="text"
+      fez-bind="state.tasks[{{index}}].name"
+      style="{{ task.done ? 'background-color: #ccc;' : '' }}"
+    />
+    &sdot;
+    &lt;input
+      type="checkbox"
+      fez-bind="state.tasks[{{index}}].done"
+    />
+    &sdot;
+    &lt;button onclick="fez.removeTask({{ index }})">&times;&lt;/button>
+  &lt;/p>
+{{/for}}
+&lt;p>
+  &lt;button onclick="fez.addTask()">add task&lt;/button>
+  &sdot;
+  &lt;button onclick="fez.clearCompleted()">clear completed&lt;/button>
+&lt;/p>
+&lt;pre class="code">{{ JSON.stringify(state.tasks, null, 2) }}&lt;/pre>
+&lt;p>If you want to preserve state in templates, wrap content in "fez-slot"&lt;/p>
+&lt;p>Refresh: {{Math.random()}}&lt;/p>
+&lt;p class="fez-slot">
+  Do not refresh: {{Math.random()}}.
+&lt;/p>
+
         </ui-editor>
       </div>
     </ui-tabs>
   </div>
 </div>
-
-<template fez="./demo/fez/ui-todo.fez"></template>
 
     
   </div>
@@ -1740,7 +2765,8 @@ Fast ping:
 
   <script>
     window.applyChanges = function(name) {
-      const htmlString = Fez(`#code-ui-${name}`).getSource()
+      let htmlString = Fez(`#code-${name}`).getSource()
+      htmlString = `<xmp fez="${name}">${htmlString}</xmp>`
       const tempDiv = document.createElement('div')
       tempDiv.innerHTML = htmlString
       const node = tempDiv.firstElementChild

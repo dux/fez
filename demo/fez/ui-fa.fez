@@ -1,0 +1,49 @@
+<script>
+  Fez.head({css: 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css'})
+
+  class {
+    NAME = 'i'
+
+    setSize(size) {
+      this.root.style.fontSize = `${parseInt(size)}px`
+    }
+
+    setIcon(name) {
+      // Remove existing FA classes
+      this.root.className = this.root.className.replace(/\bfa[a-z]?\s+fa-[\w-]+/g, '')
+
+      // Parse icon name - supports formats like "fas fa-home" or just "home"
+      if (name.includes(' ')) {
+        this.root.className += ` ${name}`
+      } else {
+        // Default to solid style
+        this.root.className += ` fas fa-${name}`
+      }
+    }
+
+    init(props) {
+      this.copy('onclick', 'title')
+
+      if (props.name) {
+        this.setIcon(props.name)
+      } else if (props.regular) {
+        this.setIcon(`far fa-${props.regular}`)
+      } else if (props.brand) {
+        this.setIcon(`fab fa-${props.brand}`)
+      }
+
+      if (props.color) {
+        this.root.style.color = props.color
+      }
+
+      if (props.size) {
+        this.setSize(props.size)
+      }
+    }
+  }
+</script>
+
+<style>
+  display: inline-block;
+  line-height: 1;
+</style>

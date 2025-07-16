@@ -183,12 +183,12 @@ Fez.error = (text) => {
   console.error(`Fez ERROR: ${text}`)
 }
 Fez.log = (text) => {
-  if (window.DEV === true || Fez.LOG === true) {
+  if (Fez.LOG === true) {
     console.log(`Fez: ${text}`)
   }
 }
 document.addEventListener('DOMContentLoaded', () => {
-  Fez.log('window.DEV === true || Fez.LOG === true, logging enabled.')
+  Fez.log('Fez.LOG === true, logging enabled.')
 })
 
 // execute function untill it returns true
