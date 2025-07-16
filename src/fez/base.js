@@ -19,8 +19,6 @@ export default class FezBase {
       if (data[0] != '{') {
         data = decodeURIComponent(data)
       }
-      // console.log(data)
-      // console.log(data)
       try {
         attrs = JSON.parse(data)
       } catch (e) {

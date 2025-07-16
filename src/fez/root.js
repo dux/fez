@@ -201,88 +201,77 @@ Fez.untilTrue = (func, pingRate) => {
   }
 }
 
-Fez.head = (text, kind) => {
-  if (text.includes('<')) {
-    const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = text
-
-    Array.from(tempDiv.childNodes).forEach(node => {
-      if (node.tagName === 'SCRIPT') {
-        const newScript = document.createElement('script')
-
-        Array.from(node.attributes).forEach(attr => {
-          newScript.setAttribute(attr.name, attr.value)
-        })
-
-        if (node.textContent) {
-          newScript.textContent = node.textContent
-        }
-
-        document.head.appendChild(newScript)
-      } else {
-        document.head.appendChild(node)
-      }
-    })
-  } else {
-    kind ||= text.includes('css') ? 'css' : 'js'
-
-    if (kind == 'css') {
-      const node = document.createElement('link')
-      node.rel = 'stylesheet'
-      node.href = text
-      document.head.appendChild(node)
-    } else {
-      const node = document.createElement('script')
-      node.src = text
-      document.head.appendChild(node)
-    }
-  }
-}
-
-// Script
-//   getScript('https://example.com/script.js');
-// Script with attributes and callback
-//   getScript('https://example.com/script.js', {type: 'module', async: true}, () => { ...  });
+// Script from URL
+//   head({ js: 'https://example.com/script.js' });
+// Script with attributes
+//   head({ js: 'https://example.com/script.js', type: 'module', async: true });
+// Script with callback
+//   head({ js: 'https://example.com/script.js' }, () => { console.log('loaded') });
 // CSS inclusion
-//   getScript('https://example.com/styles.css');
-// Force CSS type for file without .css extension
-//   getScript('https://example.com/styles', {type: 'css'})
-Fez.getScript = (src, attributesOrCallback, callback) => {
-  let attributes = {};
-  let onLoad = null;
-
-  if (typeof attributesOrCallback === 'function') {
-    onLoad = attributesOrCallback;
-  } else if (typeof attributesOrCallback === 'object') {
-    attributes = attributesOrCallback;
-    onLoad = callback;
+//   head({ css: 'https://example.com/styles.css' });
+// CSS with additional attributes and callback
+//   head({ css: 'https://example.com/styles.css', media: 'print' }, () => { console.log('CSS loaded') })
+// Inline script evaluation
+//   head({ script: 'console.log("Hello world")' })
+Fez.head = (config, callback) => {
+  if (typeof config !== 'object' || config === null) {
+    throw new Error('head requires an object parameter');
   }
 
-  const isCss = attributes.rel === 'stylesheet';
-  const elementType = isCss ? 'link' : 'script';
+  let src, attributes = {}, elementType;
+
+  if (config.script) {
+    // Evaluate inline script using new Function
+    try {
+      new Function(config.script)();
+      if (callback) callback();
+    } catch (error) {
+      console.error('Error executing script:', error);
+    }
+    return;
+  } else if (config.js) {
+    src = config.js;
+    elementType = 'script';
+    // Copy all properties except 'js' as attributes
+    for (const [key, value] of Object.entries(config)) {
+      if (key !== 'js') {
+        attributes[key] = value;
+      }
+    }
+  } else if (config.css) {
+    src = config.css;
+    elementType = 'link';
+    attributes.rel = 'stylesheet';
+    // Copy all properties except 'css' as attributes
+    for (const [key, value] of Object.entries(config)) {
+      if (key !== 'css') {
+        attributes[key] = value;
+      }
+    }
+  } else {
+    throw new Error('head requires either "script", "js" or "css" property');
+  }
 
   const existingNode = document.querySelector(`${elementType}[src="${src}"], ${elementType}[href="${src}"]`);
   if (existingNode) {
-    if (onLoad) onLoad();
+    if (callback) callback();
     return existingNode;
   }
 
   const element = document.createElement(elementType);
 
-  if (isCss) {
+  if (elementType === 'link') {
     element.href = src;
   } else {
     element.src = src;
   }
 
   for (const [key, value] of Object.entries(attributes)) {
-    if (key !== 'type' || value !== 'css') {
-      element.setAttribute(key, value);
-    }
+    element.setAttribute(key, value);
   }
 
-  if (onLoad) {
-    element.onload = onLoad;
+  if (callback) {
+    element.onload = callback;
   }
 
   document.head.appendChild(element);

@@ -190,14 +190,17 @@ Fez.htmlEscape(text)
 // create HTML tags with encoded props
 Fez.tag(tag, opts, html)
 
-// add scripts/styles to document head
-Fez.head(text, kind)
-
 // execute function until it returns true
 Fez.untilTrue(func, pingRate)
 
-// dynamic script/CSS loader
-Fez.getScript(src, attributesOrCallback, callback)
+// add scripts/styles to document head
+// Load JavaScript from URL: Fez.head({ js: 'path/to/script.js' })
+// Load JavaScript with attributes: Fez.head({ js: 'path/to/script.js', type: 'module', async: true })
+// Load JavaScript with callback: Fez.head({ js: 'path/to/script.js' }, () => console.log('loaded'))
+// Load CSS: Fez.head({ css: 'path/to/styles.css' })
+// Load CSS with attributes: Fez.head({ css: 'path/to/styles.css', media: 'print' })
+// Execute inline script: Fez.head({ script: 'console.log("Hello world")' })
+Fez.head(config, callback)
 
 // define custom DOM node name -> <foo-bar>...
 Fez('foo-bar', class {
