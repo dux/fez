@@ -12,7 +12,15 @@ import compile from './compile'
 // Fez(this, 'ui-slider')                       # first parent ui-slider
 // Fez('ui-slider', class { init() { ... }}) # create Fez dom node
 const Fez = (name, klass) => {
-  if (name) {
+  if(typeof name === 'number') {
+    const fez = Fez.instances[name]
+    if (fez) {
+      return fez
+    } else {
+      Fez.error(`Instance with UID "${name}" not found.`)
+    }
+  }
+  else if (name) {
     if (klass) {
       const isPureFn = typeof klass === 'function' && !/^\s*class/.test(klass.toString()) && !/\b(this|new)\b/.test(klass.toString())
 
@@ -48,6 +56,8 @@ const Fez = (name, klass) => {
 }
 
 Fez.classes = {}
+Fez.instanceCount = 0
+Fez.instances = {}
 
 Fez.id = () => {
   Fez._id_count ||= 0

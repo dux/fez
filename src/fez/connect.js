@@ -1,5 +1,6 @@
 // templating
 import createTemplate from './lib/template'
+import FezBase from './instance'
 
 // this function accepts custom tag name and class definition, creates and connects
 // Fez(name, klass)
@@ -11,7 +12,7 @@ export default function(name, klass) {
 
   // to allow anonymous class and then re-attach (does not work)
   // Fez('ui-todo', class { ... # instead Fez('ui-todo', class extends FezBase {
-  if (!klass.__objects) {
+  if (!klass.fezHtmlRoot) {
     const klassObj = new klass()
     const newKlass = class extends FezBase {}
 
@@ -119,60 +120,62 @@ function connectNode(name, node) {
 
     parentNode.replaceChild(newNode, node);
 
-    const object = new klass()
-    object.oldRoot = node
-    object.fezName = name
-    object.root = newNode
-    object.props = klass.getProps(node, newNode)
-    object.class = klass
+    const fez = new klass()
+    fez.oldRoot = node
+    fez.fezName = name
+    fez.root = newNode
+    fez.props = klass.getProps(node, newNode)
+    fez.class = klass
 
     // copy child nodes, natively to preserve bound events
-    object.slot(node, newNode)
+    fez.slot(node, newNode)
 
-    newNode.fez = object
+    newNode.fez = fez
 
     if (window.$) {
-      object.$root = $(newNode)
+      fez.$root = $(newNode)
     }
 
-    if (object.props.id) {
-      newNode.setAttribute('id', object.props.id)
+    if (fez.props.id) {
+      newNode.setAttribute('id', fez.props.id)
     }
 
-    object.fezRegister();
-    (object.init || object.created || object.connect).bind(object)(object.props);
-    klass.__objects.push(object)
+    fez.fezRegister();
+    (fez.init || fez.created || fez.connect).bind(fez)(fez.props);
 
-    const oldRoot = object.root.cloneNode(true)
+    fez.UID = ++Fez.instanceCount
+    Fez.instances[fez.UID] = fez
 
-    if (object.class.fezHtmlFunc) {
-      object.render()
+    const oldRoot = fez.root.cloneNode(true)
+
+    if (fez.class.fezHtmlFunc) {
+      fez.render()
     }
 
-    const slot = object.root.querySelector('.fez-slot')
+    const slot = fez.root.querySelector('.fez-slot')
     if (slot) {
-      if (object.props.html) {
-        slot.innerHTML = object.props.html
+      if (fez.props.html) {
+        slot.innerHTML = fez.props.html
       } else {
-        object.slot(oldRoot, slot)
+        fez.slot(oldRoot, slot)
       }
     }
 
-    if (object.onSubmit) {
-      const form = object.root.nodeName == 'FORM' ? object.root : object.find('form')
+    if (fez.onSubmit) {
+      const form = fez.root.nodeName == 'FORM' ? fez.root : fez.find('form')
       form.onsubmit = (e) => {
         e.preventDefault()
-        object.onSubmit(object.formData())
+        fez.onSubmit(fez.formData())
       }
     }
 
-    object.onMount(object.props)
+    fez.onMount(fez.props)
 
     // if onPropsChange method defined, add observer and trigger call on all attributes once component is loaded
-    if (object.onPropsChange) {
+    if (fez.onPropsChange) {
       observer.observe(newNode, {attributes:true})
-      for (const [key, value] of Object.entries(object.props)) {
-        object.onPropsChange(key, value)
+      for (const [key, value] of Object.entries(fez.props)) {
+        fez.onPropsChange(key, value)
       }
     }
   }

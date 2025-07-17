@@ -8,9 +8,12 @@ window.Fez = Fez
 
 // clear all unattached nodes
 setInterval(() => {
-  FezBase.__objects = FezBase.__objects.filter(
-    (el) => el.isConnected
-  )
+  for (const key in Fez.instances) {
+    const el = Fez.instances[key]
+    if (!el?.isConnected) {
+      delete Fez.instances[key]
+    }
+  }
 }, 5_000)
 
 // define Fez observer

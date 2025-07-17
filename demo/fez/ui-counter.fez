@@ -1,8 +1,8 @@
 <script>
-  init() {
+  init(props) {
     // called when Fez node is connected to DOM
     this.MAX = 6
-    this.state.count = 0
+    this.state.count = parseInt(props.start || 0)
   }
 
   isMax() {

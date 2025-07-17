@@ -3,8 +3,6 @@ import parseNode from './lib/n'
 import createTemplate from './lib/template'
 
 export default class FezBase {
-  static __objects = []
-
   // get node attributes as object
   static getProps(node, newNode) {
     let attrs = {}
@@ -98,7 +96,8 @@ export default class FezBase {
 
   // string selector for use in HTML nodes
   get fezHtmlRoot() {
-    return this.props.id ? `Fez.find("#${this.props.id}").` : `Fez.find(this, "${this.fezName}").`
+    return `Fez(${this.UID}).`
+    // return this.props.id ? `Fez.find("#${this.props.id}").` : `Fez.find(this, "${this.fezName}").`
   }
 
   // checks if node is attached and clears all if not

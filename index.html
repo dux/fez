@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="./demo/log.js"></script>
-  <script src="./dist/fez.js?t=1752759547"></script>
+  <script src="./dist/fez.js?t=1752789671"></script>
   <script>
     window.L = console.log;
     Fez.LOG = true; // location.port > 999
@@ -137,10 +137,10 @@
           <xmp>
               <template fez="ui-counter">
   <script>
-    init() {
+    init(props) {
       // called when Fez node is connected to DOM
       this.MAX = 6
-      this.state.count = 0
+      this.state.count = parseInt(props.start || 0)
     }
   
     isMax() {
@@ -204,13 +204,17 @@
         Place ui-counter anywhere in BODY
         <ui-editor id="demo-counter">
           <xmp>
-            <ui-counter></ui-counter>
+<ui-counter></ui-counter>
+<ui-counter start="1"></ui-counter>
+<ui-counter start="2"></ui-counter>
           </xmp>
         </ui-editor>
       </li>
       <li>
         <p>That is it! Edit this demo on <a target="jsbin" href="https://jsbin.com/nitihel/edit?html,output">JSbin</a></p>
-        <ui-counter id="main-counter"></ui-counter>
+        <ui-counter></ui-counter>
+        <ui-counter start="1"></ui-counter>
+        <ui-counter start="2"></ui-counter>
       </li>
     </ol>
   </div>
@@ -349,7 +353,7 @@
     &lt;/div>
   &lt;/span>
 {{else}}
-   {{#raw image() }}
+   {{raw image() }}
 {{/if}}
 
         </ui-editor>
@@ -912,10 +916,10 @@
           :action="applyChanges"
         >
           &lt;script>
-  init() {
+  init(props) {
     // called when Fez node is connected to DOM
     this.MAX = 6
-    this.state.count = 0
+    this.state.count = parseInt(props.start || 0)
   }
 
   isMax() {
