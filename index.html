@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="./demo/log.js"></script>
-  <script src="./dist/fez.js?t=1752697044"></script>
+  <script src="./dist/fez.js?t=1752759547"></script>
   <script>
     window.L = console.log;
     Fez.LOG = true; // location.port > 999
@@ -175,12 +175,9 @@
   </style>
   
   <button onclick="fez.state.count -= 1" disabled={{ state.count == 1 }}>-</button>
-  
-  <span>
-    {{ state.count }}
-  </span>
-  
+  <span>{{ state.count }}</span>
   <button onclick="fez.more()" disabled={{ isMax() }}>+</button>
+  
   {{if state.count > 0}}
     <span>&amp;mdash;</span>
     {{if state.count == MAX }}
@@ -953,12 +950,9 @@
 &lt;/style>
 
 &lt;button onclick="fez.state.count -= 1" disabled={{ state.count == 1 }}>-&lt;/button>
-
-&lt;span>
-  {{ state.count }}
-&lt;/span>
-
+&lt;span>{{ state.count }}&lt;/span>
 &lt;button onclick="fez.more()" disabled={{ isMax() }}>+&lt;/button>
+
 {{if state.count > 0}}
   &lt;span>&mdash;&lt;/span>
   {{if state.count == MAX }}
@@ -1558,13 +1552,7 @@ anywhere in HTML code
           :action="applyChanges"
         >
           &lt;script>
-  // everything before class gets executed in component registration
-  if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200'
-    document.head.appendChild(link)
-  }
+  Fez.head({css: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200' })
 
   class {
     NAME = 'span'

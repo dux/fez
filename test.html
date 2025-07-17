@@ -9,25 +9,44 @@
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="./demo/log.js"></script>
   <script src="./dist/fez.js"></script>
-  <template fez="./demo/fez/ui-counter.fez"></template>
   <script>
     window.L = console.log
     window.DEV = location.port > 999
   </script>
 </head>
 <body>
-  <ui-counter id="foo"></ui-counter>
+  <template fez="./demo/fez/ui-counter.fez"></template>
 
-  <xmp id="bar"></xmp>
+  <xmp fez="test-props">
+    <script>
+      FAST = false
+
+      init() {
+        this.setInterval(()=>{
+          this.props.rand = this.state.rand = parseInt(Math.random() * 10_000)
+        }, 1000)
+      }
+    </script>
+    <div>
+      {{ typeof props }}
+      -
+      {{ JSON.stringify(props) }}
+    </div>
+  </xmp>
+
+  <div id="foo">
+    <ui-counter foo="bar" kez="adasd"></ui-counter>
+  </div>
+
+  <hr />
+
+  <xmp id="bar" style="padding: 15px;"></xmp>
 
   <script>
     setInterval(
-      ()=>document.getElementById('bar').innerHTML = document.getElementById('foo').innerHTML
+      ()=>document.getElementById('bar').innerHTML = PP(document.getElementById('foo').innerHTML)
       , 100
     )
   </script>
-
-
-
 </body>
 </html>

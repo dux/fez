@@ -10,7 +10,7 @@ window.LOG = (() => {
     }
 
     // Store the original type
-    let originalType = 'string';
+    let originalType = typeof o;
     if (Array.isArray(o)) {
       originalType = 'array';
     } else if (typeof o === 'object' && o !== null) {
@@ -18,12 +18,17 @@ window.LOG = (() => {
     }
 
     if (typeof o != 'string') {
-      o = JSON.stringify(o, null, 2)//.replaceAll('<', '&lt;')
+      o = JSON.stringify(o, (key, value) => {
+        if (typeof value === 'function') {
+          return 'function(){...}';
+        }
+        return value;
+      }, 2).replaceAll('<', '&lt;')
     }
 
     o = o.trim()
 
-    logs.push(o);
+    logs.push(o + `\n\ntype: ${originalType}`);
     logTypes.push(originalType);
 
     let d = document.getElementById('dump-dialog');
@@ -31,7 +36,7 @@ window.LOG = (() => {
       d = document.body.appendChild(document.createElement('div'));
       d.id = 'dump-dialog';
       d.style.cssText =
-        'position:fixed;top:50px;left:50px;right:50px;bottom:50px;' +
+        'position:fixed;top:30px;left:30px;right:50px;bottom:50px;' +
         'background:#fff;border:1px solid#333;box-shadow:0 0 10px rgba(0,0,0,0.5);' +
         'padding:20px;overflow:auto;z-index:9999;font:13px/1.4 monospace;white-space:pre';
     }
@@ -76,3 +81,18 @@ window.LOG = (() => {
     renderContent();
   };
 })();
+
+// pretty print
+window.PP = (html) => {
+  const parts = html
+    .replace(/\r?\n/g, '')
+    .split(/(<\/?[^>]+>)/g)
+    .filter(p => p.trim());
+  let indent = 0;
+  return parts.map(part => {
+    if (/^<\/\w/.test(part)) indent--;
+    const line = '  '.repeat(indent) + part.trim();
+    if (/^<\w[^>]*[^\/]>$/.test(part)) indent++;
+    return line;
+  }).join('\n');
+}

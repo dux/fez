@@ -1,6 +1,8 @@
 // templating
 import createTemplate from './lib/template'
 
+// this function accepts custom tag name and class definition, creates and connects
+// Fez(name, klass)
 export default function(name, klass) {
   // Validate custom element name format (must contain a dash)
   if (!name.includes('-')) {
@@ -55,7 +57,7 @@ export default function(name, klass) {
     klass.css = Fez.globalCss(klass.css, {name: name})
   }
 
-  Fez._classCache[name] = klass
+  Fez.classes[name] = klass
 
   if (!customElements.get(name)) {
     customElements.define(name, class extends HTMLElement {
@@ -67,12 +69,12 @@ export default function(name, klass) {
         // Example: you can add FAST as a function - render fast nodes that have name attribute
         //   FAST(node) { return !!node.getAttribute('name') }
         // to inspect fast / slow components use Fez.info() in console
-        if (forceFastRender(this, klass)) {
-          connectDom(name, this, Fez._classCache[name])
+        if (useFastRender(this, klass)) {
+          connectNode(name, this)
         } else {
           window.requestAnimationFrame(()=>{
             if (this.parentNode) {
-              connectDom(name, this, Fez._classCache[name])
+              connectNode(name, this)
             }
           })
         }
@@ -93,7 +95,19 @@ function closeCustomTags(html) {
   })
 }
 
-function connectDom(name, node, klass) {
+function useFastRender(n, klass) {
+  const fezFast = n.getAttribute('fez-fast')
+  var isFast = typeof klass.fastBind === 'function' ? klass.fastBind(n) : klass.fastBind
+
+  if (fezFast == 'false') {
+    return false
+  } else {
+    return fezFast || isFast
+  }
+}
+
+function connectNode(name, node) {
+  const klass = Fez.classes[name]
   const parentNode = node.parentNode
 
   if (node.isConnected) {
@@ -109,7 +123,7 @@ function connectDom(name, node, klass) {
     object.oldRoot = node
     object.fezName = name
     object.root = newNode
-    object.props = klass.getProps(node, newNode) // TODO: simplify by move up
+    object.props = klass.getProps(node, newNode)
     object.class = klass
 
     // copy child nodes, natively to preserve bound events
@@ -164,16 +178,7 @@ function connectDom(name, node, klass) {
   }
 }
 
-function forceFastRender(n, klass) {
-  const fezFast = n.getAttribute('fez-fast')
-  var isFast = typeof klass.fastBind === 'function' ? klass.fastBind(n) : klass.fastBind
-
-  if (fezFast == 'false') {
-    return false
-  } else {
-    return fezFast || isFast
-  }
-}
+//
 
 const observer = new MutationObserver((mutationsList, _) => {
   for (const mutation of mutationsList) {
@@ -190,4 +195,3 @@ const observer = new MutationObserver((mutationsList, _) => {
     }
   }
 });
-

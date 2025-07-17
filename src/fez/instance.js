@@ -9,36 +9,14 @@ export default class FezBase {
   static getProps(node, newNode) {
     let attrs = {}
 
+    // we can directly attach props to DOM node instance
+    if (node.props) {
+      return node.props
+    }
+
     // LOG(node.nodeName, node.attributes)
     for (const attr of node.attributes) {
       attrs[attr.name] = attr.value
-    }
-
-    if (attrs['data-props']) {
-      let data = attrs['data-props']
-      if (data[0] != '{') {
-        data = decodeURIComponent(data)
-      }
-      try {
-        attrs = JSON.parse(data)
-      } catch (e) {
-        console.error(`Fez: Invalid JSON in data-props for ${node.tagName}: ${e.message}`)
-      }
-    }
-
-    // pass props as json template
-    // <script type="text/template">{...}</script>
-    // <foo-bar data-json-template="true"></foo-bar>
-    if (attrs['data-json-template']) {
-      const data = newNode.previousSibling?.textContent
-      if (data) {
-        try {
-          attrs = JSON.parse(data)
-          newNode.previousSibling.remove()
-        } catch (e) {
-          console.error(`Fez: Invalid JSON in template for ${node.tagName}: ${e.message}`)
-        }
-      }
     }
 
     for (const [key, val] of Object.entries(attrs)) {
@@ -47,8 +25,42 @@ export default class FezBase {
         try {
           const newVal = new Function(`return (${val})`).bind(newNode)()
           attrs[key.replace(/[\:_]/, '')] = newVal
+
         } catch (e) {
           console.error(`Fez: Error evaluating attribute ${key}="${val}" for ${node.tagName}: ${e.message}`)
+        }
+      }
+    }
+
+    if (attrs['data-props']) {
+      let data = attrs['data-props']
+
+      if (typeof data == 'object') {
+        return data
+      }
+      else {
+        if (data[0] != '{') {
+          data = decodeURIComponent(data)
+        }
+        try {
+          attrs = JSON.parse(data)
+        } catch (e) {
+          console.error(`Fez: Invalid JSON in data-props for ${node.tagName}: ${e.message}`)
+        }
+      }
+    }
+
+    // pass props as json template
+    // <script type="text/template">{...}</script>
+    // <foo-bar data-json-template="true"></foo-bar>
+    else if (attrs['data-json-template']) {
+      const data = newNode.previousSibling?.textContent
+      if (data) {
+        try {
+          attrs = JSON.parse(data)
+          newNode.previousSibling.remove()
+        } catch (e) {
+          console.error(`Fez: Invalid JSON in template for ${node.tagName}: ${e.message}`)
         }
       }
     }

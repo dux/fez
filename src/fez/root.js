@@ -14,7 +14,7 @@ import compile from './compile'
 const Fez = (name, klass) => {
   if (name) {
     if (klass) {
-      const isPureFn = typeof klass === 'function' && !/^class\s/.test(klass.toString()) && !/\b(this|new)\b/.test(klass.toString())
+      const isPureFn = typeof klass === 'function' && !/^\s*class/.test(klass.toString()) && !/\b(this|new)\b/.test(klass.toString())
 
       if (isPureFn) {
         const list = Array
@@ -47,7 +47,7 @@ const Fez = (name, klass) => {
   }
 }
 
-Fez._classCache = {}
+Fez.classes = {}
 
 Fez.id = () => {
   Fez._id_count ||= 0
@@ -144,9 +144,8 @@ Fez.htmlEscape = (text) => {
       // .replaceAll('@', '&#64;') // needed for template escaping
 
     return text
-
   } else {
-    return text
+    return text === undefined ? '' : text
   }
 }
 

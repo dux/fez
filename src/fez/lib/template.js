@@ -61,7 +61,6 @@ function parseBlock(data, ifStack) {
       data = `Fez.htmlEscape(${data})`
     }
 
-    // return '${' + (returnRaw ? Fez.htmlEscape(data) : data) + '}'
     return '${' + data + '}'
   }
 }

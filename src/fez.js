@@ -1,5 +1,5 @@
 // base class for custom dom objects
-import FezBase from './fez/base'
+import FezBase from './fez/instance'
 window.FezBase = FezBase
 
 // base class for custom dom objects
@@ -13,22 +13,7 @@ setInterval(() => {
   )
 }, 5_000)
 
-/* Init via observer and not DOMContentLoaded */
-
-// document.addEventListener('DOMContentLoaded', Fez.compile)
-
-// runtime fez tag creation
-//<fez-compile tag="app-editor">
-//  <script>
-// Fez('fez-compile', class {
-//   init(params) {
-
-//     this.root.querySelectorAll('template[fez]').forEach(n=>{
-//       Fez.compile(n)
-//     })
-//   }
-// })
-
+// define Fez observer
 const observer = new MutationObserver((mutations) => {
   for (const { addedNodes } of mutations) {
     addedNodes.forEach((node) => {
@@ -50,3 +35,19 @@ observer.observe(document.documentElement, {
   subtree: true
 });
 
+// fez custom tags
+
+//<fez-component name="some-node" :props="fez.props"></fez-node>
+Fez('fez-component', class {
+  init(props) {
+    const tag = document.createElement(props.name)
+    tag.props = props.props || props['data-props'] || props
+
+    while (this.root.firstChild) {
+      this.root.parentNode.insertBefore(this.root.lastChild, tag.nextSibling);
+    }
+
+    this.root.innerHTML = ''
+    this.root.appendChild(tag)
+  }
+})
