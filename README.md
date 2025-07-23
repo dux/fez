@@ -442,6 +442,10 @@ Dialog.close()
 Fez('#main-dialog').close()
 ```
 
+## GLOBAL Usage
+
+Set `GLOBAL = 'SomeName'` in your component to make it globally accessible as `window.SomeName`. The component is automatically appended to the document body as a singleton. See `demo/fez/ui-dialog.fez` for a complete example.
+
 ## static helper functions
 
 * ### Fez.find(selectorOrNode, 'optional-tag-name')

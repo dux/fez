@@ -24,6 +24,7 @@ export default function(name, klass) {
 
     Fez.fastBindInfo ||= {fast: [], slow: []}
 
+    if (klassObj.GLOBAL) { newKlass.fezGlobal = klassObj.GLOBAL }
     if (klassObj.CSS) { newKlass.css = klassObj.CSS }
     if (klassObj.HTML) { newKlass.html = klassObj.HTML }
     if (klassObj.NAME) { newKlass.nodeName = klassObj.NAME }
@@ -32,6 +33,16 @@ export default function(name, klass) {
       Fez.fastBindInfo.fast.push(typeof klassObj.FAST == 'function' ? `${name} (func)` : name)
     } else {
       Fez.fastBindInfo.slow.push(name)
+    }
+
+    if (klassObj.GLOBAL) {
+      const func = () => document.body.appendChild(document.createElement(name))
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', func);
+      } else {
+        func()
+      }
     }
 
     klass = newKlass
@@ -131,6 +142,10 @@ function connectNode(name, node) {
     fez.slot(node, newNode)
 
     newNode.fez = fez
+
+    if (klass.fezGlobal) {
+      window[klass.fezGlobal] = fez
+    }
 
     if (window.$) {
       fez.$root = $(newNode)

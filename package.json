@@ -9,7 +9,7 @@
     "build": "bun build.js b",
     "dev": "bun run pages; open index.html; bun build.js w",
     "sdev": "bun run pages; bun build.js b",
-    "xdev": "open http://localhost:8000/index.html; find . | grep -v '.git' | grep -v 'node_modules' | entr -c bun run sdev & ruby -run -e httpd . -p 8000",
+    "xdev": "open http://localhost:8000/index.html; find src demo | entr -c bun run sdev & ruby -run -e httpd . -p 8000",
     "test": "bun test/simple-test.js",
     "push": "bun run build && bun run test"
   },
