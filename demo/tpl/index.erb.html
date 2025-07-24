@@ -168,10 +168,10 @@
 
     window.openCodePen = function(name) {
       let html = Fez(`#html-${name}`).getSource()
-      let code = Fez(`#code-ui-${name}`).getSource()
+      let code = Fez(`#code-${name}`).getSource()
       const body = [
         '<link rel="stylesheet" href="//cdn.simplecss.org/simple.css" />\n<scr'+'ipt src="//dux.github.io/fez/dist/fez.js"></scr'+'ipt>',
-        `<!-- FEZ code start -->\n${code}\n<!-- FEZ code end -->`,
+        `<!-- FEZ code start -->\n<xmp fez="${name}">\n${code}\n</xmp>\n<!-- FEZ code end -->`,
         `<!-- HTML code start -->\n${html}\n<!-- HTML code end -->`
       ]
 

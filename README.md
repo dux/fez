@@ -197,6 +197,7 @@ Fez.untilTrue(func, pingRate)
 // Load JavaScript from URL: Fez.head({ js: 'path/to/script.js' })
 // Load JavaScript with attributes: Fez.head({ js: 'path/to/script.js', type: 'module', async: true })
 // Load JavaScript with callback: Fez.head({ js: 'path/to/script.js' }, () => console.log('loaded'))
+// Load JavaScript module and auto-import to window: Fez.head({ js: 'path/to/module.js', module: 'MyModule' })
 // Load CSS: Fez.head({ css: 'path/to/styles.css' })
 // Load CSS with attributes: Fez.head({ css: 'path/to/styles.css', media: 'print' })
 // Execute inline script: Fez.head({ script: 'console.log("Hello world")' })
@@ -232,7 +233,7 @@ Fez('foo-bar', class {
 
     // set style property to root node. look at a clock example
     // shortcut to this.root.style.setProperty(key, value)
-    this.style('--color', 'red')
+    this.setStyle('--color', 'red')
 
     // clasic interval, that runs only while node is attached
     this.setInterval(func, tick) { ... }

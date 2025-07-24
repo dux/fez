@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="./demo/log.js"></script>
-  <script src="./dist/fez.js?t=1753270111"></script>
+  <script src="./dist/fez.js?t=1753371117"></script>
   <script>
     window.L = console.log;
     Fez.LOG = true; // location.port > 999
@@ -720,7 +720,7 @@
   <ul>
     <li>SVG generation</li>
     <li>Features: reactive store - any update to <code>this.state</code> object triggers re-render.</li>
-    <li>Features:  <code>this.style(key, value)</code> - set style to base node</li>
+    <li>Features:  <code>this.setStyle(key, value)</code> - set style to base node</li>
     <li>Features: DOM morph updates - update only changed nodes and attributes</li>
     <li>Features: <code>onDestroy() { ... }</code> - execute code when component is removed from DOM</li>
     <li>Features: <code>setInterval() { ... }</code> to set interval on a instance. No need to clear it, it will be auto cleared on component destroy.</li>
@@ -774,7 +774,7 @@
     this.state.hours = time.getHours()
     this.state.minutes = time.getMinutes()
     this.state.seconds = time.getSeconds()
-    this.style('--color', this.randomColor())
+    this.setStyle('--color', this.randomColor())
   }
 
   init() {
@@ -1277,16 +1277,14 @@ anywhere in HTML code
     <div id="body-ui-fa" style="padding-bottom: 20px;">
       <input
   type="range" min="16" max="64" class="slider" id="fa_range" value="24"
-  oninput="s = this.value; Fez('ui-fa', (el) => el.setSize(s) )"
+  oninput="s = this.value; Fez('ui-fa', (el) => el.root.setAttribute('size', s) )"
 />
-
-<script>setTimeout(() => Fez('ui-fa', (el) => el.setSize(fa_range.value)), 500)</script>
 
 <br />
 
-<ui-fa name="home"></ui-fa>
+<ui-fa name="home" :size="document.getElementById('fa_range').value"></ui-fa>
 <ui-fa name="heart" color="red"></ui-fa>
-<ui-fa name="star" color="gold" size="28"></ui-fa>
+<ui-fa name="star" color="gold"></ui-fa>
 <ui-fa name="cog"  color="blue"></ui-fa>
 
 <h4>Brand Icons</h4>
@@ -1300,6 +1298,7 @@ anywhere in HTML code
 <ui-fa regular="heart" color="red" size="24"></ui-fa>
 <ui-fa regular="star" color="gold" size="24"></ui-fa>
 
+<script>setTimeout(() => Fez('ui-fa', (el) => el.setSize(fa_range.value)), 500)</script>
 
     </div>
   </div>
@@ -1309,7 +1308,8 @@ anywhere in HTML code
         <div class="info">
   <ul>
     <li>Font Awesome icon component with name parameter</li>
-    <li>Supports size and color props</li>
+    <li>Supports dynamic size and color props, via <code>onPropsChange</code></li>
+    <li>evaluate value of a attribute if prefixed with column <code>:</code> (in this example <code>:size=</code></li>
     <li>Accepts full Font Awesome class names (e.g., "fab fa-github") or shorthand (e.g., "home")</li>
     <li>Supports regular attribute for regular icons (e.g., regular="user" = "far fa-user")</li>
     <li>Supports brand attribute for brand icons (e.g., brand="github" = "fab fa-github")</li>
@@ -1327,16 +1327,14 @@ anywhere in HTML code
         >
           &lt;input
   type="range" min="16" max="64" class="slider" id="fa_range" value="24"
-  oninput="s = this.value; Fez('ui-fa', (el) => el.setSize(s) )"
+  oninput="s = this.value; Fez('ui-fa', (el) => el.root.setAttribute('size', s) )"
 />
-
-&lt;script>setTimeout(() => Fez('ui-fa', (el) => el.setSize(fa_range.value)), 500)&lt;/script>
 
 &lt;br />
 
-&lt;ui-fa name="home">&lt;/ui-fa>
+&lt;ui-fa name="home" :size="document.getElementById('fa_range').value">&lt;/ui-fa>
 &lt;ui-fa name="heart" color="red">&lt;/ui-fa>
-&lt;ui-fa name="star" color="gold" size="28">&lt;/ui-fa>
+&lt;ui-fa name="star" color="gold">&lt;/ui-fa>
 &lt;ui-fa name="cog"  color="blue">&lt;/ui-fa>
 
 &lt;h4>Brand Icons&lt;/h4>
@@ -1350,6 +1348,7 @@ anywhere in HTML code
 &lt;ui-fa regular="heart" color="red" size="24">&lt;/ui-fa>
 &lt;ui-fa regular="star" color="gold" size="24">&lt;/ui-fa>
 
+&lt;script>setTimeout(() => Fez('ui-fa', (el) => el.setSize(fa_range.value)), 500)&lt;/script>
 
         </ui-editor>
       </div>
@@ -1367,7 +1366,25 @@ anywhere in HTML code
     NAME = 'i'
 
     setSize(size) {
-      this.root.style.fontSize = `${parseInt(size)}px`
+      if (size) {
+        this.root.style.fontSize = `${parseInt(size)}px`
+      }
+    }
+
+    setColor(value) {
+      if (value) {
+        this.setStyle('color', value)
+      }
+    }
+
+    onPropsChange(name, value) {
+      if (name == 'color') {
+        this.setColor(value)
+      }
+
+      if (name == 'size') {
+        this.setSize(value)
+      }
     }
 
     setIcon(name) {
@@ -1394,20 +1411,16 @@ anywhere in HTML code
         this.setIcon(`fab fa-${props.brand}`)
       }
 
-      if (props.color) {
-        this.root.style.color = props.color
-      }
-
-      if (props.size) {
-        this.setSize(props.size)
-      }
-    }
+      this.setColor(props.color)
+      this.setSize(props.size)
+   }
   }
 &lt;/script>
 
 &lt;style>
   display: inline-block;
   line-height: 1;
+  transition: font-size 0.2s ease;
 &lt;/style>
 
         </ui-editor>
@@ -1572,144 +1585,6 @@ anywhere in HTML code
 
   select option {
     font-size: 16px;
-  }
-&lt;/style>
-
-        </ui-editor>
-      </div>
-    </ui-tabs>
-  </div>
-</div>
-
-    
-      
-
-<template fez="./demo/fez/ui-icon.fez"></template>
-<div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
-    <small style="float: right;" onclick="openCodePen('ui-icon')">open in CodePen</small>
-    <h3 style="margin-top: 0;">
-      Demo: ui-icon
-    </h3>
-
-    <div id="body-ui-icon" style="padding-bottom: 20px;">
-      <input
-  type="range" min="24" max="100" class="slider" id="icon-range"
-  oninput="Fez('#icon-blue').setSize(this.value)"
-/>
-
-&sdot;
-
-<span onclick="if (event.target.tagName === 'BUTTON') Fez('#icon-blue').attr('color', event.target.textContent)">
-  <button>red</button>
-  <button>blue</button>
-  <button>green</button>
-</span>
-
-<br /><br />
-
-<ui-icon name="home"></ui-icon>
-<ui-icon
-  id="icon-blue"
-  name="settings"
-  color="blue"
-  onclick="alert(this.fez.props.color)"
-  :size="document.getElementById('icon-range').value"
-></ui-icon>
-<ui-icon color="red">delete</ui-icon>
-
-    </div>
-  </div>
-  <div style="margin-top: 20px; max-width: 690px;">
-    <ui-tabs>
-      <div title="Info" active="true">
-        <div class="info">
-  <ul>
-    <li>Features: component to component communication</li>
-    <li>evaluate value of a attribute if prefixed with column <code>:</code> (in this example <code>:size=</code></li>
-  </ul>
-</div>
-      </div>
-      <div title="HTML">
-        <ui-editor
-          name="ui-icon"
-          id="html-ui-icon"
-          file="./demo/fez/ui-icon.html"
-          language="html"
-          :action="applyChanges"
-        >
-          &lt;input
-  type="range" min="24" max="100" class="slider" id="icon-range"
-  oninput="Fez('#icon-blue').setSize(this.value)"
-/>
-
-&sdot;
-
-&lt;span onclick="if (event.target.tagName === 'BUTTON') Fez('#icon-blue').attr('color', event.target.textContent)">
-  &lt;button>red&lt;/button>
-  &lt;button>blue&lt;/button>
-  &lt;button>green&lt;/button>
-&lt;/span>
-
-&lt;br />&lt;br />
-
-&lt;ui-icon name="home">&lt;/ui-icon>
-&lt;ui-icon
-  id="icon-blue"
-  name="settings"
-  color="blue"
-  onclick="alert(this.fez.props.color)"
-  :size="document.getElementById('icon-range').value"
->&lt;/ui-icon>
-&lt;ui-icon color="red">delete&lt;/ui-icon>
-
-        </ui-editor>
-      </div>
-      <div title="Fez component">
-        <ui-editor
-          id="code-ui-icon"
-          file="./demo/fez/ui-icon.fez"
-          name="ui-icon"
-          :action="applyChanges"
-        >
-          &lt;script>
-  Fez.head({css: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200' })
-
-  class {
-    NAME = 'span'
-
-    setSize(size) {
-      this.root.style.fontSize = `${parseInt(size)}px`
-    }
-
-    onPropsChange(name, value) {
-      if (name == 'color') {
-        this.root.style.color = value
-      }
-
-      if (name == 'size') {
-        this.setSize(value)
-      }
-    }
-
-    init(props) {
-      this.copy('onclick')
-
-      const icon = props.name || this.root.innerHTML.trim()
-      this.color = props.color || '#00'
-      this.root.classList.add('material-symbols-outlined')
-      this.root.innerHTML = icon
-    }
-  }
-&lt;/script>
-
-&lt;style>
-  &.material-symbols-outlined {
-    font-variation-settings:
-    'FILL' 0,
-    'wght' 400,
-    'GRAD' 0,
-    'opsz' 24
   }
 &lt;/style>
 
@@ -2151,7 +2026,7 @@ Fast ping:
     }
 
     const width = this.find('.slot')?.getBoundingClientRect().width ?? 0
-    this.style('--offset', `-${width * this.state.slide}px`)
+    this.setStyle('--offset', `-${width * this.state.slide}px`)
   }
 
   changeSlide(direction){
@@ -2160,7 +2035,7 @@ Fast ping:
 
   init() {
     this.slidesCount = this.childNodes(false).length
-    this.style('--arrow-width', `70px`)
+    this.setStyle('--arrow-width', `70px`)
     this.setSlide(0)
     this.onResize(this.render, 100)
   }
@@ -2886,10 +2761,10 @@ Fast ping:
 
     window.openCodePen = function(name) {
       let html = Fez(`#html-${name}`).getSource()
-      let code = Fez(`#code-ui-${name}`).getSource()
+      let code = Fez(`#code-${name}`).getSource()
       const body = [
         '<link rel="stylesheet" href="//cdn.simplecss.org/simple.css" />\n<scr'+'ipt src="//dux.github.io/fez/dist/fez.js"></scr'+'ipt>',
-        `<!-- FEZ code start -->\n${code}\n<!-- FEZ code end -->`,
+        `<!-- FEZ code start -->\n<xmp fez="${name}">\n${code}\n</xmp>\n<!-- FEZ code end -->`,
         `<!-- HTML code start -->\n${html}\n<!-- HTML code end -->`
       ]
 

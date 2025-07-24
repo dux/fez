@@ -10,7 +10,7 @@
     this.state.hours = time.getHours()
     this.state.minutes = time.getMinutes()
     this.state.seconds = time.getSeconds()
-    this.style('--color', this.randomColor())
+    this.setStyle('--color', this.randomColor())
   }
 
   init() {

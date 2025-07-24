@@ -216,6 +216,8 @@ Fez.untilTrue = (func, pingRate) => {
 //   head({ js: 'https://example.com/script.js', type: 'module', async: true });
 // Script with callback
 //   head({ js: 'https://example.com/script.js' }, () => { console.log('loaded') });
+// Module loading with auto-import to window
+//   head({ js: 'https://example.com/module.js', module: 'MyModule' }); // imports and sets window.MyModule
 // CSS inclusion
 //   head({ css: 'https://example.com/styles.css' });
 // CSS with additional attributes and callback
@@ -243,9 +245,13 @@ Fez.head = (config, callback) => {
     elementType = 'script';
     // Copy all properties except 'js' as attributes
     for (const [key, value] of Object.entries(config)) {
-      if (key !== 'js') {
+      if (key !== 'js' && key !== 'module') {
         attributes[key] = value;
       }
+    }
+    // Handle module loading
+    if (config.module) {
+      attributes.type = 'module';
     }
   } else if (config.css) {
     src = config.css;
@@ -279,8 +285,18 @@ Fez.head = (config, callback) => {
     element.setAttribute(key, value);
   }
 
-  if (callback) {
-    element.onload = callback;
+  if (callback || config.module) {
+    element.onload = () => {
+      // If module name is provided, import it and assign to window
+      if (config.module && elementType === 'script') {
+        import(src).then(module => {
+          window[config.module] = module.default || module[config.module] || module;
+        }).catch(error => {
+          console.error(`Error importing module ${config.module}:`, error);
+        });
+      }
+      if (callback) callback();
+    };
   }
 
   document.head.appendChild(element);

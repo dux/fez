@@ -5,7 +5,25 @@
     NAME = 'i'
 
     setSize(size) {
-      this.root.style.fontSize = `${parseInt(size)}px`
+      if (size) {
+        this.root.style.fontSize = `${parseInt(size)}px`
+      }
+    }
+
+    setColor(value) {
+      if (value) {
+        this.setStyle('color', value)
+      }
+    }
+
+    onPropsChange(name, value) {
+      if (name == 'color') {
+        this.setColor(value)
+      }
+
+      if (name == 'size') {
+        this.setSize(value)
+      }
     }
 
     setIcon(name) {
@@ -32,18 +50,14 @@
         this.setIcon(`fab fa-${props.brand}`)
       }
 
-      if (props.color) {
-        this.root.style.color = props.color
-      }
-
-      if (props.size) {
-        this.setSize(props.size)
-      }
-    }
+      this.setColor(props.color)
+      this.setSize(props.size)
+   }
   }
 </script>
 
 <style>
   display: inline-block;
   line-height: 1;
+  transition: font-size 0.2s ease;
 </style>

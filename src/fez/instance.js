@@ -220,7 +220,7 @@ export default class FezBase {
     return target
   }
 
-  style(key, value) {
+  setStyle(key, value) {
     this.root.style.setProperty(key, value);
   }
 

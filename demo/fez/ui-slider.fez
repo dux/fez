@@ -9,7 +9,7 @@
     }
 
     const width = this.find('.slot')?.getBoundingClientRect().width ?? 0
-    this.style('--offset', `-${width * this.state.slide}px`)
+    this.setStyle('--offset', `-${width * this.state.slide}px`)
   }
 
   changeSlide(direction){
@@ -18,7 +18,7 @@
 
   init() {
     this.slidesCount = this.childNodes(false).length
-    this.style('--arrow-width', `70px`)
+    this.setStyle('--arrow-width', `70px`)
     this.setSlide(0)
     this.onResize(this.render, 100)
   }
