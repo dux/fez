@@ -617,3 +617,51 @@ Finds first closest Fez node.
       })
     })
   ```
+
+## Fez.fetch API
+
+Fez includes a built-in fetch wrapper with automatic JSON parsing and session-based caching:
+
+### Basic Usage
+
+```js
+// GET request with promise
+const data = await Fez.fetch('https://api.example.com/data')
+
+// GET request with callback
+Fez.fetch('https://api.example.com/data', (data) => {
+  console.log(data)
+})
+
+// POST request
+const result = await Fez.fetch('POST', 'https://api.example.com/data', {
+  body: JSON.stringify({ key: 'value' }),
+  headers: { 'Content-Type': 'application/json' }
+})
+
+// With callback and options
+Fez.fetch('PUT', 'https://api.example.com/data', 
+  { body: JSON.stringify({ id: 1 }) }, 
+  (data) => console.log('Updated:', data)
+)
+```
+
+### Features
+
+- **Automatic JSON parsing**: Response is automatically parsed if Content-Type is application/json
+- **Session caching**: All requests are cached in memory until page refresh
+- **Flexible parameter order**: Method can be omitted (defaults to GET), callback can be last parameter
+- **Error handling**: When using callbacks, errors are passed to `Fez.onError` with kind 'fetch'
+- **Logging**: Enable with `Fez.LOG = true` to see cache hits and live fetches
+
+### Custom Error Handler
+
+```js
+// Override default error handler
+Fez.onError = (kind, error) => {
+  if (kind === 'fetch') {
+    console.error('Fetch failed:', error)
+    // Show user-friendly error message
+  }
+}
+```

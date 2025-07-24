@@ -1,0 +1,158 @@
+<script>
+  init() {
+    this.state.results = {
+      promise: '',
+      callback: '',
+      post: ''
+    }
+    this.state.loading = false
+    this.state.logEnabled = Fez.LOG
+  }
+
+  async fetchData() {
+    this.state.loading = true
+    const url = 'https://jsonplaceholder.typicode.com/users/1'
+
+    // Promise-based fetch
+    const data = await Fez.fetch(url)
+    this.state.results.promise = JSON.stringify(data, null, 2)
+
+    // Callback-based fetch (will hit cache)
+    Fez.fetch(url, (data) => {
+      this.state.results.callback = JSON.stringify(data, null, 2)
+    })
+
+    // POST request
+    const postData = await Fez.fetch('POST', 'https://jsonplaceholder.typicode.com/posts', {
+      title: 'Test Post',
+      body: 'This is a test post',
+      userId: 1
+    })
+    this.state.results.post = JSON.stringify(postData, null, 2)
+    this.state.loading = false
+  }
+
+  clearCache() {
+    Fez._fetchCache = {}
+    this.state.results = {
+      promise: '',
+      callback: '',
+      post: ''
+    }
+  }
+
+  toggleLogging() {
+    Fez.LOG = !Fez.LOG
+    this.state.logEnabled = Fez.LOG
+  }
+</script>
+
+<style>
+  :fez {
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+
+    h2 {
+      margin-top: 0;
+      color: #333;
+    }
+
+    .controls {
+      margin: 20px 0;
+
+      button {
+        margin-right: 10px;
+        padding: 8px 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s;
+
+        &:hover {
+          background: #0056b3;
+        }
+
+        &:disabled {
+          background: #ccc;
+          cursor: not-allowed;
+        }
+      }
+    }
+
+    .status {
+      margin: 10px 0;
+      padding: 10px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    pre {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 4px;
+      overflow-x: auto;
+      min-height: 50px;
+      border: 1px solid #dee2e6;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    h3 {
+      margin-top: 24px;
+      margin-bottom: 12px;
+      color: #495057;
+    }
+
+    .hint {
+      color: #6c757d;
+      font-size: 14px;
+      font-style: italic;
+    }
+  }
+</style>
+
+<h2>Fez.fetch Demo</h2>
+
+<div class="status">
+  Logging: <strong>{{ state.logEnabled ? 'Enabled' : 'Disabled' }}</strong>
+  {{if state.logEnabled}}
+    (check console for fetch logs)
+  {{/if}}
+</div>
+
+<div class="controls">
+  <button onclick="fez.fetchData()" disabled={{ state.loading }}>
+    {{ state.loading ? 'Loading...' : 'Fetch Data' }}
+  </button>
+  <button onclick="fez.clearCache()">Clear Cache</button>
+  <button onclick="fez.toggleLogging()">
+    {{ state.logEnabled ? 'Disable' : 'Enable' }} Logging
+  </button>
+</div>
+
+{{if state.results.promise || state.results.callback || state.results.post}}
+  <div class="results">
+    {{if state.results.promise}}
+      <h3>Promise-based GET:</h3>
+      <pre>{{ state.results.promise }}</pre>
+    {{/if}}
+
+    {{if state.results.callback}}
+      <h3>Callback-based GET:</h3>
+      <p class="hint">Same URL - should hit cache on second click</p>
+      <pre>{{ state.results.callback }}</pre>
+    {{/if}}
+
+    {{if state.results.post}}
+      <h3>POST Request:</h3>
+      <pre>{{ state.results.post }}</pre>
+    {{/if}}
+  </div>
+{{else}}
+  <p class="hint">Click "Fetch Data" to see the results</p>
+{{/if}}
