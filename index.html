@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="./demo/log.js"></script>
-  <script src="./dist/fez.js?t=1753393580"></script>
+  <script src="./dist/fez.js?t=1753452934"></script>
   <script>
     window.L = console.log;
     Fez.LOG = true; // location.port > 999
@@ -67,7 +67,7 @@
         <p class="center">
           <a href="#examples">examples</a>
           &sdot;
-          <a target="playground" href="https://jsbin.com/nitihel/edit?html,output">playground</a>
+          <a target="playground" href="./dist/fez.js">lib</a>
           &sdot;
           <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
         </p>
@@ -109,14 +109,100 @@
 
     <ul>
       <li>🔌 <i>Native Browser Components:</i> Uses standard <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements">custom elements</a>. Create tags like <code>&lt;ui-clock&gt;</code>, place them anywhere in your HTML, and they just work. (Try it now in dev tools - instant magic!)</li>
-      <li>⚡ <i>Zero Build Step Hassle:</i> Works directly in the browser with a tiny runtime (20kb raw, 9kb zipped - smaller than most cat GIFs).</li>
-      <li>🔄 <i>Smart State Management:</i> Automatically re-renders components using <a href="https://github.com/bigskysoftware/idiomorph">Idiomorph</a> for efficient DOM updates when data changes.</li>
-      <li>📜 <i>Flexible Templating:</i> Choose between HTML-like templates (similar to <a href="https://dev.to/cloudcannon/templating-in-sveltekit-3ikm">Svelte</a>) or programmatic <a href="https://github.com/dux/fez/blob/main/src/vendor/n.js">node building</a>.</li>
-      <li>🎨 <i>CSS Superpowers:</i> Built-in SCSS support via <a href="https://goober.js.org/">Goober</a> with scoped/global styles and dynamic values.</li>
-      <li>🤝 <i>Familiar Syntax:</i> Supports Svelte-style <code>use</code>/<code>bind</code> and Vue-like <code>:attribute</code> bindings.</li>
-      <li>🔔 <i>Event System:</i> Built-in pub/sub pattern for cross-component messaging.</li>
-      <li>⏳ <i>Lifecycle Control:</i> Hooks like <code>connect</code>, <code>onMount</code>, <code>beforeRender</code>, and <code>onPropsChange</code> for precise and predictable control.</li>
+      <li>⚡ <i>Zero Build Step Hassle:</i> Works directly in the browser with a tiny runtime (20kb raw, 9kb zipped). No webpack, no config, no transpilers - just drop in a script tag and start coding.</li>
+      <li>🧹 <i>Auto-Cleanup Magic:</i> Forget memory leaks! Timers, subscriptions, and event listeners are automatically cleaned up when components unmount. Focus on features, not housekeeping.</li>
+      <li>🔄 <i>Smart DOM Morphing:</i> Uses <a href="https://github.com/bigskysoftware/idiomorph">Idiomorph</a> for surgical DOM updates that preserve form state, scroll position, and focus - no virtual DOM overhead.</li>
+      <li>📜 <i>HTML-First Philosophy:</i> Components are defined in <code>.fez</code> HTML files, not JavaScript. Your markup stays readable and approachable for designers and backend developers.</li>
+      <li>🎨 <i>Runtime SCSS Support:</i> Write real SCSS without build tools! Powered by <a href="https://goober.js.org/">Goober</a> with scoped styles, global styles, and reactive CSS values.</li>
+      <li>📦 <i>Smart Component Loading:</i> Load components from URLs, inline templates, or <code>&lt;template&gt;</code> tags. Perfect for micro-frontends and progressive enhancement.</li>
+      <li>🔔 <i>Built-in Communication:</i> Native pub/sub system for component messaging - no Redux, no context providers, just <code>Fez.pub()</code> and <code>Fez.sub()</code>.</li>
+      <li>📝 <i>Form Superpowers:</i> Built-in form data handling with <code>getFormData()</code> - serialize forms to JSON in one line, no libraries needed.</li>
+      <li>⏳ <i>Predictable Lifecycle:</i> Simple hooks like <code>connect</code>, <code>onMount</code>, and <code>onPropsChange</code> - no useEffect confusion or dependency arrays.</li>
     </ul>
+
+    <h2 style="margin-top: 70px; text-align: center;">What does Claude AI think about Fez?"</h2>
+
+    <dl>
+      <dt>Prompt</dt>
+      <dd>
+        Look at FEZ_GUIDE.md, README.md and components in fez/*.fez, then write what do you think of the lib.
+        Is it bette / worse / different then react / vue / svelte. When should one chose Fez or maybe never.
+      </dd>
+      <dt>Response</dt>
+      <dd>
+        <div id="response_text" class="hidden">
+          <h3>Fez's Additional Strengths:</h3>
+          <ul>
+            <li><strong>HTML-first approach</strong> - Components defined in HTML files, not JavaScript</li>
+            <li><strong>Auto-cleanup</strong> - Subscriptions, timers, and resources cleaned automatically</li>
+            <li><strong>Built-in morphing</strong> - Efficient DOM updates that preserve input state</li>
+            <li><strong>Runtime SCSS</strong> - Full SCSS support without build tools</li>
+            <li><strong>Native pub/sub</strong> - Component communication without external libraries</li>
+            <li><strong>Form utilities</strong> - Built-in form data handling</li>
+            <li><strong>Smart component loading</strong> - Load components from URLs or inline</li>
+          </ul>
+
+          <h3>Key Differentiators:</h3>
+
+          <h4>vs React:</h4>
+          <ul>
+            <li>No JSX compilation needed</li>
+            <li>No hooks complexity</li>
+            <li>Direct DOM manipulation allowed</li>
+            <li>Much smaller bundle size</li>
+            <li>No virtual DOM overhead</li>
+          </ul>
+
+          <h4>vs Vue:</h4>
+          <ul>
+            <li>Simpler template syntax</li>
+            <li>No directive zoo (v-if, v-for, v-model)</li>
+            <li>Native web components instead of Vue components</li>
+            <li>No reactivity gotchas with arrays/objects</li>
+          </ul>
+
+          <h4>vs Svelte:</h4>
+          <ul>
+            <li>No compilation step</li>
+            <li>Similar simplicity and elegance</li>
+            <li>Runtime instead of compile-time optimization</li>
+            <li>Smaller learning curve</li>
+          </ul>
+
+          <h3>When to Choose Fez</h3>
+
+          <h4>Ideal Use Cases:</h4>
+          <ul>
+            <li><strong>Progressive enhancement</strong> - Add interactivity to server-rendered HTML</li>
+            <li><strong>Micro-frontends</strong> - Components work anywhere</li>
+            <li><strong>Rapid prototyping</strong> - Zero config, instant feedback</li>
+            <li><strong>Legacy modernization</strong> - Gradual migration from jQuery</li>
+            <li><strong>Educational projects</strong> - Learn web components without tooling</li>
+            <li><strong>Small teams</strong> - Minimal cognitive overhead</li>
+          </ul>
+
+          <h4>Not Recommended For:</h4>
+          <ul>
+            <li>Large SPAs requiring advanced routing and state management</li>
+            <li>TypeScript-first teams needing strict typing</li>
+            <li>SSR/SSG requirements (though works great with server-rendered HTML)</li>
+            <li>Complex animations requiring specialized libraries</li>
+            <li>Native mobile apps via React Native or similar</li>
+          </ul>
+        </div>
+        <button class="btn" onclick="this.style.display = 'none'; response_text.style.display = 'block';">(click for full response) ...</button>
+
+        <div class="box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 15px; margin: 30px 0; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; overflow: hidden;">
+          <div style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+          <h3 style="color: white; margin-top: 0; font-size: 1.5em; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">Final Verdict</h3>
+
+          <p style="color: white; font-size: 1.1em; line-height: 1.6; margin: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">Fez is a hidden gem that challenges the complexity of modern frameworks. It proves you can have reactivity, components, and modern
+          DX without webpack configs, transpilers, or framework lock-in. It's particularly brilliant for developers who miss the simplicity of
+          jQuery but want modern component architecture. While it won't replace React for large enterprise apps, it's perfect for the 80% of
+          web projects that don't need that complexity.</p>
+        </div>
+      </dd>
+    </dl>
 
     <app-arrow title="Lets build simple counter"></app-arrow>
 
@@ -197,7 +283,7 @@
 
         <p>Or load via HTTP (as in this case)</p>
         <ui-editor>
-          &lt;template fez="/demo/ui-counter.fez">&lt;/template>
+          &lt;script fez="/demo/ui-counter.fez">&lt;/script>
         </ui-editor>
       </li>
       <li>
@@ -229,7 +315,7 @@
     
       
 
-<template fez="./demo/fez/ui-avatar.fez"></template>
+<script fez="./demo/fez/ui-avatar.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-avatar')">open in CodePen</small>
@@ -365,7 +451,7 @@
     
       
 
-<template fez="./demo/fez/ui-border.fez"></template>
+<script fez="./demo/fez/ui-border.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-border')">open in CodePen</small>
@@ -438,7 +524,7 @@
     
       
 
-<template fez="./demo/fez/ui-card.fez"></template>
+<script fez="./demo/fez/ui-card.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-card')">open in CodePen</small>
@@ -684,7 +770,7 @@
     
       
 
-<template fez="./demo/fez/ui-clock.fez"></template>
+<script fez="./demo/fez/ui-clock.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-clock')">open in CodePen</small>
@@ -872,7 +958,7 @@
     
       
 
-<template fez="./demo/fez/ui-counter.fez"></template>
+<script fez="./demo/fez/ui-counter.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-counter')">open in CodePen</small>
@@ -979,7 +1065,7 @@
     
       
 
-<template fez="./demo/fez/ui-dialog.fez"></template>
+<script fez="./demo/fez/ui-dialog.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-dialog')">open in CodePen</small>
@@ -1096,7 +1182,7 @@
     
       
 
-<template fez="./demo/fez/ui-editor.fez"></template>
+<script fez="./demo/fez/ui-editor.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-editor')">open in CodePen</small>
@@ -1241,7 +1327,10 @@ anywhere in HTML code
 
 {{#if props.file}}
   &lt;div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
-    {{ props.file }}
+    &lt;a
+      href="https://raw.githubusercontent.com/dux/fez/main/{{ props.file.replace('./', '') }}"
+      target="raw"
+    >{{ props.file }}&lt;/a>
     &sdot;
     &lt;button onclick="fez.copy()">Copy&lt;/button>
     {{#if props.action }}
@@ -1266,7 +1355,7 @@ anywhere in HTML code
     
       
 
-<template fez="./demo/fez/ui-fa.fez"></template>
+<script fez="./demo/fez/ui-fa.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-fa')">open in CodePen</small>
@@ -1432,7 +1521,7 @@ anywhere in HTML code
     
       
 
-<template fez="./demo/fez/ui-fetch.fez"></template>
+<script fez="./demo/fez/ui-fetch.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-fetch')">open in CodePen</small>
@@ -1646,7 +1735,7 @@ anywhere in HTML code
     
       
 
-<template fez="./demo/fez/ui-form.fez"></template>
+<script fez="./demo/fez/ui-form.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-form')">open in CodePen</small>
@@ -1811,7 +1900,7 @@ anywhere in HTML code
     
       
 
-<template fez="./demo/fez/ui-markdown.fez"></template>
+<script fez="./demo/fez/ui-markdown.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-markdown')">open in CodePen</small>
@@ -1908,7 +1997,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
     
       
 
-<template fez="./demo/fez/ui-pub-sub.fez"></template>
+<script fez="./demo/fez/ui-pub-sub.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-pub-sub')">open in CodePen</small>
@@ -2071,7 +2160,7 @@ Fast ping:
     
       
 
-<template fez="./demo/fez/ui-slider.fez"></template>
+<script fez="./demo/fez/ui-slider.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-slider')">open in CodePen</small>
@@ -2336,7 +2425,7 @@ Fast ping:
     
       
 
-<template fez="./demo/fez/ui-tabs.fez"></template>
+<script fez="./demo/fez/ui-tabs.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-tabs')">open in CodePen</small>
@@ -2526,7 +2615,7 @@ Fast ping:
     
       
 
-<template fez="./demo/fez/ui-time.fez"></template>
+<script fez="./demo/fez/ui-time.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-time')">open in CodePen</small>
@@ -2653,7 +2742,7 @@ Fast ping:
     
       
 
-<template fez="./demo/fez/ui-toast.fez"></template>
+<script fez="./demo/fez/ui-toast.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-toast')">open in CodePen</small>
@@ -2821,7 +2910,7 @@ Fast ping:
     
       
 
-<template fez="./demo/fez/ui-todo.fez"></template>
+<script fez="./demo/fez/ui-todo.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
     <small style="float: right;" onclick="openCodePen('ui-todo')">open in CodePen</small>

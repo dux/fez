@@ -42,6 +42,17 @@ button.btn {
   font-size: 20px;
 }
 
+dl {
+  dt {
+    font-weight: bold;
+    margin-top: 30px;
+  }
+
+  dd {
+    margin-left: 20px;
+  }
+}
+
 *[onclick] {
   cursor: pointer;
 }
@@ -120,6 +131,16 @@ div.info {
   align-items: center;
 }
 
+.hidden {
+  display: none;
+}
+
+.box {
+  padding: 5px 15px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
 /* typo */
 
 body {
@@ -145,6 +166,10 @@ h1 {
 
 h2 {
   margin: 40px 0 20px 0;
+}
+
+h4 {
+  margin-bottom: 10px;
 }
 
 ul {
