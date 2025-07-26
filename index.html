@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="./demo/log.js"></script>
-  <script src="./dist/fez.js?t=1753452934"></script>
+  <script src="./dist/fez.js?t=1753551927"></script>
   <script>
     window.L = console.log;
     Fez.LOG = true; // location.port > 999
@@ -349,7 +349,7 @@
       <div title="Info" active="true">
         <div class="info">
   <ul>
-    <li>features blocks <code>{{block ...}}</code></li>
+    <li>features template blocks <code>{{block ...}}</code></li>
   </ul>
 </div>
       </div>
@@ -395,16 +395,9 @@
   init(props) {
     this.copy('href', 'style')
     this.size = (props.size || 64) + 'px'
+    if (props.name) { props.src ||= `https://robohash.org/${escape(props.name)}.png` }
     this.root.style.width = this.size
     this.root.style.height = this.size
-  }
-
-  image() {
-    return `&lt;img
-      src="${this.props.src}"
-      class="avatar"
-      style="width: ${this.size}; height: ${this.size};"
-    />`
   }
 &lt;/script>
 
@@ -431,15 +424,23 @@
   }
 &lt;/style>
 
+{{block avatar}}
+  &lt;img
+    src={{ props.src }}
+    class="avatar"
+    style="width: {{this.size }}; height: {{ this.size }};"
+  />
+{{/block}}
+
 {{if props.name}}
   &lt;span class="avatar">
     &lt;div class="title">{{ props.name }}&lt;/div>
     &lt;div>
-      {{raw image() }}
+      {{block:avatar}}
     &lt;/div>
   &lt;/span>
 {{else}}
-   {{raw image() }}
+  {{block:avatar}}
 {{/if}}
 
         </ui-editor>
@@ -1111,8 +1112,9 @@
           :action="applyChanges"
         >
           &lt;script>
-  // on document load, appends component to an end
-  // and after init() runs window[GLOBAL] = fez
+  // if GLOBAL is present, Fez engine
+  // * on document load auto appends component to document
+  // * after init() runs window[GLOBAL] = fez (mounted component)
   // this is singleton pattern
   GLOBAL = 'Dialog'
 
@@ -1236,7 +1238,6 @@ anywhere in HTML code
           :action="applyChanges"
         >
           &lt;head>
-  &lt;link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs2015.min.css" />
   &lt;script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js">&lt;/script>
 &lt;/head>
 
@@ -1313,6 +1314,129 @@ anywhere in HTML code
 &lt;/script>
 
 &lt;style>
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em;
+  }
+
+  code.hljs {
+    padding: 3px 5px;
+  }
+
+  .hljs {
+    background: #1e1e1e;
+    color: #dcdcdc;
+
+    &-keyword,
+    &-literal,
+    &-name,
+    &-symbol {
+      color: #569cd6;
+    }
+
+    &-link {
+      color: #569cd6;
+      text-decoration: underline;
+    }
+
+    &-built_in,
+    &-type {
+      color: #4ec9b0;
+    }
+
+    &-class,
+    &-number {
+      color: #b8d7a3;
+    }
+
+    &-string {
+      color: #d69d85;
+    }
+
+    &-meta {
+      color: #9b9b9b;
+
+      .hljs-string {
+        color: #d69d85;
+      }
+
+      .hljs-keyword {
+        color: #9b9b9b;
+      }
+    }
+
+    &-regexp,
+    &-template-tag {
+      color: #9a5334;
+    }
+
+    &-formula,
+    &-function,
+    &-params,
+    &-subst,
+    &-title {
+      color: #dcdcdc;
+    }
+
+    &-comment,
+    &-quote {
+      color: #57a64a;
+      font-style: italic;
+    }
+
+    &-doctag {
+      color: #608b4e;
+    }
+
+    &-tag {
+      color: #9b9b9b;
+    }
+
+    &-template-variable,
+    &-variable {
+      color: #bd63c5;
+    }
+
+    &-attr,
+    &-attribute {
+      color: #9cdcfe;
+    }
+
+    &-section {
+      color: gold;
+    }
+
+    &-emphasis {
+      font-style: italic;
+    }
+
+    &-strong {
+      font-weight: 700;
+    }
+
+    &-bullet,
+    &-selector-attr,
+    &-selector-class,
+    &-selector-id,
+    &-selector-pseudo,
+    &-selector-tag {
+      color: #d7ba7d;
+    }
+
+    &-addition {
+      background-color: #144212;
+      display: inline-block;
+      width: 100%;
+    }
+
+    &-deletion {
+      background-color: #600;
+      display: inline-block;
+      width: 100%;
+    }
+  }
+
   code {
     padding: 10px;
     font-size: 15px;
@@ -2337,7 +2461,7 @@ Fast ping:
   }
 
   init() {
-    this.slidesCount = this.childNodes(false).length
+    this.slidesCount = this.childNodes().length
     this.setStyle('--arrow-width', `70px`)
     this.setSlide(0)
     this.onResize(this.render, 100)
@@ -2553,7 +2677,7 @@ Fast ping:
     this.root.style.width = 'calc(100%)'
 
     const { n, activate } = this;
-    this.tabs = this.childNodes(false)
+    this.tabs = this.childNodes()
     this.render([
       n('div.header', this.tabs.map((tab, index) =>
         n('span', tab.getAttribute('title'), { onclick: ()=> activate(index) })

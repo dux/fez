@@ -143,7 +143,7 @@ function connectNode(name, node) {
 
     newNode.fez = fez
 
-    if (klass.fezGlobal) {
+    if (klass.fezGlobal && klass.fezGlobal != true) {
       window[klass.fezGlobal] = fez
     }
 

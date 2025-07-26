@@ -5,16 +5,9 @@
   init(props) {
     this.copy('href', 'style')
     this.size = (props.size || 64) + 'px'
+    if (props.name) { props.src ||= `https://robohash.org/${escape(props.name)}.png` }
     this.root.style.width = this.size
     this.root.style.height = this.size
-  }
-
-  image() {
-    return `<img
-      src="${this.props.src}"
-      class="avatar"
-      style="width: ${this.size}; height: ${this.size};"
-    />`
   }
 </script>
 
@@ -41,13 +34,21 @@
   }
 </style>
 
+{{block avatar}}
+  <img
+    src={{ props.src }}
+    class="avatar"
+    style="width: {{this.size }}; height: {{ this.size }};"
+  />
+{{/block}}
+
 {{if props.name}}
   <span class="avatar">
     <div class="title">{{ props.name }}</div>
     <div>
-      {{raw image() }}
+      {{block:avatar}}
     </div>
   </span>
 {{else}}
-   {{raw image() }}
+  {{block:avatar}}
 {{/if}}

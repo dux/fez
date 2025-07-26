@@ -188,8 +188,12 @@ Fez.tag = (tag, opts = {}, html = '') => {
   // return data
 };
 
-Fez.error = (text) => {
-  console.error(`Fez ERROR: ${text}`)
+Fez.error = (text, show) => {
+  text = `Fez: ${text}`
+  console.error(text)
+  if (show) {
+    return `<span style="border: 1px solid red; font-size: 14px; padding: 3px 7px; background: #fee; border-radius: 4px;">${text}</span>`
+  }
 }
 Fez.log = (text) => {
   if (Fez.LOG === true) {

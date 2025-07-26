@@ -66,7 +66,7 @@ window.LOG = (() => {
         '<div style="display:flex;flex-direction:column;height:100%">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">' +
         '<div style="display:flex;flex-wrap:wrap;gap:4px;flex:1;margin-right:10px">' + buttons + '</div>' +
-        '<button style="padding:4px 8px;cursor:pointer;flex-shrink:0">✖</button>' +
+        '<button style="padding:4px 8px;cursor:pointer;flex-shrink:0">&times;</button>' +
         '</div>' +
         '<xmp style="flex:1;overflow:auto;margin:0;padding:0;color:#000;background:#fff;font-size:14px;line-height:22px">' + logs[currentIndex] + '</xmp>' +
         '</div>';

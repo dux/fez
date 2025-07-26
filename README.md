@@ -265,8 +265,9 @@ Fez('foo-bar', class {
     Fez.publish('channel', foo)
     this.subscribe('channel', (foo) => { ... })
 
-    // gets root childNodes. pass function to loop forEach on selection
-    this.childNodes(func)
+    // gets root childNodes
+    this.childNodes()
+    this.childNodes(func)  // pass function to loop forEach on selection, removed nodes from DOM
 
     // check if the this.root node is attached to dom
     this.isConnected()
@@ -294,47 +295,43 @@ Fez('foo-bar', class {
     // render template and attach result dom to root. uses Idiomorph for DOM morph
     this.render(`
       <!-- resolve any condition -->
-      {{if fez.list[0]}}
+      {{if fez.list[0]}} ... {{/if}}
 
-        <!-- fez-this will link DOM node to object property (inspired by Svelte) -->
-        <ul fez-this="listRoot">
+      <!-- fez-this will link DOM node to object property (inspired by Svelte) -->
+      <!-- this.listRoot -->
+      <ul fez-this="listRoot">
 
-          <!-- runs in node scope -->
-          {{#each fez.list as name, index}}
+      <!-- runs in node scope -->
+      {{each fez.list as name, index}} ... {{/each}}
 
-          <!-- you can use for loop -->
-          {{#for name, index in fez.list}}
-            <!--
-              fez-use will call object function by name, and pass current node,
-              when node is added to dom (Inspired by Svelte)
-            -->
-            <li fez-use="animate">
-              <!-- fez-bind for two-way data binding on form elements -->
-              <input type="text" fez-bind="state.username" />
-              <input onkeyup="fez.list[{{ index }}].name = fez.value" value="{{ name }}" />
+      <!-- you can use for loop -->
+      {{for name, index in fez.list}} ... {{/for}}
 
-              <!-- :attribute for evaluated attributes (converts to JSON) -->
-              <div :data-config="state.config"></div>
+      <!-- when node is added to dom fez-use will call object function by name, and pass current node -->
+      <!-- this.animate(node) -->
+      <li fez-use="animate">
 
-              <!-- fez-class for adding classes with optional delay -->
-              <span fez-class="active:100">Delayed class</span>
+      <!-- fez-bind for two-way data binding on form elements -->
+      <input type="text" fez-bind="state.username" />
+      <input onkeyup="fez.list[{{ index }}].name = fez.value" value="{{ name }}" />
 
-            </li>
-          {{/each}}
-        </ul>
-      {{/if}}
+      <!-- fez-class for adding classes with optional delay -->
+      <span fez-class="active:100">Delayed class</span>
+
+      <!-- :attribute for evaluated attributes (converts to JSON) -->
+      <div :data-config="state.config"></div>
 
       <!-- unless directive - opposite of if -->
-      {{#unless fez.list.length}}
+      {{unless fez.list.length}}
         <p>No items to display</p>
       {{/unless}}
 
-      <!-- Block definitions and usage -->
-      {{#block header}}
-        <h1>Default header</h1>
+      <!-- Block definitions -->
+      {{block image}}
+        <img src={{ props.src}} />
       {{/block}}
-
-      {{#block:header}}  <!-- Use the header block -->
+      {{block:image}}<!-- Use the header block -->
+      {{block:image}}<!-- Use the header block -->
 
       <!-- Head elements support (inline only in XML tags) -->
       <head>
@@ -640,8 +637,8 @@ const result = await Fez.fetch('POST', 'https://api.example.com/data', {
 })
 
 // With callback and options
-Fez.fetch('PUT', 'https://api.example.com/data', 
-  { body: JSON.stringify({ id: 1 }) }, 
+Fez.fetch('PUT', 'https://api.example.com/data',
+  { body: JSON.stringify({ id: 1 }) },
   (data) => console.log('Updated:', data)
 )
 ```

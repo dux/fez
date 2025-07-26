@@ -14,21 +14,6 @@ function parseBlock(data, ifStack) {
     data = data.replace(/^#?unless/, '')
     return `\${ !(${data}) ? \``
   }
-  else if (data.startsWith('#block') || data.startsWith('block')) {
-    // do not use, but supported
-    // {{#block avatar}}
-    //   <img ... />
-    // {{/block}}
-    // {{#block:avatar}}
-    const parts1 = data.split('block ', 2)
-    const parts2 = data.split('block:', 2)
-
-    if (parts1[1]) {
-      return '${(this.fezBlocks.' + parts1[1] + ' = `'
-    } else {
-      return '${ this.fezBlocks.' + parts2[1] + ' }'
-    }
-  }
   else if (data == '/block') {
     return '`) && \'\'}'
   }
@@ -79,6 +64,15 @@ export default function createTemplate(text, opts = {}) {
     return `${p1}="{`+`{ ${p2} }`+`}"${p3}`
   })
 
+  // {{block foo}} ... {{/block}}
+  // {{block:foo}}
+  const blocks = {}
+  text = text.replace(/\{\{block\s+(\w+)\s*\}\}([^§]+)\{\{\/block\}\}/g, (_, name, block) => {
+    blocks[name] = block
+    return ''
+  })
+  text = text.replace(/\{\{block:([\w\-]+)\s*\}\}/g, (_, name) => blocks[name] || `block:${name}?`)
+
   // {{#for el in list }}}}
   //   <ui-comment :comment="el"></ui-comment>
   //   -> :comment="{{ JSON.stringify(el) }}"
@@ -117,5 +111,6 @@ export default function createTemplate(text, opts = {}) {
   } catch(e) {
     e.message = `FEZ template compile error: ${e.message}Template source:\n${result}`
     console.error(e)
+    return ()=>Fez.error(`Template Compile Error`, true)
   }
 }

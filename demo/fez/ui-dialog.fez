@@ -1,6 +1,7 @@
 <script>
-  // on document load, appends component to an end
-  // and after init() runs window[GLOBAL] = fez
+  // if GLOBAL is present, Fez engine
+  // * on document load auto appends component to document
+  // * after init() runs window[GLOBAL] = fez (mounted component)
   // this is singleton pattern
   GLOBAL = 'Dialog'
 

@@ -453,29 +453,21 @@ export default class FezBase {
 
   // get root node child nodes as array
   childNodes(func) {
-    // Create temporary container to avoid ancestor-parent errors
-    const tmpContainer = document.createElement('div')
-    tmpContainer.style.display = 'none'
-    document.body.appendChild(tmpContainer)
-
     const children = Array.from(this.root.children)
 
-    // if false given, just return children
-    if ( func === false ) {
+    if (func) {
+      // Create temporary container to avoid ancestor-parent errors
+      const tmpContainer = document.createElement('div')
+      tmpContainer.style.display = 'none'
+      document.body.appendChild(tmpContainer)
+      children.forEach(child => tmpContainer.appendChild(child))
+
+      let list = Array.from(tmpContainer.children).map(func)
+      document.body.removeChild(tmpContainer)
+      return list
+    } else {
       return children
     }
-
-    children.forEach(child => tmpContainer.appendChild(child))
-
-    let list = Array.from(tmpContainer.children)
-
-    if (func) {
-      list = list.map(func)
-    }
-
-    document.body.removeChild(tmpContainer)
-
-    return list
   }
 
   subscribe(channel, func) {

@@ -7,9 +7,9 @@
   "scripts": {
     "pages": "ruby demo/helper.rb > ./index.html",
     "build": "bun build.js b",
-    "dev": "bun run pages; open index.html; bun build.js w",
-    "sdev": "bun run pages; bun build.js b",
-    "xdev": "open http://localhost:8000/index.html; find src demo | entr -c bun run sdev & ruby -run -e httpd . -p 8000",
+    "watch": "bun build.js w",
+    "server": "ruby -run -e httpd . -p 8000",
+    "dev": "sh -c 'bun run server & SERVER_PID=$!; trap \"kill $SERVER_PID\" EXIT; find src demo | entr -c sh -c \"bun run pages && bun run build\"'",
     "test": "bun test/simple-test.js",
     "push": "bun run build && bun run test"
   },

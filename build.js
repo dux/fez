@@ -7,7 +7,6 @@
 
 import { execSync } from "node:child_process";
 import * as esbuild from 'esbuild'
-import coffeeScriptPlugin from 'esbuild-coffeescript'
 
 const cliRun = (command) => {
   console.log(`RUN: ${command}`)
@@ -25,7 +24,7 @@ const opts = {
   platform: 'browser',
   sourcemap: kind != 'd',
   minify: true,
-  plugins: [coffeeScriptPlugin()],
+  plugins: []
 }
 
 console.log(opts)
