@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="./demo/log.js"></script>
-  <script src="./dist/fez.js?t=1753551927"></script>
+  <script src="./dist/fez.js?t=1753567689"></script>
   <script>
     window.L = console.log;
     Fez.LOG = true; // location.port > 999
@@ -45,7 +45,6 @@
     <h1>[[ props.title ]]</h1>
   [[/if]]
 </xmp>
-
 
 
   <div class="center" style="max-width: 1100px; ">
@@ -2549,6 +2548,78 @@ Fast ping:
     
       
 
+<script fez="./demo/fez/ui-style.fez"></script>
+<div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+  <div style="margin-top: 10px;">
+    <small style="float: right;" onclick="openCodePen('ui-style')">open in CodePen</small>
+    <h3 style="margin-top: 0;">
+      Demo: ui-style
+    </h3>
+
+    <div id="body-ui-style" style="padding-bottom: 20px;">
+      <ui-style>This text will be smaller on mobile. Using <code>:mobile { ...</code> shortcut.<ui-style>
+
+    </div>
+  </div>
+  <div style="margin-top: 20px; max-width: 690px;">
+    <ui-tabs>
+      <div title="Info" active="true">
+        <div class="info">
+  <ul>
+    <li>Features: <code>Fez.styleBlock</code> - define style shortcuts.</li>
+  </ul>
+</div>
+      </div>
+      <div title="HTML">
+        <ui-editor
+          name="ui-style"
+          id="html-ui-style"
+          file="./demo/fez/ui-style.html"
+          language="html"
+          :action="applyChanges"
+        >
+          &lt;ui-style>This text will be smaller on mobile. Using &lt;code>:mobile { ...&lt;/code> shortcut.&lt;ui-style>
+
+        </ui-editor>
+      </div>
+      <div title="Fez component">
+        <ui-editor
+          id="code-ui-style"
+          file="./demo/fez/ui-style.fez"
+          name="ui-style"
+          :action="applyChanges"
+        >
+          &lt;head>
+  &lt;script>
+    Fez.styleBlock('mobile', '@media (max-width:  768px)')
+  &lt;/script>
+&lt;/head>
+
+&lt;style>
+  h1 {
+    transition: font-size 0.3s ease;
+
+    :mobile {
+      font-size: 20px;
+    }
+  }
+&lt;/style>
+
+&lt;div>
+  &lt;h1>
+     &lt;slot />
+  &lt;/h1>
+&lt;/div>
+
+        </ui-editor>
+      </div>
+    </ui-tabs>
+  </div>
+</div>
+
+    
+      
+
 <script fez="./demo/fez/ui-tabs.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
   <div style="margin-top: 10px;">
@@ -2856,6 +2927,114 @@ Fast ping:
 &lt;hr />
 
 &lt;slot>&lt;/slot>
+
+        </ui-editor>
+      </div>
+    </ui-tabs>
+  </div>
+</div>
+
+    
+      
+
+<script fez="./demo/fez/ui-tippy.fez"></script>
+<div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+  <div style="margin-top: 10px;">
+    <small style="float: right;" onclick="openCodePen('ui-tippy')">open in CodePen</small>
+    <h3 style="margin-top: 0;">
+      Demo: ui-tippy
+    </h3>
+
+    <div id="body-ui-tippy" style="padding-bottom: 20px;">
+      <p>
+  To enable, add add <code>tooltip="..."</code> to any node.
+</p>
+
+<h4>Basic Examples</h4>
+
+<button tooltip="Hi from tippy.js">Hover me</button>
+<button tooltip="Another tooltip!">Another button</button>
+<a href="#" tooltip="Works on links too">Hover this link</a>
+
+<h4>Dynamic Content</h4>
+<button onclick="this.setAttribute('tooltip', 'Updated at ' + new Date().toLocaleTimeString())">
+  Click me then hover (dynamic tooltip)
+</button>
+
+<h4>Icons and Images</h4>
+<span tooltip="Settings" style="font-size: 24px; cursor: pointer;">⚙️</span>
+<span tooltip="Information" style="font-size: 24px; cursor: pointer;">ℹ️</span>
+<span tooltip="Warning!" style="font-size: 24px; cursor: pointer;">⚠️</span>
+
+    </div>
+  </div>
+  <div style="margin-top: 20px; max-width: 690px;">
+    <ui-tabs>
+      <div title="Info" active="true">
+        <div class="info">
+  <ul>
+    <li>Features: Nothing!. Blank compoenent, only adds to head on load.</li>
+  </ul>
+</div>
+      </div>
+      <div title="HTML">
+        <ui-editor
+          name="ui-tippy"
+          id="html-ui-tippy"
+          file="./demo/fez/ui-tippy.html"
+          language="html"
+          :action="applyChanges"
+        >
+          &lt;p>
+  To enable, add add &lt;code>tooltip="..."&lt;/code> to any node.
+&lt;/p>
+
+&lt;h4>Basic Examples&lt;/h4>
+
+&lt;button tooltip="Hi from tippy.js">Hover me&lt;/button>
+&lt;button tooltip="Another tooltip!">Another button&lt;/button>
+&lt;a href="#" tooltip="Works on links too">Hover this link&lt;/a>
+
+&lt;h4>Dynamic Content&lt;/h4>
+&lt;button onclick="this.setAttribute('tooltip', 'Updated at ' + new Date().toLocaleTimeString())">
+  Click me then hover (dynamic tooltip)
+&lt;/button>
+
+&lt;h4>Icons and Images&lt;/h4>
+&lt;span tooltip="Settings" style="font-size: 24px; cursor: pointer;">⚙️&lt;/span>
+&lt;span tooltip="Information" style="font-size: 24px; cursor: pointer;">ℹ️&lt;/span>
+&lt;span tooltip="Warning!" style="font-size: 24px; cursor: pointer;">⚠️&lt;/span>
+
+        </ui-editor>
+      </div>
+      <div title="Fez component">
+        <ui-editor
+          id="code-ui-tippy"
+          file="./demo/fez/ui-tippy.fez"
+          name="ui-tippy"
+          :action="applyChanges"
+        >
+          &lt;head>
+  &lt;link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/tippy.css">
+  &lt;script type="module">
+    // add tooltip="..." to any node
+    import tippy from 'https://cdn.skypack.dev/tippy.js'
+
+    const bindTippy = () => {
+      const ttName = 'tooltip'
+      document.querySelectorAll(`[${ttName}]`).forEach(node => {
+        tippy(node, {
+          content: node.getAttribute(ttName),
+          arrow: true
+        })
+        node.removeAttribute(ttName)
+      })
+    }
+
+    bindTippy()
+    setInterval(bindTippy, 1000)
+  &lt;/script>
+&lt;/head>
 
         </ui-editor>
       </div>

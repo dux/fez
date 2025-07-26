@@ -412,13 +412,18 @@ Fez.fetch = function(...args) {
     });
 }
 
-Fez.onError = function(kind, message) {
+Fez.onError = (kind, message) => {
   // Ensure kind is always a string
   if (typeof kind !== 'string') {
     throw new Error('Fez.onError: kind must be a string');
   }
 
   console.error(`${kind}: ${message.toString()}`);
+}
+
+Fez._styleBlocks = {}
+Fez.styleBlock = (name, content) => {
+  Fez._styleBlocks[name] = content
 }
 
 Fez.compile = compile
