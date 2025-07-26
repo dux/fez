@@ -50,7 +50,7 @@ const compileToClass = (html) => {
         if (node.src) {
           // External script - will load automatically
           document.head.appendChild(script)
-        } else if (script.type.includes('javascript')) {
+        } else if (script.type.includes('javascript') || script.type == 'module') {
           // Inline script - set content and execute
           script.textContent = node.textContent
           document.head.appendChild(script)

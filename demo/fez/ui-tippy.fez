@@ -1,0 +1,21 @@
+<head>
+  <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/tippy.css">
+  <script type="module">
+    // add tooltip="..." to any node
+    import tippy from 'https://cdn.skypack.dev/tippy.js'
+
+    const bindTippy = () => {
+      const ttName = 'tooltip'
+      document.querySelectorAll(`[${ttName}]`).forEach(node => {
+        tippy(node, {
+          content: node.getAttribute(ttName),
+          arrow: true
+        })
+        node.removeAttribute(ttName)
+      })
+    }
+
+    bindTippy()
+    setInterval(bindTippy, 1000)
+  </script>
+</head>

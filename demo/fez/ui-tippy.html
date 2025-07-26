@@ -1,0 +1,20 @@
+<div class="info">
+  <ul>
+    <li>Features: Nothing!. Blank compoenent, only adds to head on load.</li>
+  </ul>
+</div>
+
+<h3>Basic Examples</h3>
+<button tooltip="Hi from tippy.js">Hover me</button>
+<button tooltip="Another tooltip!">Another button</button>
+<a href="#" tooltip="Works on links too">Hover this link</a>
+
+<h3>Dynamic Content</h3>
+<button onclick="this.setAttribute('tooltip', 'Updated at ' + new Date().toLocaleTimeString())">
+  Click me then hover (dynamic tooltip)
+</button>
+
+<h3>Icons and Images</h3>
+<span tooltip="Settings" style="font-size: 24px; cursor: pointer;">⚙️</span>
+<span tooltip="Information" style="font-size: 24px; cursor: pointer;">ℹ️</span>
+<span tooltip="Warning!" style="font-size: 24px; cursor: pointer;">⚠️</span>
