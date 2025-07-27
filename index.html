@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="./demo/log.js"></script>
-  <script src="./dist/fez.js?t=1753642019"></script>
+  <script src="./dist/fez.js?t=1753642603"></script>
   <script>
     window.L = console.log;
     Fez.LOG = true; // location.port > 999
@@ -948,6 +948,92 @@
     &lt;/text>
   {{/if}}
 &lt;/svg>
+
+        </ui-editor>
+      </div>
+    </ui-tabs>
+  </div>
+</div>
+
+    
+      
+
+<script fez="./demo/fez/ui-confetti.fez"></script>
+<div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+  <div style="margin-top: 10px;">
+    <small style="float: right;" onclick="openCodePen('ui-confetti')">open in CodePen</small>
+    <h3 style="margin-top: 0;">
+      Demo: ui-confetti
+    </h3>
+
+    <div id="body-ui-confetti" style="padding-bottom: 20px;">
+      <ui-confetti>
+  <button>Congratulations!</button>
+</ui-confetti>
+
+&sdot;
+
+<ui-confetti>
+  <button>And more congratulations!</button>
+</ui-confetti>
+
+
+
+
+
+    </div>
+  </div>
+  <div style="margin-top: 20px; max-width: 690px;">
+    <ui-tabs>
+      <div title="Info" active="true">
+        <div class="info">
+  <ul>
+    <li>Features: module imoorts</li>
+  </ul>
+</div>
+      </div>
+      <div title="HTML">
+        <ui-editor
+          name="ui-confetti"
+          id="html-ui-confetti"
+          file="./demo/fez/ui-confetti.html"
+          language="html"
+          :action="applyChanges"
+        >
+          &lt;ui-confetti>
+  &lt;button>Congratulations!&lt;/button>
+&lt;/ui-confetti>
+
+&sdot;
+
+&lt;ui-confetti>
+  &lt;button>And more congratulations!&lt;/button>
+&lt;/ui-confetti>
+
+
+
+
+
+        </ui-editor>
+      </div>
+      <div title="Fez component">
+        <ui-editor
+          id="code-ui-confetti"
+          file="./demo/fez/ui-confetti.fez"
+          name="ui-confetti"
+          :action="applyChanges"
+        >
+          &lt;script>
+  import confetti from 'https://cdn.skypack.dev/canvas-confetti';
+
+  class {
+    NAME = 'span'
+
+    init() {
+      this.root.onclick = ()=>confetti()
+    }
+  }
+&lt;/script>
 
         </ui-editor>
       </div>
