@@ -22,7 +22,6 @@
 
   /* scoped to this component */
   :fez {
-    zoom: 2;
     margin: 10px 0;
 
     button {
@@ -31,14 +30,14 @@
     }
 
     span {
-      padding: 0 5px;
+      padding: 5px 10px;
     }
   }
 </style>
 
-<button onclick="fez.state.count -= 1" disabled={{ state.count < 1 }}>-</button>
+<button class="btn-sm" onclick="fez.state.count -= 1" disabled={{ state.count < 1 }}>-</button>
 <span>{{ state.count }}</span>
-<button onclick="fez.more()" disabled={{ isMax() }}>+</button>
+<button class="btn-sm" onclick="fez.more()" disabled={{ isMax() }}>+</button>
 
 {{if state.count > 0}}
   <span>&mdash;</span>

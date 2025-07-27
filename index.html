@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="./demo/log.js"></script>
-  <script src="./dist/fez.js?t=1753642603"></script>
+  <script src="./dist/fez.js?t=1753652805"></script>
   <script>
     window.L = console.log;
     Fez.LOG = true; // location.port > 999
@@ -245,7 +245,6 @@
   
     /* scoped to this component */
     :fez {
-      zoom: 2;
       margin: 10px 0;
   
       button {
@@ -254,14 +253,14 @@
       }
   
       span {
-        padding: 0 5px;
+        padding: 5px 10px;
       }
     }
   </style>
   
-  <button onclick="fez.state.count -= 1" disabled={{ state.count < 1 }}>-</button>
+  <button class="btn-sm" onclick="fez.state.count -= 1" disabled={{ state.count < 1 }}>-</button>
   <span>{{ state.count }}</span>
-  <button onclick="fez.more()" disabled={{ isMax() }}>+</button>
+  <button class="btn-sm" onclick="fez.more()" disabled={{ isMax() }}>+</button>
   
   {{if state.count > 0}}
     <span>&amp;mdash;</span>
@@ -296,7 +295,7 @@
         </ui-editor>
       </li>
       <li>
-        <p>That is it! Edit this demo on <a target="jsbin" href="https://jsbin.com/nitihel/edit?html,output">JSbin</a></p>
+        <p>That is it! Add then as regular DOM nodes.</p>
         <ui-counter></ui-counter>
         <ui-counter start="1"></ui-counter>
         <ui-counter start="2"></ui-counter>
@@ -552,6 +551,9 @@
 <button onclick="flipAllCards()">Flip cards via direct access</button>
 <button onclick="Fez.publish('flip-card')">Flip cards via pub/sub</button>
 
+<br />
+<br />
+
 <ui-card>
   <div class="front">
     <h2>The magician</h2>
@@ -633,6 +635,9 @@
 &lt;button onclick="randomFlip()">Random flip&lt;/button>
 &lt;button onclick="flipAllCards()">Flip cards via direct access&lt;/button>
 &lt;button onclick="Fez.publish('flip-card')">Flip cards via pub/sub&lt;/button>
+
+&lt;br />
+&lt;br />
 
 &lt;ui-card>
   &lt;div class="front">
@@ -1111,7 +1116,6 @@
 
   /* scoped to this component */
   :fez {
-    zoom: 2;
     margin: 10px 0;
 
     button {
@@ -1120,14 +1124,14 @@
     }
 
     span {
-      padding: 0 5px;
+      padding: 5px 10px;
     }
   }
 &lt;/style>
 
-&lt;button onclick="fez.state.count -= 1" disabled={{ state.count &lt; 1 }}>-&lt;/button>
+&lt;button class="btn-sm" onclick="fez.state.count -= 1" disabled={{ state.count &lt; 1 }}>-&lt;/button>
 &lt;span>{{ state.count }}&lt;/span>
-&lt;button onclick="fez.more()" disabled={{ isMax() }}>+&lt;/button>
+&lt;button class="btn-sm" onclick="fez.more()" disabled={{ isMax() }}>+&lt;/button>
 
 {{if state.count > 0}}
   &lt;span>&mdash;&lt;/span>
@@ -1396,23 +1400,24 @@ anywhere in HTML code
   }
 
   pre {
-    margin-top: 10px;
+    margin-top: 20px;
     width: 100%;
     line-height: 26px;
   }
 &lt;/style>
 
 {{#if props.file}}
-  &lt;div style="font-size: 14px; margin: 0; position: relative; top: 7px;">
+  &lt;div style="margin: 0; position: relative; top: 7px;">
     &lt;a
       href="https://raw.githubusercontent.com/dux/fez/main/{{ props.file.replace('./', '') }}"
       target="raw"
     >{{ props.file }}&lt;/a>
     &sdot;
-    &lt;button onclick="fez.copy()">Copy&lt;/button>
+    &lt;button class="btn-sm" onclick="fez.copy()">Copy&lt;/button>
     {{#if props.action }}
       &sdot;
       &lt;button
+        class="btn-sm"
         style="cursor: pointer; font-weight: 600;"
         onclick="fez.props.action('{{ props.name }}')"
       >Update&lt;/button>
@@ -3016,8 +3021,8 @@ Fast ping:
 
 <br />
 
-<button onclick="Toast.info('Hi')">Trigger info</button>
-<button onclick="Toast.error('Graaa')">Trigger error</button>
+<button class="btn-sm" onclick="Toast.info('Hi')">Trigger info</button>
+<button class="btn-sm" onclick="Toast.error('Graaa')">Trigger error</button>
 
 <script>
   function showToast(form) {
@@ -3053,8 +3058,8 @@ Fast ping:
 
 &lt;br />
 
-&lt;button onclick="Toast.info('Hi')">Trigger info&lt;/button>
-&lt;button onclick="Toast.error('Graaa')">Trigger error&lt;/button>
+&lt;button class="btn-sm" onclick="Toast.info('Hi')">Trigger info&lt;/button>
+&lt;button class="btn-sm" onclick="Toast.error('Graaa')">Trigger error&lt;/button>
 
 &lt;script>
   function showToast(form) {
