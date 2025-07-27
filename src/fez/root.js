@@ -1,11 +1,11 @@
 // runtime scss
-import Gobber from './vendor/gobber'
+import Gobber from './vendor/gobber.js'
 
 // morph dom from one state to another
-import { Idiomorph } from './vendor/idiomorph'
+import { Idiomorph } from './vendor/idiomorph.js'
 
-import connect from './connect'
-import compile from './compile'
+import connect from './connect.js'
+import compile from './compile.js'
 
 // Fez('ui-slider')                             # first slider
 // Fez('ui-slider', (n)=>alert(n))              # find all and execute
@@ -204,13 +204,14 @@ document.addEventListener('DOMContentLoaded', () => {
   Fez.log('Fez.LOG === true, logging enabled.')
 })
 
-// execute function untill it returns true
+// execute function until it returns true
 Fez.untilTrue = (func, pingRate) => {
+  pingRate ||= 200
+
   if (!func()) {
-    setTimeout(
-      func,
-      pingRate || 200
-    )
+    setTimeout(()=>{
+      Fez.untilTrue(func, pingRate)
+    } ,pingRate)
   }
 }
 
@@ -421,9 +422,12 @@ Fez.onError = (kind, message) => {
   console.error(`${kind}: ${message.toString()}`);
 }
 
-Fez._styleBlocks = {}
-Fez.styleBlock = (name, content) => {
-  Fez._styleBlocks[name] = content
+// define custom style macro
+// Fez.styleMacro('mobile', '@media (max-width:  768px)')
+// :mobile { ... } -> @media (max-width:  768px) { ... }
+Fez._styleMacros = {}
+Fez.styleMacro = (name, content) => {
+  Fez._styleMacros[name] = content
 }
 
 Fez.compile = compile

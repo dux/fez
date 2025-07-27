@@ -1,10 +1,11 @@
 // templating
-import createTemplate from './lib/template'
-import FezBase from './instance'
+import createTemplate from './lib/template.js'
+import FezBase from './instance.js'
 
 // this function accepts custom tag name and class definition, creates and connects
 // Fez(name, klass)
 export default function(name, klass) {
+  const Fez = globalThis.window?.Fez || globalThis.Fez;
   // Validate custom element name format (must contain a dash)
   if (!name.includes('-')) {
     console.error(`Fez: Invalid custom element name "${name}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)

@@ -1,9 +1,9 @@
 // base class for custom dom objects
-import FezBase from './fez/instance'
+import FezBase from './fez/instance.js'
 window.FezBase = FezBase
 
 // base class for custom dom objects
-import Fez from './fez/root'
+import Fez from './fez/root.js'
 window.Fez = Fez
 
 // clear all unattached nodes

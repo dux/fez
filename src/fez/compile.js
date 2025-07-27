@@ -5,7 +5,6 @@ const compileToClass = (html) => {
   let currentBlock = []
   let currentType = ''
 
-
   for (var line of lines) {
     line = line.trim()
     if (line.startsWith('<script') && !result.script && currentType != 'head') {
@@ -69,7 +68,7 @@ const compileToClass = (html) => {
   }
 
   if (String(result.style).includes(':')) {
-    Object.entries(Fez._styleBlocks).forEach(([key, val])=>{
+    Object.entries(Fez._styleMacros).forEach(([key, val])=>{
       result.style = result.style.replaceAll(`:${key} `, `${val} `)
     })
 

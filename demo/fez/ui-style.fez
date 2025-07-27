@@ -1,6 +1,6 @@
 <head>
   <script>
-    Fez.styleBlock('mobile', '@media (max-width:  768px)')
+    Fez.styleMacro('mobile', '@media (max-width:  1200px)')
   </script>
 </head>
 

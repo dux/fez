@@ -10,7 +10,7 @@
     "watch": "bun build.js w",
     "server": "ruby -run -e httpd . -p 8000",
     "dev": "sh -c 'bun run server & SERVER_PID=$!; trap \"kill $SERVER_PID\" EXIT; find src demo | entr -c sh -c \"bun run pages && bun run build\"'",
-    "test": "bun test/simple-test.js",
+    "test": "bun test",
     "push": "bun run build && bun run test"
   },
   "devDependencies": {

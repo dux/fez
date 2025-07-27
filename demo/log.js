@@ -11,6 +11,10 @@ window.LOG = (() => {
 
     // Store the original type
     let originalType = typeof o;
+
+    if (o === undefined) { o = 'undefined' }
+    if (o === null) { o = 'null' }
+
     if (Array.isArray(o)) {
       originalType = 'array';
     } else if (typeof o === 'object' && o !== null) {
@@ -20,7 +24,7 @@ window.LOG = (() => {
     if (typeof o != 'string') {
       o = JSON.stringify(o, (key, value) => {
         if (typeof value === 'function') {
-          return 'function(){...}';
+          return String(value);
         }
         return value;
       }, 2).replaceAll('<', '&lt;')

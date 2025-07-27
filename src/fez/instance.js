@@ -1,6 +1,6 @@
 // HTML node builder
-import parseNode from './lib/n'
-import createTemplate from './lib/template'
+import parseNode from './lib/n.js'
+import createTemplate from './lib/template.js'
 
 export default class FezBase {
   // get node attributes as object
@@ -341,7 +341,7 @@ export default class FezBase {
     })
 
     // <button fez-class="dialog animate" -> add class "animate" after node init to trigger animation
-    fetchAttr('fez-class', (value) => {
+    fetchAttr('fez-class', (value, n) => {
       let classes = value.split(/\s+/)
       let lastClass = classes.pop()
       classes.forEach((c)=> n.classList.add(c) )

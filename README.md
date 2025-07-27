@@ -2,11 +2,7 @@
 
 # FEZ - Custom DOM Elements
 
-### jQuery taught me simplicity, I added Svelte's elegance, just drop in and code!
-
-#### First look at examples at [https://dux.github.io/fez/](https://dux.github.io/fez), and if everything else fails, then read this documentation :)
-
-<hr />
+Check the Demo site https://dux.github.io/fez/
 
 FEZ is a small library (20kb minified) that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
 
@@ -134,31 +130,59 @@ This example showcases:
 
 ## What can it do and why is it great?
 
-* It can create and define Custom HTML tags, libs main feature. It uses native, fast browser interface to do it.
-* It plays great with server generated code, because this is a component library. You are free to use any routing and server logic you prefer.
-* Before `init()`, it will rename custom dom node name and create standard HTML node. For example `<ui-button>` can be converted to `<button class="fez fez-button btn btn-empty">...`. This makes all `Fez` components stylable in root (you can't style `ui-button`).
-* I will use one file to define CSS, HTML and code.
-* It does not need server side compiling.
-* There is no magic as Svelte runes, React hooks, states and whatever. Plain vanilla JS classes with "few" documented functions.
-* it can style components using SCSS, using [goober](https://goober.js.org/).
-* it has few useful built in helper methods as formData(), setInterval() that triggers only while node is connected, etc
-* it has `<slot />` support
-* It has garbage collector, just add tags to HTML and destroy DOM nodes as you wish.
-* It will close "HTML invalid" inline items before rendering `<fez-icon name="gear" />` -> `<fez-icon name="gear"></fez-icon>`
-* it has built in publish-subscribe, where only connected nodes will be able to publish and receive subs.
-* It morphs DOM, state is preserved on changes.
-* It can have full state &lt;> template sync using `reactiveStore()`
-* Development mode logging - set `window.DEV = true` to see when components are created
+### Core Features
 
-## What it does not do?
+* **Native Custom Elements** - Creates and defines Custom HTML tags using the native browser interface for maximum performance
+* **Server-Side Friendly** - Works seamlessly with server-generated HTML, any routing library, and progressive enhancement strategies
+* **Semantic HTML Output** - Transforms custom elements to standard HTML nodes (e.g., `<ui-button>` → `<button class="fez fez-button">`), making components fully stylable with CSS
+* **Single-File Components** - Define CSS, HTML, and JavaScript in one file, no build step required
+* **No Framework Magic** - Plain vanilla JS classes with clear, documented methods. No hooks, runes, or complex abstractions
+* **Runtime SCSS** - Style components using SCSS syntax via [Goober](https://goober.js.org/), compiled at runtime
+* **Smart Memory Management** - Automatic garbage collection cleans up disconnected nodes every 5 seconds
 
-* It has no build in routing. This is lib for building DOM components. Works great with any server side rendering or libs like [HTMLX](https://htmx.org/) or even React or Angular. Fez is great way to continue working on legacy JS apps that are too complicated to migrate. Just write new components in Fez.
+### Advanced Templating & Styling
+
+* **Powerful Template Engine** - Multiple syntaxes (`{{ }}` and `[[ ]]`), control flow (`#if`, `#unless`, `#for`, `#each`), and block templates
+* **Reactive State Management** - Built-in reactive `state` object automatically triggers re-renders on property changes
+* **DOM Morphing** - Uses [Idiomorph](https://github.com/bigskysoftware/idiomorph) for intelligent DOM updates that preserve element state and animations
+* **Style Macros** - Define custom CSS shortcuts like `Fez.styleMacro('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }`
+* **Scoped & Global Styles** - Components can define both scoped CSS (`:fez { ... }`) and global styles in the same component
+
+### Developer Experience
+
+* **Built-in Utilities** - Helpful methods like `formData()`, `setInterval()` (auto-cleanup), `onResize()`, and `nextTick()`
+* **Two-Way Data Binding** - Use `fez-bind` directive for automatic form synchronization
+* **Advanced Slot System** - Full `<slot />` support with event listener preservation
+* **Publish/Subscribe** - Built-in pub/sub system for component communication
+* **Dynamic Component Loading** - Load components from URLs with `<template fez="path/to/component.html">`
+* **Auto HTML Correction** - Fixes invalid self-closing tags (`<fez-icon name="gear" />` → `<fez-icon name="gear"></fez-icon>`)
+
+### Performance & Integration
+
+* **Fast/Slow Render Modes** - Optimize initial render with `FAST = true` to prevent flickering
+* **Request Animation Frame** - Smart RAF integration for smooth updates
+* **Built-in Fetch with Caching** - `Fez.fetch()` includes automatic response caching and JSON/FormData handling
+* **Global Component Access** - Register components globally with `GLOBAL = 'ComponentName'` for easy access
+* **Rich Lifecycle Hooks** - `init`, `onMount`, `beforeRender`, `afterRender`, `onDestroy`, `onPropsChange`
+* **Development Mode** - Enable detailed logging with `Fez.DEV = true`
+
+### Why It's Great
+
+* **Zero Build Step** - Just include the script and start coding
+* **20KB Minified** - Tiny footprint with powerful features
+* **Framework Agnostic** - Use alongside React, Vue, or any other framework
+* **Progressive Enhancement** - Perfect for modernizing legacy applications one component at a time
+* **Native Performance** - Leverages browser's native Custom Elements API
+* **Intuitive API** - If you know vanilla JavaScript, you already know Fez
 
 ## Full available interface
 
 ### Fez Static Methods
 
 ```js
+Fez('#foo')          // find fez node with id="foo"
+Fez('ui-tabs', this) // find first parent node ui-tabs
+
 // add global scss
 Fez.globalCss(`
   .some-class {
@@ -203,6 +227,11 @@ Fez.untilTrue(func, pingRate)
 // Execute inline script: Fez.head({ script: 'console.log("Hello world")' })
 Fez.head(config, callback)
 
+// define custom style macro
+// Fez.styleMacro('mobile', '@media (max-width:  768px)')
+// :mobile { ... } -> @media (max-width:  768px) { ... }
+Fez.styleMacro(name, value)
+
 // define custom DOM node name -> <foo-bar>...
 Fez('foo-bar', class {
   // set element node name, set as property or method, defaults to DIV
@@ -226,9 +255,14 @@ Fez('foo-bar', class {
   // if you pair it with `reactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
   HTML = `...`
 
+  // Make it globally accessible as `window.Dialog`
+  // The component is automatically appended to the document body as a singleton. See `demo/fez/ui-dialog.fez` for a complete example.
+  GLOBAL = 'Dialog'
+  GLOBAL = true // just append node to document, do not create window reference
+
   // use connect or created
   init(props) {
-    // copy attributes from attr hash to root node
+    // copy original attributes from attr hash to root node
     this.copy('href', 'onclick', 'style')
 
     // set style property to root node. look at a clock example
@@ -247,7 +281,7 @@ Fez('foo-bar', class {
     // mounted DOM node root wrapped in $, only if jQuery is available
     this.$root
 
-    // node properties as Object
+    // node attributes, converted to properties
     this.props
 
     // gets single node attribute or property
@@ -292,124 +326,131 @@ Fez('foo-bar', class {
     // hide the custom element wrapper and move children to parent
     this.fezHide()
 
+    // execute after connect and initial component render
+    this.onMount() { ... } // or this.connected() { ... }
+
+    // execute before or after every render
+    this.beforeRender() { ... }
+    this.afterRender() { ... }
+
+    // if you want to monitor new or changed node attributes
+    // monitors all original node attributes
+    // <ui-icon name="home" color="red" />
+    this.onPropsChange(attrName, attrValue) { ... }
+
+    // called when component is destroyed
+    this.onDestroy() { ... }
+
+    // automatic form submission handling if defined
+    this.onSubmit(formData) { ... }
+
     // render template and attach result dom to root. uses Idiomorph for DOM morph
-    this.render(`
-      <!-- resolve any condition -->
-      {{if fez.list[0]}} ... {{/if}}
+    this.render()
 
-      <!-- fez-this will link DOM node to object property (inspired by Svelte) -->
-      <!-- this.listRoot -->
-      <ul fez-this="listRoot">
-
-      <!-- runs in node scope -->
-      {{each fez.list as name, index}} ... {{/each}}
-
-      <!-- you can use for loop -->
-      {{for name, index in fez.list}} ... {{/for}}
-
-      <!-- when node is added to dom fez-use will call object function by name, and pass current node -->
-      <!-- this.animate(node) -->
-      <li fez-use="animate">
-
-      <!-- fez-bind for two-way data binding on form elements -->
-      <input type="text" fez-bind="state.username" />
-      <input onkeyup="fez.list[{{ index }}].name = fez.value" value="{{ name }}" />
-
-      <!-- fez-class for adding classes with optional delay -->
-      <span fez-class="active:100">Delayed class</span>
-
-      <!-- :attribute for evaluated attributes (converts to JSON) -->
-      <div :data-config="state.config"></div>
-
-      <!-- unless directive - opposite of if -->
-      {{unless fez.list.length}}
-        <p>No items to display</p>
-      {{/unless}}
-
-      <!-- Block definitions -->
-      {{block image}}
-        <img src={{ props.src}} />
-      {{/block}}
-      {{block:image}}<!-- Use the header block -->
-      {{block:image}}<!-- Use the header block -->
-
-      <!-- Head elements support (inline only in XML tags) -->
-      <head>
-        <script>console.log('Added to document head')</script>
-      </head>
-    `)
+    // you can render to another root too
+    this.render(this.find('.body'), someHtmlTemplate)
   }
-  // you can render to another root too
-  this.render(this.find('.body'), someHtmlTemplate)
-
-  // execute after connect and initial component render
-  this.onMount() { ... } // or this.connected() { ... }
-
-  // execute before or after every render
-  this.beforeRender() { ... }
-  this.afterRender() { ... }
-
-  // if you want to monitor new or changed node attributes
-  this.onPropsChange(name, value) { ... }
-
-  // called when component is destroyed
-  this.onDestroy() { ... }
-
-  // automatic form submission handling if defined
-  this.onSubmit(formData) { ... }
 })
 ```
 
+## Fez script loading and definition
+
 ```html
   <!-- Remote loading for a component via URL in fez attribute -->
-  <template fez="path/to/ui-button.fez.html"></template>
-  <xmp fez="https://example.com/components/ui-button.html"></xmp>
-
   <!-- Component name is extracted from filename (ui-button) -->
   <!-- If remote HTML contains template/xmp tags with fez attributes, they are compiled -->
   <!-- Otherwise, the entire content is compiled as the component -->
+  <script fez="path/to/ui-button.fez.html"></script>
 
-  <!-- wrap JS in {{ }} to calc before node mount -->
-  <foo-bar size="{{ document.getElementById('icon-range').value }}"></foo-bar>
+  <!-- prefix with : to calc before node mount -->
+  <foo-bar :size="document.getElementById('icon-range').value"></foo-bar>
 
   <!-- pass JSON props via data-props -->
   <foo-bar data-props='{"name": "John", "age": 30}'></foo-bar>
 
   <!-- pass JSON template via data-json-template -->
-  <!-- <script type="text/template">{...}</script> -->
+  <script type="text/template">{...}</script>
   <foo-bar data-json-template="true"></foo-bar>
 
   <!-- override slow bind behavior -->
   <foo-bar fez-fast="true"></foo-bar>
-
-  <!-- use : prefix for evaluated attributes -->
-  <foo-bar :config="window.appConfig"></foo-bar>
 ```
 
-## Examples / playground
+## Component structure
 
-Check the Demo site https://dux.github.io/fez/
+All parts are optional
 
-## More in detail
+```html
+<!-- Head elements support (inline only in XML tags) -->
+<xmp tag="some-tag">
+  <head>
+    <!-- everything in head will be copied to document head-->
+    <script>console.log('Added to document head, first script to execute.')</script>
+  </head>
 
-### when fez init runs
+  <script>
+    class {
+      init(props) { ... }     // when fez node is initialized, before template render
+      onMount(props) { ... }  // called after first template render
+    }
+  </script>
+  <script> // class can be omitted if only functions are passed
+    init(props) { ... }
+  </script>
 
-* attaches HTML DOM  to`this.root`
-* renames root node from original name to `static nodeName() // default DIV`
-* classes `fez` and `fez-ui-foo` will be added to root.
-* adds pointer to instance object to `fez` property (`<div class="fez fez-ui-foo" onclick="console.log(this.fez)"`)
-  * in parent nodes access it via `Fez(this)` with optional tag name `Fez(this, 'ui-foo')`. It will look for closest FEZ node.
-* creates object for node attributes, accessible via `this.props`. `<ui-foo name="Split">` -> `this.props.name == 'Split'`
+  <style>
+    b {
+      color: red; /* will be global style*/
+    }
 
-### css()
+    :fez {
+      /* component styles */
+    }
+  </style>
+  <style>
+    color: red; /* if "body {" or ":fez {" is not found, style is considered local component style */
+  </style>
 
-You can add global or local styles.
+  <div> ... <!-- any other html after head, script or style is considered template-->
+    <!-- resolve any condition -->
+    {{if foo}} ... {{/if}}
 
-### forms
+    <!-- unless directive - opposite of if -->
+    {{unless fez.list.length}}
+      <p>No items to display</p>
+    {{/unless}}
 
-There is FEZ instance helper method `this.formData()`, that will get form data for a current or closest form.
+    <!-- runs in node scope, you can use for loop -->
+    {{each fez.list as name, index}} ... {{/each}}
+    {{for name, index in fez.list}} ... {{/for}}
 
-You can pass node DOM refrence, for a form you want to capture data from.
+    <!-- Block definitions -->
+    {{block image}}
+      <img src={{ props.src}} />
+    {{/block}}
+    {{block:image}}<!-- Use the header block -->
+    {{block:image}}<!-- Use the header block -->
+
+    <!-- fez-this will link DOM node to object property (inspired by Svelte) -->
+    <!-- this.listRoot -->
+    <ul fez-this="listRoot">
+
+    <!-- when node is added to dom fez-use will call object function by name, and pass current node -->
+    <!-- this.animate(node) -->
+    <li fez-use="animate">
+
+    <!-- fez-bind for two-way data binding on form elements -->
+    <input type="text" fez-bind="state.username" />
+    <input onkeyup="fez.list[{{ index }}].name = fez.value" value="{{ name }}" />
+
+    <!-- fez-class for adding classes with optional delay -->
+    <span fez-class="active:100">Delayed class</span>
+
+    <!-- :attribute for evaluated attributes (converts to JSON) -->
+    <div :data-config="state.config"></div>
+  </div>
+</xmp>
+```
 
 ### how to call custom FEZ node from the outside, anywhere in HTML
 
@@ -440,181 +481,6 @@ Dialog.close()
 Fez('#main-dialog').close()
 ```
 
-## GLOBAL Usage
-
-Set `GLOBAL = 'SomeName'` in your component to make it globally accessible as `window.SomeName`. The component is automatically appended to the document body as a singleton. See `demo/fez/ui-dialog.fez` for a complete example.
-
-## static helper functions
-
-* ### Fez.find(selectorOrNode, 'optional-tag-name')
-
-Finds first closest Fez node.
-
-* ### this.class.css(text)
-
-  Static `css()` method adds css globally, to `document.body`.
-
-## instance attributes
-
-* ### this.props
-
-  List of given node attributes is converted to props object
-
-* ### this.root
-
-  Pointer to Fez root node.
-
-* ### this.$root
-
-  jQuery wrapped root, if jQuery is present.
-
-* ### this.state
-
-  Reactive store that automatically triggers render() on changes (initialized by default)
-
-* ### this.fezName
-
-  Property containing the component's tag name
-
-* ### this.fezHtmlRoot
-
-  Property for getting the component reference string
-
-* ### this.oldRoot
-
-  Reference to original DOM node before transformation
-
-* ### this.fezBlocks
-
-  Internal storage for template blocks
-
-## instance functions
-
-* ### this.init(root, props)
-
-  Called after DOM node is connected to Fez instance.
-
-* ### this.copy(attr1, attr2, ...)
-
-  Copies atrributes from attribute object to root as node attributes. If attribute is false, it is skipped.
-
-  ```js
-    init() => {
-      this.copy('href', 'onclick', 'style', 'target')
-    }
-  ```
-
-* ### this.slot(source, target = null)
-
-  Moves all child nodes from one node to another node.
-
-  ```js
-    init() => {
-      // move all current child nodes to tmpNode
-      const tmpNode = this.slot(this)
-
-      // move all child nodes from node1 to node2
-      const tmpNode = this.slot(node1, node2)
-    }
-  ```
-
-* ### this.render(htmlString)
-
-  Inject htmlString as root node innerHTML
-
-  * replace `fez.` with local pointer.
-  * replaces `<slot />` with given root
-
-  ```js
-    getData() => {
-      alert('data!')
-    }
-
-    init() => {
-      this.render`
-        <ul>
-          {{#list}}
-            <li>
-              <input type="text" onkeyup="fez.list[{{num}}].name = this.value" value="{{ name }}" class="i1" />
-            </li>
-          {{/list}}
-        </ul>
-        <span class="btn" onclick="fez.getData()">read</span>
-      `
-    }
-  ```
-
-* ### this.parseHtml(text, context or this)
-
-  Returns rendered string.
-
-
-* ### this.css(text, optionalAddToRoot)
-
-  Uses [goober](https://goober.js.org/) to render inline css.
-  Same as React styled-components, it returns class that encapsulates given style.
-
-  Pass second argument as true, to attach class to root node.
-
-  ```js
-  const className = this.css(`
-    color: red;
-      &.blue {
-        color: blue;
-      }
-    }`
-  )
-  ```
-
-* ### this.prop(name)
-
-  Get single property. It will first look on original root node, if not found it will look for attribute.
-
-  ```js
-  const onClickFunction = this.prop('onclick')
-  const idString = this.prop('id')
-  ```
-
-* ### this.onPropsChange(name, value)
-
-  If you want to monitor new or changed node attributes.
-
-  ```html
-    <fez-icon id="icon-1" name="gear" color="red" />
-  ```
-
-  ```js
-    Fez('fez-icon', class {
-      // ...
-
-      onPropsChange(name, value) {
-        if (name == 'color') {
-          this.setColor(value)
-        }
-      }
-    })
-
-    // same thing
-    document.getElementById('icon-1').setAttribute('color', 'red')
-    $('#icon-1').attr('color', 'red')
-    Fez('#icon-1').setColor('red')
-  ```
-
-* ### this.reactiveStore({})
-
-  Creates reactive store that updates this.render() on change. You can pass another reactivity function.
-
-  Used in default TODO example.
-
-  ```js
-    this.reactiveStore({}, (o, k, v)=>{
-      window.requestAnimationFrame(()=>{
-        console.log(`key "${k}" changed to ${v}`)
-        this.render())
-      })
-    })
-  ```
-
 ## Fez.fetch API
 
 Fez includes a built-in fetch wrapper with automatic JSON parsing and session-based caching:
@@ -625,22 +491,13 @@ Fez includes a built-in fetch wrapper with automatic JSON parsing and session-ba
 // GET request with promise
 const data = await Fez.fetch('https://api.example.com/data')
 
-// GET request with callback
+// GET request with callback, does not create promise
 Fez.fetch('https://api.example.com/data', (data) => {
   console.log(data)
 })
 
 // POST request
-const result = await Fez.fetch('POST', 'https://api.example.com/data', {
-  body: JSON.stringify({ key: 'value' }),
-  headers: { 'Content-Type': 'application/json' }
-})
-
-// With callback and options
-Fez.fetch('PUT', 'https://api.example.com/data',
-  { body: JSON.stringify({ id: 1 }) },
-  (data) => console.log('Updated:', data)
-)
+const result = await Fez.fetch('POST', 'https://api.example.com/data', { key: 'value' })
 ```
 
 ### Features
