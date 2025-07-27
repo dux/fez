@@ -237,12 +237,25 @@ Fez.head = (config, callback) => {
   let src, attributes = {}, elementType;
 
   if (config.script) {
-    // Evaluate inline script using new Function
-    try {
-      new Function(config.script)();
-      if (callback) callback();
-    } catch (error) {
-      console.error('Error executing script:', error);
+    if (config.script.includes('import ')) {
+      if (callback) {
+        Fez.error('Fez.head callback is not supported when script with import is passed (module context).')
+      }
+
+      // Evaluate inline script in context in the module
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.textContent = config.script;
+      document.head.appendChild(script);
+      setTimeout(()=>script.remove(), 100)
+    } else {
+      try {
+        new Function(config.script)();
+        if (callback) callback();
+      } catch (error) {
+        console.error('Error executing script:', error);
+        console.log(config.script);
+      }
     }
     return;
   } else if (config.js) {

@@ -1,71 +1,67 @@
 <head>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs2015.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
 </head>
 
 <script>
-  reformatIndentation(text) {
-    const lines = text.split('\n');
-    if (lines.length < 2) return text;
+  import hljs from 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/es/highlight.min.js';
 
-    let baseIndent = 0;
-    for (let i = 1; i < lines.length; i++){
-      const line = lines[i].trim();
-      if (line.length > 0) {
-        baseIndent = lines[i].match(/^\s*/)[0].length;
-        break;
+  class {
+    reformatIndentation(text) {
+      const lines = text.split('\n');
+      if (lines.length < 2) return text;
+
+      let baseIndent = 0;
+      for (let i = 1; i < lines.length; i++){
+        const line = lines[i].trim();
+        if (line.length > 0) {
+          baseIndent = lines[i].match(/^\s*/)[0].length;
+          break;
+        }
+      }
+
+      const targetIndent = Math.max(0, baseIndent - 2);
+
+      const processedLines = lines.map(line => {
+        const lineWithSpaces = line.replace(/\t/g, '  ');
+        const leadingSpaces = lineWithSpaces.match(/^\s*/)[0].length;
+        if (leadingSpaces === 0) return line;
+        const newIndent = Math.max(0, leadingSpaces - targetIndent);
+        return ' '.repeat(newIndent) + lineWithSpaces.trim();
+      });
+
+      return processedLines.join('\n');
+    }
+
+    getSource() {
+      return this.codeNode.textContent
+    }
+
+    copy() {
+      try {
+          navigator.clipboard.writeText(this.getSource());
+          Toast.info('File data copied to clipboard.');
+        } catch (err) {
+          console.error('Failed to copy: ', err);
+          Toast.error('Failed to copy to clipboard.');
+        }
+      }
+
+    init(props) {
+      props.language ||= 'html'
+
+      const child = this.root.firstElementChild
+      if (child?.nodeName == 'TEMPLATE' || child?.nodeName == 'XMP') {
+        this.source = Fez.htmlEscape(this.root.firstElementChild.innerHTML)
+      } else {
+        this.source = this.root.innerHTML
       }
     }
 
-    const targetIndent = Math.max(0, baseIndent - 2);
-
-    const processedLines = lines.map(line => {
-      const lineWithSpaces = line.replace(/\t/g, '  ');
-      const leadingSpaces = lineWithSpaces.match(/^\s*/)[0].length;
-      if (leadingSpaces === 0) return line;
-      const newIndent = Math.max(0, leadingSpaces - targetIndent);
-      return ' '.repeat(newIndent) + lineWithSpaces.trim();
-    });
-
-    return processedLines.join('\n');
-  }
-
-  getSource() {
-    return this.codeNode.textContent
-  }
-
-  copy() {
-    try {
-        navigator.clipboard.writeText(this.getSource());
-        Toast.info('File data copied to clipboard.');
-      } catch (err) {
-        console.error('Failed to copy: ', err);
-        Toast.error('Failed to copy to clipboard.');
-      }
+    onMount() {
+      const node = this.codeNode = this.find('code')
+      node.innerHTML = this.reformatIndentation(this.source.trim())
+      hljs.highlightElement(node)
     }
-
-  init(props) {
-    props.language ||= 'html'
-
-    const child = this.root.firstElementChild
-    if (child?.nodeName == 'TEMPLATE' || child?.nodeName == 'XMP') {
-      this.source = Fez.htmlEscape(this.root.firstElementChild.innerHTML)
-    } else {
-      this.source = this.root.innerHTML
-    }
-  }
-
-  onMount() {
-    const node = this.codeNode = this.find('code')
-    node.innerHTML = this.reformatIndentation(this.source.trim())
-    node.classList.add('do-hljs')
-
-    Fez.untilTrue(()=>{
-      if (window.hljs) {
-        setTimeout(()=>hljs.highlightElement(node), 200)
-        return true
-      }
-    })
   }
 </script>
 

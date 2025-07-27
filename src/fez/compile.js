@@ -163,10 +163,22 @@ export default function (tagName, html) {
 
   klass = `${parts[0]};\n\nwindow.Fez('${tagName}', class {\n${parts[1]})`
 
-  try {
-    new Function(klass)()
-  } catch(e) {
-    console.error(`FEZ template "${tagName}" compile error: ${e.message}`)
-    console.log(klass)
+  // we cant try/catch javascript modules (they use imports)
+  if (klass.includes('import ')) {
+    Fez.head({script: klass})
+
+    // best we can do it inform that node did not compile, so we assume there is arrow
+    setTimeout(()=>{
+      if (!Fez.classes[tagName]) {
+        Fez.error(`Template "${tagName}" compile error.`)
+      }
+    }, 100)
+  } else {
+    try {
+      new Function(klass)()
+    } catch(e) {
+      Fez.error(`Template "${tagName}" compile error: ${e.message}`)
+      console.log(klass)
+    }
   }
 }
