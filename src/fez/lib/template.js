@@ -76,7 +76,8 @@ export default function createTemplate(text, opts = {}) {
   // {{#for el in list }}}}
   //   <ui-comment :comment="el"></ui-comment>
   //   -> :comment="{{ JSON.stringify(el) }}"
-  text = text.replace(/:(\w+)="([\w\.\[\]]+)"/, (_, m1, m2) => { return `:${m1}="{{ JSON.stringify(${m2}) }}"` })
+  // skip attr="foo.bar"
+  text = text.replace(/:(\w+)="([\w\.\[\]]+)"/, (_, m1, m2) => { return /^\s*\w\s*$/.test(m2) ? `:${m1}="{{ JSON.stringify(${m2}) }}"` : `:${m1}="${m2}"` })
 
   let result = text.replace(/{{(.*?)}}/g, (_, content) => {
     content = content.replaceAll('&#x60;', '`')

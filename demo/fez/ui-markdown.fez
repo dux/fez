@@ -1,19 +1,11 @@
-<head>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/2.1.3/marked.min.js"></script>
-</head>
-
 <script>
-  init(props) {
-    let text = props.html || this.root.innerHTML;
+  import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
 
-    this.root.classList.add('markdown');
-
-    Fez.untilTrue(() => {
-      if (window.marked) {
-        text = window.marked(text)
-        this.root.innerHTML = text;
-        return true
-      }
-    });
+  class {
+    init(props) {
+      let text = props.html || this.root.innerHTML;
+      this.root.classList.add('markdown');
+      this.root.innerHTML = marked.parse(text);
+    }
   }
 </script>

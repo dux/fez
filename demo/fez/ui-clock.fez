@@ -11,9 +11,13 @@
     this.state.minutes = time.getMinutes()
     this.state.seconds = time.getSeconds()
     this.setStyle('--color', this.randomColor())
+
+    if (this.props.publish) {
+      Fez.publish('clock-second', this.state.seconds)
+    }
   }
 
-  init() {
+  init(props) {
     this.offsetHours = parseFloat(this.props.utc || 0)
     this.setVars()
     this.setInterval(this.setVars, 1000)

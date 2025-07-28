@@ -443,7 +443,10 @@ All parts are optional
     <input type="text" fez-bind="state.username" />
     <input onkeyup="fez.list[{{ index }}].name = fez.value" value="{{ name }}" />
 
-    <!-- fez-class for adding classes with optional delay -->
+    <!--
+      fez-class for adding classes with optional delay.
+      class will be added to SPAN element, 100ms after dom mount (to trigger animations)
+    -->
     <span fez-class="active:100">Delayed class</span>
 
     <!-- :attribute for evaluated attributes (converts to JSON) -->

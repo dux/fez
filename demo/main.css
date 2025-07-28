@@ -64,6 +64,20 @@ button:active {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
+button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #e2e8f0;
+  border-color: #cbd5e0;
+  box-shadow: none;
+}
+
+button[disabled]:hover {
+  background-color: #e2e8f0;
+  border-color: #cbd5e0;
+  box-shadow: none;
+}
+
 button.btn-sm {
   padding: 6px 12px;
   font-size: 14px;

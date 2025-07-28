@@ -44,7 +44,7 @@ export default function n(name, attrs = {}, data) {
     if (typeof v === 'function') {
       node[k] = v.bind(this)
     } else {
-      const value = String(v).replaceAll('$$.', this.fezHtmlRoot);
+      const value = String(v).replaceAll('fez.', this.fezHtmlRoot);
       node.setAttribute(k, value)
     }
   }

@@ -11,8 +11,32 @@
 
   show(data) {
     if (data) {
+      if (data[0] == '#') {
+        data = document.getElementById(data.replace('#', '')).innerHTML
+      }
+
       this.state.data = data
     }
+  }
+
+  // Dialog.actionButton(true | false) -> enable | disable
+  // Just add a button with class 'action-button'
+  actionButton(value) {
+    const button = this.find('.action-button')
+    if (button) {
+      if (value) {
+        button.removeAttribute('disabled')
+      } else {
+        button.setAttribute('disabled', '')
+      }
+    }
+  }
+
+  init() {
+    // for demo purposes, we subscribe to global event
+    this.subscribe('clock-second', (val)=>{
+      this.actionButton(val % 6 < 3)
+    })
   }
 </script>
 
@@ -60,4 +84,3 @@
     {{raw state.data }}
   </div>
 </div>
-

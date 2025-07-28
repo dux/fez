@@ -163,6 +163,17 @@ export default function (tagName, html) {
 
   klass = `${parts[0]};\n\nwindow.Fez('${tagName}', class {\n${parts[1]})`
 
+  // Add tag to global hidden styles container
+  if (tagName) {
+    let styleContainer = document.getElementById('fez-hidden-styles')
+    if (!styleContainer) {
+      styleContainer = document.createElement('style')
+      styleContainer.id = 'fez-hidden-styles'
+      document.head.appendChild(styleContainer)
+    }
+    styleContainer.textContent += `${tagName} { display: none; }\n`
+  }
+
   // we cant try/catch javascript modules (they use imports)
   if (klass.includes('import ')) {
     Fez.head({script: klass})
@@ -170,9 +181,9 @@ export default function (tagName, html) {
     // best we can do it inform that node did not compile, so we assume there is arrow
     setTimeout(()=>{
       if (!Fez.classes[tagName]) {
-        Fez.error(`Template "${tagName}" compile error.`)
+        Fez.error(`Template "${tagName}" possible compile error. (can be a false positive, it imports are not loaded)`)
       }
-    }, 100)
+    }, 2000)
   } else {
     try {
       new Function(klass)()

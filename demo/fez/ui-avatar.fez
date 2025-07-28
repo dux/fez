@@ -6,8 +6,6 @@
     this.copy('href', 'style')
     this.size = (props.size || 64) + 'px'
     if (props.name) { props.src ||= `https://robohash.org/${escape(props.name)}.png` }
-    this.root.style.width = this.size
-    this.root.style.height = this.size
   }
 </script>
 
@@ -38,7 +36,7 @@
   <img
     src={{ props.src }}
     class="avatar"
-    style="width: {{this.size }}; height: {{ this.size }};"
+    style="width: {{ size }}; height: {{ size }};"
   />
 {{/block}}
 

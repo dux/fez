@@ -6,10 +6,10 @@
   "type": "module",
   "scripts": {
     "pages": "ruby demo/helper.rb > ./index.html",
-    "build": "bun build.js b",
+    "b": "bun build.js b",
     "watch": "bun build.js w",
-    "server": "ruby -run -e httpd . -p 8000",
-    "dev": "sh -c 'bun run server & SERVER_PID=$!; trap \"kill $SERVER_PID\" EXIT; find src demo | entr -c sh -c \"bun run pages && bun run build\"'",
+    "server": "bun run lib/server.js",
+    "dev": "sh -c 'bun run server & SERVER_PID=$!; trap \"kill $SERVER_PID\" EXIT; find src demo | entr -c sh -c \"bun run pages && bun run b\"'",
     "test": "bun test",
     "push": "bun run build && bun run test"
   },
@@ -20,5 +20,8 @@
     "glob-cli": "^1.0.0",
     "happy-dom": "^18.0.1",
     "jsdom": "^26.1.0"
+  },
+  "dependencies": {
+    "mime": "^4.0.7"
   }
 }

@@ -10,7 +10,6 @@
   <script src="./demo/log.js"></script>
   <script src="./dist/fez.js?t=<%= Time.now.to_i %>"></script>
   <script>
-    window.L = console.log;
     Fez.LOG = true; // location.port > 999
   </script>
 </head>
@@ -52,7 +51,7 @@
         <html>
           <head>
             <title>Time</title>
-            <script script="/fez/core.js"></script>
+            <script script="https://dux.github.io/fez/dist/fez.js"></script>
             <script script="/fez/ui-time.fez"></script>
           </head>
           <body>
@@ -207,17 +206,21 @@
         Place ui-counter anywhere in BODY
         <ui-editor id="demo-counter">
           <xmp>
-<ui-counter></ui-counter>
-<ui-counter start="1"></ui-counter>
-<ui-counter start="2"></ui-counter>
+<div id="counters">
+  <ui-counter></ui-counter>
+  <ui-counter start="1"></ui-counter>
+  <ui-counter start="2"></ui-counter>
+</div>
           </xmp>
         </ui-editor>
       </li>
       <li>
         <p>That is it! Add then as regular DOM nodes.</p>
-        <ui-counter></ui-counter>
-        <ui-counter start="1"></ui-counter>
-        <ui-counter start="2"></ui-counter>
+        <div id="counters">
+          <ui-counter></ui-counter>
+          <ui-counter start="1"></ui-counter>
+          <ui-counter start="2"></ui-counter>
+        </div>
       </li>
     </ol>
   </div>

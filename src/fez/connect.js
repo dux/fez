@@ -133,6 +133,10 @@ function connectNode(name, node) {
     parentNode.replaceChild(newNode, node);
 
     const fez = new klass()
+
+    fez.UID = ++Fez.instanceCount
+    Fez.instances[fez.UID] = fez
+
     fez.oldRoot = node
     fez.fezName = name
     fez.root = newNode
@@ -158,9 +162,6 @@ function connectNode(name, node) {
 
     fez.fezRegister();
     (fez.init || fez.created || fez.connect).bind(fez)(fez.props);
-
-    fez.UID = ++Fez.instanceCount
-    Fez.instances[fez.UID] = fez
 
     const oldRoot = fez.root.cloneNode(true)
 

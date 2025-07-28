@@ -8,9 +8,8 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="./demo/log.js"></script>
-  <script src="./dist/fez.js?t=1753652805"></script>
+  <script src="./dist/fez.js?t=1753734158"></script>
   <script>
-    window.L = console.log;
     Fez.LOG = true; // location.port > 999
   </script>
 </head>
@@ -82,7 +81,7 @@
         <html>
           <head>
             <title>Time</title>
-            <script script="/fez/core.js"></script>
+            <script script="https://dux.github.io/fez/dist/fez.js"></script>
             <script script="/fez/ui-time.fez"></script>
           </head>
           <body>
@@ -288,17 +287,21 @@
         Place ui-counter anywhere in BODY
         <ui-editor id="demo-counter">
           <xmp>
-<ui-counter></ui-counter>
-<ui-counter start="1"></ui-counter>
-<ui-counter start="2"></ui-counter>
+<div id="counters">
+  <ui-counter></ui-counter>
+  <ui-counter start="1"></ui-counter>
+  <ui-counter start="2"></ui-counter>
+</div>
           </xmp>
         </ui-editor>
       </li>
       <li>
         <p>That is it! Add then as regular DOM nodes.</p>
-        <ui-counter></ui-counter>
-        <ui-counter start="1"></ui-counter>
-        <ui-counter start="2"></ui-counter>
+        <div id="counters">
+          <ui-counter></ui-counter>
+          <ui-counter start="1"></ui-counter>
+          <ui-counter start="2"></ui-counter>
+        </div>
       </li>
     </ol>
   </div>
@@ -333,11 +336,11 @@
 </style>
 
 <div class="avatars">
-  <ui-avatar src="https://robohash.org/a.png" name="Dux"></ui-avatar>
-  <ui-avatar src="https://robohash.org/b.png" name="Mile"></ui-avatar>
-  <ui-avatar src="https://robohash.org/c.png?set=set2"></ui-avatar>
-  <ui-avatar src="https://robohash.org/d.png?set=set2"></ui-avatar>
-  <ui-avatar src="https://robohash.org/e.png" name="Joza"></ui-avatar>
+  <ui-avatar size="50" name="Dux"></ui-avatar>
+  <ui-avatar size="55" name="Mile"></ui-avatar>
+  <ui-avatar size="60" src="https://robohash.org/c.png?set=set2"></ui-avatar>
+  <ui-avatar size="65" src="https://robohash.org/d.png?set=set2"></ui-avatar>
+  <ui-avatar size="70" src="https://robohash.org/e.png" name="Joza"></ui-avatar>
 </div>
 
     </div>
@@ -370,11 +373,11 @@
 &lt;/style>
 
 &lt;div class="avatars">
-  &lt;ui-avatar src="https://robohash.org/a.png" name="Dux">&lt;/ui-avatar>
-  &lt;ui-avatar src="https://robohash.org/b.png" name="Mile">&lt;/ui-avatar>
-  &lt;ui-avatar src="https://robohash.org/c.png?set=set2">&lt;/ui-avatar>
-  &lt;ui-avatar src="https://robohash.org/d.png?set=set2">&lt;/ui-avatar>
-  &lt;ui-avatar src="https://robohash.org/e.png" name="Joza">&lt;/ui-avatar>
+  &lt;ui-avatar size="50" name="Dux">&lt;/ui-avatar>
+  &lt;ui-avatar size="55" name="Mile">&lt;/ui-avatar>
+  &lt;ui-avatar size="60" src="https://robohash.org/c.png?set=set2">&lt;/ui-avatar>
+  &lt;ui-avatar size="65" src="https://robohash.org/d.png?set=set2">&lt;/ui-avatar>
+  &lt;ui-avatar size="70" src="https://robohash.org/e.png" name="Joza">&lt;/ui-avatar>
 &lt;/div>
 
         </ui-editor>
@@ -394,8 +397,6 @@
     this.copy('href', 'style')
     this.size = (props.size || 64) + 'px'
     if (props.name) { props.src ||= `https://robohash.org/${escape(props.name)}.png` }
-    this.root.style.width = this.size
-    this.root.style.height = this.size
   }
 &lt;/script>
 
@@ -426,7 +427,7 @@
   &lt;img
     src={{ props.src }}
     class="avatar"
-    style="width: {{this.size }}; height: {{ this.size }};"
+    style="width: {{ size }}; height: {{ size }};"
   />
 {{/block}}
 
@@ -606,6 +607,7 @@
     <li>Simple UI component</li>
     <li>Pub/sub for card flip</li>
     <li>Direct component access (node.fez)</li>
+    <li>Slot - pass child nodes</li>
   </ul>
 </div>
       </div>
@@ -866,9 +868,13 @@
     this.state.minutes = time.getMinutes()
     this.state.seconds = time.getSeconds()
     this.setStyle('--color', this.randomColor())
+
+    if (this.props.publish) {
+      Fez.publish('clock-second', this.state.seconds)
+    }
   }
 
-  init() {
+  init(props) {
     this.offsetHours = parseFloat(this.props.utc || 0)
     this.setVars()
     this.setInterval(this.setVars, 1000)
@@ -1164,7 +1170,22 @@
     </h3>
 
     <div id="body-ui-dialog" style="padding-bottom: 20px;">
-      <button onclick="Dialog.show('<h1>Nice clock</h1><ui-clock></ui-clock>')">Open dialog</button>
+      <button onclick="Dialog.show('#dialog-data')">Open dialog</button>
+
+<template id="dialog-data">
+  <h1>Nice clock</h1>
+  <div style="max-width: 300px; margin: auto;">
+    <ui-clock publish="true"></ui-clock>
+  </div>
+  <div style="float: right; margin-top: 20px;">
+    On seconds 0,1, and 2 button is enabled.
+    &rarr;
+    <button
+      class="action-button"
+      onclick="alert('Dont click so hard!')"
+    >Action</button>
+  </div>
+</template>
 
 
 
@@ -1176,6 +1197,7 @@
         <div class="info">
   <ul>
     <li>Features: global handler</li>
+    <li>Features: Publish subscribe. Check code to see how easy it to enable / disable action buttons in Dialog.</li>
   </ul>
 </div>
       </div>
@@ -1187,7 +1209,22 @@
           language="html"
           :action="applyChanges"
         >
-          &lt;button onclick="Dialog.show('&lt;h1>Nice clock&lt;/h1>&lt;ui-clock>&lt;/ui-clock>')">Open dialog&lt;/button>
+          &lt;button onclick="Dialog.show('#dialog-data')">Open dialog&lt;/button>
+
+&lt;template id="dialog-data">
+  &lt;h1>Nice clock&lt;/h1>
+  &lt;div style="max-width: 300px; margin: auto;">
+    &lt;ui-clock publish="true">&lt;/ui-clock>
+  &lt;/div>
+  &lt;div style="float: right; margin-top: 20px;">
+    On seconds 0,1, and 2 button is enabled.
+    &rarr;
+    &lt;button
+      class="action-button"
+      onclick="alert('Dont click so hard!')"
+    >Action&lt;/button>
+  &lt;/div>
+&lt;/template>
 
 
 
@@ -1213,8 +1250,32 @@
 
   show(data) {
     if (data) {
+      if (data[0] == '#') {
+        data = document.getElementById(data.replace('#', '')).innerHTML
+      }
+
       this.state.data = data
     }
+  }
+
+  // Dialog.actionButton(true | false) -> enable | disable
+  // Just add a button with class 'action-button'
+  actionButton(value) {
+    const button = this.find('.action-button')
+    if (button) {
+      if (value) {
+        button.removeAttribute('disabled')
+      } else {
+        button.setAttribute('disabled', '')
+      }
+    }
+  }
+
+  init() {
+    // for demo purposes, we subscribe to global event
+    this.subscribe('clock-second', (val)=>{
+      this.actionButton(val % 6 &lt; 3)
+    })
   }
 &lt;/script>
 
@@ -1262,7 +1323,6 @@
     {{raw state.data }}
   &lt;/div>
 &lt;/div>
-
 
         </ui-editor>
       </div>
@@ -2014,8 +2074,7 @@ I am **markdown** from Fez custom component called `<ui-markdown>`, created inli
       <div title="Info" active="true">
         <div class="info">
   <ul>
-    <li>Features: <code>Fez.getScript(src, attr, callback)</code> that will insert <code>script</code> css in <code>head</code></li>
-    <li>Features: <code>Fez.untilTrue()</code> to initialize component when all files are loaded.</li>
+    <li>Features: Module imports</li>
   </ul>
 </div>
       </div>
@@ -2051,23 +2110,15 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
           name="ui-markdown"
           :action="applyChanges"
         >
-          &lt;head>
-  &lt;script src="https://cdnjs.cloudflare.com/ajax/libs/marked/2.1.3/marked.min.js">&lt;/script>
-&lt;/head>
+          &lt;script>
+  import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
 
-&lt;script>
-  init(props) {
-    let text = props.html || this.root.innerHTML;
-
-    this.root.classList.add('markdown');
-
-    Fez.untilTrue(() => {
-      if (window.marked) {
-        text = window.marked(text)
-        this.root.innerHTML = text;
-        return true
-      }
-    });
+  class {
+    init(props) {
+      let text = props.html || this.root.innerHTML;
+      this.root.classList.add('markdown');
+      this.root.innerHTML = marked.parse(text);
+    }
   }
 &lt;/script>
 
@@ -2721,41 +2772,49 @@ Fast ping:
 &lt;/script>
 
 &lt;style>
-  --tabs-border: 1px solid #ccc;
-
-  max-width: calc(100%);
-
-  .header {
-    margin-bottom: -2px;
-    position: relative;
-    z-index: 1;
-
-    & > span {
-      border: var(--tabs-border);
-      padding: 8px 15px;
-      display: inline-block;
-      border-radius: 8px 8px 0 0;
-      margin-right: -1px;
-      background: #eee;
-      cursor: pointer;
-
-      &.active {
-        background-color: #fff;
-        border-bottom: none;
-      }
+  .fez-ui-tabs {
+    body > div {
+      display: none;
     }
   }
 
-  .body {
-    border: var(--tabs-border);
-    padding: 8px 15px;
-    background: #fff;
+  :fez {
+    --tabs-border: 1px solid #ccc;
 
-    & > div {
-      display: none;
+    max-width: calc(100%);
 
-      &.active {
-        display: block;
+    .header {
+      margin-bottom: -2px;
+      position: relative;
+      z-index: 1;
+
+      & > span {
+        border: var(--tabs-border);
+        padding: 8px 15px;
+        display: inline-block;
+        border-radius: 8px 8px 0 0;
+        margin-right: -1px;
+        background: #eee;
+        cursor: pointer;
+
+        &.active {
+          background-color: #fff;
+          border-bottom: none;
+        }
+      }
+    }
+
+    .body {
+      border: var(--tabs-border);
+      padding: 8px 15px;
+      background: #fff;
+
+      & > div {
+        display: none;
+
+        &.active {
+          display: block;
+        }
       }
     }
   }
