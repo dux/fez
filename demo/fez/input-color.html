@@ -1,0 +1,50 @@
+<div class="info">
+  <ul>
+    <li>Fires <code>change</code> events and supports <code>onchange</code> callbacks</li>
+    <li>
+      Features: <code>onPropsChange()</code> value monitor.
+      <button onclick="Fez('input-color', (el)=>el.root.setAttribute('value', '#abcdef'))">test?</button>
+    </li>
+    <li>Supports <code>value</code> attribute for initial color and <code>disabled</code> attribute</li>
+  </ul>
+</div>
+
+<table>
+  <tr>
+    <td>
+      <b>Basic Usage</b>
+    </td>
+    <td>
+      <div class="demo-row">
+        <input-color value="#4A90E2"></input-color>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <b>With Change Handler</b>
+    </td>
+    <td>
+      <div class="demo-row">
+        <input-color value="#FF6B6B" :onchange="updateBackground"></input-color>
+        <span style="padding:7px 10px; border-radius: 6px; position: relative; top: -5px; left: 10px;" id="preview">Color Preview</span>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <b>Disabled State</b>
+    </td>
+    <td>
+      <div class="demo-row">
+        <input-color value="#95A5A6" disabled="true"></input-color>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<script>
+  function updateBackground(color) {
+    document.getElementById('preview').style.backgroundColor = color;
+  }
+</script>

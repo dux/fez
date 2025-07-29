@@ -53,7 +53,6 @@ onMount(props) {           // After first render
 beforeRender() {           // Before each render
 afterRender() {            // After each render
 onDestroy() {              // Component removed
-onPropsChange(key, value) { // Attribute changed
 ```
 
 ### 3. Template Syntax
@@ -138,6 +137,12 @@ Adds classes with optional animation delay:
 ```html
 <button disabled={{ state.loading }}>Submit</button>
 <input required={{ state.isRequired }} />
+```
+
+#### Passing function or any non string data
+```html
+<!-- prefix attribute with ":", content will be evaluated -->
+<fez-component-only :attribute="funcPointer">Action</fez-component-only>
 ```
 
 ### 7. Component Communication
@@ -243,7 +248,7 @@ class extends FezBase {
 
   // 2. Lifecycle
   init() { /* ... */ }
-  onMount() { /* ... */ }
+  onMount() { /* ... */ } // if component uses this.state, use only onMount and put init on top
 
   // 3. Event handlers
   handleClick() { /* ... */ }
