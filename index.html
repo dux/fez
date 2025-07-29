@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="./demo/log.js"></script>
-  <script src="./dist/fez.js?t=1753734158"></script>
+  <script src="./dist/fez.js?t=1753787976"></script>
   <script>
     Fez.LOG = true; // location.port > 999
   </script>
@@ -68,6 +68,8 @@
           <a target="playground" href="./dist/fez.js">lib</a>
           &sdot;
           <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
+          &sdot;
+          <a target="ai_guide" href="./AI_GUIDE.md">AI Guide</a>
         </p>
       </center>
     </div>
@@ -1177,17 +1179,25 @@
   <div style="max-width: 300px; margin: auto;">
     <ui-clock publish="true"></ui-clock>
   </div>
-  <div style="float: right; margin-top: 20px;">
+  <div style="text-align: right; margin-top: 20px;">
     On seconds 0,1, and 2 button is enabled.
     &rarr;
     <button
       class="action-button"
-      onclick="alert('Dont click so hard!')"
+      onclick="Toast.info('Dont click so hard!')"
     >Action</button>
   </div>
 </template>
 
+<xmp fez="tmp-test-attr">
+  <script>
+    funcPass() {
+      this.props.func( Math.random() )
+    }
+  </script>
 
+  <button onclick="fez.funcPass()">Test func pointer pass</button>
+</xmp>
 
     </div>
   </div>
@@ -1216,17 +1226,25 @@
   &lt;div style="max-width: 300px; margin: auto;">
     &lt;ui-clock publish="true">&lt;/ui-clock>
   &lt;/div>
-  &lt;div style="float: right; margin-top: 20px;">
+  &lt;div style="text-align: right; margin-top: 20px;">
     On seconds 0,1, and 2 button is enabled.
     &rarr;
     &lt;button
       class="action-button"
-      onclick="alert('Dont click so hard!')"
+      onclick="Toast.info('Dont click so hard!')"
     >Action&lt;/button>
   &lt;/div>
 &lt;/template>
 
+&lt;xmp fez="tmp-test-attr">
+  &lt;script>
+    funcPass() {
+      this.props.func( Math.random() )
+    }
+  &lt;/script>
 
+  &lt;button onclick="fez.funcPass()">Test func pointer pass&lt;/button>
+&lt;/xmp>
 
         </ui-editor>
       </div>
@@ -1269,6 +1287,10 @@
         button.setAttribute('disabled', '')
       }
     }
+  }
+
+  testFunc(num) {
+    Toast.info(`Passed: ${num}`)
   }
 
   init() {
@@ -1321,6 +1343,9 @@
   &lt;div class="dialog-content" onclick="event.stopPropagation()">
     &lt;button class="dialog-close" onclick="fez.close()">&times;&lt;/button>
     {{raw state.data }}
+    &lt;center style="padding-top: 30px;">
+      &lt;tmp-test-attr :func="fez.testFunc">&lt;/tmp-test-attr>
+    &lt;/center>
   &lt;/div>
 &lt;/div>
 
@@ -3138,32 +3163,22 @@ Fast ping:
           :action="applyChanges"
         >
           &lt;script>
-  // helper function
-  window.Toast = {
-    info: (text, klass) => {
-      Fez('#ui-toast').info(text, klass)
-    },
+  GLOBAL = 'Toast'
 
-    error: (text) => {
-      Toast.info(text, 'error')
-    }
+  error(text) {
+    this.info(text, 'error')
   }
 
-  // auto init
-  document.body.insertAdjacentHTML('beforeend', '&lt;ui-toast id="ui-toast">&lt;/ui-toast>')
+  info(text, klass)  {
+    const node = document.createElement('div')
+    node.className = `toast ${klass || 'info'}`
+    node.innerHTML = text
+    this.find('.parent').prepend(node)
 
-  class {
-    info(text, klass)  {
-      const node = document.createElement('div')
-      node.className = `toast ${klass || 'info'}`
-      node.innerHTML = text
-      this.find('.parent').prepend(node)
-
-      setTimeout(()=>{
-        node.classList.add('leave')
-        setTimeout(()=>node.remove(), 2000)
-      }, 4000)
-    }
+    setTimeout(()=>{
+      node.classList.add('leave')
+      setTimeout(()=>node.remove(), 2000)
+    }, 4000)
   }
 &lt;/script>
 &lt;style>

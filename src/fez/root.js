@@ -13,7 +13,7 @@ import compile from './compile.js'
 // Fez('ui-slider', class { init() { ... }}) # create Fez dom node
 const Fez = (name, klass) => {
   if(typeof name === 'number') {
-    const fez = Fez.instances[name]
+    const fez = Fez.instances.get(name)
     if (fez) {
       return fez
     } else {
@@ -57,14 +57,7 @@ const Fez = (name, klass) => {
 
 Fez.classes = {}
 Fez.instanceCount = 0
-Fez.instances = {}
-
-Fez.id = () => {
-  Fez._id_count ||= 0
-  Fez._id_count += 1
-  const rand = Math.random().toString(36).substring(2, 6)
-  return `fez_${Fez._id_count}${rand}`
-}
+Fez.instances = new Map()
 
 Fez.find = (onode, name) => {
   let node = onode
@@ -442,6 +435,28 @@ Fez._styleMacros = {}
 Fez.styleMacro = (name, content) => {
   Fez._styleMacros[name] = content
 }
+
+// work with tmp store
+Fez.store = {
+  store: new Map(),
+  counter: 0,
+
+  set(value) {
+    const key = this.counter++;
+    this.store.set(key, value);
+    return key;
+  },
+
+  get(key) {
+    return this.store.get(key);
+  },
+
+  delete(key) {
+    const value = this.store.get(key);
+    this.store.delete(key)
+    return value;
+  }
+};
 
 Fez.compile = compile
 

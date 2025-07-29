@@ -135,7 +135,7 @@ function connectNode(name, node) {
     const fez = new klass()
 
     fez.UID = ++Fez.instanceCount
-    Fez.instances[fez.UID] = fez
+    Fez.instances.set(fez.UID, fez)
 
     fez.oldRoot = node
     fez.fezName = name

@@ -12,14 +12,22 @@
   <div style="max-width: 300px; margin: auto;">
     <ui-clock publish="true"></ui-clock>
   </div>
-  <div style="float: right; margin-top: 20px;">
+  <div style="text-align: right; margin-top: 20px;">
     On seconds 0,1, and 2 button is enabled.
     &rarr;
     <button
       class="action-button"
-      onclick="alert('Dont click so hard!')"
+      onclick="Toast.info('Dont click so hard!')"
     >Action</button>
   </div>
 </template>
 
+<xmp fez="tmp-test-attr">
+  <script>
+    funcPass() {
+      this.props.func( Math.random() )
+    }
+  </script>
 
+  <button onclick="fez.funcPass()">Test func pointer pass</button>
+</xmp>

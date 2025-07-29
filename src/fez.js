@@ -8,10 +8,9 @@ window.Fez = Fez
 
 // clear all unattached nodes
 setInterval(() => {
-  for (const key in Fez.instances) {
-    const el = Fez.instances[key]
+  for (const [key, el] of Fez.instances) {
     if (!el?.isConnected) {
-      delete Fez.instances[key]
+      Fez.instances.delete(key)
     }
   }
 }, 5_000)

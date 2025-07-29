@@ -1,30 +1,20 @@
 <script>
-  // helper function
-  window.Toast = {
-    info: (text, klass) => {
-      Fez('#ui-toast').info(text, klass)
-    },
+  GLOBAL = 'Toast'
 
-    error: (text) => {
-      Toast.info(text, 'error')
-    }
+  error(text) {
+    this.info(text, 'error')
   }
 
-  // auto init
-  document.body.insertAdjacentHTML('beforeend', '<ui-toast id="ui-toast"></ui-toast>')
+  info(text, klass)  {
+    const node = document.createElement('div')
+    node.className = `toast ${klass || 'info'}`
+    node.innerHTML = text
+    this.find('.parent').prepend(node)
 
-  class {
-    info(text, klass)  {
-      const node = document.createElement('div')
-      node.className = `toast ${klass || 'info'}`
-      node.innerHTML = text
-      this.find('.parent').prepend(node)
-
-      setTimeout(()=>{
-        node.classList.add('leave')
-        setTimeout(()=>node.remove(), 2000)
-      }, 4000)
-    }
+    setTimeout(()=>{
+      node.classList.add('leave')
+      setTimeout(()=>node.remove(), 2000)
+    }, 4000)
   }
 </script>
 <style>

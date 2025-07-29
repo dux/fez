@@ -318,7 +318,7 @@ Fez('foo-bar', class {
     this.nextTick(func, name)
 
     // get/set unique ID for root node
-    this.nodeId()
+    this.rootId()
 
     // get/set attributes on root node
     this.attr(name, value)

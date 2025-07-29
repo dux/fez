@@ -77,7 +77,9 @@ export default function createTemplate(text, opts = {}) {
   //   <ui-comment :comment="el"></ui-comment>
   //   -> :comment="{{ JSON.stringify(el) }}"
   // skip attr="foo.bar"
-  text = text.replace(/:(\w+)="([\w\.\[\]]+)"/, (_, m1, m2) => { return /^\s*\w\s*$/.test(m2) ? `:${m1}="{{ JSON.stringify(${m2}) }}"` : `:${m1}="${m2}"` })
+  text = text.replace(/:(\w+)="([\w\.\[\]]+)"/, (_, m1, m2) => {
+    return `:${m1}=Fez.store.delete({{ Fez.store.set(${m2}) }})`
+  })
 
   let result = text.replace(/{{(.*?)}}/g, (_, content) => {
     content = content.replaceAll('&#x60;', '`')

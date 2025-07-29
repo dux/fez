@@ -32,6 +32,10 @@
     }
   }
 
+  testFunc(num) {
+    Toast.info(`Passed: ${num}`)
+  }
+
   init() {
     // for demo purposes, we subscribe to global event
     this.subscribe('clock-second', (val)=>{
@@ -82,5 +86,8 @@
   <div class="dialog-content" onclick="event.stopPropagation()">
     <button class="dialog-close" onclick="fez.close()">&times;</button>
     {{raw state.data }}
+    <center style="padding-top: 30px;">
+      <tmp-test-attr :func="fez.testFunc"></tmp-test-attr>
+    </center>
   </div>
 </div>

@@ -230,7 +230,7 @@ GLOBAL = 'MyComponent'  // window.MyComponent = component instance
 - Clean up external event listeners in `onDestroy()`
 
 ### Performance
-- Use `FAST_BIND = true` for simple components
+- Use `FAST_BIND = true` for components that does not have slots (innerHTML)
 - Batch state updates in same tick
 - Use `fez-slot` class to preserve content during renders
 
@@ -244,10 +244,10 @@ class extends FezBase {
   // 2. Lifecycle
   init() { /* ... */ }
   onMount() { /* ... */ }
-  
+
   // 3. Event handlers
   handleClick() { /* ... */ }
-  
+
   // 4. Helper methods
   updateData() { /* ... */ }
 }
@@ -260,8 +260,7 @@ class extends FezBase {
 async loadData() {
   this.state.loading = true
   try {
-    const data = await fetch('/api/data').then(r => r.json())
-    this.state.data = data
+    Fez.fetch('/api/data', (data) => this.state.data = data)
   } finally {
     this.state.loading = false
   }
@@ -278,10 +277,10 @@ handleSubmit() {
 
 ### Dynamic Lists
 ```html
-{{for item in state.items}}
+{{for item, index in state.items}}
   <div>
-    <input fez-bind="state.items[{{$index}}].name" />
-    <button onclick="fez.removeItem({{$index}})">Remove</button>
+    <input fez-bind="state.items[{{ index }}].name" />
+    <button onclick="fez.removeItem({{ index }})">Remove</button>
   </div>
 {{/for}}
 ```
@@ -291,7 +290,7 @@ handleSubmit() {
 init() {
   // Get other component instance
   this.userProfile = Fez('user-profile')
-  
+
   // Or find specific instance
   this.modal = Fez(this.find('.modal'))
 }

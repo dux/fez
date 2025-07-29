@@ -9,7 +9,7 @@
     "b": "bun build.js b",
     "watch": "bun build.js w",
     "server": "bun run lib/server.js",
-    "dev": "sh -c 'bun run server & SERVER_PID=$!; trap \"kill $SERVER_PID\" EXIT; find src demo | entr -c sh -c \"bun run pages && bun run b\"'",
+    "dev": "sh -c 'bun run server & SERVER_PID=$!; trap \"kill $SERVER_PID\" EXIT; find src demo lib| entr -c sh -c \"bun run pages && bun run b\"'",
     "test": "bun test",
     "push": "bun run build && bun run test"
   },

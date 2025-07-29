@@ -478,13 +478,9 @@ export default class FezBase {
   }
 
   // get and set root node ID
-  nodeId() {
-    if (!this._id) {
-      this._id = Fez.id()
-      this.root.id = this._id
-    }
-
-    return this._id
+  rootId() {
+    this.root.id ||= `fez_${this.UID}`
+    return this.root.id
   }
 
   fezRegister() {
