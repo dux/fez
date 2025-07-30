@@ -105,21 +105,25 @@ export default class FezBase {
     if (this.root?.isConnected) {
       return true
     } else {
-      this._setIntervalCache ||= {}
-      Object.keys(this._setIntervalCache).forEach((key)=> {
-        clearInterval(this._setIntervalCache[key])
-      })
-
-      this.onDestroy()
-      this.onDestroy = ()=> {}
-
-      if (this.root) {
-        this.root.fez = undefined
-      }
-
-      this.root = undefined
+      this.fezRemoveSelf()
       return false
     }
+  }
+
+  fezRemoveSelf() {
+    this._setIntervalCache ||= {}
+    Object.keys(this._setIntervalCache).forEach((key)=> {
+      clearInterval(this._setIntervalCache[key])
+    })
+
+    this.onDestroy()
+    this.onDestroy = ()=> {}
+
+    if (this.root) {
+      this.root.fez = undefined
+    }
+
+    this.root = undefined
   }
 
   // get single node property
@@ -229,6 +233,8 @@ export default class FezBase {
   beforeRender() {}
   afterRender() {}
   onDestroy() {}
+  onStateChange() {}
+  onGlobalStateChange() {}
   publish = Fez.publish
   fezBlocks = {}
 
@@ -264,7 +270,7 @@ export default class FezBase {
   render(template) {
     template ||= this?.class?.fezHtmlFunc
 
-    if (!template) return
+    if (!template || !this.root) return
 
     this.beforeRender()
 
@@ -493,7 +499,7 @@ export default class FezBase {
     }
 
     this.state ||= this.reactiveStore()
-
+    this.globalState = Fez.state.createProxy(this)
     this.fezRegisterBindMethods()
   }
 
@@ -525,7 +531,8 @@ export default class FezBase {
   reactiveStore(obj, handler) {
     obj ||= {}
 
-    handler ||= (o, k, v) => {
+    handler ||= (o, k, v, oldValue) => {
+      this.onStateChange(k, v, oldValue)
       this.nextTick(this.render, 'render')
     }
 
@@ -552,7 +559,7 @@ export default class FezBase {
             const result = Reflect.set(target, property, value, receiver);
 
             // Call the handler only if the value has changed
-            handler(target, property, value);
+            handler(target, property, value, currentValue);
 
             return result;
           }

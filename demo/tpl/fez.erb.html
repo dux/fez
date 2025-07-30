@@ -18,7 +18,7 @@
 
 <script fez="./demo/fez/<%= @fez.name %>.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('<%= @fez.name %>')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: <%= @fez.name %>
@@ -28,7 +28,7 @@
       <%= @fez.html %>
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <%= @fez.info %>

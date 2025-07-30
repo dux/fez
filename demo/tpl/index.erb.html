@@ -28,8 +28,7 @@
         </h1>
 
         <h1 class="center" style="margin: 20px 0 40px 0; ">
-          directly in HTML
-          with zero build steps
+          Directly in HTML with zero build steps
         </h1>
 
         <p class="center">
@@ -71,6 +70,8 @@
   </div>
 
   <div class="con-xs" title="">
+    <app-arrow></app-arrow>
+
     <app-arrow title="How does FEZ feel and work?"></app-arrow>
 
     <p>
@@ -89,7 +90,7 @@
       <li>📦 <i>Smart Component Loading:</i> Load components from URLs, inline templates, or <code>&lt;template&gt;</code> tags. Perfect for micro-frontends and progressive enhancement.</li>
       <li>🔔 <i>Built-in Communication:</i> Native pub/sub system for component messaging - no Redux, no context providers, just <code>Fez.pub()</code> and <code>Fez.sub()</code>.</li>
       <li>📝 <i>Form Superpowers:</i> Built-in form data handling with <code>getFormData()</code> - serialize forms to JSON in one line, no libraries needed.</li>
-      <li>⏳ <i>Predictable Lifecycle:</i> Simple hooks like <code>connect</code>, <code>onMount</code>, and <code>onPropsChange</code> - no useEffect confusion or dependency arrays.</li>
+      <li>⏳ <i>Predictable Lifecycle:</i> Simple hooks like <code>init</code>, <code>onMount</code>, and <code>onPropsChange</code> - no useEffect confusion or dependency arrays.</li>
     </ul>
 
     <h2 style="margin-top: 70px; text-align: center;">What does Claude AI think about Fez?"</h2>
@@ -97,7 +98,7 @@
     <dl>
       <dt>Prompt</dt>
       <dd>
-        Look at FEZ_GUIDE.md, README.md and components in fez/*.fez, then write what do you think of the lib.
+        Look at <a href="./AI_GUIDE.md">AI_GUIDE.md</aa>, <a href="./README.md">README.md</a> and components in fez/*.fez, then write what do you think of the lib.
         Is it bette / worse / different then react / vue / svelte. When should one chose Fez or maybe never.
       </dd>
       <dt>Response</dt>
@@ -176,7 +177,7 @@
       </dd>
     </dl>
 
-    <app-arrow title="Lets build simple counter"></app-arrow>
+    <app-arrow title="Lets build simple counter" info="with local and global state"></app-arrow>
 
     <p>With reactive state and custom style.</p>
 
@@ -230,12 +231,12 @@
   </div>
 
   <div style="margin-top: 100px;"></div>
-  <a herf="#" name="examples"></a>
+  <a href="#" name="examples"></a>
   <app-arrow title="Examples"></app-arrow>
 
   <p class="center" style="margin-bottom: 40px;">You will learn all Fez features, just by inspecting these examples. You can edit and update both HTML and Fez code.</p>
 
-  <div style="max-width: 1400px; margin: auto;">
+  <div style="max-width: 1600px; margin: auto;">
     <% for code in fileNames('fez/*.fez') %>
       <%= erb(:fez, code) %>
     <% end %>
@@ -295,7 +296,26 @@
       document.body.appendChild(form);
       form.submit();
       document.body.removeChild(form);
-    }  </script>
+    }
+
+    // Weird bug when page scrolls down on first click. This is tmp fix
+    // Global click handler to disable scrolling for 2 seconds - only on first mousedown
+    let firstMouseDown = true;
+    document.addEventListener('mousedown', function(e) {
+      if (!firstMouseDown) return;
+      firstMouseDown = false;
+
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = (scrollbarWidth + 20) + 'px';
+
+      // Re-enable scrolling after 2 seconds
+      setTimeout(function() {
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+      }, 50);
+    });
+  </script>
 </body>
 </html>
 

@@ -5,13 +5,32 @@
     this.state.count = parseInt(props.start || 0)
   }
 
-  isMax() {
-    // is state is changed, template is re-rendered
-    return this.state.count >= this.MAX
+  // called when local state changes
+  onStateChange() {
+    // lets look up for max count state in all counters
+    let max = 0
+
+    // loop only in components that read maxCount state
+    Fez.state.forEach('maxCount', fez => {
+      if (fez.state?.count > max) {
+        max = fez.state.count
+      }
+    })
+
+    // if you set global state in components
+    // components reading the state will be auto re-rendered
+    // no additional work needed
+    this.globalState.maxCount = max
   }
 
   more() {
+    // on any state change, component is re-rendered
+    // on next browser animation frame
     this.state.count += this.isMax() ? 0 : 1
+  }
+
+  isMax() {
+    return this.state.count >= this.MAX
   }
 </script>
 
@@ -35,12 +54,13 @@
   }
 </style>
 
+<!-- fez points to local fez component instance -->
 <button class="btn-sm" onclick="fez.state.count -= 1" disabled={{ state.count < 1 }}>-</button>
 <span>{{ state.count }}</span>
 <button class="btn-sm" onclick="fez.more()" disabled={{ isMax() }}>+</button>
 
+<span>&mdash;</span>
 {{if state.count > 0}}
-  <span>&mdash;</span>
   {{if state.count == MAX }}
     MAX
   {{else}}
@@ -50,4 +70,8 @@
       even
     {{/if}}
   {{/if}}
+{{else}}
+  zero
 {{/if}}
+<span>&mdash;</span>
+(global max: {{ globalState.maxCount }})

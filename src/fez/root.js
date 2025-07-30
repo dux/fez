@@ -6,6 +6,7 @@ import { Idiomorph } from './vendor/idiomorph.js'
 
 import connect from './connect.js'
 import compile from './compile.js'
+import state from './lib/global-state.js'
 
 // Fez('ui-slider')                             # first slider
 // Fez('ui-slider', (n)=>alert(n))              # find all and execute
@@ -459,5 +460,6 @@ Fez.store = {
 };
 
 Fez.compile = compile
+Fez.state = state
 
 export default Fez

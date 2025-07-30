@@ -48,11 +48,14 @@ init() {
 
 ### 2. Lifecycle Methods
 ```javascript
-init(props) {              // Component initialized
-onMount(props) {           // After first render
-beforeRender() {           // Before each render
-afterRender() {            // After each render
-onDestroy() {              // Component removed
+init(props) {                         // Component initialized
+onMount(props) {                      // After first render
+beforeRender() {                      // Before each render
+afterRender() {                       // After each render
+onStateChange(key, value, oldValue) { // Local state changes
+onGlobalStateChange(key, value) {     // Global state changes
+onPropsChange(key, value) {           // Attribute changes
+onDestroy() {                         // Component removed
 ```
 
 ### 3. Template Syntax
@@ -160,6 +163,38 @@ someMethod() {
 }
 ```
 
+#### Global State Management
+```javascript
+// Components automatically subscribe when reading global state
+class Counter extends FezBase {
+  increment() {
+    // Setting global state - all listeners will be notified
+    this.globalState.count = (this.globalState.count || 0) + 1
+  }
+
+  onGlobalStateChange(key, value) {
+    // Optional: handle global state changes
+    console.log(`Global state "${key}" changed to:`, value)
+  }
+
+  render() {
+    // Reading global state - automatically subscribes this component
+    return `<button onclick="fez.increment()">
+      Count: ${this.globalState.count || 0}
+    </button>`
+  }
+}
+
+// External access (outside components)
+Fez.state.set('count', 10)        // Set global state
+const count = Fez.state.get('count')  // Get global state
+
+// Iterate over components listening to a key
+Fez.state.forEach('count', (component) => {
+  console.log(`${component.fezName} is listening to count`)
+})
+```
+
 ### 8. Utility Methods
 
 ```javascript
@@ -176,6 +211,10 @@ const data = this.formData()   // Get all form values as object
 
 // Styling
 this.setStyle('--primary-color', '#007bff')
+
+// State management
+this.state.property = value    // Local reactive state
+this.globalState.key = value   // Global state (auto-subscription)
 
 // Rendering
 this.render()                  // Force re-render
@@ -301,6 +340,36 @@ init() {
 }
 ```
 
+### Global State Patterns
+```javascript
+// Shared counter across multiple components
+onStateChange(key, value, oldValue) {
+  // React to local state changes to update global state
+  if (key === 'count') {
+    // Find max across all counter instances
+    let max = 0
+    Fez.state.forEach('maxCount', fez => {
+      if (fez.state?.count > max) {
+        max = fez.state.count
+      }
+    })
+    this.globalState.maxCount = max
+  }
+}
+
+// Theme switching
+toggleTheme() {
+  const current = this.globalState.theme || 'light'
+  this.globalState.theme = current === 'light' ? 'dark' : 'light'
+}
+
+// User authentication state
+login(user) {
+  this.globalState.currentUser = user
+  this.globalState.isAuthenticated = true
+}
+```
+
 ## Fez API Methods
 
 ### Core
@@ -308,6 +377,11 @@ init() {
 - `Fez.register(name, component)` - Register component
 - `Fez.publish(channel, data)` - Publish event
 - `Fez.instances` - Map of all component instances
+
+### Global State
+- `Fez.state.set(key, value)` - Set global state
+- `Fez.state.get(key)` - Get global state value
+- `Fez.state.forEach(key, func)` - Iterate components listening to key
 
 ### Utilities
 - `Fez.fetch(url, opts)` - Fetch with caching

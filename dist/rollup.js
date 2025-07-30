@@ -1,2 +1,3 @@
-(()=>{function i(){return{name:"fez-plugin",transform(e,n){let t=n.split("/").pop().split(".");if(t[1]==="fez"){e=f(e),e=e.replaceAll("\\","\\\\");let l=`Fez.compile('${t[0]}', \`${e}\`)`;return t[0]==="ui-comment"&&console.log("Transformed code:",t,l),{code:l,map:null}}}}}function f(e){let n=!1,t="",l="";for(let r=0;r<e.length;r++)e[r]==="`"?n?(n=!1,l+="'",t+=u(l),l=""):(n=!0,l&&(t+=l),l="'"):n?l+=e[r]:t+=e[r];return t+l}function u(e){return e==="''"?e:e.replace(/\${(.*?)}/g,(n,t)=>"' + "+t.trim()+" + '")}var a=i;})();
+(()=>{function t(){return{name:"fez-plugin",transform(e,r){let n=r.split("/").pop().split(".");if(n[1]==="fez")return e=e.replace(/`/g,"\\`").replace(/\$/g,"\\$"),{code:`Fez.compile('${n[0]}', \`
+${e}\`)`,map:null}}}}var l=t;})();
 //# sourceMappingURL=rollup.js.map

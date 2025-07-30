@@ -1,4 +1,6 @@
 <script>
+  FAST = true
+
   updateColor(e) {
     this.state.showPicker = false
     this.setColor(e.target.value)

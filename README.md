@@ -55,6 +55,14 @@ Here's a simple counter component that demonstrates Fez's core features:
     this.state.count = 0
   }
 
+  onStateChange(key, value, oldValue) {
+    // called whenever this.state changes
+    console.log(`State ${key} changed from ${oldValue} to ${value}`)
+    if (key === 'count' && value >= this.MAX) {
+      console.log('Counter reached maximum!')
+    }
+  }
+
   isMax() {
     // is state is changed, template is re-rendered
     return this.state.count >= this.MAX
@@ -154,6 +162,7 @@ This example showcases:
 * **Two-Way Data Binding** - Use `fez-bind` directive for automatic form synchronization
 * **Advanced Slot System** - Full `<slot />` support with event listener preservation
 * **Publish/Subscribe** - Built-in pub/sub system for component communication
+* **Global State Management** - Automatic subscription-based global state with `this.globalState` proxy
 * **Dynamic Component Loading** - Load components from URLs with `<template fez="path/to/component.html">`
 * **Auto HTML Correction** - Fixes invalid self-closing tags (`<fez-icon name="gear" />` → `<fez-icon name="gear"></fez-icon>`)
 
@@ -163,7 +172,7 @@ This example showcases:
 * **Request Animation Frame** - Smart RAF integration for smooth updates
 * **Built-in Fetch with Caching** - `Fez.fetch()` includes automatic response caching and JSON/FormData handling
 * **Global Component Access** - Register components globally with `GLOBAL = 'ComponentName'` for easy access
-* **Rich Lifecycle Hooks** - `init`, `onMount`, `beforeRender`, `afterRender`, `onDestroy`, `onPropsChange`
+* **Rich Lifecycle Hooks** - `init`, `onMount`, `beforeRender`, `afterRender`, `onDestroy`, `onPropsChange`, `onStateChange`, `onGlobalStateChange`
 * **Development Mode** - Enable detailed logging with `Fez.DEV = true`
 
 ### Why It's Great
@@ -337,6 +346,12 @@ Fez('foo-bar', class {
     // monitors all original node attributes
     // <ui-icon name="home" color="red" />
     this.onPropsChange(attrName, attrValue) { ... }
+
+    // called when local component state changes
+    this.onStateChange(key, value, oldValue) { ... }
+
+    // called when global state changes (if component reads that key)
+    this.onGlobalStateChange(key, value) { ... }
 
     // called when component is destroyed
     this.onDestroy() { ... }
@@ -519,6 +534,105 @@ Fez.onError = (kind, error) => {
   if (kind === 'fetch') {
     console.error('Fetch failed:', error)
     // Show user-friendly error message
+  }
+}
+```
+
+## Global State Management
+
+Fez includes a built-in global state manager that automatically tracks component subscriptions. It automatically tracks which components use which state variables and only updates exactly what's needed.
+
+### How it Works
+
+- Components access global state via `this.globalState` proxy
+- Reading a value by key automatically subscribes the component to changes to that key.
+- Setting a value notifies all subscribed components to that key.
+- Components are automatically cleaned up when disconnected
+
+### Basic Usage
+
+```js
+class Counter extends FezBase {
+  increment() {
+    // Setting global state - all listeners will be notified
+    this.globalState.count = (this.globalState.count || 0) + 1
+  }
+
+  render() {
+    // Reading global state - automatically subscribes this component
+    return `<button onclick="fez.increment()">
+      Count: ${this.globalState.count || 0}
+    </button>`
+  }
+}
+```
+
+### External Access
+
+```js
+// Set global state from outside components
+Fez.state.set('count', 10)
+
+// Get global state value
+const count = Fez.state.get('count')
+
+// Iterate over all components listening to a key
+Fez.state.forEach('count', (component) => {
+  console.log(`${component.fezName} is listening to count`)
+})
+```
+
+### Optional Change Handler
+
+Components can define an `onGlobalStateChange` method for custom handling:
+
+```js
+class MyComponent extends FezBase {
+  onGlobalStateChange(key, value) {
+    console.log(`Global state "${key}" changed to:`, value)
+    // Custom logic instead of automatic render
+    if (key === 'theme') {
+      this.updateTheme(value)
+    }
+  }
+
+  render() {
+    // Still subscribes by reading the value
+    return `<div class="${this.globalState.theme || 'light'}">...</div>`
+  }
+}
+```
+
+### Real Example: Shared Counter State
+
+```js
+// Multiple counter components sharing max count
+class Counter extends FezBase {
+  init(props) {
+    this.state.count = parseInt(props.start || 0)
+  }
+
+  beforeRender() {
+    // All counters share and update the global max
+    this.globalState.maxCount ||= 0
+
+    // Find max across all counter instances
+    let max = 0
+    Fez.state.forEach('maxCount', fez => {
+      if (fez.state?.count > max) {
+        max = fez.state.count
+      }
+    })
+
+    this.globalState.maxCount = max
+  }
+
+  render() {
+    return `
+      <button onclick="fez.state.count++">+</button>
+      <span>Count: ${this.state.count}</span>
+      <span>(Global max: ${this.globalState.maxCount})</span>
+    `
   }
 }
 ```

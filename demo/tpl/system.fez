@@ -24,7 +24,11 @@
   <h1 class="jumbo" style="margin: 70px auto;">&darr;</h1>
 
   <!-- you can use {{ or [[ for template blocks -->
-  [[#if props.title]]
+  [[if props.title]]
     <h1>[[ props.title ]]</h1>
+  [[/if]]
+
+  [[if props.info]]
+    <p style="text-align: center; color: #aaa; position: relative; top: -30px;">[[ props.info ]]</p>
   [[/if]]
 </xmp>

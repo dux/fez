@@ -8,7 +8,7 @@
   <link rel="icon" href="./demo/fez.png">
   <link rel="stylesheet" href="./demo/main.css" />
   <script src="./demo/log.js"></script>
-  <script src="./dist/fez.js?t=1753805192"></script>
+  <script src="./dist/fez.js?t=1753944523"></script>
   <script>
     Fez.LOG = true; // location.port > 999
   </script>
@@ -40,8 +40,12 @@
   <h1 class="jumbo" style="margin: 70px auto;">&darr;</h1>
 
   <!-- you can use {{ or [[ for template blocks -->
-  [[#if props.title]]
+  [[if props.title]]
     <h1>[[ props.title ]]</h1>
+  [[/if]]
+
+  [[if props.info]]
+    <p style="text-align: center; color: #aaa; position: relative; top: -30px;">[[ props.info ]]</p>
   [[/if]]
 </xmp>
 
@@ -58,8 +62,7 @@
         </h1>
 
         <h1 class="center" style="margin: 20px 0 40px 0; ">
-          directly in HTML
-          with zero build steps
+          Directly in HTML with zero build steps
         </h1>
 
         <p class="center">
@@ -101,6 +104,8 @@
   </div>
 
   <div class="con-xs" title="">
+    <app-arrow></app-arrow>
+
     <app-arrow title="How does FEZ feel and work?"></app-arrow>
 
     <p>
@@ -119,7 +124,7 @@
       <li>📦 <i>Smart Component Loading:</i> Load components from URLs, inline templates, or <code>&lt;template&gt;</code> tags. Perfect for micro-frontends and progressive enhancement.</li>
       <li>🔔 <i>Built-in Communication:</i> Native pub/sub system for component messaging - no Redux, no context providers, just <code>Fez.pub()</code> and <code>Fez.sub()</code>.</li>
       <li>📝 <i>Form Superpowers:</i> Built-in form data handling with <code>getFormData()</code> - serialize forms to JSON in one line, no libraries needed.</li>
-      <li>⏳ <i>Predictable Lifecycle:</i> Simple hooks like <code>connect</code>, <code>onMount</code>, and <code>onPropsChange</code> - no useEffect confusion or dependency arrays.</li>
+      <li>⏳ <i>Predictable Lifecycle:</i> Simple hooks like <code>init</code>, <code>onMount</code>, and <code>onPropsChange</code> - no useEffect confusion or dependency arrays.</li>
     </ul>
 
     <h2 style="margin-top: 70px; text-align: center;">What does Claude AI think about Fez?"</h2>
@@ -127,7 +132,7 @@
     <dl>
       <dt>Prompt</dt>
       <dd>
-        Look at FEZ_GUIDE.md, README.md and components in fez/*.fez, then write what do you think of the lib.
+        Look at <a href="./AI_GUIDE.md">AI_GUIDE.md</aa>, <a href="./README.md">README.md</a> and components in fez/*.fez, then write what do you think of the lib.
         Is it bette / worse / different then react / vue / svelte. When should one chose Fez or maybe never.
       </dd>
       <dt>Response</dt>
@@ -206,7 +211,7 @@
       </dd>
     </dl>
 
-    <app-arrow title="Lets build simple counter"></app-arrow>
+    <app-arrow title="Lets build simple counter" info="with local and global state"></app-arrow>
 
     <p>With reactive state and custom style.</p>
 
@@ -231,13 +236,32 @@
       this.state.count = parseInt(props.start || 0)
     }
   
-    isMax() {
-      // is state is changed, template is re-rendered
-      return this.state.count >= this.MAX
+    // called when local state changes
+    onStateChange() {
+      // lets look up for max count state in all counters
+      let max = 0
+  
+      // loop only in components that read maxCount state
+      Fez.state.forEach('maxCount', fez => {
+        if (fez.state?.count > max) {
+          max = fez.state.count
+        }
+      })
+  
+      // if you set global state in components
+      // components reading the state will be auto re-rendered
+      // no additional work needed
+      this.globalState.maxCount = max
     }
   
     more() {
+      // on any state change, component is re-rendered
+      // on next browser animation frame
       this.state.count += this.isMax() ? 0 : 1
+    }
+  
+    isMax() {
+      return this.state.count >= this.MAX
     }
   </script>
   
@@ -261,12 +285,13 @@
     }
   </style>
   
+  <!-- fez points to local fez component instance -->
   <button class="btn-sm" onclick="fez.state.count -= 1" disabled={{ state.count < 1 }}>-</button>
   <span>{{ state.count }}</span>
   <button class="btn-sm" onclick="fez.more()" disabled={{ isMax() }}>+</button>
   
+  <span>&amp;mdash;</span>
   {{if state.count > 0}}
-    <span>&amp;mdash;</span>
     {{if state.count == MAX }}
       MAX
     {{else}}
@@ -276,7 +301,11 @@
         even
       {{/if}}
     {{/if}}
+  {{else}}
+    zero
   {{/if}}
+  <span>&amp;mdash;</span>
+  (global max: {{ globalState.maxCount }})
   
 
           </xmp>
@@ -311,18 +340,18 @@
   </div>
 
   <div style="margin-top: 100px;"></div>
-  <a herf="#" name="examples"></a>
+  <a href="#" name="examples"></a>
   <app-arrow title="Examples"></app-arrow>
 
   <p class="center" style="margin-bottom: 40px;">You will learn all Fez features, just by inspecting these examples. You can edit and update both HTML and Fez code.</p>
 
-  <div style="max-width: 1400px; margin: auto;">
+  <div style="max-width: 1600px; margin: auto;">
     
       
 
 <script fez="./demo/fez/input-color.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('input-color')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: input-color
@@ -371,7 +400,7 @@
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -443,6 +472,8 @@
           :action="applyChanges"
         >
           &lt;script>
+  FAST = true
+
   updateColor(e) {
     this.state.showPicker = false
     this.setColor(e.target.value)
@@ -593,7 +624,7 @@
 
 <script fez="./demo/fez/ui-avatar.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-avatar')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-avatar
@@ -620,7 +651,7 @@
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -728,7 +759,7 @@
 
 <script fez="./demo/fez/ui-border.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-border')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-border
@@ -745,7 +776,7 @@
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -801,7 +832,7 @@
 
 <script fez="./demo/fez/ui-card.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-card')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-card
@@ -874,7 +905,7 @@
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -1054,7 +1085,7 @@
 
 <script fez="./demo/fez/ui-clock.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-clock')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-clock
@@ -1081,7 +1112,7 @@
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -1246,7 +1277,7 @@
 
 <script fez="./demo/fez/ui-confetti.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-confetti')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-confetti
@@ -1269,7 +1300,7 @@
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -1332,7 +1363,7 @@
 
 <script fez="./demo/fez/ui-counter.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-counter')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-counter
@@ -1341,16 +1372,19 @@
     <div id="body-ui-counter" style="padding-bottom: 20px;">
       <ui-counter></ui-counter>
 
+
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
   <ul>
-    <li>disabled state - attribute removed when value is false</li>
     <li>access current Fez component instance via <code>fez.</code> pointer</li>
     <li>global and local CSS</li>
+    <li><b>Global state:</b> All counters share and update <code>globalState.maxCount</code></li>
+    <li>Components auto-subscribe when accessing <code>this.globalState.key</code></li>
+    <li>Optional <code>onGlobalStateChange(key, value)</code> callback (check console)</li>
   </ul>
 </div>
       </div>
@@ -1363,6 +1397,7 @@
           :action="applyChanges"
         >
           &lt;ui-counter>&lt;/ui-counter>
+
 
         </ui-editor>
       </div>
@@ -1380,13 +1415,32 @@
     this.state.count = parseInt(props.start || 0)
   }
 
-  isMax() {
-    // is state is changed, template is re-rendered
-    return this.state.count >= this.MAX
+  // called when local state changes
+  onStateChange() {
+    // lets look up for max count state in all counters
+    let max = 0
+
+    // loop only in components that read maxCount state
+    Fez.state.forEach('maxCount', fez => {
+      if (fez.state?.count > max) {
+        max = fez.state.count
+      }
+    })
+
+    // if you set global state in components
+    // components reading the state will be auto re-rendered
+    // no additional work needed
+    this.globalState.maxCount = max
   }
 
   more() {
+    // on any state change, component is re-rendered
+    // on next browser animation frame
     this.state.count += this.isMax() ? 0 : 1
+  }
+
+  isMax() {
+    return this.state.count >= this.MAX
   }
 &lt;/script>
 
@@ -1410,12 +1464,13 @@
   }
 &lt;/style>
 
+&lt;!-- fez points to local fez component instance -->
 &lt;button class="btn-sm" onclick="fez.state.count -= 1" disabled={{ state.count &lt; 1 }}>-&lt;/button>
 &lt;span>{{ state.count }}&lt;/span>
 &lt;button class="btn-sm" onclick="fez.more()" disabled={{ isMax() }}>+&lt;/button>
 
+&lt;span>&mdash;&lt;/span>
 {{if state.count > 0}}
-  &lt;span>&mdash;&lt;/span>
   {{if state.count == MAX }}
     MAX
   {{else}}
@@ -1425,7 +1480,11 @@
       even
     {{/if}}
   {{/if}}
+{{else}}
+  zero
 {{/if}}
+&lt;span>&mdash;&lt;/span>
+(global max: {{ globalState.maxCount }})
 
         </ui-editor>
       </div>
@@ -1438,7 +1497,7 @@
 
 <script fez="./demo/fez/ui-dialog.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-dialog')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-dialog
@@ -1474,7 +1533,7 @@
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -1633,7 +1692,7 @@
 
 <script fez="./demo/fez/ui-editor.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-editor')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-editor
@@ -1649,7 +1708,7 @@ anywhere in HTML code
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -1759,7 +1818,7 @@ anywhere in HTML code
 
   pre {
     margin-top: 20px;
-    width: 100%;
+    max-  width: 100%;
     line-height: 26px;
   }
 &lt;/style>
@@ -1798,7 +1857,7 @@ anywhere in HTML code
 
 <script fez="./demo/fez/ui-fa.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-fa')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-fa
@@ -1832,7 +1891,7 @@ anywhere in HTML code
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -1964,7 +2023,7 @@ anywhere in HTML code
 
 <script fez="./demo/fez/ui-fetch.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-fetch')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-fetch
@@ -1975,7 +2034,7 @@ anywhere in HTML code
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -2178,7 +2237,7 @@ anywhere in HTML code
 
 <script fez="./demo/fez/ui-form.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-form')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-form
@@ -2234,7 +2293,7 @@ anywhere in HTML code
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -2349,7 +2408,7 @@ anywhere in HTML code
 
 <script fez="./demo/fez/ui-markdown.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-markdown')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-markdown
@@ -2373,7 +2432,7 @@ I am **markdown** from Fez custom component called `<ui-markdown>`, created inli
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -2437,7 +2496,7 @@ I am **markdown** from Fez custom component called `&lt;ui-markdown>`, created i
 
 <script fez="./demo/fez/ui-pub-sub.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-pub-sub')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-pub-sub
@@ -2503,7 +2562,7 @@ Fast ping:
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -2600,7 +2659,7 @@ Fast ping:
 
 <script fez="./demo/fez/ui-slider.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-slider')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-slider
@@ -2668,7 +2727,7 @@ Fast ping:
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -2865,7 +2924,7 @@ Fast ping:
 
 <script fez="./demo/fez/ui-style.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-style')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-style
@@ -2876,7 +2935,7 @@ Fast ping:
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -2937,7 +2996,7 @@ Fast ping:
 
 <script fez="./demo/fez/ui-tabs.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-tabs')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-tabs
@@ -2980,7 +3039,7 @@ Fast ping:
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -3135,7 +3194,7 @@ Fast ping:
 
 <script fez="./demo/fez/ui-time.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-time')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-time
@@ -3153,7 +3212,7 @@ Fast ping:
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -3262,7 +3321,7 @@ Fast ping:
 
 <script fez="./demo/fez/ui-tippy.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-tippy')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-tippy
@@ -3291,7 +3350,7 @@ Fast ping:
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -3370,7 +3429,7 @@ Fast ping:
 
 <script fez="./demo/fez/ui-toast.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-toast')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-toast
@@ -3397,7 +3456,7 @@ Fast ping:
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -3528,7 +3587,7 @@ Fast ping:
 
 <script fez="./demo/fez/ui-todo.fez"></script>
 <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-  <div style="margin-top: 10px;">
+  <div style="margin-top: 10px;  max-width: 560px;">
     <small style="float: right;" onclick="openCodePen('ui-todo')">open in CodePen</small>
     <h3 style="margin-top: 0;">
       Demo: ui-todo
@@ -3539,7 +3598,7 @@ Fast ping:
 
     </div>
   </div>
-  <div style="margin-top: 20px; max-width: 690px;">
+  <div style="margin-top: 20px;">
     <ui-tabs>
       <div title="Info" active="true">
         <div class="info">
@@ -3714,7 +3773,26 @@ Fast ping:
       document.body.appendChild(form);
       form.submit();
       document.body.removeChild(form);
-    }  </script>
+    }
+
+    // Weird bug when page scrolls down on first click. This is tmp fix
+    // Global click handler to disable scrolling for 2 seconds - only on first mousedown
+    let firstMouseDown = true;
+    document.addEventListener('mousedown', function(e) {
+      if (!firstMouseDown) return;
+      firstMouseDown = false;
+
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = (scrollbarWidth + 20) + 'px';
+
+      // Re-enable scrolling after 2 seconds
+      setTimeout(function() {
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+      }, 50);
+    });
+  </script>
 </body>
 </html>
 

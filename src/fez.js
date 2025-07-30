@@ -10,6 +10,8 @@ window.Fez = Fez
 setInterval(() => {
   for (const [key, el] of Fez.instances) {
     if (!el?.isConnected) {
+      // Fez.error(`Found junk instance that is not connected ${el.fezName}`)
+      el.fez?.fezRemoveSelf()
       Fez.instances.delete(key)
     }
   }
@@ -17,7 +19,7 @@ setInterval(() => {
 
 // define Fez observer
 const observer = new MutationObserver((mutations) => {
-  for (const { addedNodes } of mutations) {
+  for (const { addedNodes, removedNodes } of mutations) {
     addedNodes.forEach((node) => {
       if (node.nodeType !== 1) return; // only elements
       // check the node itself
@@ -26,6 +28,20 @@ const observer = new MutationObserver((mutations) => {
           Fez.compile(node);
           node.remove();
         })
+      }
+    });
+
+    removedNodes.forEach((node) => {
+      if (node.nodeType === 1 && node.querySelectorAll) {
+        // check both the node itself and its descendants
+        const fezElements = node.querySelectorAll('.fez, :scope.fez');
+        fezElements
+          .forEach(el => {
+            if (el.fez && el.root) {
+              Fez.instances.delete(el.fez.UID)
+              el.fez.fezRemoveSelf()
+            }
+          });
       }
     });
   }
