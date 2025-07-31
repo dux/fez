@@ -1,27 +1,61 @@
 {
   "name": "@dinoreic/fez",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Runtime custom dom elements",
-  "main": "src/fez.js",
+  "main": "dist/fez.js",
   "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/fez.js",
+      "require": "./dist/fez.js"
+    },
+    "./rollup": {
+      "import": "./src/rollup.js",
+      "require": "./src/rollup.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "pages": "ruby demo/helper.rb > ./index.html",
+    "build": "bun build.js b",
     "b": "bun build.js b",
     "watch": "bun build.js w",
     "server": "bun run lib/server.js",
     "dev": "sh -c 'bun run server & SERVER_PID=$!; trap \"kill $SERVER_PID\" EXIT; find src demo lib| entr -c sh -c \"bun run pages && bun run b\"'",
     "test": "bun test",
-    "push": "bun run build && bun run test"
+    "prepublishOnly": "bun run build && bun run test",
+    "publish": "npm publish --access public"
   },
+  "keywords": [
+    "dom",
+    "elements",
+    "custom-elements",
+    "web-components",
+    "frontend"
+  ],
+  "author": "Dino Reic",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dux/fez.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dux/fez/issues"
+  },
+  "homepage": "https://github.com/dux/fez#readme",
   "devDependencies": {
     "coffeescript": "^2.7.0",
     "esbuild": "0.23.0",
     "esbuild-coffeescript": "^2.2.0",
     "glob-cli": "^1.0.0",
     "happy-dom": "^18.0.1",
-    "jsdom": "^26.1.0"
-  },
-  "dependencies": {
+    "jsdom": "^26.1.0",
     "mime": "^4.0.7"
   }
 }

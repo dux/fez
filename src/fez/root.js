@@ -52,7 +52,7 @@ const Fez = (name, klass) => {
       }
     }
   } else {
-    return FezBase
+    Fez.error('Fez() ?')
   }
 }
 
@@ -247,7 +247,7 @@ Fez.head = (config, callback) => {
         new Function(config.script)();
         if (callback) callback();
       } catch (error) {
-        console.error('Error executing script:', error);
+        Fez.error('Error executing script:', error);
         console.log(config.script);
       }
     }

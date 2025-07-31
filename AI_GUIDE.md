@@ -414,3 +414,56 @@ login(user) {
 5. **Use built-in utilities** (don't reinvent)
 6. **Handle loading/error states** appropriately
 7. **Clean up resources** in lifecycle methods
+
+## Minimal Complete Component Example
+
+```html
+<xmp fez="foo-bar">
+  <script>
+    init() {
+      this.title = 'Some title'
+      this.state.count = 0
+      this.state.items = ['Apple', '<b>Banana</b>', 'Cherry']
+      this.state.show = true
+    }
+
+    onMount() {
+      // executed after first template render
+    }
+
+    increment() {
+      this.state.count++
+    }
+
+    addItem() {
+      this.state.items.push(`Item ${this.state.items.length + 1}`)
+    }
+  </script>
+
+  <style>
+    :fez {
+      padding: 20px;
+      button { margin: 5px; }
+    }
+  </style>
+
+  <h3>{{ title }}</h3>
+  <h3>Count: {{ state.count }}</h3>
+  <button onclick="fez.increment()">Increment</button>
+
+  {{if state.show}}
+    <div>Conditional content is visible</div>
+  {{else}}
+    <div>Hidden</div>
+  {{/if}}
+
+  <button onclick="fez.addItem()">Add Item</button>
+  <ul>
+    {{for item, index in state.items}}
+      <li>{{ index }}: {{raw item}}</li>
+    {{/for}}
+  </ul>
+
+  <input type="text" fez-bind="state.count" />
+</xmp>
+```

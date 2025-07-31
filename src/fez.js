@@ -1,10 +1,10 @@
 // base class for custom dom objects
 import FezBase from './fez/instance.js'
-window.FezBase = FezBase
+if (typeof window !== 'undefined') window.FezBase = FezBase
 
 // base class for custom dom objects
 import Fez from './fez/root.js'
-window.Fez = Fez
+if (typeof window !== 'undefined') window.Fez = Fez
 
 // clear all unattached nodes
 setInterval(() => {
@@ -69,3 +69,6 @@ Fez('fez-component', class {
     this.root.appendChild(tag)
   }
 })
+
+export default Fez
+export { Fez }
