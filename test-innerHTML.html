@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fez innerHTML Test</title>
+  <script type="module" src="./src/fez.js"></script>
+</head>
+<body>
+  <h1>Fez innerHTML Test</h1>
+  
+  <!-- This works: Direct template in HTML -->
+  <template fez="test-component">
+    <style>
+      background: lightblue;
+      padding: 10px;
+      margin: 10px;
+      border: 1px solid blue;
+    </style>
+    <script>
+      init() {
+        this.root.innerHTML = `<h3>Test Component: ${this.props.message || 'Default'}</h3>`;
+      }
+    </script>
+  </template>
+
+  <!-- Test container -->
+  <div id="test-container">
+    <h2>Direct HTML (works):</h2>
+    <test-component message="Direct HTML"></test-component>
+  </div>
+
+  <div id="dynamic-container">
+    <h2>Dynamic innerHTML:</h2>
+  </div>
+
+  <script type="module">
+    // Wait for Fez to be loaded
+    setTimeout(() => {
+      // Test 1: Insert custom element via innerHTML
+      document.getElementById('dynamic-container').innerHTML += `
+        <test-component message="Via innerHTML"></test-component>
+      `;
+
+      // Test 2: Insert template via innerHTML
+      setTimeout(() => {
+        document.getElementById('dynamic-container').innerHTML += `
+          <template fez="dynamic-component">
+            <style>
+              background: lightgreen;
+              padding: 10px;
+              margin: 10px;
+              border: 1px solid green;
+            </style>
+            <script>
+              init() {
+                this.root.innerHTML = '<h3>Dynamic Component Created via innerHTML</h3>';
+              }
+            </script>
+          </template>
+          <dynamic-component></dynamic-component>
+        `;
+      }, 1000);
+    }, 1000);
+  </script>
+</body>
+</html>

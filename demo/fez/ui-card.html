@@ -8,7 +8,7 @@
 </div>
 
 <script>
-  function randomFlip() {
+  window.randomFlip = () => {
     let timeout = 150
     let current = 0
     document.querySelectorAll('.fez-ui-card').forEach(n => {
@@ -17,7 +17,7 @@
     })
   }
 
-  function flipAllCards() {
+  window.flipAllCards = () => {
     document.querySelectorAll('.fez-ui-card').forEach(n => n.fez.flip())
   }
 </script>
@@ -34,7 +34,7 @@
     <h2>The magician</h2>
     <p>Click to flip!</p>
   </div>
-  <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m1.webp') no-repeat center/cover;">
+  <div class="back"  style="background: url('./demo/img/m1.webp') no-repeat center/cover;">
   </div>
 </ui-card>
 
@@ -43,7 +43,7 @@
     <h2>The high<br />priestess</h2>
     <p>Click to flip!</p>
   </div>
-  <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m2.webp') no-repeat center/cover;">
+  <div class="back"  style="background: url('./demo/img/m2.webp') no-repeat center/cover;">
   </div>
 </ui-card>
 
@@ -52,7 +52,7 @@
     <h2>The empress</h2>
     <p>Click to flip!</p>
   </div>
-  <div class="back"  style="background: url('https://tarotatlas.com/wp-content/themes/ta/img/m3.webp') no-repeat center/cover;">
+  <div class="back"  style="background: url('./demo/img/m3.webp') no-repeat center/cover;">
   </div>
 </ui-card>
 

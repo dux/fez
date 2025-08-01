@@ -141,6 +141,7 @@ Fez.htmlEscape = (text) => {
     text = text
       // .replaceAll('&', "&amp;")
       .replace(/font-family\s*:\s*(?:&[^;]+;|[^;])*?;/gi, '')
+      .replaceAll("&", '&amp;')
       .replaceAll("'", '&apos;')
       .replaceAll('"', '&quot;')
       .replaceAll('<', '&lt;')
@@ -191,6 +192,7 @@ Fez.error = (text, show) => {
 }
 Fez.log = (text) => {
   if (Fez.LOG === true) {
+    text = String(text).substring(0, 180)
     console.log(`Fez: ${text}`)
   }
 }
@@ -210,20 +212,34 @@ Fez.untilTrue = (func, pingRate) => {
 }
 
 // Script from URL
-//   head({ js: 'https://example.com/script.js' });
+//   Fez.head({ js: 'https://example.com/script.js' });
 // Script with attributes
-//   head({ js: 'https://example.com/script.js', type: 'module', async: true });
+//   Fez.head({ js: 'https://example.com/script.js', type: 'module', async: true });
 // Script with callback
-//   head({ js: 'https://example.com/script.js' }, () => { console.log('loaded') });
+//   Fez.head({ js: 'https://example.com/script.js' }, () => { console.log('loaded') });
 // Module loading with auto-import to window
-//   head({ js: 'https://example.com/module.js', module: 'MyModule' }); // imports and sets window.MyModule
+//   Fez.head({ js: 'https://example.com/module.js', module: 'MyModule' }); // imports and sets window.MyModule
 // CSS inclusion
-//   head({ css: 'https://example.com/styles.css' });
+//   Fez.head({ css: 'https://example.com/styles.css' });
 // CSS with additional attributes and callback
-//   head({ css: 'https://example.com/styles.css', media: 'print' }, () => { console.log('CSS loaded') })
+//   Fez.head({ css: 'https://example.com/styles.css', media: 'print' }, () => { console.log('CSS loaded') })
 // Inline script evaluation
-//   head({ script: 'console.log("Hello world")' })
+//   Fez.head({ script: 'console.log("Hello world")' })
+// Extract from nodes
+//   Fez.head(domNode)
 Fez.head = (config, callback) => {
+  if (config.nodeName) {
+    if (config.nodeName == 'SCRIPT') {
+      Fez.head({script: config.innerText})
+      config.remove()
+    } else {
+      config.querySelectorAll('script').forEach((n) => Fez.head(n) )
+      config.querySelectorAll('template[fez], xmp[fez], script[fez]').forEach((n) => Fez.compile(n) )
+    }
+
+    return
+  }
+
   if (typeof config !== 'object' || config === null) {
     throw new Error('head requires an object parameter');
   }

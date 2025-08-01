@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+
+require 'pathname'
+
+command = ARGV[0]
+args = ARGV[1..-1]
+
+if command.nil? || command == '--help' || command == '-h'
+  puts "Usage: fez <command> [<args>]"
+  puts ""
+  puts "Available commands:"
+  
+  bin_dir = Pathname.new(__FILE__).dirname
+  commands = Dir[bin_dir.join("fez-*")].map do |path|
+    File.basename(path).sub(/^fez-/, '')
+  end.sort
+  
+  commands.each do |cmd|
+    puts "  #{cmd}"
+  end
+  
+  exit 0
+end
+
+subcommand_path = File.join(File.dirname(__FILE__), "fez-#{command}")
+
+if File.exist?(subcommand_path) && File.executable?(subcommand_path)
+  exec(subcommand_path, *args)
+else
+  puts "fez: '#{command}' is not a fez command. See 'fez --help'."
+  exit 1
+end

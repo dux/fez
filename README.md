@@ -443,8 +443,11 @@ All parts are optional
     {{block image}}
       <img src={{ props.src}} />
     {{/block}}
-    {{block:image}}<!-- Use the header block -->
-    {{block:image}}<!-- Use the header block -->
+    {{block:image}} <!-- Use the header block -->
+    {{block:image}} <!-- Use the header block -->
+
+    {{raw data}} <!-- unescape HTML -->
+    {{json data}} <!-- JSON dump in PRE.json tag -->
 
     <!-- fez-this will link DOM node to object property (inspired by Svelte) -->
     <!-- this.listRoot -->

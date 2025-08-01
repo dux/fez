@@ -1,0 +1,125 @@
+<xmp fez="promo-blocks">
+  <script>
+    init() {
+      const me = this
+      me.state.data = []
+
+      Fez.fetch('/demo/fez/index.json', (data)=>{
+        me.state.data = data
+        me.globalState.fezComonents = data
+      })
+    }
+  </script>
+
+  {{for el in state.data}}
+     <block-promo :file="el.file" />
+  {{/for}}
+</xmp>
+
+<xmp fez="block-promo">
+  <script>
+    openCodePen(name) {
+      let html = Fez(`#html-${name}`).getSource()
+      let code = Fez(`#code-${name}`).getSource()
+      const body = [
+        '<link rel="stylesheet" href="//cdn.simplecss.org/simple.css" />\n<scr'+'ipt src="//dux.github.io/fez/dist/fez.js"></scr'+'ipt>',
+        `<!-- FEZ code start -->\n<x`+`mp fez="${name}">\n${code}\n</xm`+`p>\n<!-- FEZ code end -->`,
+        `<!-- HTML code start -->\n${html}\n<!-- HTML code end -->`
+      ]
+
+      const css = `body { padding-top: 50px; }`
+
+      const data = {
+        title: `Fez component - ${name}`,
+        html: body.join("\n\n"),
+        css: css,
+        js: '',
+        editors: "100" // 1=HTML, 0=CSS, 1=JS (open panels)
+      };
+
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "https://codepen.io/pen/define";
+      form.target = "_blank";
+
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "data";
+      input.value = JSON.stringify(data);
+
+      form.appendChild(input);
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+    }
+
+    applyChanges(name) {
+      let htmlString = Fez(`#code-${name}`).getSource()
+      Fez.compile(name, htmlString)
+      document.querySelector(`#body-${name}`).innerHTML = Fez(`#html-${name}`).getSource()
+      Toast.info('HTML content updated.')
+    }
+
+    init(props) {
+      this.file = props.file
+      Fez.fetch('./' + props.file.path, (r) => this.state.code = r)
+      Fez.fetch('./' + props.file.path.replace('.fez', '.html'), (r) =>{
+        const dom = document.createElement('div')
+        dom.innerHTML = r
+        const info = dom.querySelector('.info')
+        if (info) {
+          this.state.info = info.outerHTML
+          info.remove()
+        }
+        Fez.head(dom)
+        this.state.html = dom.innerHTML
+      })
+    }
+  </script>
+
+  <script fez="./demo/fez/{{ file.base }}.fez"></script>
+
+  {{if state.code && state.html }}
+    <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+      <div style="margin-top: 10px;  max-width: 560px;">
+        <small style="float: right;" onclick="fez.openCodePen('{{ file.base }}')">open in CodePen</small>
+        <h3 style="margin-top: 0;">
+          Demo: {{ file.base }}
+        </h3>
+
+        <div id="body-{{ file.base }}" style="padding-bottom: 20px;">
+          {{raw state.html }}
+        </div>
+      </div>
+      <div style="margin-top: 20px;">
+        <ui-tabs>
+          <div title="Info" active="true">
+            {{raw state.info }}
+          </div>
+          <div title="HTML">
+            <ui-editor
+              name="{{ file.base }}"
+              id="html-{{ file.base }}"
+              file="./demo/fez/{{ file.base }}.html"
+              language="html"
+              :action="fez.applyChanges"
+            >
+              {{ state.html }}
+            </ui-editor>
+          </div>
+          <div title="Fez component">
+            <ui-editor
+              id="code-{{ file.base }}"
+              file="./demo/fez/{{ file.base }}.fez"
+              name="{{ file.base }}"
+              :action="fez.applyChanges"
+            >
+              {{ state.code }}
+            </ui-editor>
+          </div>
+        </ui-tabs>
+      </div>
+    </div>
+  {{/if}}
+</xmp>
+

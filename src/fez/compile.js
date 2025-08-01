@@ -26,6 +26,9 @@ const compileToClass = (html) => {
       currentBlock = [];
       currentType = null;
     } else if (currentType) {
+      // if (currentType == 'script' && line.startsWith('//')) {
+      //   continue
+      // }
       currentBlock.push(line);
     } else {
       result.html += line + '\n';

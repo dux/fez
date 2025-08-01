@@ -7,8 +7,14 @@
   </ul>
 </div>
 
+<script>
+  window.updateFormData = (obj) => {
+    document.getElementById('form-data').textContent += JSON.stringify(obj) + "\n"
+  }
+</script>
+
 <div class="flex">
-  <ui-form target="/api" :ping="updateFormData">
+  <ui-form target="/api" :ping="window.updateFormData">
     <p>
       <input type="text" name="info" value="a dude" />
     </p>
@@ -29,7 +35,7 @@
     </p>
   </ui-form>
 
-  <ui-form target="/api" :ping="updateFormData">
+  <ui-form target="/api" :ping="window.updateFormData">
     <p>
       <select name="num">
         <option>uno</option>
@@ -48,8 +54,3 @@
 
 <pre id="form-data"></pre>
 
-<script>
-  function updateFormData(obj) {
-    document.getElementById('form-data').textContent += JSON.stringify(obj) + "\n"
-  }
-</script>

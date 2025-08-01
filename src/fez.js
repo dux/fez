@@ -22,18 +22,23 @@ const observer = new MutationObserver((mutations) => {
   for (const { addedNodes, removedNodes } of mutations) {
     addedNodes.forEach((node) => {
       if (node.nodeType !== 1) return; // only elements
-      // check the node itself
+
       if (node.matches('template[fez], xmp[fez], script[fez]')) {
-        window.requestAnimationFrame(()=>{
-          Fez.compile(node);
-          node.remove();
-        })
+        Fez.compile(node);
+        node.remove();
+      }
+
+      if (node.querySelectorAll) {
+        const nestedTemplates = node.querySelectorAll('template[fez], xmp[fez], script[fez]');
+        nestedTemplates.forEach(template => {
+          Fez.compile(template);
+          template.remove();
+        });
       }
     });
 
     removedNodes.forEach((node) => {
       if (node.nodeType === 1 && node.querySelectorAll) {
-        // check both the node itself and its descendants
         const fezElements = node.querySelectorAll('.fez, :scope.fez');
         fezElements
           .forEach(el => {

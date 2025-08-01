@@ -40,6 +40,11 @@ function parseBlock(data, ifStack) {
   else {
     const prefix = '@html '
 
+    if (data.startsWith('json ')) {
+      data = data.replace('json ', "@html '<pre class=json>'+JSON.stringify(")
+      data += ", null, 2) + '</pre>'"
+    }
+
     if (data.startsWith(prefix)) {
       data = data.replace(prefix, '')
     } else {

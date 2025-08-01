@@ -19,6 +19,7 @@ export default class FezBase {
 
     for (const [key, val] of Object.entries(attrs)) {
       if ([':'].includes(key[0])) {
+        // LOG([key, val])
         delete attrs[key]
         try {
           const newVal = new Function(`return (${val})`).bind(newNode)()
@@ -242,7 +243,7 @@ export default class FezBase {
     const base = this.fezHtmlRoot.replaceAll('"', '&quot;')
 
     text = text
-      .replace(/([^\w\.])fez\./g, `$1${base}`)
+      .replace(/(['"\s;])fez\./g, `$1${base}`)
       .replace(/>\s+</g, '><')
 
     return text.trim()

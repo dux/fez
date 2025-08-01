@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+
+require 'pathname'
+require 'json'
+
+# Check if argument is provided
+if ARGV.empty?
+  puts "Usage: #{$0} <directory>"
+  exit 1
+end
+
+dir = ARGV[0]
+
+# If no * in argument, append /*
+pattern = dir.include?('*') ? dir : File.join(dir, '*')
+
+# Check if base directory exists (for error message)
+base_dir = dir.split('*').first.chomp('/')
+if !base_dir.empty? && !File.directory?(base_dir)
+  puts "Error: Directory '#{base_dir}' does not exist"
+  exit 1
+end
+
+# Get files using glob
+files = Dir.glob(pattern).select { |f| File.file?(f) }
+
+# Create index for each file
+file_index = []
+files.each do |path|
+  stat = File.stat(path)
+
+  file_info = {
+    base: File.basename(path, File.extname(path)),
+    path: path,
+    size: stat.size.to_i,
+    modified: stat.mtime.to_i,
+    created: stat.birthtime.to_i
+  }
+
+  file_index << {file: file_info}
+end
+
+# Output as JSON to screen
+puts JSON.pretty_generate(file_index)

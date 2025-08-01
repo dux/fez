@@ -36,30 +36,50 @@
       return this.codeNode.textContent
     }
 
-    copy() {
+    async copy() {
+      const text = this.getSource();
+
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
       try {
-          navigator.clipboard.writeText(this.getSource());
+        const successful = document.execCommand('copy');
+        if (successful) {
           Toast.info('File data copied to clipboard.');
-        } catch (err) {
-          console.error('Failed to copy: ', err);
-          Toast.error('Failed to copy to clipboard.');
+        } else {
+          throw new Error('Copy command failed');
         }
+      } finally {
+        textArea.remove();
       }
+    }
 
     init(props) {
       props.language ||= 'html'
 
-      const child = this.root.firstElementChild
-      if (child?.nodeName == 'TEMPLATE' || child?.nodeName == 'XMP') {
-        this.source = Fez.htmlEscape(this.root.firstElementChild.innerHTML)
+      if (props.src) {
+        Fez.fetch(props.src, (r)=>{
+          this.source = Fez.htmlEscape(r)
+        })
       } else {
-        this.source = this.root.innerHTML
+        const child = this.root.firstElementChild
+        if (child?.nodeName == 'TEMPLATE' || child?.nodeName == 'XMP') {
+          this.source = Fez.htmlEscape(this.root.firstElementChild.innerHTML)
+        } else {
+          this.source = this.root.innerHTML
+        }
       }
     }
 
     onMount() {
       const node = this.codeNode = this.find('code')
-      node.innerHTML = this.reformatIndentation(this.source.trim())
+      node.innerHTML = this.reformatIndentation( this.source.trim() )
       hljs.highlightElement(node)
     }
   }

@@ -41,7 +41,7 @@ if (kind === 'w') {
   watch()
 }
 else if (kind === 'b') {
-  cliRun(`ruby demo/helper.rb > ./index.html`)
+  cliRun(`bun run index`)
   await esbuild.build(opts)
 }
 else {
