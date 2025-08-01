@@ -111,14 +111,29 @@ export default class FezBase {
     }
   }
 
+  // clear all node references
   fezRemoveSelf() {
     this._setIntervalCache ||= {}
     Object.keys(this._setIntervalCache).forEach((key)=> {
       clearInterval(this._setIntervalCache[key])
     })
 
+    if (this._eventHandlers) {
+      Object.entries(this._eventHandlers).forEach(([eventName, handler]) => {
+        window.removeEventListener(eventName, handler);
+      });
+      this._eventHandlers = {};
+    }
+
+    if (this._timeouts) {
+      Object.values(this._timeouts).forEach(timeoutId => {
+        clearTimeout(timeoutId);
+      });
+      this._timeouts = {};
+    }
+
     this.onDestroy()
-    this.onDestroy = ()=> {}
+    this.onDestroy = () => {}
 
     if (this.root) {
       this.root.fez = undefined
@@ -163,43 +178,77 @@ export default class FezBase {
     }
   }
 
-  // helper function to execute stuff on window resize, and clean after node is not connected any more
-  // if delay given, throttle, if not debounce
-  onResize(func, delay) {
-    let timeoutId;
+  // Generic function to handle window events with automatic cleanup
+  // eventName: 'resize', 'scroll', etc.
+  // func: callback function to execute
+  // delay: throttle delay in ms (default: 100ms)
+  on(eventName, func, delay = 200) {
+    this._eventHandlers = this._eventHandlers || {};
+    this._timeouts = this._timeouts || {};
+
+    if (this._eventHandlers[eventName]) {
+      window.removeEventListener(eventName, this._eventHandlers[eventName]);
+    }
+
+    if (this._timeouts[eventName]) {
+      clearTimeout(this._timeouts[eventName]);
+    }
+
     let lastRun = 0;
 
-    func()
-
-    const checkAndExecute = () => {
+    const doExecute = () => {
       if (!this.isConnected) {
-        window.removeEventListener('resize', handleResize);
-        return;
+        if (this._eventHandlers[eventName]) {
+          window.removeEventListener(eventName, this._eventHandlers[eventName]);
+          delete this._eventHandlers[eventName];
+        }
+        if (this._timeouts[eventName]) {
+          clearTimeout(this._timeouts[eventName]);
+          delete this._timeouts[eventName];
+        }
+        return false;
       }
       func.call(this);
+      return true;
     };
 
-    const handleResize = () => {
-      if (!this.isConnected) {
-        window.removeEventListener('resize', handleResize);
-        return;
-      }
+    const handleEvent = () => {
+      const now = Date.now();
 
-      if (delay) {
-        // Throttle
-        const now = Date.now();
-        if (now - lastRun >= delay) {
-          checkAndExecute();
+      if (now - lastRun >= delay) {
+        if (doExecute()) {
           lastRun = now;
+        } else {
+          return;
         }
-      } else {
-        // Debounce
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(checkAndExecute, 200);
       }
+
+      // Clear previous timeout and set new one to ensure final event
+      if (this._timeouts[eventName]) {
+        clearTimeout(this._timeouts[eventName]);
+      }
+
+      this._timeouts[eventName] = setTimeout(() => {
+        if (now > lastRun && doExecute()) {
+          lastRun = Date.now();
+        }
+        delete this._timeouts[eventName];
+      }, delay);
     };
 
-    window.addEventListener('resize', handleResize);
+    this._eventHandlers[eventName] = handleEvent;
+    window.addEventListener(eventName, handleEvent);
+    handleEvent();
+  }
+
+  // Helper function for resize events
+  onResize(func, delay) {
+    this.on('resize', func, delay);
+  }
+
+  // Helper function for scroll events
+  onScroll(func, delay) {
+    this.on('scroll', func, delay);
   }
 
   // copy child nodes, natively to preserve bound events

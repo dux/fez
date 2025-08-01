@@ -320,8 +320,17 @@ Fez('foo-bar', class {
     // this.state has reactiveStore() attached by default. any change will trigger this.render()
     this.state.foo = 123
 
-    // window resize event with cleanup
+    // generic window event handler with automatic cleanup
+    // eventName: 'resize', 'scroll', 'mousemove', etc.
+    // delay: throttle delay in ms (default: 200ms)
+    // runs immediately on init and then throttled
+    this.on(eventName, func, delay)
+
+    // window resize event with cleanup (shorthand for this.on('resize', func, delay))
     this.onResize(func, delay)
+    
+    // window scroll event with cleanup (shorthand for this.on('scroll', func, delay))
+    this.onScroll(func, delay)
 
     // requestAnimationFrame wrapper with deduplication
     this.nextTick(func, name)
