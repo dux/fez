@@ -60,8 +60,11 @@ observer.observe(document.documentElement, {
 
 // fez custom tags
 
+// include fez component by name
 //<fez-component name="some-node" :props="fez.props"></fez-node>
 Fez('fez-component', class {
+  FAST = true
+
   init(props) {
     const tag = document.createElement(props.name)
     tag.props = props.props || props['data-props'] || props
@@ -72,6 +75,21 @@ Fez('fez-component', class {
 
     this.root.innerHTML = ''
     this.root.appendChild(tag)
+  }
+})
+
+// include remote data from url
+// <fez-include src="./demo/fez/ui-slider.html"></fez-include>
+Fez('fez-include', class {
+  FAST = true
+
+  init(props) {
+    Fez.fetch(props.src, (data)=>{
+      const dom = document.createElement('div')
+      dom.innerHTML = data
+      Fez.head(dom) // include scripts and load fez components
+      this.root.innerHTML = dom.innerHTML
+    })
   }
 })
 

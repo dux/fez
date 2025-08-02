@@ -29,9 +29,7 @@ It replaces modern JS frameworks by using native Autonomous Custom Elements to c
 
 This article, [Web Components Will Replace Your Frontend Framework](https://www.dannymoerkerke.com/blog/web-components-will-replace-your-frontend-framework/), is from 2019. Join the future, ditch React, Angular and other never defined, always "evolving" monstrosities. Vanilla is the way :)
 
-There is no some "internal state" that is by some magic reflected to DOM. No! All methods Fez use to manipulate DOM are just helpers around native DOM interface. Work on DOM raw, use jQuery, use built in [node builder](https://github.com/dux/fez/blob/main/src/lib/n.js) or full template mapping with [morphing](https://github.com/bigskysoftware/idiomorph).
-
-It great in combination with another widely used JS libs, as jQuery, Zepto, underscore of loDash.
+There is no some "internal state" that is by some magic reflected to DOM. No! All methods Fez use to manipulate DOM are just helpers around native DOM interface. Work on DOM raw, use built in [node builder](https://github.com/dux/fez/blob/main/src/lib/n.js) or full template mapping with [morphing](https://github.com/bigskysoftware/idiomorph).
 
 ## How it works
 
@@ -328,7 +326,7 @@ Fez('foo-bar', class {
 
     // window resize event with cleanup (shorthand for this.on('resize', func, delay))
     this.onResize(func, delay)
-    
+
     // window scroll event with cleanup (shorthand for this.on('scroll', func, delay))
     this.onScroll(func, delay)
 

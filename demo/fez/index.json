@@ -3,8 +3,8 @@
     "file": {
       "base": "input-color",
       "path": "demo/fez/input-color.fez",
-      "size": 2925,
-      "modified": 1753866911,
+      "size": 5378,
+      "modified": 1754160984,
       "created": 1753818448
     }
   },
@@ -57,8 +57,8 @@
     "file": {
       "base": "ui-counter",
       "path": "demo/fez/ui-counter.fez",
-      "size": 1675,
-      "modified": 1753865566,
+      "size": 1694,
+      "modified": 1754148539,
       "created": 1753814442
     }
   },
@@ -129,8 +129,8 @@
     "file": {
       "base": "ui-slider",
       "path": "demo/fez/ui-slider.fez",
-      "size": 2087,
-      "modified": 1753818448,
+      "size": 2092,
+      "modified": 1754148343,
       "created": 1753818448
     }
   },

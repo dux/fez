@@ -18,14 +18,21 @@
     onMount() { ... } // DOM-ready logic
     onStateChange(key, value)	// React to state changes
     onDestroy()	// Cleanup resources
+    onResize() // on Window resize
+    onScroll() // on document scroll
     // Custom methods
+
     increment() {
       this.state.count++  // Reactive assignment
     }
   </script>
 
   <style>
-    /* REQUIRED: Scoped styles, use SCSS nesting */
+    body {
+      button {}
+    }
+
+    /* :fez not required if you do not change global styles */
     :fez {
       button {
         background: gold;

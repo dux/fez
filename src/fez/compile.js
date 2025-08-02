@@ -109,13 +109,7 @@ export default function (tagName, html) {
       Fez.log(`Loading from ${url}`)
 
       // Load HTML content via AJAX from URL
-      fetch(url)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`Failed to load ${url}: ${response.status}`)
-          }
-          return response.text()
-        })
+      Fez.fetch(url)
         .then(htmlContent => {
           // Check if remote HTML has template/xmp tags with fez attribute
           const parser = new DOMParser()

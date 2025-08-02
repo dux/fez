@@ -9,6 +9,10 @@ window.LOG = (() => {
       return
     }
 
+    if (o instanceof Node) {
+      o = PP(o.outerHTML)
+    }
+
     // Store the original type
     let originalType = typeof o;
 

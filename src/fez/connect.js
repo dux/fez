@@ -143,7 +143,7 @@ function connectNode(name, node) {
     fez.props = klass.getProps(node, newNode)
     fez.class = klass
 
-    // copy child nodes, natively to preserve bound events
+    // move child nodes, natively to preserve bound events
     fez.slot(node, newNode)
 
     newNode.fez = fez
@@ -161,22 +161,8 @@ function connectNode(name, node) {
     }
 
     fez.fezRegister();
-    (fez.init || fez.created || fez.connect).bind(fez)(fez.props);
-
-    const oldRoot = fez.root.cloneNode(true)
-
-    if (fez.class.fezHtmlFunc) {
-      fez.render()
-    }
-
-    const slot = fez.root.querySelector('.fez-slot')
-    if (slot) {
-      if (fez.props.html) {
-        slot.innerHTML = fez.props.html
-      } else {
-        fez.slot(oldRoot, slot)
-      }
-    }
+    ;(fez.init || fez.created || fez.connect).bind(fez)(fez.props);
+    fez.render()
 
     if (fez.onSubmit) {
       const form = fez.root.nodeName == 'FORM' ? fez.root : fez.find('form')

@@ -1,70 +1,19 @@
+<!DOCTYPE html>
 <html>
   <head>
+    <title>Demo page</title>
     <link rel="stylesheet" href="//cdn.simplecss.org/simple.css" />
+    <link rel="icon" href="./demo/fez.png">
     <script src="./demo/log.js"></script>
     <script src="./dist/fez.js"></script>
     <script xsrc="./src/fez.js" type="module"></script>
+    <script fez="./demo/system-blocks.fez"></script>
   </head>
   <body>
+    <button onclick="LOG(document.querySelector('.fez-ui-slider'))">HTML</button>
 
-<xmp fez="ui-avatar">
-<script>
-  NAME = 'span'
-  FAST = true
+    <debug-block name="ui-slider"></debug-block>
 
-  init(props) {
-    this.copy('href', 'style')
-    this.size = (props.size || 64) + 'px'
-    if (props.name) { props.src ||= `https://robohash.org/${escape(props.name)}.png` }
-    this.root.style.width = this.size
-    this.root.style.height = this.size
-  }
-</script>
-
-<style>
-  img {
-    border-radius: 50%;
-  }
-
-  span.avatar {
-    display: inline-block;
-    text-align: center;
-
-    .title {
-      display: inline-block;
-      border: 1px solid #ccc;
-      background-color: #eee;
-      padding: 1px 5px;
-      font-size: 13px;
-      position: relative;
-      left: 3px;
-      top: 8px;
-      border-radius: 4px;
-    }
-  }
-</style>
-
-{{block avatar}}
-  <img
-    src={{ props.src }}
-    class="avatar"
-    style="width: {{this.size }}; height: {{ this.size }};"
-  />
-{{/block}}
-
-{{if props.name}}
-  <span class="avatar">
-    <div class="title">{{ props.name }}</div>
-    <div>
-      {{block:avatar}}
-    </div>
-  </span>
-{{else}}
-  {{block:avatar}}
-{{/if}}
-</xmp>
-
-    <ui-avatar name="Mirko" />
-  </body>
+  </html>
 </html>
 

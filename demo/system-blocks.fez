@@ -1,3 +1,8 @@
+<xmp fez="debug-block">
+  <template fez="./demo/fez/{{ props.name }}.fez"></template>
+  <fez-include src="./demo/fez/{{ props.name }}.html"></fez-include>
+</xmp>
+
 <xmp fez="promo-blocks">
   <script>
     init() {
@@ -7,6 +12,22 @@
       Fez.fetch('./demo/fez/index.json', (data)=>{
         me.state.data = data
         me.globalState.fezComonents = data
+
+        // Restore scroll position after content loads
+        setTimeout(() => {
+          const scrollY = sessionStorage.getItem('scrollY')
+          if (scrollY) {
+            window.scrollTo(0, parseInt(scrollY))
+            sessionStorage.removeItem('scrollY')
+          }
+        }, 200)
+      })
+    }
+
+    onMount() {
+      // Save scroll position before page unload
+      this.on('beforeunload', () => {
+        sessionStorage.setItem('scrollY', window.scrollY)
       })
     }
   </script>
@@ -62,7 +83,10 @@
 
     init(props) {
       this.file = props.file
-      Fez.fetch('./' + props.file.path, (r) => this.state.code = r)
+      Fez.fetch('./' + props.file.path, (res) => {
+        Fez.compile(props.file.base, res)
+        this.state.code = res
+      })
       Fez.fetch('./' + props.file.path.replace('.fez', '.html'), (r) =>{
         const dom = document.createElement('div')
         dom.innerHTML = r
@@ -76,8 +100,6 @@
       })
     }
   </script>
-
-  <script fez="./demo/fez/{{ file.base }}.fez"></script>
 
   {{if state.code && state.html }}
     <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">

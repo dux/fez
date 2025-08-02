@@ -238,17 +238,18 @@ export default class FezBase {
 
     this._eventHandlers[eventName] = handleEvent;
     window.addEventListener(eventName, handleEvent);
-    handleEvent();
   }
 
   // Helper function for resize events
   onResize(func, delay) {
     this.on('resize', func, delay);
+    func();
   }
 
   // Helper function for scroll events
   onScroll(func, delay) {
     this.on('scroll', func, delay);
+    func();
   }
 
   // copy child nodes, natively to preserve bound events
@@ -354,12 +355,13 @@ export default class FezBase {
       slot.parentNode.removeChild(slot)
     }
 
-    //let currentSlot = this.root.querySelector(':not(span.fez):not(div.fez) > .fez-slot, .fez-slot:not(span.fez *):not(div.fez *)');
-    let currentSlot = this.find('.fez-slot')
-    if (currentSlot) {
-      const newSLot = newNode.querySelector('.fez-slot')
-      if (newSLot) {
-        newSLot.parentNode.replaceChild(currentSlot, newSLot)
+    let newSlot = newNode.querySelector('.fez-slot')
+    if(newSlot) {
+      let currentSlot = this.find('.fez-slot')
+      if (currentSlot) {
+        newSlot.parentNode.replaceChild(currentSlot, newSlot)
+      } else {
+        this.slot(this.root, newSlot)
       }
     }
 

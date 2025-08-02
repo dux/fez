@@ -1,13 +1,25 @@
 <script>
   FAST = true
 
-  updateColor(e) {
+  palette = [
+    ['#FF6B6B', '#FF8E53', '#FFC947', '#FFD93D', '#6BCF7F', '#4ECDC4'],
+    ['#4A90E2', '#5E72E4', '#7B68EE', '#9B59B6', '#E91E63', '#EC4C47'],
+    ['#37474F', '#546E7A', '#757575', '#A1887F', '#FFB74D', '#FF7043'],
+    ['#000000', '#424242', '#616161', '#9E9E9E', '#BDBDBD', '#FFFFFF']
+  ]
+
+  selectColor(color) {
     this.state.showPicker = false
+    this.setColor(color)
+  }
+
+  updateCustomColor(e) {
     this.setColor(e.target.value)
   }
 
   setColor(value) {
     this.state.color = value
+    this.state.customColor = value
 
     if (this.props.onchange) {
       this.props.onchange(this.state.color)
@@ -33,6 +45,13 @@
   onMount(props) {
     this.setColor(props.value || '#000000')
     this.state.showPicker = false
+    this.state.customColor = props.value || '#000000'
+
+    document.addEventListener('click', this.closePicker.bind(this))
+  }
+
+  onDestroy() {
+    document.removeEventListener('click', this.closePicker.bind(this))
   }
 </script>
 
@@ -86,26 +105,80 @@
       z-index: 1000;
       background: white;
       border: 1px solid #ddd;
-      border-radius: 4px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      padding: 8px;
-      min-width: 200px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 12px;
+      min-width: 280px;
 
-      input[type="color"] {
-        width: 100%;
-        height: 150px;
-        border: none;
-        border-radius: 4px;
+      .color-palette {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .color-option {
+        width: 36px;
+        height: 36px;
+        border-radius: 6px;
         cursor: pointer;
-        padding: 0;
+        border: 2px solid transparent;
+        transition: transform 0.1s, border-color 0.1s;
+        position: relative;
 
-        &::-webkit-color-swatch-wrapper {
-          padding: 0;
+        &:hover {
+          transform: scale(1.1);
+          border-color: rgba(0,0,0,0.2);
         }
 
-        &::-webkit-color-swatch {
-          border: none;
+        &.selected {
+          border-color: #333;
+
+          &::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 0 2px rgba(0,0,0,0.5);
+          }
+        }
+      }
+
+      .custom-color-section {
+        border-top: 1px solid #eee;
+        padding-top: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        label {
+          font-size: 13px;
+          color: #666;
+          font-weight: 500;
+        }
+
+        input[type="text"] {
+          flex: 1;
+          padding: 6px 8px;
+          border: 1px solid #ddd;
           border-radius: 4px;
+          font-family: monospace;
+          font-size: 13px;
+
+          &:focus {
+            outline: none;
+            border-color: #4A90E2;
+          }
+        }
+
+        .custom-preview {
+          width: 32px;
+          height: 32px;
+          border-radius: 4px;
+          border: 1px solid rgba(0,0,0,0.1);
         }
       }
     }
@@ -129,13 +202,31 @@
   <span class="color-value">{{ state.color }}</span>
 </div>
 
-<div class="color-picker-popup" style="display: {{ state.showPicker && !props.disabled ? 'block' : 'none' }};">
-  <input
-    name={{ props.name }}
-    type="color"
-    value="{{ state.color }}"
-    onchange="fez.updateColor(event)"
-    onclick="event.stopPropagation()"
-  />
+<div class="color-picker-popup" style="display: {{ state.showPicker && !props.disabled ? 'block' : 'none' }};" onclick="event.stopPropagation()">
+  <div class="color-palette">
+    {{for row in fez.palette}}
+      {{for color in row}}
+        <div
+          class="color-option {{ state.color === color ? 'selected' : '' }}"
+          style="background-color: {{ color }}"
+          onclick="fez.selectColor('{{ color }}')"
+          title="{{ color }}"
+        ></div>
+      {{/for}}
+    {{/for}}
+  </div>
+
+  <div class="custom-color-section">
+    <label>Custom:</label>
+    <div class="custom-preview" style="background-color: {{ state.customColor }};"></div>
+    <input
+      type="text"
+      name={{ props.name }}
+      value={{ state.customColor }}
+      oninput="fez.updateCustomColor(event)"
+      placeholder="#000000"
+      maxlength="7"
+    />
+  </div>
 </div>
 

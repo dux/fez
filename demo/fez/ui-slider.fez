@@ -1,6 +1,6 @@
 <script>
   setSlide(num) {
-    this.state.slide = num
+    this.state.slide ??= num
 
     if (this.state.slide < 0) {
       this.state.slide = this.slidesCount - 1
@@ -20,7 +20,7 @@
     this.slidesCount = this.childNodes().length
     this.setStyle('--arrow-width', `70px`)
     this.setSlide(0)
-    this.onResize(this.render, 100)
+    this.onResize(this.setSlide, 100)
   }
 </script>
 
@@ -95,3 +95,4 @@
     </td>
   </tr>
 </table>
+

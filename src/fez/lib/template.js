@@ -98,6 +98,10 @@ export default function createTemplate(text, opts = {}) {
     return parsedData
   });
 
+  result = result
+    .replace(/<!\-\-.*?\-\->/g, '')
+    .replace(/>\s+</g, '><')
+
   result = '`' + result.trim() + '`'
 
   try {

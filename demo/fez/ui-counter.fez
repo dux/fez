@@ -45,6 +45,7 @@
 
     button {
       position: relative;
+      margin: 1px;
       top: -3px;
     }
 
