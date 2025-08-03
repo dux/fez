@@ -6,6 +6,8 @@ if (typeof window !== 'undefined') window.FezBase = FezBase
 import Fez from './fez/root.js'
 if (typeof window !== 'undefined') window.Fez = Fez
 
+require('./fez/defaults.js')
+
 // clear all unattached nodes
 setInterval(() => {
   for (const [key, el] of Fez.instances) {
@@ -57,41 +59,6 @@ observer.observe(document.documentElement, {
   childList: true,
   subtree: true
 });
-
-// fez custom tags
-
-// include fez component by name
-//<fez-component name="some-node" :props="fez.props"></fez-node>
-Fez('fez-component', class {
-  FAST = true
-
-  init(props) {
-    const tag = document.createElement(props.name)
-    tag.props = props.props || props['data-props'] || props
-
-    while (this.root.firstChild) {
-      this.root.parentNode.insertBefore(this.root.lastChild, tag.nextSibling);
-    }
-
-    this.root.innerHTML = ''
-    this.root.appendChild(tag)
-  }
-})
-
-// include remote data from url
-// <fez-include src="./demo/fez/ui-slider.html"></fez-include>
-Fez('fez-include', class {
-  FAST = true
-
-  init(props) {
-    Fez.fetch(props.src, (data)=>{
-      const dom = document.createElement('div')
-      dom.innerHTML = data
-      Fez.head(dom) // include scripts and load fez components
-      this.root.innerHTML = dom.innerHTML
-    })
-  }
-})
 
 export default Fez
 export { Fez }

@@ -1,4 +1,56 @@
-window.LOG = (() => {
+// pretty print HTML
+const LOG_PP = (html) => {
+  const parts = html
+    .split(/(<\/?[^>]+>)/g)
+    .map(p => p.trim())
+    .filter(p => p);
+
+  let indent = 0;
+  const lines = [];
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    const nextPart = parts[i + 1];
+    const nextNextPart = parts[i + 2];
+
+    // Check if it's a tag
+    if (part.startsWith('<')) {
+      // Check if this is an opening tag followed by text and then its closing tag
+      if (!part.startsWith('</') && !part.endsWith('/>') && nextPart && !nextPart.startsWith('<') && nextNextPart && nextNextPart.startsWith('</')) {
+        // Combine them on one line
+        const actualIndent = Math.max(0, indent);
+        lines.push('  '.repeat(actualIndent) + part + nextPart + nextNextPart);
+        i += 2; // Skip the next two parts
+      }
+      // Closing tag
+      else if (part.startsWith('</')) {
+        indent--;
+        const actualIndent = Math.max(0, indent);
+        lines.push('  '.repeat(actualIndent) + part);
+      }
+      // Self-closing tag
+      else if (part.endsWith('/>') || part.includes(' />')) {
+        const actualIndent = Math.max(0, indent);
+        lines.push('  '.repeat(actualIndent) + part);
+      }
+      // Opening tag
+      else {
+        const actualIndent = Math.max(0, indent);
+        lines.push('  '.repeat(actualIndent) + part);
+        indent++;
+      }
+    }
+    // Text node
+    else if (part) {
+      const actualIndent = Math.max(0, indent);
+      lines.push('  '.repeat(actualIndent) + part);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+const LOG = (() => {
   const logs = [];
   const logTypes = []; // Track the original type of each log
   let currentIndex = 0;
@@ -10,7 +62,7 @@ window.LOG = (() => {
     }
 
     if (o instanceof Node) {
-      o = PP(o.outerHTML)
+      o = LOG_PP(o.outerHTML)
     }
 
     // Store the original type
@@ -94,17 +146,9 @@ window.LOG = (() => {
   };
 })();
 
-// pretty print
-window.PP = (html) => {
-  const parts = html
-    .replace(/\r?\n/g, '')
-    .split(/(<\/?[^>]+>)/g)
-    .filter(p => p.trim());
-  let indent = 0;
-  return parts.map(part => {
-    if (/^<\/\w/.test(part)) indent--;
-    const line = '  '.repeat(indent) + part.trim();
-    if (/^<\w[^>]*[^\/]>$/.test(part)) indent++;
-    return line;
-  }).join('\n');
+if (typeof window !== 'undefined') {
+  window.LOG = LOG
+  window.LOG_PP = LOG_PP
 }
+
+export default LOG

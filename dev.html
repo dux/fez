@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Demo page</title>
+    <link rel="stylesheet" href="./demo/main.css" />
+    <link rel="icon" href="./demo/fez.png">
+    <script src="./dist/log.js"></script>
+    <script src="./dist/fez.js"></script>
+    <script xsrc="./src/fez.js" type="module"></script>
+    <script fez="./demo/system-blocks.fez"></script>
+  </head>
+  <body  style="max-width: 800px; margin: auto;">
+    <button onclick="LOG(document.querySelector('.fez'))" style="position: fixed; top: 15px; right: 15px;">HTML</button>
+    <dev-block name="fez-built-in"></dev-block>
+  </body>
+</html>
+

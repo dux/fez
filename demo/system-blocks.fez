@@ -1,4 +1,4 @@
-<xmp fez="debug-block">
+<xmp fez="dev-block">
   <template fez="./demo/fez/{{ props.name }}.fez"></template>
   <fez-include src="./demo/fez/{{ props.name }}.html"></fez-include>
 </xmp>

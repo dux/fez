@@ -163,6 +163,7 @@ function connectNode(name, node) {
     fez.fezRegister();
     ;(fez.init || fez.created || fez.connect).bind(fez)(fez.props);
     fez.render()
+    fez.onMount(fez.props)
 
     if (fez.onSubmit) {
       const form = fez.root.nodeName == 'FORM' ? fez.root : fez.find('form')
@@ -171,8 +172,6 @@ function connectNode(name, node) {
         fez.onSubmit(fez.formData())
       }
     }
-
-    fez.onMount(fez.props)
 
     // if onPropsChange method defined, add observer and trigger call on all attributes once component is loaded
     if (fez.onPropsChange) {

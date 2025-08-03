@@ -22,10 +22,4 @@ function fezPlugin() {
   };
 }
 
-// Export for ES modules
 export default fezPlugin;
-
-// Export for CommonJS
-// if (typeof module !== 'undefined') {
-//   module.exports = fezPlugin;
-// }

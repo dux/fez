@@ -1,6 +1,6 @@
 {
   "name": "@dinoreic/fez",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Runtime custom dom elements",
   "main": "dist/fez.js",
   "type": "module",
@@ -12,6 +12,10 @@
     "./rollup": {
       "import": "./src/rollup.js",
       "require": "./src/rollup.js"
+    },
+    "./log": {
+      "import": "./src/log.js",
+      "require": "./src/log.js"
     },
     "./package.json": "./package.json"
   },
@@ -27,7 +31,7 @@
   ],
   "scripts": {
     "build": "bun build.js b",
-    "b": "bun build.js b",
+    "b": "bun run build",
     "watch": "bun build.js w",
     "server": "bun run lib/server.js",
     "dev": "bunx concurrently --kill-others \"bun run server\" \"find src demo lib | entr -c sh -c 'bun run index && bun run b'\"",

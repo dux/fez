@@ -17,7 +17,7 @@
       }
     })
 
-    // if you set global state in components
+    // on global state key change
     // components reading the state will be auto re-rendered
     // no additional work needed
     this.globalState.maxCount = max
