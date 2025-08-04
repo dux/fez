@@ -1,15 +1,6 @@
 [
   {
     "file": {
-      "base": "fez-built-in",
-      "path": "demo/fez/fez-built-in.fez",
-      "size": 9,
-      "modified": 1754225824,
-      "created": 1754224569
-    }
-  },
-  {
-    "file": {
       "base": "input-color",
       "path": "demo/fez/input-color.fez",
       "size": 5378,
@@ -66,9 +57,9 @@
     "file": {
       "base": "ui-counter",
       "path": "demo/fez/ui-counter.fez",
-      "size": 1694,
-      "modified": 1754213870,
-      "created": 1753814442
+      "size": 1683,
+      "modified": 1754306599,
+      "created": 1754303703
     }
   },
   {
