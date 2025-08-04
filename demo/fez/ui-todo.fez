@@ -75,6 +75,6 @@
 <pre class="code">{{ JSON.stringify(state.tasks, null, 2) }}</pre>
 <p>If you want to preserve state in templates, wrap content in "fez-slot"</p>
 <p>Refresh: {{Math.random()}}</p>
-<p class="fez-slot">
+<p fez-keep="rand">
   Do not refresh: {{Math.random()}}.
 </p>

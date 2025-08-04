@@ -50,6 +50,7 @@
 
     scrollToTop() {
       window.scrollTo({ top: 0, behavior: 'smooth' })
+      setTimeout(() => window.BlockSelect.state.show = true, 700)
     }
   </script>
 
@@ -133,4 +134,70 @@
     </div>
   </header>
   <div class="blur-bar {{state.isVisible ? 'visible' : ''}}"></div>
+</xmp>
+
+<xmp fez="app-select-block">
+  <script>
+    init() {
+      window.BlockSelect = this
+      this.state.activeJump = localStorage.getItem('lastJump');
+    }
+
+    junp(name) {
+      const element = document.querySelector(`[name="c-${name}"]`);
+      const y = element.getBoundingClientRect().top + window.pageYOffset - 60;
+      window.scrollTo({top: y, behavior: 'smooth'});
+
+      // Save to localStorage and update state
+      localStorage.setItem('lastJump', name)
+      this.state.activeJump = name
+      this.state.show = false
+    }
+  </script>
+
+  <style>
+    .compoents {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      max-width: 400px;
+      line-height: 38px;
+
+      button.title {
+        float: right;
+      }
+
+      .list {
+        animation: slideDown 0.3s ease-out;
+        overflow: hidden;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    }
+  </style>
+
+  <div class="compoents">
+    <button class="btn-sm title" onclick="fez.state.show = !fez.state.show">?</button>
+
+    {{if state.show }}
+      <div class="list">
+        {{for el in (globalState.fezComponents || [])}}
+          <button
+            class="btn-sm {{ state.activeJump === el.file.base ? 'active' : '' }}"
+            onclick="fez.junp('{{ el.file.base }}')"
+          >{{el.file.base }}</button>
+        {{/for}}
+      </div>
+    {{/if}}
+
+  </div>
 </xmp>

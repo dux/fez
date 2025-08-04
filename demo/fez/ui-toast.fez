@@ -19,6 +19,7 @@
 </script>
 <style>
   .parent {
+    z-index: 1001;
     width: 300px;
     position: fixed;
     top: 20px;

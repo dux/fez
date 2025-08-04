@@ -1,81 +1,100 @@
 <script>
+  // add active class to node and remove it from siblings
   activateNode(node) {
-    // Remove active class from siblings
     Array.from(node.parentElement.children).forEach(child => {
       child.classList.remove('active')
     })
     node.classList.add('active')
   }
 
+  // activate header tab and active tab
   activate(num) {
-    this.active = parseInt(num)
+    if (this.tabs[num].getAttribute('disabled')) {
+      return
+    }
+
     const header = this.root.querySelector('div.header')
     const target = header.children[num]
+
+    this.active = parseInt(num)
     this.activateNode(target)
     this.activateNode(this.tabs[num])
   }
 
   init(props) {
-    this.root.style.width = 'calc(100%)'
-
-    const { n, activate } = this;
     this.tabs = this.childNodes()
-    this.render([
-      n('div.header', this.tabs.map((tab, index) =>
-        n('span', tab.getAttribute('title'), { onclick: ()=> activate(index) })
-      )),
-      n('.body', '<slot />')
-    ]);
 
+    // remove template and enable to demonstrate n( node builder)
+    // const { n, activate } = this;
+    // this.tabs = this.childNodes()
+    // this.render([
+    //   n('div.header', this.tabs.map((tab, index) =>
+    //     n('span', tab.getAttribute('title'), { onclick: ()=> activate(index) })
+    //   )),
+    //   n('.body', this.tabs)
+    // ]);
+    // this.activate(0)
+  }
+
+  onMount() {
     this.activate(0)
   }
 </script>
 
 <style>
-  .fez-ui-tabs {
-    body > div {
-      display: none;
+  --tabs-border: 1px solid #ccc;
+
+  max-width: calc(100%);
+
+  .header {
+    margin-bottom: -2px;
+    position: relative;
+    z-index: 1;
+
+    & > span {
+      border: var(--tabs-border);
+      padding: 8px 15px;
+      display: inline-block;
+      border-radius: 8px 8px 0 0;
+      margin-right: -1px;
+      background: #eee;
+      cursor: pointer;
+
+      &.active {
+        background-color: #fff;
+        border-bottom: none;
+      }
+
+      &.disabled {
+        color: #aaa;
+      }
     }
   }
 
-  :fez {
-    --tabs-border: 1px solid #ccc;
+  .fez-slot {
+    border: var(--tabs-border);
+    padding: 8px 15px;
+    background: #fff;
 
-    max-width: calc(100%);
+    & > div {
+      display: none;
 
-    .header {
-      margin-bottom: -2px;
-      position: relative;
-      z-index: 1;
-
-      & > span {
-        border: var(--tabs-border);
-        padding: 8px 15px;
-        display: inline-block;
-        border-radius: 8px 8px 0 0;
-        margin-right: -1px;
-        background: #eee;
-        cursor: pointer;
-
-        &.active {
-          background-color: #fff;
-          border-bottom: none;
-        }
-      }
-    }
-
-    .body {
-      border: var(--tabs-border);
-      padding: 8px 15px;
-      background: #fff;
-
-      & > div {
-        display: none;
-
-        &.active {
-          display: block;
-        }
+      &.active {
+        display: block;
       }
     }
   }
 </style>
+
+<div class="header">
+  {{for tab, index in tabs}}
+    <span
+      onclick="fez.activate({{index}})"
+      class="{{ tab.getAttribute('disabled') ? 'disabled' : '' }}"
+    >
+      {{ tab.getAttribute('title') }}
+    </span>
+  {{/for}}
+</div>
+
+<slot />

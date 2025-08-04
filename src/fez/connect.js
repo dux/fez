@@ -58,8 +58,8 @@ export default function(name, klass) {
 
     // wrap slot to enable reactive re-renders. It will use existing .fez-slot if found
     klass.html = klass.html.replace(/<slot\s*\/>|<slot\s*>\s*<\/slot>/g, () => {
-      const name = klass.slotNodeName || 'div'
-      return `<${name} class="fez-slot"></${name}>`
+      const name = klass.SLOT || 'div'
+      return `<${name} class="fez-slot" fez-keep="default-slot"></${name}>`
     })
 
     klass.fezHtmlFunc = createTemplate(klass.html)
@@ -163,6 +163,7 @@ function connectNode(name, node) {
     fez.fezRegister();
     ;(fez.init || fez.created || fez.connect).bind(fez)(fez.props);
     fez.render()
+    fez.firstRender = true
     fez.onMount(fez.props)
 
     if (fez.onSubmit) {

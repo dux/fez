@@ -3,8 +3,8 @@
     "file": {
       "base": "input-color",
       "path": "demo/fez/input-color.fez",
-      "size": 5378,
-      "modified": 1754160984,
+      "size": 5408,
+      "modified": 1754334898,
       "created": 1753818448
     }
   },
@@ -21,8 +21,8 @@
     "file": {
       "base": "ui-border",
       "path": "demo/fez/ui-border.fez",
-      "size": 185,
-      "modified": 1753818448,
+      "size": 152,
+      "modified": 1754332784,
       "created": 1753818448
     }
   },
@@ -57,8 +57,8 @@
     "file": {
       "base": "ui-counter",
       "path": "demo/fez/ui-counter.fez",
-      "size": 1683,
-      "modified": 1754306599,
+      "size": 1680,
+      "modified": 1754332845,
       "created": 1754303703
     }
   },
@@ -147,8 +147,8 @@
     "file": {
       "base": "ui-tabs",
       "path": "demo/fez/ui-tabs.fez",
-      "size": 1587,
-      "modified": 1753818448,
+      "size": 2004,
+      "modified": 1754326144,
       "created": 1753818448
     }
   },
@@ -174,8 +174,8 @@
     "file": {
       "base": "ui-toast",
       "path": "demo/fez/ui-toast.fez",
-      "size": 1364,
-      "modified": 1753818448,
+      "size": 1383,
+      "modified": 1754324695,
       "created": 1753818448
     }
   },
@@ -183,8 +183,8 @@
     "file": {
       "base": "ui-todo",
       "path": "demo/fez/ui-todo.fez",
-      "size": 2131,
-      "modified": 1753818448,
+      "size": 2130,
+      "modified": 1754315401,
       "created": 1753818448
     }
   }

@@ -293,7 +293,7 @@ export default class FezBase {
     const base = this.fezHtmlRoot.replaceAll('"', '&quot;')
 
     text = text
-      .replace(/(['"\s;])fez\./g, `$1${base}`)
+      .replace(/([!'"\s;])fez\.(\w)/g, `$1${base}$2`)
       .replace(/>\s+</g, '><')
 
     return text.trim()
@@ -348,22 +348,18 @@ export default class FezBase {
       newNode.innerHTML = this.parseHtml(renderedTpl)
     }
 
-    // this comes only from array nodes this.n(...)
-    const slot = newNode.querySelector('slot')
-    if (slot) {
-      this.slot(this.root, slot.parentNode)
-      slot.parentNode.removeChild(slot)
-    }
+    newNode.querySelectorAll('[fez-keep]').forEach(newEl => {
+      const key = newEl.getAttribute('fez-keep')
+      const oldEl = this.root.querySelector(`[fez-keep="${key}"]`)
 
-    let newSlot = newNode.querySelector('.fez-slot')
-    if(newSlot) {
-      let currentSlot = this.find('.fez-slot')
-      if (currentSlot) {
-        newSlot.parentNode.replaceChild(currentSlot, newSlot)
-      } else {
-        this.slot(this.root, newSlot)
+      if (oldEl) {
+        // Keep the old element in place of the new one
+        newEl.parentNode.replaceChild(oldEl, newEl)
+      } else if (key === 'default-slot') {
+        // First render - populate the slot with current root children
+        Array.from(this.root.childNodes).forEach(child => newEl.appendChild(child))
       }
-    }
+    })
 
     Fez.morphdom(this.root, newNode)
 
@@ -511,7 +507,7 @@ export default class FezBase {
 
   // get root node child nodes as array
   childNodes(func) {
-    const children = Array.from(this.root.children)
+    let children = Array.from(this.root.children)
 
     if (func) {
       // Create temporary container to avoid ancestor-parent errors
@@ -520,12 +516,11 @@ export default class FezBase {
       document.body.appendChild(tmpContainer)
       children.forEach(child => tmpContainer.appendChild(child))
 
-      let list = Array.from(tmpContainer.children).map(func)
+      children = Array.from(tmpContainer.children).map(func)
       document.body.removeChild(tmpContainer)
-      return list
-    } else {
-      return children
     }
+
+    return children
   }
 
   subscribe(channel, func) {
@@ -565,19 +560,14 @@ export default class FezBase {
 
   fezHide() {
     const node = this.root
+    const nodes = this.childNodes()
     const parent = this.root.parentNode
-    const fragment = document.createDocumentFragment();
 
-    while (node.firstChild) {
-      fragment.appendChild(node.firstChild)
-    }
+    nodes.reverse().forEach(el => parent.insertBefore(el, node.nextSibling))
 
-    // Replace the target element with the fragment (which contains the child elements)
-    node.parentNode.replaceChild(fragment, node);
-    // parent.classList.add('fez')
-    // parent.classList.add(`fez-${this.fezName}`)
+    this.root.remove()
     this.root = parent
-    return Array.from(this.root.children)
+    return nodes
   }
 
   reactiveStore(obj, handler) {

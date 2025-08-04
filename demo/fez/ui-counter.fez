@@ -37,7 +37,7 @@
 <style>
   /* compiles from scss to css and injects class in head */
   /* body style */
-  background-color: #f7f7f7;
+  background-color: #eee;
 
   /* scoped to this component */
   :fez {

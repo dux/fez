@@ -151,6 +151,7 @@ This example showcases:
 * **Powerful Template Engine** - Multiple syntaxes (`{{ }}` and `[[ ]]`), control flow (`#if`, `#unless`, `#for`, `#each`), and block templates
 * **Reactive State Management** - Built-in reactive `state` object automatically triggers re-renders on property changes
 * **DOM Morphing** - Uses [Idiomorph](https://github.com/bigskysoftware/idiomorph) for intelligent DOM updates that preserve element state and animations
+* **Preserve DOM Elements** - Use `fez-keep="unique-key"` attribute to preserve DOM elements across re-renders (useful for animations, form inputs, or stateful elements)
 * **Style Macros** - Define custom CSS shortcuts like `Fez.styleMacro('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }`
 * **Scoped & Global Styles** - Components can define both scoped CSS (`:fez { ... }`) and global styles in the same component
 
@@ -308,7 +309,7 @@ Fez('foo-bar', class {
 
     // gets root childNodes
     this.childNodes()
-    this.childNodes(func)  // pass function to loop forEach on selection, removed nodes from DOM
+    this.childNodes(func)  // pass function to loop forEach on selection
 
     // check if the this.root node is attached to dom
     this.isConnected()
@@ -457,7 +458,7 @@ All parts are optional
     {{json data}} <!-- JSON dump in PRE.json tag -->
 
     <!-- fez-this will link DOM node to object property (inspired by Svelte) -->
-    <!-- this.listRoot -->
+    <!-- linkes to -> this.listRoot -->
     <ul fez-this="listRoot">
 
     <!-- when node is added to dom fez-use will call object function by name, and pass current node -->
@@ -466,13 +467,15 @@ All parts are optional
 
     <!-- fez-bind for two-way data binding on form elements -->
     <input type="text" fez-bind="state.username" />
-    <input onkeyup="fez.list[{{ index }}].name = fez.value" value="{{ name }}" />
 
     <!--
       fez-class for adding classes with optional delay.
       class will be added to SPAN element, 100ms after dom mount (to trigger animations)
     -->
     <span fez-class="active:100">Delayed class</span>
+
+    <!-- preserve state by key, not affected by state changes-->>
+    <p fez-keep="key">...</p>
 
     <!-- :attribute for evaluated attributes (converts to JSON) -->
     <div :data-config="state.config"></div>

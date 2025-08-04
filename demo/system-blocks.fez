@@ -11,7 +11,7 @@
 
       Fez.fetch('./demo/fez/index.json', (data)=>{
         me.state.data = data
-        me.globalState.fezComonents = data
+        me.globalState.fezComponents = data
 
         // Restore scroll position after content loads
         setTimeout(() => {
@@ -86,6 +86,7 @@
       Fez.fetch('./' + props.file.path, (res) => {
         Fez.compile(props.file.base, res)
         this.state.code = res
+          .replaceAll('fez.', 'fez․') // hack to hide dot
       })
       Fez.fetch('./' + props.file.path.replace('.fez', '.html'), (r) =>{
         const dom = document.createElement('div')
@@ -102,6 +103,7 @@
   </script>
 
   {{if state.code && state.html }}
+    <a name="c-{{ file.base }}"></a>
     <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
       <div style="margin-top: 10px;  max-width: 560px;">
         <small style="float: right;" onclick="fez.openCodePen('{{ file.base }}')">open in CodePen</small>

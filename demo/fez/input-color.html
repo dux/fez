@@ -12,7 +12,7 @@
 <table>
   <tr>
     <td>
-      <b>Basic Usage</b>
+      Basic Usage
     </td>
     <td>
       <div class="demo-row">
@@ -22,18 +22,21 @@
   </tr>
   <tr>
     <td>
-      <b>With Change Handler</b>
+      With Change Handler
     </td>
     <td>
       <div class="demo-row">
-        <input-color value="#FF6B6B" :onchange="window.updateBackground"></input-color>
-        <span style="padding:7px 10px; border-radius: 6px; position: relative; top: -5px; left: 10px;" id="preview">Color Preview</span>
+        <input-color :value="(()=>'#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'))()" :onchange="window.updateBackground"></input-color>
+        <span
+          style="padding:7px 10px; border-radius: 6px; position: relative; top: -5px; left: 10px;"
+          id="color-preview"
+        >Color Preview</span>
       </div>
     </td>
   </tr>
   <tr>
     <td>
-      <b>Disabled State</b>
+      Disabled State
     </td>
     <td>
       <div class="demo-row">
@@ -44,7 +47,7 @@
 </table>
 
 <script>
-  function updateBackground(color) {
-    document.getElementById('preview').style.backgroundColor = color;
+  window.updateBackground = (color) => {
+    document.getElementById('color-preview').style.backgroundColor = color;
   }
 </script>
