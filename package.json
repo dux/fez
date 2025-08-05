@@ -1,6 +1,6 @@
 {
   "name": "@dinoreic/fez",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Runtime custom dom elements",
   "main": "dist/fez.js",
   "type": "module",
@@ -20,7 +20,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "fez": "./bin/fez"
+    "fez": "bin/fez"
   },
   "files": [
     "bin",

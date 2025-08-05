@@ -286,7 +286,41 @@ export default class FezBase {
   onDestroy() {}
   onStateChange() {}
   onGlobalStateChange() {}
-  publish = Fez.publish
+
+  // component publish will search for parent component that subscribes by name
+  publish(channel, ...args) {
+    const handle_publish = (component) => {
+      if (Fez._subs && Fez._subs[channel]) {
+        const sub = Fez._subs[channel].find(([comp]) => comp === component)
+        if (sub) {
+          sub[1].bind(component)(...args)
+          return true
+        }
+      }
+      return false
+    }
+
+    // Check if current component has subscription
+    if (handle_publish(this)) {
+      return true
+    }
+
+    // Bubble up to parent components
+    let parent = this.root.parentElement
+    while (parent) {
+      if (parent.fez) {
+        if (handle_publish(parent.fez)) {
+          return true
+        }
+      }
+      parent = parent.parentElement
+    }
+
+    // If no parent handled it, fall back to global publish
+    // Fez.publish(channel, ...args)
+    return false
+  }
+
   fezBlocks = {}
 
   parseHtml(text) {
@@ -433,8 +467,7 @@ export default class FezBase {
   refresh(selector) {
     alert('NEEDS FIX and remove htmlTemplate')
     if (selector) {
-      const n = document.createElement('div')
-      n.innerHTML = this.class.htmlTemplate
+      const n = Fez.domRoot(this.class.htmlTemplate)
       const tpl = n.querySelector(selector).innerHTML
       this.render(selector, tpl)
     } else {

@@ -6,7 +6,8 @@ if (typeof window !== 'undefined') window.FezBase = FezBase
 import Fez from './fez/root.js'
 if (typeof window !== 'undefined') window.Fez = Fez
 
-require('./fez/defaults.js')
+// Load defaults after Fez is properly initialized
+import('./fez/defaults.js')
 
 // clear all unattached nodes
 setInterval(() => {

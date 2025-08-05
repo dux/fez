@@ -5,7 +5,11 @@
   </ul>
 </div>
 
-<button onclick="Dialog.show('#dialog-data')">Open dialog</button>
+Open:
+<button onclick="Dialog.show('#dialog-data')"> center</button>
+<button onclick="Dialog.drawer('#dialog-data')">drawer &rarr;</button>
+<button onclick="Dialog.top('#dialog-data')">top &uarr;</button>
+<button onclick="Dialog.bottom('#dialog-data')">bottom &darr;</button>
 
 <template id="dialog-data">
   <h1>Nice clock</h1>

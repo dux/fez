@@ -1,0 +1,13 @@
+<div class="info">
+  <ul>
+  <li>Features: Component-level publish that bubbles up to parent components</li>
+  <li>Events bubble from child to parent until a subscriber is found</li>
+  <li>If no parent handles the event, it falls back to global publish</li>
+  </ul>
+</div>
+
+<bubble-parent>
+<bubble-trigger></bubble-trigger>
+</bubble-parent>
+
+<bubble-trigger></bubble-trigger>

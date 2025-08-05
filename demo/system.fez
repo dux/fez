@@ -141,9 +141,16 @@
     init() {
       window.BlockSelect = this
       this.state.activeJump = localStorage.getItem('lastJump');
+
+      // Add global keystroke listener for 'j' key, and jump
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'j' && this.state.activeJump) {
+          this.jump(this.state.activeJump)
+        }
+      })
     }
 
-    junp(name) {
+    jump(name) {
       const element = document.querySelector(`[name="c-${name}"]`);
       const y = element.getBoundingClientRect().top + window.pageYOffset - 60;
       window.scrollTo({top: y, behavior: 'smooth'});
@@ -193,7 +200,7 @@
         {{for el in (globalState.fezComponents || [])}}
           <button
             class="btn-sm {{ state.activeJump === el.file.base ? 'active' : '' }}"
-            onclick="fez.junp('{{ el.file.base }}')"
+            onclick="fez.jump('{{ el.file.base }}')"
           >{{el.file.base }}</button>
         {{/for}}
       </div>

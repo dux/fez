@@ -1,0 +1,45 @@
+<xmp fez="bubble-parent">
+  <script>
+    init() {
+      this.subscribe('bubble-event', (data) => {
+        window.Toast.info(data)
+      })
+    }
+
+    sendOwnEvent() {
+      this.publish('bubble-event', 'Hi from myself')
+    }
+  </script>
+
+  <style>
+    border: 1px solid #ff9800;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 3px;
+    background-color: #fff3cd;
+    font-size: 0.9em;
+
+    h4 {
+      margin-top: 0;
+    }
+  </style>
+
+  <p>Responds to: <code>bubble-event</code></p>
+  <p>
+    <button class="btn-sm" onclick="fez.sendOwnEvent()">Test self</button>
+  </p>
+  <slot />
+</xmp>
+
+<xmp fez="bubble-trigger">
+  <script>
+    sendEvent() {
+      if (! this.publish('bubble-event', 'Hi from child')) {
+        Fez.publish('bubble-event', 'Parent NOT FOUND, sending global')
+      }
+    }
+  </script>
+
+  <p>Shuld trigger message in bubble alerter and not outside</p>
+  <button class="btn-sm" onclick="fez.sendEvent()">Trigger from child</button>
+</xmp>

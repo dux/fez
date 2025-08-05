@@ -9,7 +9,9 @@
     this.state.data = null
   }
 
-  show(data) {
+  show(data, opts = {}) {
+    this.state.class = opts.class || 'center'
+
     if (data) {
       if (data[0] == '#') {
         data = document.getElementById(data.replace('#', '')).innerHTML
@@ -17,6 +19,21 @@
 
       this.state.data = data
     }
+  }
+
+  drawer(data, opts = {}) {
+    opts.class = 'right'
+    this.show(data, opts)
+  }
+
+  top(data, opts = {}) {
+    opts.class = 'top'
+    this.show(data, opts)
+  }
+
+  bottom(data, opts = {}) {
+    opts.class = 'bottom'
+    this.show(data, opts)
   }
 
   // Dialog.actionButton(true | false) -> enable | disable
@@ -33,13 +50,33 @@
   }
 
   testFunc(num) {
-    Toast.info(`Passed: ${num}`)
+    if (window.Toast) {
+      Toast.info(`Passed: ${num}`)
+    }
   }
 
   init() {
     // for demo purposes, we subscribe to global event
     this.subscribe('clock-second', (val)=>{
       this.actionButton(val % 6 < 3)
+    })
+
+    // Add global escape key listener to close dialog
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.state.data) {
+        // Don't close if user is typing in a form element
+        const activeElement = document.activeElement
+        const isInFormElement = activeElement && (
+          activeElement.tagName === 'INPUT' ||
+          activeElement.tagName === 'TEXTAREA' ||
+          activeElement.tagName === 'SELECT' ||
+          activeElement.isContentEditable
+        )
+        
+        if (!isInFormElement) {
+          this.close()
+        }
+      }
     })
   }
 </script>
@@ -72,6 +109,50 @@
         margin-top: 0px;
         text-align: center;
       }
+
+      &.center {
+        transform: scale(0.8);
+        opacity: 0;
+        animation: fadeScaleIn 0.1s ease-out forwards;
+      }
+
+      &.top {
+        position: absolute;
+        top: 0;
+        left: 50px;
+        right: 50px;
+        width: auto;
+        max-width: none;
+        margin: 0;
+        min-height: 200px;
+        border-radius: 0 0 8px 8px;
+        transform: translateY(-100%);
+        animation: slideInFromTop 0.3s ease-out forwards;
+      }
+
+      &.bottom {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: auto;
+        max-width: none;
+        margin: 0;
+        min-height: 200px;
+        border-radius: 0;
+        transform: translateY(100%);
+        animation: slideInFromBottom 0.3s ease-out forwards;
+      }
+
+      &.right {
+        width: 400px;
+        margin: 0 0 0 auto;
+        height: 100vh;
+        border-radius: 0;
+        transform: translateX(100%);
+        animation: slideInFromRight 0.2s ease-out forwards;
+        max-height: 100vh;
+      }
     }
 
     .dialog-close {
@@ -80,11 +161,49 @@
       right: 15px;
     }
   }
+
+  @keyframes slideInFromRight {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes fadeScaleIn {
+    from {
+      transform: scale(0.8);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideInFromTop {
+    from {
+      transform: translateY(-100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideInFromBottom {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
 </style>
 
 <div class="global-dialog" onclick="fez.close()" style="display: {{ state.data ? 'block' : 'none' }};">
-  <div class="dialog-content" onclick="event.stopPropagation()">
-    <button class="dialog-close" onclick="fez.close()">&times;</button>
+  <div class="dialog-content {{ state.class }}" onclick="event.stopPropagation()">
+    <ui-btn sm class="dialog-close" onclick="fez.close()">&times;</ui-btn>
     {{raw state.data }}
     <center style="padding-top: 30px;">
       <tmp-test-attr :func="fez.testFunc"></tmp-test-attr>

@@ -1,0 +1,222 @@
+<script>
+  NAME = 'button'
+
+  toggleDisabled(what) {
+    this.isDisabled( what ?? !this.state.disabled )
+  }
+
+  toggleLoading(what) {
+    this.isLoading( what ?? !this.state.loading )
+  }
+
+  isDisabled(disabled) {
+    if (disabled) {
+      this.state.disabled = true
+      this.root.setAttribute('disabled', 'true')
+    } else {
+      this.state.disabled = false
+      this.root.removeAttribute('disabled')
+    }
+  }
+
+  isLoading(active) {
+    if (active) {
+      this.state.loading = true
+      this.root.setAttribute('loading', 'true')
+    } else {
+      this.state.loading = false
+      this.root.removeAttribute('loading')
+    }
+  }
+
+  init() {
+    this.copy('class', 'onclick', 'name')
+    this.root.classList.add('btn')
+
+    if (this.prop('loading') !== undefined)  this.isLoading(true)
+    if (this.prop('disabled') !== undefined)  this.isDisabled(true)
+    if (this.prop('sm') !== undefined) { this.root.classList.add('btn-sm') }
+    if (this.prop('lg') !== undefined) { this.root.classList.add('btn-lg') }
+    if (this.prop('primary') !== undefined) { this.root.classList.add('btn-primary') }
+    if (this.prop('secondary') !== undefined) { this.root.classList.add('btn-secondary') }
+
+    const listen = this.prop('listen')
+    if (listen) {
+      this.subscribe(listen, this.toggleLoading)
+    }
+  }
+</script>
+
+<style>
+  body {
+    .btn, button {
+      padding: 7px 15px;
+      font-size: 16px;
+      font-weight: 500;
+      background-color: #fff;
+      color: #2d3748;
+      border: 1px solid #a0aec0;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+
+      .fez-slot {
+        display: inline;
+        transition: all 0.2s ease;
+      }
+
+      .spinner-wrapper {
+        display: inline-block;
+        width: 0;
+        overflow: hidden;
+        vertical-align: middle;
+        transition: all 0.2s ease;
+
+        i {
+          opacity: 0;
+          transition: all 0.2s ease;
+        }
+      }
+
+      &.btn-sm {
+        padding: 5px 12px;
+        font-size: 14px;
+      }
+
+      &.btn-xs {
+        padding: 3px 7px;
+        font-size: 13px;
+        font-weight: 400;
+      }
+
+      &.btn-lg {
+        padding: 7px 20px;
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      &:hover {
+        background-color: #e2e8f0;
+        border-color: #718096;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+
+      &:active, &.active {
+        background-color: #4A90E2;
+        color: white;
+        transform: translateY(0);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+
+      &.btn-primary {
+        background-color: #4A90E2;
+        color: white;
+        border-color: #4A90E2;
+
+        &:hover {
+          background-color: #357ABD;
+          border-color: #357ABD;
+          color: white;
+        }
+
+        &:active {
+          background-color: #2968A3;
+          border-color: #2968A3;
+        }
+      }
+
+      &.btn-secondary {
+        background-color: transparent;
+        color: #4A90E2;
+        border-color: #4A90E2;
+
+        &:hover {
+          background-color: #4A90E2;
+          color: white;
+          border-color: #4A90E2;
+        }
+
+        &:active {
+          background-color: #357ABD;
+          border-color: #357ABD;
+        }
+      }
+
+      &.btn-red {
+        background: #dc3545 !important;
+        color: white !important;
+        border-color: #dc3545 !important;
+
+        &:hover {
+          background: #c82333 !important;
+          border-color: #c82333 !important;
+        }
+
+        &:active {
+          background: #bd2130 !important;
+          border-color: #bd2130 !important;
+        }
+      }
+
+      &.btn-green {
+        background: #28a745 !important;
+        color: white !important;
+        border-color: #28a745 !important;
+
+        &:hover {
+          background: #218838 !important;
+          border-color: #218838 !important;
+        }
+
+        &:active {
+          background: #1e7e34 !important;
+          border-color: #1e7e34 !important;
+        }
+      }
+
+      &[disabled] {
+        pointer-events: none;
+        opacity: 0.6;
+        cursor: not-allowed;
+        background-color: #c2c8d0;
+        border-color: #a2a8b0;
+        box-shadow: none;
+
+        &:hover {
+          background-color: #e2e8f0;
+          border-color: #cbd5e0;
+          box-shadow: none;
+        }
+      }
+
+      &[loading] {
+        pointer-events: none;
+        opacity: 0.8;
+
+        .spinner-wrapper {
+          width: 20px;
+          margin-right: 5px;
+
+          i {
+            opacity: 1;
+          }
+        }
+
+        &.btn-sm .spinner-wrapper {
+          width: 18px;
+        }
+
+        &.btn-lg .spinner-wrapper {
+          width: 24px;
+        }
+      }
+    }
+  }
+</style>
+
+<span class="spinner-wrapper">
+  <i class="fas fa-spinner fa-spin""></i>
+</span>
+
+<slot />

@@ -36,6 +36,9 @@ globalThis.customElements = {
   get: () => null
 };
 
+// Make Fez available globally for defaults.js
+globalThis.Fez = null;
+
 test("Fez source file exists", () => {
   const fezExists = fs.existsSync('./src/fez.js');
   expect(fezExists).toBe(true);
@@ -45,17 +48,33 @@ test("Fez can be imported", async () => {
   await import('../src/fez.js');
   const Fez = globalThis.window.Fez;
   
+  // Load defaults after Fez is available
+  if (Fez && typeof require === 'function') {
+    await import('../src/fez/defaults.js');
+  }
+  
   expect(typeof Fez).toBe('function');
   expect(typeof Fez.classes).toBe('object');
 });
 
-test("Components can be defined", () => {
-  const Fez = globalThis.window.Fez;
-  Fez('test-component', class {
-    init() {
-      this.state = { value: 'test' };
-    }
-  });
+test("Components can be defined", async () => {
+  // Ensure Fez is imported if not already
+  if (!globalThis.window.Fez) {
+    await import('../src/fez.js');
+  }
   
-  expect(Fez.classes['test-component']).toBeDefined();
+  const Fez = globalThis.window.Fez;
+  
+  // Only test if Fez is properly loaded
+  if (Fez) {
+    Fez('test-component', class {
+      init() {
+        this.state = { value: 'test' };
+      }
+    });
+    
+    expect(Fez.classes['test-component']).toBeDefined();
+  } else {
+    throw new Error('Fez not properly loaded');
+  }
 });

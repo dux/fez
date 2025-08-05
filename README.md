@@ -47,25 +47,17 @@ Here's a simple counter component that demonstrates Fez's core features:
 ```html
 <!-- Define a counter component in ex-counter.fez.html -->
 <script>
+  // called when Fez node is connected to DOM
   init() {
-    // called when Fez node is connected to DOM
     this.MAX = 6
     this.state.count = 0
   }
 
-  onStateChange(key, value, oldValue) {
-    // called whenever this.state changes
-    console.log(`State ${key} changed from ${oldValue} to ${value}`)
-    if (key === 'count' && value >= this.MAX) {
-      console.log('Counter reached maximum!')
-    }
-  }
-
   isMax() {
-    // is state is changed, template is re-rendered
     return this.state.count >= this.MAX
   }
 
+  // is state is changed, template is re-rendered
   more() {
     this.state.count += this.isMax() ? 0 : 1
   }
@@ -188,8 +180,151 @@ This example showcases:
 ### Fez Static Methods
 
 ```js
-Fez('#foo')          // find fez node with id="foo"
-Fez('ui-tabs', this) // find first parent node ui-tabs
+Fez('#foo')                  // find fez node with id="foo"
+Fez('ui-tabs', this)         // find first parent node ui-tabs
+Fez('ui-tabs', (fez)=> ... ) // loop over all ui-tabs nodes
+
+// define custom DOM node name -> <foo-bar>...
+Fez('foo-bar', class {
+  // set element node name, set as property or method, defaults to DIV
+  // why? because Fez renames custom dom nodes to regular HTML nodes
+  NAME = 'span'
+  NAME(node) { ... }
+  // alternative: static nodeName = 'span'
+
+  // set element style, set as property or method
+  CSS = `scss string... `
+
+  // unless node has no innerHTML on initialization, bind will be set to slow (fastBind = false)
+  // if you are using components that to not use innerHTML and slots, enable fast bind (fastBind = true)
+  // component will be rendered as parsed, and not on next tick (reduces flickering)
+  // <fez-icon name="gear" />
+  FAST = true
+  FAST(node) { ... }
+  // alternative: static fastBind() { return true }
+
+  // define static HTML. calling `this.render()` (no arguments) will refresh current node.
+  // if you pair it with `reactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
+  HTML = `...`
+
+  // Make it globally accessible as `window.Dialog`
+  // The component is automatically appended to the document body as a singleton. See `demo/fez/ui-dialog.fez` for a complete example.
+  GLOBAL = 'Dialog'
+  GLOBAL = true // just append node to document, do not create window reference
+
+  // called when fez element is connected to dom, before first render
+  // here you still have your slot available in this.root
+  init(props) { ... }
+
+  // execute after init and first render
+  onMount() { ... }
+
+  // execute before or after every render
+  beforeRender() { ... }
+  afterRender() { ... }
+
+  // if you want to monitor new or changed node attributes
+  // monitors all original node attributes
+  // <ui-icon name="home" color="red" />
+  onPropsChange(attrName, attrValue) { ... }
+
+  // called when local component state changes
+  onStateChange(key, value, oldValue) { ... }
+
+  // called when global state changes (only if component uses key in question that key)
+  onGlobalStateChange(key, value) { ... }
+
+  // called when component is destroyed
+  onDestroy() { ... }
+
+  /* used inside lifecycle methods (init(), onMount(), ... */
+
+  // copy original attributes from attr hash to root node
+  this.copy('href', 'onclick', 'style')
+
+  // set style property to root node. look at a clock example
+  // shortcut to this.root.style.setProperty(key, value)
+  this.setStyle('--color', 'red')
+
+  // clasic interval, that runs only while node is attached
+  this.setInterval(func, tick) { ... }
+
+  // get closest form data, as object. Searches for first parent or child FORM element
+  this.formData()
+
+  // mounted DOM node root. Only in init() point to original <slot /> data, in onMount() to rendered data.
+  this.root
+
+  // mounted DOM node root wrapped in $, only if jQuery is available
+  this.$root
+
+  // node attributes, converted to properties
+  this.props
+
+  // gets single node attribute or property
+  this.prop('onclick')
+
+  // shortcut for this.root.querySelector(selector)
+  this.find(selector)
+
+  // gets value for FORM fields or node innerHTML
+  this.val(selector)
+  // set value to a node, uses value or innerHTML
+  this.val(selector, value)
+
+  // you can publish globally, and subscribe locally
+  Fez.publish('channel', foo)
+  this.subscribe('channel', (foo) => { ... })
+
+  // gets root childNodes
+  this.childNodes()
+  this.childNodes(func)  // pass function to loop forEach on selection, mask nodes out of position
+
+  // check if the this.root node is attached to dom
+  this.isConnected
+
+  // this.state has reactiveStore() attached by default. any change will trigger this.render()
+  this.state.foo = 123
+
+  // generic window event handler with automatic cleanup
+  // eventName: 'resize', 'scroll', 'mousemove', etc.
+  // delay: throttle delay in ms (default: 200ms)
+  this.on(eventName, func, delay)
+
+  // window resize event with cleanup (shorthand for this.on('resize', func, delay))
+  // runs immediately on init and then throttled
+  this.onResize(func, delay)
+
+  // window scroll event with cleanup (shorthand for this.on('scroll', func, delay))
+  // runs immediately on init and then throttled
+  this.onScroll(func, delay)
+
+  // requestAnimationFrame wrapper with deduplication
+  this.nextTick(func, name)
+
+  // get unique ID for root node, set one if needed
+  this.rootId()
+
+  // get/set attributes on root node
+  this.attr(name, value)
+
+  // hide the custom element wrapper and move children to parent
+  this.fezHide()
+
+  // automatic form submission handling if there is FORM as parent or child node
+  this.onSubmit(formData) { ... }
+
+  // render template and attach result dom to root. uses Idiomorph for DOM morph
+  this.render()
+  this.render(this.find('.body'), someHtmlTemplate) // you can render to another root too
+})
+
+/* Utility methods */
+
+// define custom style macro
+// Fez.styleMacro('mobile', '@media (max-width:  768px)')
+// :mobile { ... } -> @media (max-width:  768px) { ... }
+Fez.styleMacro(name, value)
 
 // add global scss
 Fez.globalCss(`
@@ -203,6 +338,12 @@ Fez.globalCss(`
 
 // internal, get unique ID for a string, poor mans MD5 / SHA1
 Fez.fnv1('some string')
+
+// get dom node containing passed html
+Fez.domRoot(htmlData || htmlNode)
+
+// activates node by adding class to node, and removing it from siblings
+Fez.activateNode(node, className = 'active')
 
 // get generated css class name, from scss source string
 Fez.css(text)
@@ -234,146 +375,6 @@ Fez.untilTrue(func, pingRate)
 // Load CSS with attributes: Fez.head({ css: 'path/to/styles.css', media: 'print' })
 // Execute inline script: Fez.head({ script: 'console.log("Hello world")' })
 Fez.head(config, callback)
-
-// define custom style macro
-// Fez.styleMacro('mobile', '@media (max-width:  768px)')
-// :mobile { ... } -> @media (max-width:  768px) { ... }
-Fez.styleMacro(name, value)
-
-// define custom DOM node name -> <foo-bar>...
-Fez('foo-bar', class {
-  // set element node name, set as property or method, defaults to DIV
-  // why? because Fez renames custom dom nodes to regular HTML nodes
-  NAME = 'span'
-  NAME(node) { ... }
-  // alternative: static nodeName = 'span'
-
-  // set element style, set as property or method
-  CSS = `scss string... `
-
-  // unless node has no innerHTML on initialization, bind will be set to slow (fastBind = false)
-  // if you are using components that to not use innerHTML and slots, enable fast bind (fastBind = true)
-  // component will be rendered as parsed, and not on next tick (reduces flickering)
-  // <fez-icon name="gear" />
-  FAST = true
-  FAST(node) { ... }
-  // alternative: static fastBind() { return true }
-
-  // define static HTML. calling `this.render()` (no arguments) will refresh current node.
-  // if you pair it with `reactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
-  HTML = `...`
-
-  // Make it globally accessible as `window.Dialog`
-  // The component is automatically appended to the document body as a singleton. See `demo/fez/ui-dialog.fez` for a complete example.
-  GLOBAL = 'Dialog'
-  GLOBAL = true // just append node to document, do not create window reference
-
-  // use connect or created
-  init(props) {
-    // copy original attributes from attr hash to root node
-    this.copy('href', 'onclick', 'style')
-
-    // set style property to root node. look at a clock example
-    // shortcut to this.root.style.setProperty(key, value)
-    this.setStyle('--color', 'red')
-
-    // clasic interval, that runs only while node is attached
-    this.setInterval(func, tick) { ... }
-
-    // get closest form data, as object
-    this.formData()
-
-    // mounted DOM node root
-    this.root
-
-    // mounted DOM node root wrapped in $, only if jQuery is available
-    this.$root
-
-    // node attributes, converted to properties
-    this.props
-
-    // gets single node attribute or property
-    this.prop('onclick')
-
-    // shortcut for this.root.querySelector(selector)
-    this.find(selector)
-
-    // gets value for FORM fields or node innerHTML
-    this.val(selector)
-    // set value to a node, uses value or innerHTML
-    this.val(selector, value)
-
-    // you can publish globally, and subscribe locally
-    Fez.publish('channel', foo)
-    this.subscribe('channel', (foo) => { ... })
-
-    // gets root childNodes
-    this.childNodes()
-    this.childNodes(func)  // pass function to loop forEach on selection
-
-    // check if the this.root node is attached to dom
-    this.isConnected()
-
-    // on every "this.state" props change, auto update view.
-    this.state = this.reactiveStore()
-    // this.state has reactiveStore() attached by default. any change will trigger this.render()
-    this.state.foo = 123
-
-    // generic window event handler with automatic cleanup
-    // eventName: 'resize', 'scroll', 'mousemove', etc.
-    // delay: throttle delay in ms (default: 200ms)
-    // runs immediately on init and then throttled
-    this.on(eventName, func, delay)
-
-    // window resize event with cleanup (shorthand for this.on('resize', func, delay))
-    this.onResize(func, delay)
-
-    // window scroll event with cleanup (shorthand for this.on('scroll', func, delay))
-    this.onScroll(func, delay)
-
-    // requestAnimationFrame wrapper with deduplication
-    this.nextTick(func, name)
-
-    // get/set unique ID for root node
-    this.rootId()
-
-    // get/set attributes on root node
-    this.attr(name, value)
-
-    // hide the custom element wrapper and move children to parent
-    this.fezHide()
-
-    // execute after connect and initial component render
-    this.onMount() { ... } // or this.connected() { ... }
-
-    // execute before or after every render
-    this.beforeRender() { ... }
-    this.afterRender() { ... }
-
-    // if you want to monitor new or changed node attributes
-    // monitors all original node attributes
-    // <ui-icon name="home" color="red" />
-    this.onPropsChange(attrName, attrValue) { ... }
-
-    // called when local component state changes
-    this.onStateChange(key, value, oldValue) { ... }
-
-    // called when global state changes (if component reads that key)
-    this.onGlobalStateChange(key, value) { ... }
-
-    // called when component is destroyed
-    this.onDestroy() { ... }
-
-    // automatic form submission handling if defined
-    this.onSubmit(formData) { ... }
-
-    // render template and attach result dom to root. uses Idiomorph for DOM morph
-    this.render()
-
-    // you can render to another root too
-    this.render(this.find('.body'), someHtmlTemplate)
-  }
-})
 ```
 
 ## Fez script loading and definition

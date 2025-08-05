@@ -475,6 +475,25 @@ Fez.store = {
   }
 };
 
+// create dom root and return it
+Fez.domRoot = (data, name = 'div') => {
+  if (data instanceof Node) {
+    return data
+  } else {
+    const root = document.createElement(name)
+    root.innerHTML = data
+    return root
+  }
+}
+
+// add class by name to node and remove it from siblings
+Fez.activateNode = (node, klass = 'active') => {
+  Array.from(node.parentElement.children).forEach(child => {
+    child.classList.remove(klass)
+  })
+  node.classList.add(klass)
+}
+
 Fez.compile = compile
 Fez.state = state
 

@@ -36,8 +36,7 @@ const compileToClass = (html) => {
   }
 
   if (result.head) {
-    const container = document.createElement('div')
-    container.innerHTML = result.head
+    const container = Fez.domRoot(result.head)
 
     // Process all children of the container
     Array.from(container.children).forEach(node => {
@@ -89,65 +88,85 @@ const compileToClass = (html) => {
   return klass
 }
 
-// <template fez="ui-form">
-//   <script>
-//     ...
-// Fez.compile()                                  # compile all
-// Fez.compile(templateNode)                      # compile template node
-// Fez.compile('ui-form', templateNode.innerHTML) # compile string
-export default function (tagName, html) {
-  if (tagName instanceof Node) {
-    const node = tagName
+// Handle single argument cases - compile all, compile node, or compile from URL
+function compile_bulk(data) {
+  if (data instanceof Node) {
+    const node = data
     node.remove()
 
     const fezName = node.getAttribute('fez')
 
     // Check if fezName contains dot or slash (indicates URL)
     if (fezName && (fezName.includes('.') || fezName.includes('/'))) {
-      const url = fezName
-
-      Fez.log(`Loading from ${url}`)
-
-      // Load HTML content via AJAX from URL
-      Fez.fetch(url)
-        .then(htmlContent => {
-          // Check if remote HTML has template/xmp tags with fez attribute
-          const parser = new DOMParser()
-          const doc = parser.parseFromString(htmlContent, 'text/html')
-          const fezElements = doc.querySelectorAll('template[fez], xmp[fez]')
-
-          if (fezElements.length > 0) {
-            // Compile each found fez element
-            fezElements.forEach(el => {
-              const name = el.getAttribute('fez')
-              if (name && !name.includes('-') && !name.includes('.') && !name.includes('/')) {
-                console.error(`Fez: Invalid custom element name "${name}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)
-              }
-              const content = el.innerHTML
-              Fez.compile(name, content)
-            })
-          } else {
-            // No fez elements found, use extracted name from URL
-            const name = url.split('/').pop().split('.')[0]
-            Fez.compile(name, htmlContent)
-          }
-        })
-        .catch(error => {
-          console.error(`FEZ template load error for "${fezName}": ${error.message}`)
-        })
+      compile_from_url(fezName)
       return
     } else {
       // Validate fezName format for non-URL names
       if (fezName && !fezName.includes('-')) {
         console.error(`Fez: Invalid custom element name "${fezName}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)
       }
-      html = node.innerHTML
-      tagName = fezName
+      // Compile the node directly
+      return compile(fezName, node.innerHTML)
     }
   }
-  else if (typeof html != 'string') {
-    document.body.querySelectorAll('template[fez], xmp[fez]').forEach((n) => Fez.compile(n))
+  else {
+    let root = data ? Fez.domRoot(data) : document.body
+
+    root.querySelectorAll('template[fez], xmp[fez]').forEach((n) => {
+      compile_bulk(n)
+    })
+
     return
+  }
+}
+
+function compile_from_url(url) {
+  Fez.log(`Loading from ${url}`)
+
+  // Load HTML content via AJAX from URL
+  Fez.fetch(url)
+    .then(htmlContent => {
+      // Check if remote HTML has template/xmp tags with fez attribute
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(htmlContent, 'text/html')
+      const fezElements = doc.querySelectorAll('template[fez], xmp[fez]')
+
+      if (fezElements.length > 0) {
+        // Compile each found fez element
+        fezElements.forEach(el => {
+          const name = el.getAttribute('fez')
+          if (name && !name.includes('-') && !name.includes('.') && !name.includes('/')) {
+            console.error(`Fez: Invalid custom element name "${name}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)
+          }
+          const content = el.innerHTML
+          compile(name, content)
+        })
+      } else {
+        // No fez elements found, use extracted name from URL
+        const name = url.split('/').pop().split('.')[0]
+        compile(name, htmlContent)
+      }
+    })
+    .catch(error => {
+      console.error(`FEZ template load error for "${url}": ${error.message}`)
+    })
+}
+
+// <template fez="ui-form">
+//   <script>
+//     ...
+// Fez.compile()                                  # compile all
+// Fez.compile(templateNode)                      # compile template node or string with template or xmp tags
+// Fez.compile('ui-form', templateNode.innerHTML) # compile string
+function compile(tagName, html) {
+  // Handle single argument cases
+  if (arguments.length === 1) {
+    return compile_bulk(tagName)
+  }
+
+  // If html contains </xmp>, send to compile_bulk for processing
+  if (html && html.includes('</xmp>')) {
+    return compile_bulk(html)
   }
 
   // Validate element name if it's not a URL
@@ -168,7 +187,8 @@ export default function (tagName, html) {
       styleContainer.id = 'fez-hidden-styles'
       document.head.appendChild(styleContainer)
     }
-    styleContainer.textContent += `${tagName} { display: none; }\n`
+    const allTags = [...Object.keys(Fez.classes), tagName].sort().join(', ')
+    styleContainer.textContent = `${allTags} { display: none; }\n`
   }
 
   // we cant try/catch javascript modules (they use imports)
@@ -190,3 +210,6 @@ export default function (tagName, html) {
     }
   }
 }
+
+export { compile_from_url }
+export default compile
