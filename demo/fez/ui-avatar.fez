@@ -1,6 +1,5 @@
 <script>
   NAME = 'span'
-  FAST = true
 
   init(props) {
     this.copy('href', 'style')

@@ -159,8 +159,8 @@ This example showcases:
 
 ### Performance & Integration
 
-* **Fast/Slow Render Modes** - Optimize initial render with `FAST = true` to prevent flickering
-* **Request Animation Frame** - Smart RAF integration for smooth updates
+* **Optimized Rendering** - Batched microtask rendering for flicker-free component initialization
+* **Smart DOM Updates** - Efficient DOM manipulation with minimal reflows
 * **Built-in Fetch with Caching** - `Fez.fetch()` includes automatic response caching and JSON/FormData handling
 * **Global Component Access** - Register components globally with `GLOBAL = 'ComponentName'` for easy access
 * **Rich Lifecycle Hooks** - `init`, `onMount`, `beforeRender`, `afterRender`, `onDestroy`, `onPropsChange`, `onStateChange`, `onGlobalStateChange`
@@ -194,14 +194,6 @@ Fez('foo-bar', class {
 
   // set element style, set as property or method
   CSS = `scss string... `
-
-  // unless node has no innerHTML on initialization, bind will be set to slow (fastBind = false)
-  // if you are using components that to not use innerHTML and slots, enable fast bind (fastBind = true)
-  // component will be rendered as parsed, and not on next tick (reduces flickering)
-  // <fez-icon name="gear" />
-  FAST = true
-  FAST(node) { ... }
-  // alternative: static fastBind() { return true }
 
   // define static HTML. calling `this.render()` (no arguments) will refresh current node.
   // if you pair it with `reactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
@@ -351,7 +343,7 @@ Fez.css(text)
 // get generated css class name without global attachment
 Fez.cssClass(text)
 
-// display information about fast/slow bind components in console
+// display information about registered components in console
 Fez.info()
 
 // low-level DOM morphing function
@@ -395,9 +387,6 @@ Fez.head(config, callback)
   <!-- pass JSON template via data-json-template -->
   <script type="text/template">{...}</script>
   <foo-bar data-json-template="true"></foo-bar>
-
-  <!-- override slow bind behavior -->
-  <foo-bar fez-fast="true"></foo-bar>
 ```
 
 ## Component structure

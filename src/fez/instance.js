@@ -81,11 +81,6 @@ export default class FezBase {
     return formObject
   }
 
-  static fastBind() {
-    // return true to bind without requestAnimationFrame
-    // you can do this if you are sure you are not expecting innerHTML data
-    return false
-  }
 
   static nodeName = 'div'
 

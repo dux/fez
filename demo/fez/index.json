@@ -12,8 +12,8 @@
     "file": {
       "base": "input-color",
       "path": "demo/fez/input-color.fez",
-      "size": 5408,
-      "modified": 1754334898,
+      "size": 5393,
+      "modified": 1754551551,
       "created": 1753818448
     }
   },
@@ -21,8 +21,8 @@
     "file": {
       "base": "ui-avatar",
       "path": "demo/fez/ui-avatar.fez",
-      "size": 911,
-      "modified": 1754083400,
+      "size": 897,
+      "modified": 1754551555,
       "created": 1753818448
     }
   },
@@ -84,8 +84,8 @@
     "file": {
       "base": "ui-dialog",
       "path": "demo/fez/ui-dialog.fez",
-      "size": 3521,
-      "modified": 1754411706,
+      "size": 4675,
+      "modified": 1754485090,
       "created": 1753818448
     }
   },

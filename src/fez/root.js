@@ -117,7 +117,7 @@ Fez.globalCss = (cssClass, opts = {}) => {
 }
 
 Fez.info = () => {
-  console.log(JSON.stringify(Fez.fastBindInfo, null, 2))
+  console.log('Fez components:', Object.keys(Fez.classes || {}))
 }
 
 Fez.morphdom = (target, newNode, opts = {}) => {

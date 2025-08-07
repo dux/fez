@@ -104,9 +104,9 @@ this.globalState.theme = "dark"  // Auto-publishes changes
 
 ### Performance
 
-* Add FAST = true for slot-free components
 * Use throttled events: this.on('scroll', callback, 100)
 * Prefer fez-class for animations
+* Components are automatically rendered with optimized batching
 
 ### Component Communication
 

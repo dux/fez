@@ -1,8 +1,6 @@
 <script>
   // written by Claude
 
-  FAST = true
-
   palette = [
     ['#FF6B6B', '#FF8E53', '#FFC947', '#FFD93D', '#6BCF7F', '#4ECDC4'],
     ['#4A90E2', '#5E72E4', '#7B68EE', '#9B59B6', '#E91E63', '#EC4C47'],

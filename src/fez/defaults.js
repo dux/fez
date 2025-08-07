@@ -3,8 +3,6 @@ const loadDefaults = () => {
   // include fez component by name
   //<fez-component name="some-node" :props="fez.props"></fez-component>
   Fez('fez-component', class {
-    FAST = true
-
     init(props) {
       const tag = document.createElement(props.name)
       tag.props = props.props || props['data-props'] || props
@@ -21,8 +19,6 @@ const loadDefaults = () => {
   // include remote data from url
   // <fez-include src="./demo/fez/ui-slider.html"></fez-include>
   Fez('fez-include', class {
-    FAST = true
-
     init(props) {
       Fez.fetch(props.src, (data)=>{
         const dom = Fez.domRoot(data)
@@ -45,7 +41,6 @@ const loadDefaults = () => {
         const hash = Fez.fnv1(this.root.outerHTML)
         const nodeName = `inline-${hash}`
         Fez(nodeName, class {
-          FAST = true
           HTML = html
           init() {
             Object.assign(this.state, props.state || {})
