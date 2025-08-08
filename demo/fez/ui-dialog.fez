@@ -72,7 +72,7 @@
           activeElement.tagName === 'SELECT' ||
           activeElement.isContentEditable
         )
-        
+
         if (!isInFormElement) {
           this.close()
         }

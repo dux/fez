@@ -33,7 +33,7 @@ export default function connect(name, klass) {
     // Map component configuration properties
     if (klassObj.GLOBAL) { newKlass.fezGlobal = klassObj.GLOBAL }  // Global instance reference
     if (klassObj.CSS) { newKlass.css = klassObj.CSS }              // Component styles
-    if (klassObj.HTML) { 
+    if (klassObj.HTML) {
       newKlass.html = closeCustomTags(klassObj.HTML)               // Component template
     }
     if (klassObj.NAME) { newKlass.nodeName = klassObj.NAME }       // Custom DOM node name
@@ -85,7 +85,7 @@ export default function connect(name, klass) {
  */
 function connectCustomElement(name, klass) {
   const Fez = globalThis.window?.Fez || globalThis.Fez;
-  
+
   if (!customElements.get(name)) {
     customElements.define(name, class extends HTMLElement {
       connectedCallback() {
@@ -101,6 +101,7 @@ function connectCustomElement(name, klass) {
           Fez._batchScheduled = true
           Promise.resolve().then(() => {
             const connections = Fez._pendingConnections.slice()
+            // console.error(`Batch processing ${connections.length} components:`, connections.map(c => c.name))
             Fez._pendingConnections = []
             Fez._batchScheduled = false
 
@@ -185,14 +186,14 @@ function connectNode(name, node) {
 
     // Component lifecycle initialization
     fez.fezRegister()
-    
+
     // Call initialization method (init, created, or connect)
     ;(fez.init || fez.created || fez.connect).bind(fez)(fez.props)
-    
+
     // Initial render
     fez.render()
     fez.firstRender = true
-    
+
     // Trigger mount lifecycle hook
     fez.onMount(fez.props)
 
@@ -207,7 +208,7 @@ function connectNode(name, node) {
     // Set up reactive attribute watching
     if (fez.onPropsChange) {
       observer.observe(newNode, {attributes:true})
-      
+
       // Trigger initial prop change callbacks
       for (const [key, value] of Object.entries(fez.props)) {
         fez.onPropsChange(key, value)

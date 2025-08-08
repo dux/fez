@@ -1,0 +1,28 @@
+<ul class="info">
+  <li>Simple button nav component</li>
+</ul>
+
+<h4>Basic Navigation</h4>
+<ui-button-nav>
+  <div>Home</div>
+  <div>About</div>
+  <div>Services</div>
+  <div>Contact</div>
+</ui-button-nav>
+
+<h4>With Links</h4>
+<ui-button-nav>
+  <div href="#home">Home</div>
+  <div href="#about">About</div>
+  <div href="#services">Services</div>
+  <div href="https://google.com" target="_blank">External Link</div>
+</ui-button-nav>
+
+<h4>With Click Handlers</h4>
+<ui-button-nav>
+  <div onclick="Toast.info('Dashboard clicked!')">Dashboard</div>
+  <div onclick="Toast.info('Analytics clicked!')">Analytics</div>
+  <div disabled>Disabled</div>
+  <div onclick="Toast.info('Reports clicked!')">Reports</div>
+  <div onclick="Toast.info('Settings clicked!')">Settings</div>
+</ui-button-nav>

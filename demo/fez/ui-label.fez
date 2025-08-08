@@ -1,0 +1,87 @@
+<script>
+  NAME = (n) => n.getAttribute('href') ? 'a' : 'span'
+
+  init() {
+    this.copy('class', 'style', 'href', 'target')
+    this.root.classList.add('label')
+
+    if (this.prop('sm') !== undefined) { this.root.classList.add('label-sm') }
+    if (this.prop('lg') !== undefined) { this.root.classList.add('label-lg') }
+    if (this.prop('primary') !== undefined) { this.root.classList.add('label-primary') }
+    if (this.prop('secondary') !== undefined) { this.root.classList.add('label-secondary') }
+    if (this.prop('success') !== undefined) { this.root.classList.add('label-success') }
+    if (this.prop('warning') !== undefined) { this.root.classList.add('label-warning') }
+    if (this.prop('danger') !== undefined) { this.root.classList.add('label-danger') }
+    if (this.prop('pill') !== undefined) { this.root.classList.add('label-pill') }
+  }
+</script>
+
+<style>
+  body {
+    .label {
+      display: inline-block;
+      padding: 5px 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+      background-color: #fff;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      line-height: 1.2;
+      text-align: center;
+      vertical-align: baseline;
+      white-space: nowrap;
+      text-decoration: none;
+
+      &.label-sm {
+        padding: 3px 7px;
+        font-size: 11px;
+        border-radius: 3px;
+      }
+
+      &.label-lg {
+        padding: 6px 12px;
+        font-size: 14px;
+        border-radius: 5px;
+      }
+
+      &.label-primary {
+        background-color: #4A90E2;
+        color: white;
+        border-color: #4A90E2;
+      }
+
+      &.label-secondary {
+        background-color: #6b7280;
+        color: white;
+        border-color: #6b7280;
+      }
+
+      &.label-success {
+        background-color: #10b981;
+        color: white;
+        border-color: #10b981;
+      }
+
+      &.label-warning {
+        background-color: #f59e0b;
+        color: white;
+        border-color: #f59e0b;
+      }
+
+      &.label-danger {
+        background-color: #ef4444;
+        color: white;
+        border-color: #ef4444;
+      }
+
+      &.label-pill {
+        border-radius: 50px;
+      }
+    }
+
+    .label + .label {
+      margin-left: 5px;
+    }
+  }
+</style>

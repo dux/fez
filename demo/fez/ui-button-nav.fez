@@ -1,0 +1,158 @@
+<script>
+  activate(index) {
+    const childNode = this.navButtons[index]
+    if (!childNode || childNode.getAttribute('disabled')) return
+
+    this.state.activeIndex = index
+    this.updateMask(index)
+  }
+
+  updateMask(buttonIndex) {
+    const renderedButtons = this.find('.button-nav').querySelectorAll('.nav-button')
+    const activeButton = renderedButtons[buttonIndex]
+
+    if (!activeButton) return
+
+    // Get element position and dimensions
+    const left = activeButton.offsetLeft
+    const top = activeButton.offsetTop
+    const width = activeButton.offsetWidth
+    const height = activeButton.offsetHeight
+
+    // Set CSS custom properties for mask positioning
+    this.setStyle('--mask-left', `${left}px`)
+    this.setStyle('--mask-top', `${top}px`)
+    this.setStyle('--mask-width', `${width}px`)
+    this.setStyle('--mask-height', `${height}px`)
+    this.setStyle('--mask-opacity', '1')
+  }
+
+  handleClick(index, event) {
+    const button = this.navButtons[index]
+    if (!button) return
+
+    this.activate(index)
+
+    const href = button.getAttribute('href')
+    const onclick = button.getAttribute('onclick')
+
+    if (onclick) {
+      try {
+        eval(onclick)
+      } catch (e) {
+        console.error('Error executing onclick:', e)
+      }
+    } else if (href) {
+      if (href.startsWith('#')) {
+        event.preventDefault()
+        window.location.hash = href
+      } else if (href.startsWith('http')) {
+        window.open(href, '_blank')
+      } else {
+        window.location.href = href
+      }
+    }
+  }
+
+  init() {
+    this.state.activeIndex = 0
+    this.navButtons = this.childNodes()
+
+    // Extract clean text for each button
+    this.navButtons.forEach(button => {
+      if (!button.getAttribute('label') && button.textContent) {
+        button._cleanText = button.textContent.trim()
+      }
+    })
+
+    // Set initial mask position for index 0
+    this.setStyle('--mask-opacity', '0')
+  }
+
+  onMount() {
+    // Initialize mask after DOM is ready and rendered
+    setTimeout(() => {
+      if (this.navButtons.length > 0) {
+        this.activate(0)
+      }
+    }, 10)
+  }
+
+  onResize() {
+    if (this.state.activeIndex >= 0) {
+      this.updateMask(this.state.activeIndex)
+    }
+  }
+</script>
+
+<style>
+  :fez {
+    .button-nav {
+      display: inline-flex;
+      position: relative;
+      background: #e2e8f0;
+      border-radius: 12px;
+      padding: 4px;
+
+      .nav-mask {
+        position: absolute;
+        left: var(--mask-left, 0);
+        top: var(--mask-top, 6px);
+        width: var(--mask-width, 0);
+        height: var(--mask-height, 0);
+        opacity: var(--mask-opacity, 0);
+        background: #ffffff;
+        border-radius: 8px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1;
+      }
+
+      .nav-button {
+        position: relative;
+        z-index: 2;
+        padding: 2px 18px;
+        border: none;
+        background: transparent;
+        color: #64748b;
+        font-weight: 500;
+        font-size: 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: color 0.2s ease;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+        min-height: 40px;
+
+        &:hover {
+          color: #475569;
+        }
+
+        &.active {
+          color: #1e293b;
+        }
+
+        &.disabled {
+          color: #999;
+          cursor: not-allowed;
+          pointer-events: none;
+          opacity: 0.6;
+        }
+      }
+    }
+  }
+</style>
+
+<div class="button-nav">
+  <div class="nav-mask"></div>
+
+  {{for button, index in navButtons}}
+    <span
+      class="nav-button {{ state.activeIndex === index ? 'active' : '' }} {{ button.getAttribute('disabled') ? 'disabled' : '' }}"
+      onclick="fez.handleClick({{index}}, event)"
+    >
+      {{ button.getAttribute('label') || button._cleanText || `Item ${index + 1}` }}
+    </span>
+  {{/for}}
+</div>

@@ -354,7 +354,8 @@ export default class FezBase {
 
     this.beforeRender()
 
-    const newNode = document.createElement(this.class.nodeName || 'div')
+    const nodeName = typeof this.class.nodeName == 'function' ? this.class.nodeName(this.root) : this.class.nodeName
+    const newNode = document.createElement(nodeName || 'div')
 
     let renderedTpl
     if (Array.isArray(template)) {

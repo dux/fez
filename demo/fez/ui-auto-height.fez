@@ -1,0 +1,66 @@
+<script>
+  init(props) {
+    this.setStyle('--speed', `0.${props.speed || 3}s`)
+
+    if (props.persist) {
+      const savedHeight = sessionStorage.getItem(`ui-auto-height-${props.persist}`)
+      this.state.currentHeight = savedHeight || 'auto'
+    } else {
+      this.state.currentHeight = 'auto'
+    }
+  }
+
+  onMount() {
+    const container = this.find('.auto-height')
+    const content = this.find('.content')
+
+    const currentContentHeight = content.offsetHeight
+    this.state.currentHeight = currentContentHeight + 'px'
+
+    if (this.props.persist) {
+      this.saveHeight(currentContentHeight)
+    }
+
+    this.resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const newHeight = entry.contentRect.height
+        this.animateToHeight(newHeight)
+      }
+    })
+    this.resizeObserver.observe(content)
+  }
+
+  animateToHeight(newHeight) {
+    const container = this.find('.auto-height')
+    container.style.height = this.state.currentHeight
+    container.offsetHeight
+    this.state.currentHeight = newHeight + 'px'
+
+    if (this.props.persist) {
+      this.saveHeight(newHeight)
+    }
+  }
+
+  saveHeight(height) {
+    sessionStorage.setItem(`ui-auto-height-${this.props.persist}`, height + 'px')
+  }
+
+  onDestroy() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect()
+    }
+  }
+</script>
+
+<style>
+  .auto-height {
+    overflow: hidden;
+    transition: height var(--speed) ease-in-out;
+  }
+</style>
+
+<div class="auto-height" style="height: {{ state.currentHeight }}">
+  <div class="content">
+    <slot />
+  </div>
+</div>
