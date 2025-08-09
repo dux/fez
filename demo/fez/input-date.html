@@ -1,0 +1,17 @@
+<ul class="info">
+  <li>Date picker component using flatpickr</li>
+</ul>
+
+<h4>Basic Date Picker</h4>
+<input-date name="date"></input-date>
+
+<h4>With Initial Value, title and change handler</h4>
+<input-date
+  name="birth_date"
+  value="2024-01-15"
+  title="Birth Date"
+  :onchange="(v)=>Toast.info('Date selected: ' + v)"
+></input-date>
+
+<h4>Styled Date Picker</h4>
+<input-date name="styled_date" class="btn-primary" title="Choose Date"></input-date>

@@ -12,17 +12,17 @@
 
 <h4>With Links</h4>
 <ui-button-nav>
-  <div href="#home">Home</div>
-  <div href="#about">About</div>
-  <div href="#services">Services</div>
-  <div href="https://google.com" target="_blank">External Link</div>
+  <a href="#home">Home</a>
+  <a href="#about">About</a>
+  <a href="#services">Services from us</a>
+  <a href="https://google.com" target="_blank">External Link</a>
 </ui-button-nav>
 
 <h4>With Click Handlers</h4>
 <ui-button-nav>
-  <div onclick="Toast.info('Dashboard clicked!')">Dashboard</div>
-  <div onclick="Toast.info('Analytics clicked!')">Analytics</div>
-  <div disabled>Disabled</div>
-  <div onclick="Toast.info('Reports clicked!')">Reports</div>
-  <div onclick="Toast.info('Settings clicked!')">Settings</div>
+  <span onclick="Toast.info('Dashboard clicked!')">Dashboard</span>
+  <span onclick="Toast.info('Analytics clicked!')">Analytics</span>
+  <span disabled>Disabled</span>
+  <span onclick="Toast.info('Reports clicked!')">Reports</span>
+  <span onclick="Toast.info('Settings clicked!')">Settings</span>
 </ui-button-nav>

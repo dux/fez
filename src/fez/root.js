@@ -183,6 +183,21 @@ Fez.tag = (tag, opts = {}, html = '') => {
   // return data
 };
 
+// Resolve a function from a string or function reference
+// Fez.resolveFunction(func, context) - calls function with context as this
+// Fez.resolveFunction('alert("hi")', element) - creates function from string and calls with element as this
+// Fez.resolveFunction('alert("hi")') - creates function from string and calls with window as this
+Fez.resolveFunction = (pointer, context = window) => {
+  if (!pointer) return;
+  
+  if (typeof pointer === 'function') {
+    pointer.call(context);
+  } else if (typeof pointer === 'string') {
+    const fn = new Function(pointer);
+    fn.call(context);
+  }
+};
+
 Fez.error = (text, show) => {
   text = `Fez: ${text}`
   console.error(text)
@@ -492,6 +507,10 @@ Fez.activateNode = (node, klass = 'active') => {
     child.classList.remove(klass)
   })
   node.classList.add(klass)
+}
+
+Fez.isTrue = (val) => {
+  return ['1', 'true', 'on'].includes(String(val).toLowerCase())
 }
 
 Fez.compile = compile

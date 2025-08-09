@@ -150,7 +150,7 @@
   {{for button, index in navButtons}}
     <span
       class="nav-button {{ state.activeIndex === index ? 'active' : '' }} {{ button.getAttribute('disabled') ? 'disabled' : '' }}"
-      onclick="fez.handleClick({{index}}, event)"
+      onclick="fez.handleClick({{ index }}, event)"
     >
       {{ button.getAttribute('label') || button._cleanText || `Item ${index + 1}` }}
     </span>

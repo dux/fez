@@ -11,6 +11,13 @@
 ```html
 <xmp fez="component-name">
   <script>
+    // ES Module imports (optional)
+    import library from 'https://cdn.jsdelivr.net/npm/library/+esm'
+
+    // Or load scripts/styles dynamically
+    Fez.head({js: 'https://cdn.example.com/script.js'})
+    Fez.head({css: 'https://cdn.example.com/styles.css'})
+
     init() {
       // do not rewrite state, just add to it
       this.state.count = 0
@@ -42,7 +49,7 @@
   </style>
 
   <!-- Template -->
-  <button onclick="fez.increment()">
+  <button onclick="fez.increment()" name={{ 'no external quotes needed' }}>
     Count: {{ state.count }}
   </button>
 </xmp>
@@ -128,6 +135,17 @@ Fez.publish('event', data)
 ❌ Direct DOM manipulation (use state instead)
 ❌ Missing init() for state initialization
 
+## External Libraries & Modules
+
+```javascript
+// ES Module imports (use /+esm for CDN modules)
+import library from 'https://cdn.jsdelivr.net/npm/library/+esm'
+
+// Dynamic script/style loading
+Fez.head({js: 'https://cdn.example.com/script.js'})
+Fez.head({css: 'https://cdn.example.com/styles.css'})
+```
+
 ## Utility Shortcuts
 
 ```javascript
@@ -135,6 +153,14 @@ this.find('.selector')      // Scoped querySelector
 this.setTimeout(fn, 1000)  // Auto-cleaned timeout
 Fez.fetch('/data')          // Built-in cached fetch
 this.formData()             // Get form values
+
+// Resolve function from string or function reference
+// use this for onchange filters and similar input from node params where data can be function or string
+Fez.resolveFunction(this.props.onclick, this.element)
+Fez.resolveFunction('alert("Hi")', window)
+
+// to check if value is true, that comes from props
+Fez.isTrue(value)
 ```
 
 ## Debugging Helpers

@@ -10,11 +10,38 @@
   },
   {
     "file": {
+      "base": "input-checkbox-toggle",
+      "path": "demo/fez/input-checkbox-toggle.fez",
+      "size": 2155,
+      "modified": 1754742364,
+      "created": 1754738661
+    }
+  },
+  {
+    "file": {
+      "base": "input-checkbox",
+      "path": "demo/fez/input-checkbox.fez",
+      "size": 0,
+      "modified": 1754738110,
+      "created": 1754738110
+    }
+  },
+  {
+    "file": {
       "base": "input-color",
       "path": "demo/fez/input-color.fez",
       "size": 5393,
       "modified": 1754551551,
       "created": 1753818448
+    }
+  },
+  {
+    "file": {
+      "base": "input-date",
+      "path": "demo/fez/input-date.fez",
+      "size": 3455,
+      "modified": 1754736502,
+      "created": 1754666739
     }
   },
   {
@@ -57,8 +84,8 @@
     "file": {
       "base": "ui-button-nav",
       "path": "demo/fez/ui-button-nav.fez",
-      "size": 3910,
-      "modified": 1754654419,
+      "size": 3912,
+      "modified": 1754654920,
       "created": 1754653020
     }
   },

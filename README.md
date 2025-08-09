@@ -358,6 +358,12 @@ Fez.tag(tag, opts, html)
 // execute function until it returns true
 Fez.untilTrue(func, pingRate)
 
+// resolve and execute a function from string or function reference
+// useful for event handlers that can be either functions or strings
+// Fez.resolveFunction('alert("hi")', element) - creates function and calls with element as this
+// Fez.resolveFunction(myFunc, element) - calls myFunc with element as this
+Fez.resolveFunction(pointer, context)
+
 // add scripts/styles to document head
 // Load JavaScript from URL: Fez.head({ js: 'path/to/script.js' })
 // Load JavaScript with attributes: Fez.head({ js: 'path/to/script.js', type: 'module', async: true })

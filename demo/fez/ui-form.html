@@ -9,7 +9,7 @@
 
 <script>
   window.updateFormData = (obj) => {
-    document.getElementById('form-data').textContent += JSON.stringify(obj) + "\n"
+    document.getElementById('form-data').textContent = JSON.stringify(obj, null, 2) + "\n"
   }
 </script>
 
@@ -45,6 +45,12 @@
     </p>
     <p>
       <input-color name="color" value="#abcdef" />
+    </p>
+    <p>
+      <input-date name="date" value="0" />
+    </p>
+    <p>
+      <input-checkbox-toggle name="toggle" label="toggle me"/>
     </p>
     <p>
       <button>Submit</button>
