@@ -149,7 +149,7 @@ This example showcases:
 
 ### Developer Experience
 
-* **Built-in Utilities** - Helpful methods like `formData()`, `setInterval()` (auto-cleanup), `onResize()`, and `nextTick()`
+* **Built-in Utilities** - Helpful methods like `formData()`, `setInterval()` (auto-cleanup), `onWindowResize()`, and `nextTick()`
 * **Two-Way Data Binding** - Use `fez-bind` directive for automatic form synchronization
 * **Advanced Slot System** - Full `<slot />` support with event listener preservation
 * **Publish/Subscribe** - Built-in pub/sub system for component communication
@@ -285,11 +285,11 @@ Fez('foo-bar', class {
 
   // window resize event with cleanup (shorthand for this.on('resize', func, delay))
   // runs immediately on init and then throttled
-  this.onResize(func, delay)
+  this.onWindowResize(func, delay)
 
   // window scroll event with cleanup (shorthand for this.on('scroll', func, delay))
   // runs immediately on init and then throttled
-  this.onScroll(func, delay)
+  this.onWindowScroll(func, delay)
 
   // requestAnimationFrame wrapper with deduplication
   this.nextTick(func, name)

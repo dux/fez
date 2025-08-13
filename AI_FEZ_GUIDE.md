@@ -3,11 +3,16 @@
 ## Core Rules for Claude
 1. **ALWAYS** use Fez-specific syntax (NO React/Vue conventions)
 2. **NEVER** use hooks - `this.state` replaces useState/useEffect
-3. **ALWAYS** scope styles with `:fez` selector
+3. **ALWAYS** scope styles with `:fez` selector and use nested SCSS-style syntax
 4. **ALWAYS** initialize state in `init()`
 5. **ALWAYS** use kebab-case component names (e.g., `user-profile`)
+6. **NEVER** use `{{if}}` blocks inside HTML attributes - use ternary operators `{{ condition ? 'value' : '' }}` instead
+7. **NO QUOTES** needed around `{{ }}` expressions in attributes - write `attr={{ value }}` not `attr="{{ value }}"`
 
 ## Component Structure
+
+Omit XMP tag when writing fez components in .fez files
+
 ```html
 <xmp fez="component-name">
   <script>
@@ -25,8 +30,8 @@
     onMount() { ... } // DOM-ready logic
     onStateChange(key, value)	// React to state changes
     onDestroy()	// Cleanup resources
-    onResize() // on Window resize
-    onScroll() // on document scroll
+    onWindowResize() // on Window resize
+    onWindowScroll() // on window scroll
     // Custom methods
 
     increment() {
@@ -35,21 +40,48 @@
   </script>
 
   <style>
+    /* Global styles (affects entire page) */
     body {
-      button {}
+      background: #f5f5f5;
     }
 
-    /* :fez not required if you do not change global styles */
+    /* Component-scoped styles - ALWAYS use nested SCSS syntax */
     :fez {
+      /* Direct styles on component root */
+      padding: 20px;
+
+      /* Nested elements - this is the PREFERRED pattern */
       button {
         background: gold;
-        SPAN { color: black; }
+        cursor: pointer;
+
+        /* Deep nesting is encouraged */
+        span {
+          color: black;
+          font-weight: bold;
+        }
+
+        &:hover {
+          background: orange;
+        }
+      }
+
+      .card {
+        border: 1px solid #ddd;
+
+        .header {
+          font-size: 18px;
+
+          h3 {
+            margin: 0;
+          }
+        }
       }
     }
   </style>
 
   <!-- Template -->
-  <button onclick="fez.increment()" name={{ 'no external quotes needed' }}>
+  <button onclick="fez.increment()" name={{ state.buttonName }}>
     Count: {{ state.count }}
   </button>
 </xmp>
@@ -75,6 +107,17 @@ this.globalState.theme = "dark"  // Auto-publishes changes
 
 <!-- Conditionals -->
 {{if state.isActive}}<div>Active</div>{{else}}<div>Inactive</div>{{/if}}
+
+<!-- IMPORTANT: NEVER use {{if}} inside attributes! Use ternary operator instead -->
+<!-- ❌ WRONG: <div class="{{if state.active}}active{{/if}}"> -->
+<!-- ✅ CORRECT: <div class={{ state.active ? 'active' : '' }}> -->
+
+<!-- For attributes, ALWAYS use ternary operators -->
+<!-- No quotes needed around {{ }} expressions in attributes -->
+<button disabled={{ state.loading ? 'disabled' : '' }}>Submit</button>
+<div class={{ state.error ? 'error' : 'success' }}>Status</div>
+<input value={{ state.name || 'default' }}>
+<span title={{ state.tooltip }}>Hover me</span>
 
 <!-- Loops -->
 {{for item in state.items}}
@@ -109,6 +152,35 @@ this.globalState.theme = "dark"  // Auto-publishes changes
 * Modify arrays/objects directly (they're deeply reactive)
 * Use onMount() for updates that need mounted template
 
+### Styling
+
+* **ALWAYS use nested SCSS syntax** - Fez includes Goober which supports full SCSS nesting
+* Scope component styles with `:fez` selector to avoid global conflicts
+* Use deep nesting for element hierarchies:
+  ```scss
+  :fez {
+    .container {
+      padding: 20px;
+
+      .header {
+        font-size: 24px;
+
+        h1 {
+          margin: 0;
+          color: #333;
+        }
+      }
+
+      button {
+        &:hover { background: #f0f0f0; }
+        &.active { background: #007bff; }
+      }
+    }
+  }
+  ```
+* Avoid flat CSS selectors - embrace nesting for better organization
+* Use `&` for pseudo-selectors and modifiers
+
 ### Performance
 
 * Use throttled events: this.on('scroll', callback, 100)
@@ -134,6 +206,9 @@ Fez.publish('event', data)
 ❌ Using arrow functions in handlers
 ❌ Direct DOM manipulation (use state instead)
 ❌ Missing init() for state initialization
+❌ Using {{if}} blocks inside attributes (use ternary operators instead)
+❌ Writing flat CSS instead of nested SCSS syntax
+❌ Not utilizing SCSS nesting capabilities
 
 ## External Libraries & Modules
 
@@ -154,10 +229,9 @@ this.setTimeout(fn, 1000)  // Auto-cleaned timeout
 Fez.fetch('/data')          // Built-in cached fetch
 this.formData()             // Get form values
 
-// Resolve function from string or function reference
-// use this for onchange filters and similar input from node params where data can be function or string
-Fez.resolveFunction(this.props.onclick, this.element)
-Fez.resolveFunction('alert("Hi")', window)
+// Resolve a function from a string or function reference
+Fez.getFunction(this.props.onclick)
+Fez.getFunction('alert("Hi")', window)
 
 // to check if value is true, that comes from props
 Fez.isTrue(value)

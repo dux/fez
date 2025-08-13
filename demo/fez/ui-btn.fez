@@ -61,6 +61,7 @@
       transition: all 0.15s ease;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
 
+
       .fez-slot {
         display: inline;
         transition: all 0.2s ease;
@@ -210,6 +211,27 @@
         &.btn-lg .spinner-wrapper {
           width: 24px;
         }
+      }
+    }
+
+    .btn + .btn, button + button {
+      margin-left: 7px;
+    }
+
+    .btn-group {
+      .btn, button {
+        margin-left: 0;
+        border-radius: 0;
+        border-right: 0;
+      }
+
+      .btn:last-child, button:last-child {
+        border-right: 1px solid #a0aec0;
+        border-radius: 0 6px 6px 0;
+      }
+
+      .btn:first-child, button:first-child {
+        border-radius: 6px 0 0 6px;
       }
     }
   }

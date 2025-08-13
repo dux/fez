@@ -104,8 +104,8 @@
 
   {{if state.code && state.html }}
     <a name="c-{{ file.base }}"></a>
-    <div class="flex" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-      <div style="margin-top: 10px;  max-width: 560px;">
+    <div class="flex even top" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
+      <div style="margin-top: 10px; flex: 0 0 560px;">
         <small style="float: right;" onclick="fez.openCodePen('{{ file.base }}')">open in CodePen</small>
         <h3 style="margin-top: 0;">
           Demo: {{ file.base }}

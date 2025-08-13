@@ -21,13 +21,9 @@
       this.saveHeight(currentContentHeight)
     }
 
-    this.resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const newHeight = entry.contentRect.height
-        this.animateToHeight(newHeight)
-      }
+    this.onElementResize(content, (rect) => {
+      this.animateToHeight(rect.height)
     })
-    this.resizeObserver.observe(content)
   }
 
   animateToHeight(newHeight) {
@@ -45,11 +41,6 @@
     sessionStorage.setItem(`ui-auto-height-${this.props.persist}`, height + 'px')
   }
 
-  onDestroy() {
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect()
-    }
-  }
 </script>
 
 <style>

@@ -101,40 +101,9 @@ export default class FezBase {
     if (this.root?.isConnected) {
       return true
     } else {
-      this.fezRemoveSelf()
+      this.fezOnDestroy()
       return false
     }
-  }
-
-  // clear all node references
-  fezRemoveSelf() {
-    this._setIntervalCache ||= {}
-    Object.keys(this._setIntervalCache).forEach((key)=> {
-      clearInterval(this._setIntervalCache[key])
-    })
-
-    if (this._eventHandlers) {
-      Object.entries(this._eventHandlers).forEach(([eventName, handler]) => {
-        window.removeEventListener(eventName, handler);
-      });
-      this._eventHandlers = {};
-    }
-
-    if (this._timeouts) {
-      Object.values(this._timeouts).forEach(timeoutId => {
-        clearTimeout(timeoutId);
-      });
-      this._timeouts = {};
-    }
-
-    this.onDestroy()
-    this.onDestroy = () => {}
-
-    if (this.root) {
-      this.root.fez = undefined
-    }
-
-    this.root = undefined
   }
 
   // get single node property
@@ -173,78 +142,90 @@ export default class FezBase {
     }
   }
 
+  // clear all node references
+  // Centralized destroy logic
+  fezOnDestroy() {
+    // Execute all registered cleanup callbacks
+    if (this._onDestroyCallbacks) {
+      this._onDestroyCallbacks.forEach(callback => {
+        try {
+          callback();
+        } catch (e) {
+          console.error('Fez: Error in cleanup callback:', e);
+        }
+      });
+      this._onDestroyCallbacks = [];
+    }
+
+    // Call user's onDestroy lifecycle hook
+    this.onDestroy()
+    this.onDestroy = () => {}
+
+    // Clean up root references
+    if (this.root) {
+      this.root.fez = undefined
+    }
+
+    this.root = undefined
+  }
+
+  // Add a cleanup callback to be executed on destroy
+  addOnDestroy(callback) {
+    this._onDestroyCallbacks = this._onDestroyCallbacks || [];
+    this._onDestroyCallbacks.push(callback);
+  }
+
   // Generic function to handle window events with automatic cleanup
-  // eventName: 'resize', 'scroll', etc.
-  // func: callback function to execute
-  // delay: throttle delay in ms (default: 100ms)
   on(eventName, func, delay = 200) {
     this._eventHandlers = this._eventHandlers || {};
-    this._timeouts = this._timeouts || {};
 
     if (this._eventHandlers[eventName]) {
       window.removeEventListener(eventName, this._eventHandlers[eventName]);
     }
 
-    if (this._timeouts[eventName]) {
-      clearTimeout(this._timeouts[eventName]);
-    }
-
-    let lastRun = 0;
-
-    const doExecute = () => {
-      if (!this.isConnected) {
-        if (this._eventHandlers[eventName]) {
-          window.removeEventListener(eventName, this._eventHandlers[eventName]);
-          delete this._eventHandlers[eventName];
-        }
-        if (this._timeouts[eventName]) {
-          clearTimeout(this._timeouts[eventName]);
-          delete this._timeouts[eventName];
-        }
-        return false;
+    const throttledFunc = Fez.throttle(() => {
+      if (this.isConnected) {
+        func.call(this);
       }
-      func.call(this);
-      return true;
-    };
+    }, delay);
 
-    const handleEvent = () => {
-      const now = Date.now();
+    this._eventHandlers[eventName] = throttledFunc;
+    window.addEventListener(eventName, throttledFunc);
 
-      if (now - lastRun >= delay) {
-        if (doExecute()) {
-          lastRun = now;
-        } else {
-          return;
-        }
-      }
-
-      // Clear previous timeout and set new one to ensure final event
-      if (this._timeouts[eventName]) {
-        clearTimeout(this._timeouts[eventName]);
-      }
-
-      this._timeouts[eventName] = setTimeout(() => {
-        if (now > lastRun && doExecute()) {
-          lastRun = Date.now();
-        }
-        delete this._timeouts[eventName];
-      }, delay);
-    };
-
-    this._eventHandlers[eventName] = handleEvent;
-    window.addEventListener(eventName, handleEvent);
+    this.addOnDestroy(() => {
+      window.removeEventListener(eventName, throttledFunc);
+      delete this._eventHandlers[eventName];
+    });
   }
 
   // Helper function for resize events
-  onResize(func, delay) {
+  onWindowResize(func, delay) {
     this.on('resize', func, delay);
     func();
   }
 
   // Helper function for scroll events
-  onScroll(func, delay) {
+  onWindowScroll(func, delay) {
     this.on('scroll', func, delay);
     func();
+  }
+
+  // Helper function for element resize events using ResizeObserver
+  onElementResize(el, func, delay = 200) {
+    const throttledFunc = Fez.throttle(() => {
+      if (this.isConnected) {
+        func.call(this, el.getBoundingClientRect(), el);
+      }
+    }, delay);
+
+    const observer = new ResizeObserver(throttledFunc);
+    observer.observe(el);
+
+    func.call(this, el.getBoundingClientRect(), el);
+
+    this.addOnDestroy(() => {
+      observer.disconnect();
+    });
   }
 
   // copy child nodes, natively to preserve bound events
@@ -482,13 +463,21 @@ export default class FezBase {
     this._setIntervalCache ||= {}
     clearInterval(this._setIntervalCache[name])
 
-    this._setIntervalCache[name] = setInterval(() => {
+    const intervalID = setInterval(() => {
       if (this.isConnected) {
         func()
       }
     }, tick)
 
-    return this._setIntervalCache[name]
+    this._setIntervalCache[name] = intervalID
+
+    // Register cleanup callback
+    this.addOnDestroy(() => {
+      clearInterval(intervalID);
+      delete this._setIntervalCache[name];
+    });
+
+    return intervalID
   }
 
   find(selector) {

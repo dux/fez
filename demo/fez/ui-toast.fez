@@ -1,20 +1,24 @@
 <script>
-  GLOBAL = 'Toast'
+  window.Alert = (data) => window.Toast ? Toast.info(data) : alert(data)
 
-  error(text) {
-    this.info(text, 'error')
-  }
+  class {
+    GLOBAL = 'Toast'
 
-  info(text, klass)  {
-    const node = document.createElement('div')
-    node.className = `toast ${klass || 'info'}`
-    node.innerHTML = text
-    this.find('.parent').prepend(node)
+    error(text) {
+      this.info(text, 'error')
+    }
 
-    setTimeout(()=>{
-      node.classList.add('leave')
-      setTimeout(()=>node.remove(), 2000)
-    }, 4000)
+    info(text, klass)  {
+      const node = document.createElement('div')
+      node.className = `toast ${klass || 'info'}`
+      node.innerHTML = text
+      this.find('.parent').prepend(node)
+
+      setTimeout(()=>{
+        node.classList.add('leave')
+        setTimeout(()=>node.remove(), 2000)
+      }, 4000)
+    }
   }
 </script>
 <style>

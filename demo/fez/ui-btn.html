@@ -9,7 +9,7 @@
   }
 </style>
 
-<h4>Sizes Buttons</h4>
+<h4>Sizes</h4>
 <ui-btn sm>Small - ui-btn sm</ui-btn>
 <ui-btn>Default - ui-btn</ui-btn>
 <ui-btn lg>Large - ui-btn lg</ui-btn>
@@ -29,6 +29,12 @@
 <ui-btn id="btn1" disabled onclick="Toast.info('Action enabled')">Disabled</ui-btn>
 <ui-btn id="btn2" loading listen="dialog-action-toggle" onclick="Toast.info('Action enabled')">Is Loading</ui-btn>
 -
-<button class="btn-sm" onclick="Fez('#btn1').toggleDisabled(); Fez('#btn2').toggleLoading()">toggle</button>
-<button class="btn-sm" onclick="Fez.publish('dialog-action-toggle')">toggle pub/sub</button>
+<button class="btn btn-sm" onclick="Fez('#btn1').toggleDisabled(); Fez('#btn2').toggleLoading()">toggle</button>
+<button class="btn btn-sm" onclick="Fez.publish('dialog-action-toggle')">toggle pub/sub</button>
 
+<h4>Button Groups - .btn-group</h4>
+<div class="btn-group">
+  <ui-btn primary>First</ui-btn>
+  <ui-btn>Middle</ui-btn>
+  <ui-btn>Last</ui-btn>
+</div>

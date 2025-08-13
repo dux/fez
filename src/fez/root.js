@@ -184,17 +184,15 @@ Fez.tag = (tag, opts = {}, html = '') => {
 };
 
 // Resolve a function from a string or function reference
-// Fez.resolveFunction(func, context) - calls function with context as this
-// Fez.resolveFunction('alert("hi")', element) - creates function from string and calls with element as this
-// Fez.resolveFunction('alert("hi")') - creates function from string and calls with window as this
-Fez.resolveFunction = (pointer, context = window) => {
-  if (!pointer) return;
-  
-  if (typeof pointer === 'function') {
-    pointer.call(context);
-  } else if (typeof pointer === 'string') {
-    const fn = new Function(pointer);
-    fn.call(context);
+Fez.getFunction = (pointer) => {
+  if (!pointer) {
+    return ()=>{}
+  }
+  else if (typeof pointer === 'function') {
+    return pointer;
+  }
+  else if (typeof pointer === 'string') {
+    return new Function(pointer);
   }
 };
 
@@ -224,6 +222,27 @@ Fez.untilTrue = (func, pingRate) => {
       Fez.untilTrue(func, pingRate)
     } ,pingRate)
   }
+}
+
+// throttle function calls
+Fez.throttle = (func, delay = 200) => {
+  let lastRun = 0;
+  let timeout;
+
+  return function(...args) {
+    const now = Date.now();
+
+    if (now - lastRun >= delay) {
+      func.apply(this, args);
+      lastRun = now;
+    } else {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        func.apply(this, args);
+        lastRun = Date.now();
+      }, delay - (now - lastRun));
+    }
+  };
 }
 
 // Script from URL

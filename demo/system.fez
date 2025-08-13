@@ -38,7 +38,7 @@
     init() {
       this.state.isVisible = false
 
-      this.onScroll(() => {
+      this.onWindowScroll(() => {
         const scrollY = window.scrollY
         const shouldShow = scrollY > 1000
 
@@ -199,7 +199,7 @@
       <div class="list">
         {{for el in (globalState.fezComponents || [])}}
           <button
-            class="btn-sm {{ state.activeJump === el.file.base ? 'active' : '' }}"
+            class="btn btn-sm {{ state.activeJump === el.file.base ? 'active' : '' }}"
             onclick="fez.jump('{{ el.file.base }}')"
           >{{el.file.base }}</button>
         {{/for}}

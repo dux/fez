@@ -131,18 +131,6 @@ div.info {
 }
 
 
-/* grid */
-
-.flex {
-  display: flex;
-  gap: 20px;
-
-  > div {
-    width: 50%;
-    flex: 1;
-  }
-}
-
 .con {
   max-width: 1100px;
   margin: 0 auto;
@@ -204,6 +192,10 @@ h2 {
 
 h4 {
   margin: 15px 0 5px 0;
+}
+
+h5 {
+  margin: 10px 0 3px 0;
 }
 
 ul {

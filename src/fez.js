@@ -14,7 +14,7 @@ setInterval(() => {
   for (const [key, el] of Fez.instances) {
     if (!el?.isConnected) {
       // Fez.error(`Found junk instance that is not connected ${el.fezName}`)
-      el.fez?.fezRemoveSelf()
+      el.fez?.fezOnDestroy()
       Fez.instances.delete(key)
     }
   }
@@ -47,7 +47,7 @@ const observer = new MutationObserver((mutations) => {
           .forEach(el => {
             if (el.fez && el.root) {
               Fez.instances.delete(el.fez.UID)
-              el.fez.fezRemoveSelf()
+              el.fez.fezOnDestroy()
             }
           });
       }

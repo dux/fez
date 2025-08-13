@@ -78,7 +78,7 @@
     }, 10)
   }
 
-  onResize() {
+  onWindowResize() {
     if (this.state.activeIndex >= 0) {
       this.updateMask(this.state.activeIndex)
     }
