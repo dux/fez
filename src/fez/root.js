@@ -165,19 +165,6 @@ Fez.tag = (tag, opts = {}, html = '') => {
   // return data
 };
 
-// Resolve a function from a string or function reference
-Fez.getFunction = (pointer) => {
-  if (!pointer) {
-    return ()=>{}
-  }
-  else if (typeof pointer === 'function') {
-    return pointer;
-  }
-  else if (typeof pointer === 'string') {
-    return new Function(pointer);
-  }
-};
-
 Fez.error = (text, show) => {
   text = `Fez: ${text}`
   console.error(text)

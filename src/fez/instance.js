@@ -359,27 +359,20 @@ export default class FezBase {
       newNode.innerHTML = this.parseHtml(renderedTpl)
     }
 
-    newNode.querySelectorAll('[fez-keep]').forEach(newEl => {
-      const key = newEl.getAttribute('fez-keep')
-      const oldEl = this.root.querySelector(`[fez-keep="${key}"]`)
+    // Handle fez-keep attributes
+    this.fezKeepNode(newNode)
 
-      if (oldEl) {
-        // Keep the old element in place of the new one
-        newEl.parentNode.replaceChild(oldEl, newEl)
-      } else if (key === 'default-slot') {
-        // First render - populate the slot with current root children
-        Array.from(this.root.childNodes).forEach(child => newEl.appendChild(child))
-      }
-    })
+    // Handle fez-memoize attributes
+    this.fezMemoization(newNode)
 
     Fez.morphdom(this.root, newNode)
 
-    this.renderFezPostProcess()
+    this.fezRenderPostProcess()
 
     this.afterRender()
   }
 
-  renderFezPostProcess() {
+  fezRenderPostProcess() {
     const fetchAttr = (name, func) => {
       this.root.querySelectorAll(`*[${name}]`).forEach((n)=>{
         let value = n.getAttribute(name)
@@ -438,6 +431,43 @@ export default class FezBase {
         n.setAttribute('disabled', 'true')
       }
     })
+  }
+
+  fezKeepNode(newNode) {
+    newNode.querySelectorAll('[fez-keep]').forEach(newEl => {
+      const key = newEl.getAttribute('fez-keep')
+      const oldEl = this.root.querySelector(`[fez-keep="${key}"]`)
+
+      if (oldEl) {
+        // Keep the old element in place of the new one
+        newEl.parentNode.replaceChild(oldEl, newEl)
+      } else if (key === 'default-slot') {
+        // First render - populate the slot with current root children
+        Array.from(this.root.childNodes).forEach(child => newEl.appendChild(child))
+      }
+    })
+  }
+
+  fezMemoization(newNode) {
+    // Find the single memoize element in new DOM (excluding fez components)
+    const newMemoEl = newNode.querySelector('[fez-memoize]:not(.fez)')
+    if (!newMemoEl) return
+
+    this.fezMemoStore ||= new Map()
+
+    const newMemoElKey = newMemoEl.getAttribute('fez-memoize')
+    const storedNode = this.fezMemoStore.get(newMemoElKey)
+
+    if (storedNode) {
+      Fez.log(`Memoize restore ${this.fezName}: ${newMemoElKey}`)
+      newMemoEl.parentNode.replaceChild(storedNode.cloneNode(true), newMemoEl)
+    } else {
+      const oldMemoEl = this.root.querySelector('[fez-memoize]:not(.fez)')
+      if (oldMemoEl) {
+        const oldMemoElKey = oldMemoEl.getAttribute('fez-memoize')
+        this.fezMemoStore.set(oldMemoElKey, oldMemoEl.cloneNode(true))
+      }
+    }
   }
 
   // refresh single node only

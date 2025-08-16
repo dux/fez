@@ -80,7 +80,7 @@
 </style>
 
 {{if state.stars}}
-  <div class="star-rating">
+  <div class="star-rating" fez-memoize={{ state.rating }}>
     {{for i in Array(state.stars).fill(0).map((_, i) => i)}}
       <ui-star
         fill={{ this.getStarFill(i, state.rating) }}

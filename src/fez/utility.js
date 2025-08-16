@@ -181,4 +181,17 @@ export default (Fez) => {
   Fez.isTrue = (val) => {
     return ['1', 'true', 'on'].includes(String(val).toLowerCase())
   }
+
+  // Resolve a function from a string or function reference
+  Fez.getFunction = (pointer) => {
+    if (!pointer) {
+      return ()=>{}
+    }
+    else if (typeof pointer === 'function') {
+      return pointer;
+    }
+    else if (typeof pointer === 'string') {
+      return new Function(pointer);
+    }
+  }
 }

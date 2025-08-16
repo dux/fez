@@ -144,6 +144,7 @@ This example showcases:
 * **Reactive State Management** - Built-in reactive `state` object automatically triggers re-renders on property changes
 * **DOM Morphing** - Uses [Idiomorph](https://github.com/bigskysoftware/idiomorph) for intelligent DOM updates that preserve element state and animations
 * **Preserve DOM Elements** - Use `fez-keep="unique-key"` attribute to preserve DOM elements across re-renders (useful for animations, form inputs, or stateful elements)
+* **DOM Memoization** - Use `fez-memoize="key"` attribute to memoize and restore DOM content by key (component-scoped) or `<fez-memoize key="unique-key">` component for global memoization
 * **Style Macros** - Define custom CSS shortcuts like `Fez.styleMacro('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }`
 * **Scoped & Global Styles** - Components can define both scoped CSS (`:fez { ... }`) and global styles in the same component
 
@@ -473,6 +474,10 @@ All parts are optional
     <!-- preserve state by key, not affected by state changes-->>
     <p fez-keep="key">...</p>
 
+    <!-- memoize DOM content by key (component-scoped) -->
+    <!-- stores DOM on first render, restores on subsequent renders with same key -->
+    <div fez-memoize="unique-key">expensive content</div>
+
     <!-- :attribute for evaluated attributes (converts to JSON) -->
     <div :data-config="state.config"></div>
   </div>
@@ -545,6 +550,45 @@ Fez.onError = (kind, error) => {
     // Show user-friendly error message
   }
 }
+```
+
+## Default Components
+
+Fez includes several built-in components available when you include `defaults.js`:
+
+### fez-component
+Dynamically includes a Fez component by name:
+```html
+<fez-component name="some-node" :props="fez.props"></fez-component>
+```
+
+### fez-include
+Loads remote HTML content via URL:
+```html
+<fez-include src="./demo/fez/ui-slider.html"></fez-include>
+```
+
+### fez-inline
+Creates inline components with reactive state:
+```html
+<fez-inline :state="{count: 0}">
+  <button onclick="fez.state.count += 1">+</button>
+  {{ state.count }} * {{ state.count }} = {{ state.count * state.count }}
+</fez-inline>
+```
+
+### fez-memoize
+Memoizes DOM content by key (global scope):
+```html
+<!-- First render: stores the content -->
+<fez-memoize key="unique-key">
+  <expensive-component></expensive-component>
+</fez-memoize>
+
+<!-- Subsequent renders: restores stored content instantly -->
+<fez-memoize key="unique-key">
+  <!-- Content here is ignored, stored version is used -->
+</fez-memoize>
 ```
 
 ## Global State Management

@@ -53,6 +53,41 @@ const loadDefaults = () => {
       }
     }
   })
+
+  // Memory store for memoization
+  const memoStore = new Map()
+
+  // memoize component content by key
+  // <fez-memoize key="unique-key">content to memoize</fez-memoize>
+  Fez('fez-memoize', class {
+    init(props) {
+      if (!props.key) {
+        Fez.error('fez-memoize: key prop is required')
+        return
+      }
+
+      if (memoStore.has(props.key)) {
+        // Restore from memory in init
+        const storedNode = memoStore.get(props.key)
+        Fez.log(`Memoize - key: "${props.key}" - restore`)
+        this.root.innerHTML = ''
+        this.root.appendChild(storedNode.cloneNode(true))
+      }
+    }
+
+    onMount(props) {
+      // Only store if not already in memory
+      if (!memoStore.has(props.key)) {
+        requestAnimationFrame(() => {
+          // Store current DOM content
+          const contentNode = document.createElement('div')
+          contentNode.innerHTML = this.root.innerHTML
+          Fez.log(`Memoize - key: "${props.key}" - set`)
+          memoStore.set(props.key, contentNode)
+        })
+      }
+    }
+  })
 }
 
 // Only load defaults if Fez is available
