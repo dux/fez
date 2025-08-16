@@ -1,0 +1,18 @@
+*[onclick] { cursor: pointer; }
+
+.arrow {
+  font-size: 50px;
+  text-align: center;
+  color: #aaa;
+  padding: 10px;
+}
+
+.relative { position: relative; }
+
+center, .center { text-align: center;  margin: 0 auto; }
+.center-flex { display: flex; justify-content: center;  align-items: center; }
+.center-text { text-align: center; }
+
+.pointer { cursor: pointer; }
+
+.hidden { display: none; }

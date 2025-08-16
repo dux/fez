@@ -1,6 +1,6 @@
 {
   "name": "@dinoreic/fez",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Runtime custom dom elements",
   "main": "dist/fez.js",
   "type": "module",
@@ -29,17 +29,6 @@
     "README.md",
     "LICENSE"
   ],
-  "scripts": {
-    "build": "bun build.js b",
-    "b": "bun run build",
-    "watch": "bun build.js w",
-    "server": "bun run lib/server.js",
-    "dev": "bunx concurrently --kill-others \"bun run server\" \"find src demo lib | entr -c sh -c 'bun run index && bun run b'\"",
-    "test": "bun test",
-    "prepublishOnly": "bun run build && bun run test",
-    "publish": "npm publish --access public",
-    "index": "ruby ./bin/fez-index 'demo/fez/*.fez' > demo/fez/index.json"
-  },
   "keywords": [
     "dom",
     "elements",
@@ -66,5 +55,16 @@
     "happy-dom": "^18.0.1",
     "jsdom": "^26.1.0",
     "mime": "^4.0.7"
+  },
+  "scripts": {
+    "build": "bun build.js b",
+    "b": "bun run build",
+    "watch": "bun build.js w",
+    "server": "bun run lib/server.js",
+    "dev": "bunx concurrently --kill-others \"bun run server\" \"find src demo lib | entr -cn sh -c 'bun run index && bun run b'\"",
+    "test": "bun test",
+    "prepublishOnly": "bun run build && bun run test",
+    "publish": "npm publish --access public",
+    "index": "ruby ./bin/fez-index 'demo/fez/*.fez' > demo/fez/index.json"
   }
 }

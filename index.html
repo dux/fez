@@ -11,6 +11,13 @@
   <script src="./dist/fez.js"></script>
   <script fez="./demo/system.fez"></script>
   <script fez="./demo/system-blocks.fez"></script>
+  <link rel="stylesheet" href="./demo/css/tags.css" />
+  <link rel="stylesheet" href="./demo/css/form.css" />
+  <link rel="stylesheet" href="./demo/css/flex-and-grid.css" />
+  <link rel="stylesheet" href="./demo/css/typo.css" />
+  <link rel="stylesheet" href="./demo/css/common.css" />
+  <link rel="stylesheet" href="./demo/css/app.css" />
+
   <script>
     Fez.LOG = true; // location.port > 999
   </script>
@@ -51,25 +58,26 @@
 
   <app-arrow></app-arrow>
 
-  <div class="cen" style="height: 300px;">
-    <ui-editor>
-      <xmp>
-        <html>
-          <head>
-            <title>Time</title>
-            <script script="https://dux.github.io/fez/dist/fez.js"></script>
-            <script script="/fez/ui-time.fez"></script>
-          </head>
-          <body>
-            <ui-time city="My place"></ui-time>
-          <body>
-        </html>
-      </xmp>
-    </ui-editor>
-
-    <span style="width: 200px; padding: 30px;">
+  <div class="flex even con-sm">
+    <div>
+      <ui-editor>
+        <xmp>
+          <html>
+            <head>
+              <title>Time</title>
+              <script script="https://dux.github.io/fez/dist/fez.js"></script>
+              <script script="/fez/ui-time.fez"></script>
+            </head>
+            <body>
+              <ui-time city="My place"></ui-time>
+            <body>
+          </html>
+        </xmp>
+      </ui-editor>
+    </div>
+    <div class="col-280">
       <ui-clock city="My place"></ui-clock>
-    </span>
+    </div>
   </div>
 
   <div class="con-xs" title="">
@@ -108,7 +116,7 @@
     <dl>
       <dt>Prompt</dt>
       <dd>
-        Look at <a href="./AI_GUIDE.md">AI_GUIDE.md</aa>, <a href="./README.md">README.md</a> and components in fez/*.fez, then write what do you think of the lib.
+        Look at <a href="./AI_FEZ_GUIDE.md">AI_GUIDE.md</aa>, <a href="./README.md">README.md</a> and components in fez/*.fez, then write what do you think of the lib.
         Is it bette / worse / different then react / vue / svelte. When should one chose Fez or maybe never.
       </dd>
       <dt>Response</dt>

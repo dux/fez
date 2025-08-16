@@ -12,8 +12,8 @@
     "file": {
       "base": "css-base",
       "path": "demo/fez/css-base.fez",
-      "size": 3718,
-      "modified": 1755135612,
+      "size": 2774,
+      "modified": 1755163200,
       "created": 1754990198
     }
   },
@@ -202,8 +202,17 @@
       "base": "ui-slider",
       "path": "demo/fez/ui-slider.fez",
       "size": 3332,
-      "modified": 1754922005,
+      "modified": 1755349882,
       "created": 1753818448
+    }
+  },
+  {
+    "file": {
+      "base": "ui-star",
+      "path": "demo/fez/ui-star.fez",
+      "size": 3831,
+      "modified": 1755344139,
+      "created": 1755342934
     }
   },
   {

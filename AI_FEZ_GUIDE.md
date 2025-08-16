@@ -8,6 +8,7 @@
 5. **ALWAYS** use kebab-case component names (e.g., `user-profile`)
 6. **NEVER** use `{{if}}` blocks inside HTML attributes - use ternary operators `{{ condition ? 'value' : '' }}` instead
 7. **NO QUOTES** needed around `{{ }}` expressions in attributes - write `attr={{ value }}` not `attr="{{ value }}"`
+8. **ALWAYS** use lowercase with underscores for props (e.g., `fill_color`, `read_only`, `stroke_width`)
 
 ## Component Structure
 
@@ -23,11 +24,18 @@ Omit XMP tag when writing fez components in .fez files
     Fez.head({js: 'https://cdn.example.com/script.js'})
     Fez.head({css: 'https://cdn.example.com/styles.css'})
 
-    init() {
+    init(props) {
+      // Props are passed as parameter - use props.name, NOT this.prop('name')
       // do not rewrite state, just add to it
-      this.state.count = 0
+      this.state.count = props.count || 0
+      this.state.title = props.title || 'Default'
     }
-    onMount() { ... } // DOM-ready logic
+    onMount(props) { 
+      // Props also available in onMount - use props.name
+      if (props.autoFocus) {
+        this.find('input').focus()
+      }
+    } // DOM-ready logic
     onStateChange(key, value)	// React to state changes
     onDestroy()	// Cleanup resources
     onWindowResize() // on Window resize
@@ -146,6 +154,22 @@ this.globalState.theme = "dark"  // Auto-publishes changes
 
 ## Best Practices
 
+### Props Handling
+
+* **IMPORTANT**: Props are passed as parameter to `init(props)` and `onMount(props)`
+* Use `props.name` to access props, NOT `this.prop('name')`
+* **ALWAYS** use lowercase with underscores for prop names (e.g., `fill_color`, `read_only`, `stroke_width`)
+* Example:
+  ```javascript
+  init(props) {
+    this.state.font_size = props.font_size || 24
+    this.state.background_color = props.background_color || '#000'
+    this.state.is_active = props.is_active !== undefined
+  }
+  ```
+* For dynamic prop changes, use `onPropsChange(name, value)` method
+* Check prop existence: `if (props.is_loading !== undefined)`
+
 ### State Management
 
 * Initialize ALL properties in init()
@@ -209,6 +233,7 @@ Fez.publish('event', data)
 ❌ Using {{if}} blocks inside attributes (use ternary operators instead)
 ❌ Writing flat CSS instead of nested SCSS syntax
 ❌ Not utilizing SCSS nesting capabilities
+❌ Using `this.prop('name')` instead of `props.name` in init() and onMount()
 
 ## External Libraries & Modules
 

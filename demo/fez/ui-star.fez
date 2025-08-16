@@ -1,0 +1,110 @@
+<script>
+  class {
+    setFill(percentage) {
+      this.state.fill = parseInt(percentage)
+    }
+
+    setRating(rating) {
+      this.state.rating = parseFloat(rating)
+    }
+
+
+    getStarFill(starIndex, rating) {
+      const fullStars = Math.floor(rating)
+      const partialFill = Math.round((rating - fullStars) * 100)
+
+      if (starIndex < fullStars) {
+        return 100
+      } else if (starIndex === fullStars && partialFill > 0) {
+        return partialFill
+      }
+      return 0
+    }
+
+    init(props) {
+      // If stars param is given, render multiple stars
+      if (props.stars) {
+        this.state.stars = parseInt(props.stars)
+        this.state.rating = parseFloat(props.rating || props.fill || '0')
+
+        // If rating is between 0-1, convert to star scale
+        if (this.state.rating <= 1 && this.state.rating > 0) {
+          this.state.rating = this.state.rating * this.state.stars
+        }
+
+        // Store props to pass down
+        this.state.color = props.color
+        this.state.size = props.size
+      }
+      else {
+        // Single star mode
+        this.state.fill = parseInt(props.fill || '0')
+
+        // If fill is a decimal between 0-1, convert to percentage
+        if (props.fill && props.fill.includes('.') && parseFloat(props.fill) <= 1) {
+          this.state.fill = Math.round(parseFloat(props.fill) * 100)
+        }
+
+        props.size = props.size || '24'
+        props.fill_color = props.color || '#FFD700'
+        props.unfilled_color = props.unfilled_color || '#E0E0E0'
+        props.stroke_color = props.stroke_color || Fez.darkenColor(props.fill_color)
+        props.stroke_unfilled_color = props.stroke_unfilled_color || '#CCCCCC'
+
+        // Generate unique ID for gradient
+        this.gradient_id = `star-${Math.random().toString(36).substr(2, 9)}`
+      }
+    }
+  }
+</script>
+
+<style>
+  :fez {
+    display: inline-block;
+    line-height: 0;
+
+    svg {
+      vertical-align: middle;
+    }
+
+    &.star-rating {
+      ui-star {
+        margin-right: 2px;
+      }
+
+      ui-star:last-child {
+        margin-right: 0;
+      }
+    }
+  }
+</style>
+
+{{if state.stars}}
+  <div class="star-rating">
+    {{for i in Array(state.stars).fill(0).map((_, i) => i)}}
+      <ui-star
+        fill={{ this.getStarFill(i, state.rating) }}
+        color={{ state.color }}
+        size={{ state.size }}
+      ></ui-star>
+    {{/for}}
+  </div>
+{{else}}
+  <svg xmlns="http://www.w3.org/2000/svg" width="{{ props.size }}" viewBox="0 -10 187.673 179.503" height="{{ props.size }}">
+    {{if parseInt(state.fill) > 0 && parseInt(state.fill) < 100}}
+      <defs>
+        <linearGradient id="linear-gradient-{{ gradient_id }}" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:{{ props.fill_color }};stop-opacity:1" />
+          <stop offset="{{ state.fill }}%" style="stop-color:{{ props.fill_color }};stop-opacity:1"/>
+          <stop offset="{{ state.fill }}%" style="stop-color:{{ props.unfilled_color }};stop-opacity:1" />
+        </linearGradient>
+      </defs>
+    {{/if}}
+    <path
+      stroke-width="5"
+      stroke={{ parseInt(state.fill) > 0 ? props.stroke_color : props.stroke_unfilled_color }}
+      fill={{ parseInt(state.fill) === 100 ? props.fill_color : (parseInt(state.fill) === 0 ? props.unfilled_color : 'url(#linear-gradient-' + gradient_id + ')') }}
+      d="M187.183 57.47a9.955 9.955 0 00-8.587-6.86l-54.167-4.918-21.42-50.134a9.978 9.978 0 00-9.172-6.052 9.972 9.972 0 00-9.172 6.061l-21.42 50.125L9.07 50.611a9.973 9.973 0 00-8.578 6.858 9.964 9.964 0 002.917 10.596l40.944 35.908-12.073 53.184a9.97 9.97 0 003.878 10.298A9.953 9.953 0 0042 169.357a9.937 9.937 0 005.114-1.424l46.724-27.925 46.707 27.925a9.936 9.936 0 0010.964-.478 9.979 9.979 0 003.88-10.298l-12.074-53.184 40.944-35.9a9.98 9.98 0 002.925-10.604zm0 0"
+    />
+  </svg>
+{{/if}}

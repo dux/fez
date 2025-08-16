@@ -1,7 +1,7 @@
 <script>
   GLOBAL = true
 
-  init() {
+  tailwind() {
     // Check if styles already exist to avoid duplicates
     if (document.getElementById('generated-tailwind-like')) {
       return;
@@ -50,7 +50,7 @@
 
       // Position nudge styles
       css.push(`.top-${i}px    { position: relative; top: ${i}px; }`);
-      css.push(`.bottom-${i}px { position: relative; top: -${i}px; }`);
+      css.push(`.bottom-${i}px { position: relative; top: -${i}px; }`); // fixed comma
       css.push(`.left-${i}px   { position: relative; left: ${i}px; }`);
       css.push(`.right-${i}px  { position: relative; left: -${i}px; }`);
 
@@ -74,68 +74,12 @@
     styleElement.innerHTML = css.join('\n');
     document.head.appendChild(styleElement);
   }
+
+  loadCss(name) {
+    Fez.head({css: `./demo/css/${name}.css`})
+  }
+
+  init() {
+    this.tailwind()
+  }
 </script>
-
-<style>
-  body {
-    .center { text-align: center; }
-    .wrap { white-space: wrap;}
-    .nowrap { white-space: nowrap;}
-
-.flex {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  box-sizing: border-box;
-  gap: 12px;
-
-  & > .expand {
-    flex: 1; /* Child with .expand grows to fill available space */
-    box-sizing: border-box;
-  }
-
-  & > .no-grow {
-    flex: 0 0 auto; /* Child with .no-grow does not grow beyond content */
-    box-sizing: border-box;
-  }
-
-  &.even {
-    flex-wrap: nowrap;
-    width: 100%;
-    flex-direction: row;
-
-    & > * {
-      flex: 1;
-      box-sizing: border-box;
-    }
-
-    @media (max-width: 768px) {
-      flex-direction: row;
-      flex-wrap: wrap;
-      overflow: hidden;
-
-      & > * {
-        flex: 0 0 100%;
-        width: 100%;
-        box-sizing: border-box;
-        max-width: 100%;
-      }
-    }
-  }
-
-  &.top {
-    align-items: flex-start;
-
-    & > * {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      box-sizing: border-box;
-    }
-  }
-}
-
-
-  }
-</style>
