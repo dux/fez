@@ -328,14 +328,6 @@ Fez.onError = (kind, message) => {
   console.error(`${kind}: ${message.toString()}`);
 }
 
-// define custom style macro
-// Fez.styleMacro('mobile', '@media (max-width:  768px)')
-// :mobile { ... } -> @media (max-width:  768px) { ... }
-Fez._styleMacros = {}
-Fez.styleMacro = (name, content) => {
-  Fez._styleMacros[name] = content
-}
-
 // work with tmp store
 Fez.store = {
   store: new Map(),
@@ -360,7 +352,9 @@ Fez.store = {
 
 // Load utility functions
 import addUtilities from './utility.js'
+import cssMixin from './utils/css_mixin.js'
 addUtilities(Fez)
+cssMixin(Fez)
 
 Fez.compile = compile
 Fez.state = state

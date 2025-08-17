@@ -70,10 +70,7 @@ const compileToClass = (html) => {
   }
 
   if (String(result.style).includes(':')) {
-    Object.entries(Fez._styleMacros).forEach(([key, val])=>{
-      result.style = result.style.replaceAll(`:${key} `, `${val} `)
-    })
-
+    result.style = Fez.cssMixin(result.style)
     result.style = result.style.includes(':fez') || /(?:^|\s)body\s*\{/.test(result.style) ? result.style : `:fez {\n${result.style}\n}`
     klass = klass.replace(/\}\s*$/, `\n  CSS = \`${result.style}\`\n}`)
   }

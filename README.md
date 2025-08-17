@@ -145,7 +145,7 @@ This example showcases:
 * **DOM Morphing** - Uses [Idiomorph](https://github.com/bigskysoftware/idiomorph) for intelligent DOM updates that preserve element state and animations
 * **Preserve DOM Elements** - Use `fez-keep="unique-key"` attribute to preserve DOM elements across re-renders (useful for animations, form inputs, or stateful elements)
 * **DOM Memoization** - Use `fez-memoize="key"` attribute to memoize and restore DOM content by key (component-scoped) or `<fez-memoize key="unique-key">` component for global memoization
-* **Style Macros** - Define custom CSS shortcuts like `Fez.styleMacro('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }`
+* **Style Macros** - Define custom CSS shortcuts like `Fez.cssMixin('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }`
 * **Scoped & Global Styles** - Components can define both scoped CSS (`:fez { ... }`) and global styles in the same component
 
 ### Developer Experience
@@ -315,9 +315,9 @@ Fez('foo-bar', class {
 /* Utility methods */
 
 // define custom style macro
-// Fez.styleMacro('mobile', '@media (max-width:  768px)')
+// Fez.cssMixin('mobile', '@media (max-width:  768px)')
 // :mobile { ... } -> @media (max-width:  768px) { ... }
-Fez.styleMacro(name, value)
+Fez.cssMixin(name, value)
 
 // add global scss
 Fez.globalCss(`

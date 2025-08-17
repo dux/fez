@@ -1,15 +1,17 @@
 <head>
   <script>
-    Fez.styleMacro('mobile', '@media (max-width:  1200px)')
+    // globally available
+    Fez.cssMixin('desktop', '@media (min-width:  1200px)')
   </script>
 </head>
 
 <style>
   h1 {
     transition: font-size 0.3s ease;
+    font-size: 20px;
 
-    :mobile {
-      font-size: 20px;
+    :desktop {
+      font-size: 34px;
     }
   }
 </style>
