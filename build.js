@@ -18,7 +18,7 @@ const cliRun = (command) => {
 const kind = process.argv[2]
 
 const opts = {
-  entryPoints: ['./src/fez.js', './src/log.js'],
+  entryPoints: ['./src/fez.js'],
   outdir: './dist',
   bundle: true,
   platform: 'browser',

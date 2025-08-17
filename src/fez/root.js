@@ -4,6 +4,7 @@ import Gobber from './vendor/gobber.js'
 // morph dom from one state to another
 import { Idiomorph } from './vendor/idiomorph.js'
 
+import objectDump from './utils/dump.js'
 import connect from './connect.js'
 import compile from './compile.js'
 import state from './lib/global-state.js'
@@ -363,5 +364,6 @@ addUtilities(Fez)
 
 Fez.compile = compile
 Fez.state = state
+Fez.dump = objectDump
 
 export default Fez
