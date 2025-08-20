@@ -2,6 +2,26 @@ import createTemplate from './lib/template.js'
 import FezBase from './instance.js'
 
 /**
+ * Global mutation observer for reactive attribute changes
+ * Watches for attribute changes and triggers component updates
+ */
+const observer = new MutationObserver((mutationsList, _) => {
+  for (const mutation of mutationsList) {
+    if (mutation.type === 'attributes') {
+      const fez = mutation.target.fez
+      const name = mutation.attributeName
+      const value = mutation.target.getAttribute(name)
+
+      if (fez) {
+        fez.props[name] = value
+        fez.onPropsChange(name, value)
+        // console.log(`The [${name}] attribute was modified to [${value}].`);
+      }
+    }
+  }
+});
+
+/**
  * Registers a new custom element with Fez framework
  * @param {string} name - Custom element name (must contain a dash)
  * @param {Class|Object} klass - Component class or configuration object
@@ -31,7 +51,7 @@ export default function connect(name, klass) {
     props.forEach(prop => newKlass.prototype[prop] = klassObj[prop])
 
     // Map component configuration properties
-    if (klassObj.GLOBAL) { newKlass.fezGlobal = klassObj.GLOBAL }  // Global instance reference
+    if (klassObj.GLOBAL) { newKlass.GLOBAL = klassObj.GLOBAL }     // Global instance reference
     if (klassObj.CSS) { newKlass.css = klassObj.CSS }              // Component styles
     if (klassObj.HTML) {
       newKlass.html = closeCustomTags(klassObj.HTML)               // Component template
@@ -40,13 +60,7 @@ export default function connect(name, klass) {
 
     // Auto-mount global components to body
     if (klassObj.GLOBAL) {
-      const mountGlobalComponent = () => document.body.appendChild(document.createElement(name))
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', mountGlobalComponent);
-      } else {
-        mountGlobalComponent()
-      }
+      document.body.appendChild(document.createElement(name))
     }
 
     klass = newKlass
@@ -60,9 +74,21 @@ export default function connect(name, klass) {
   // Process component template
   if (klass.html) {
     // Replace <slot /> with reactive slot containers
-    klass.html = klass.html.replace(/<slot\s*\/>|<slot\s*>\s*<\/slot>/g, () => {
-      const slotTag = klass.SLOT || 'div'
-      return `<${slotTag} class="fez-slot" fez-keep="default-slot"></${slotTag}>`
+    klass.html = klass.html.replace(/<slot(\s+[^>]*)?(\s*\/?>|\s*>\s*<\/slot>)/g, (match, attributes) => {
+      let slotTag = klass.SLOT || 'div'
+      let attrs = attributes ? attributes.trim() : ''
+
+      // Extract tag name from name attribute if present
+      const nameMatch = attrs.match(/name\s*=\s*["']([^"']+)["']/)
+      if (nameMatch) {
+        slotTag = nameMatch[1]
+        // Remove the name attribute from attrs
+        attrs = attrs.replace(/name\s*=\s*["'][^"']+["']/g, '').trim()
+      }
+
+      const baseAttrs = 'class="fez-slot" fez-keep="default-slot"'
+      const allAttrs = attrs ? `${baseAttrs} ${attrs}` : baseAttrs
+      return `<${slotTag} ${allAttrs}></${slotTag}>`
     })
 
     // Compile template function
@@ -76,49 +102,10 @@ export default function connect(name, klass) {
 
   Fez.classes[name] = klass
 
-  connectCustomElement(name, klass)
-}
-
-/**
- * Registers the custom element with the browser
- * Sets up batched rendering for optimal performance
- */
-function connectCustomElement(name, klass) {
-  const Fez = globalThis.window?.Fez || globalThis.Fez;
-
   if (!customElements.get(name)) {
     customElements.define(name, class extends HTMLElement {
       connectedCallback() {
-        // Batch all renders using microtasks for consistent timing and DOM completeness
-        if (!Fez._pendingConnections) {
-          Fez._pendingConnections = []
-          Fez._batchScheduled = false
-        }
-
-        Fez._pendingConnections.push({ name, node: this })
-
-        if (!Fez._batchScheduled) {
-          Fez._batchScheduled = true
-          Promise.resolve().then(() => {
-            const connections = Fez._pendingConnections.slice()
-            // console.error(`Batch processing ${connections.length} components:`, connections.map(c => c.name))
-            Fez._pendingConnections = []
-            Fez._batchScheduled = false
-
-            // Sort by DOM order to ensure parent nodes are processed before children
-            connections.sort((a, b) => {
-              if (a.node.contains(b.node)) return -1
-              if (b.node.contains(a.node)) return 1
-              return 0
-            })
-
-            connections.forEach(({ name, node }) => {
-              if (node.isConnected && node.parentNode) {
-                connectNode(name, node)
-              }
-            })
-          })
-        }
+        connectNode(name, this)
       }
     })
   }
@@ -172,8 +159,8 @@ function connectNode(name, node) {
 
     newNode.fez = fez
 
-    if (klass.fezGlobal && klass.fezGlobal != true) {
-      window[klass.fezGlobal] = fez
+    if (klass.GLOBAL && klass.GLOBAL != true) {
+      window[klass.GLOBAL] = fez
     }
 
     if (window.$) {
@@ -216,23 +203,3 @@ function connectNode(name, node) {
     }
   }
 }
-
-/**
- * Global mutation observer for reactive attribute changes
- * Watches for attribute changes and triggers component updates
- */
-const observer = new MutationObserver((mutationsList, _) => {
-  for (const mutation of mutationsList) {
-    if (mutation.type === 'attributes') {
-      const fez = mutation.target.fez
-      const name = mutation.attributeName
-      const value = mutation.target.getAttribute(name)
-
-      if (fez) {
-        fez.props[name] = value
-        fez.onPropsChange(name, value)
-        // console.log(`The [${name}] attribute was modified to [${value}].`);
-      }
-    }
-  }
-});

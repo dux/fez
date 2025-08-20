@@ -442,8 +442,24 @@ export default class FezBase {
         // Keep the old element in place of the new one
         newEl.parentNode.replaceChild(oldEl, newEl)
       } else if (key === 'default-slot') {
-        // First render - populate the slot with current root children
-        Array.from(this.root.childNodes).forEach(child => newEl.appendChild(child))
+        if (newEl.getAttribute('hide')) {
+          // You cant use state any more
+          this.state = null
+
+          const parent = newEl.parentNode
+
+          // Insert all root children before the slot's next sibling
+          Array.from(this.root.childNodes).forEach(child => {
+            parent.insertBefore(child, newEl)
+          })
+
+          // Remove the slot element
+          newEl.remove()
+        }
+        else {
+          // First render - populate the slot with current root children
+          Array.from(this.root.childNodes).forEach(child => newEl.appendChild(child))
+        }
       }
     })
   }

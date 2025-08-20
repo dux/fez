@@ -1,4 +1,6 @@
 <script>
+  // claude generated
+
   class {
     setFill(percentage) {
       this.state.fill = parseInt(percentage)

@@ -121,6 +121,110 @@ export default (Fez) => {
     return element;
   }
 
+  // Fetch wrapper with automatic caching and data handling
+  // Usage:
+  //   Fez.fetch(url) - GET request (default)
+  //   Fez.fetch(url, callback) - GET with callback
+  //   Fez.fetch(url, data) - GET with query params (?foo=bar&baz=qux)
+  //   Fez.fetch(url, data, callback) - GET with query params and callback
+  //   Fez.fetch('POST', url, data) - POST with FormData body (multipart/form-data)
+  //   Fez.fetch('POST', url, data, callback) - POST with FormData and callback
+  // Data object is automatically converted:
+  //   - GET: appended as URL query parameters
+  //   - POST: sent as FormData (multipart/form-data) without custom headers
+  Fez.fetch = function(...args) {
+    // Initialize cache if not exists
+    Fez._fetchCache ||= {};
+
+    let method = 'GET';
+    let url;
+    let callback;
+
+    // Check if first arg is HTTP method (uppercase letters)
+    if (typeof args[0] === 'string' && /^[A-Z]+$/.test(args[0])) {
+      method = args.shift();
+    }
+
+    // URL is required
+    url = args.shift();
+
+    // Check for data/options object
+    let opts = {};
+    let data = null;
+    if (typeof args[0] === 'object') {
+      data = args.shift();
+    }
+
+    // Check for callback function
+    if (typeof args[0] === 'function') {
+      callback = args.shift();
+    }
+
+    // Handle data based on method
+    if (data) {
+      if (method === 'GET') {
+        // For GET, append data as query parameters
+        const params = new URLSearchParams(data);
+        url += (url.includes('?') ? '&' : '?') + params.toString();
+      } else if (method === 'POST') {
+        // For POST, convert to FormData
+        const formData = new FormData();
+        for (const [key, value] of Object.entries(data)) {
+          formData.append(key, value);
+        }
+        opts.body = formData;
+      }
+    }
+
+    // Set method
+    opts.method = method;
+
+    // Create cache key from method, url, and stringified opts
+    const cacheKey = `${method}:${url}:${JSON.stringify(opts)}`;
+
+    // Check cache first
+    if (Fez._fetchCache[cacheKey]) {
+      const cachedData = Fez._fetchCache[cacheKey];
+      Fez.log(`fetch cache hit: ${method} ${url}`);
+      if (callback) {
+        callback(cachedData);
+        return;
+      }
+      return Promise.resolve(cachedData);
+    }
+
+    // Log live fetch
+    Fez.log(`fetch live: ${method} ${url}`);
+
+    // Helper to process and cache response
+    const processResponse = (response) => {
+      if (response.headers.get('content-type')?.includes('application/json')) {
+        return response.json();
+      }
+      return response.text();
+    };
+
+    // If callback provided, execute and handle
+    if (callback) {
+      fetch(url, opts)
+        .then(processResponse)
+        .then(data => {
+          Fez._fetchCache[cacheKey] = data;
+          callback(data);
+        })
+        .catch(error => Fez.onError('fetch', error));
+      return;
+    }
+
+    // Return promise with automatic JSON parsing
+    return fetch(url, opts)
+      .then(processResponse)
+      .then(data => {
+        Fez._fetchCache[cacheKey] = data;
+        return data;
+      });
+  }
+
   Fez.darkenColor = (color, percent = 20) => {
     // Convert hex to RGB
     const num = parseInt(color.replace("#", ""), 16)
@@ -193,5 +297,67 @@ export default (Fez) => {
     else if (typeof pointer === 'string') {
       return new Function(pointer);
     }
+  }
+
+  // Execute a function when DOM is ready or immediately if already loaded
+  Fez.onReady = (callback) => {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', callback)
+    } else {
+      callback()
+    }
+  }
+
+  // get unique id from string
+  Fez.fnv1 = (str) => {
+    var FNV_OFFSET_BASIS, FNV_PRIME, hash, i, j, ref;
+    FNV_OFFSET_BASIS = 2166136261;
+    FNV_PRIME = 16777619;
+    hash = FNV_OFFSET_BASIS;
+    for (i = j = 0, ref = str.length - 1; (0 <= ref ? j <= ref : j >= ref); i = 0 <= ref ? ++j : --j) {
+      hash ^= str.charCodeAt(i);
+      hash *= FNV_PRIME;
+    }
+    return hash.toString(36).replaceAll('-', '');
+  }
+
+  Fez.tag = (tag, opts = {}, html = '') => {
+    const json = encodeURIComponent(JSON.stringify(opts))
+    return `<${tag} data-props="${json}">${html}</${tag}>`
+    // const json = JSON.stringify(opts, null, 2)
+    // const data = `<script type="text/template">${json}</script><${tag} data-json-template="true">${html}</${tag}>`
+    // return data
+  }
+
+  // execute function until it returns true
+  Fez.untilTrue = (func, pingRate) => {
+    pingRate ||= 200
+
+    if (!func()) {
+      setTimeout(()=>{
+        Fez.untilTrue(func, pingRate)
+      } ,pingRate)
+    }
+  }
+
+  // throttle function calls
+  Fez.throttle = (func, delay = 200) => {
+    let lastRun = 0;
+    let timeout;
+
+    return function(...args) {
+      const now = Date.now();
+
+      if (now - lastRun >= delay) {
+        func.apply(this, args);
+        lastRun = now;
+      } else {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          func.apply(this, args);
+          lastRun = Date.now();
+        }, delay - (now - lastRun));
+      }
+    };
   }
 }

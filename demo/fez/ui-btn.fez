@@ -2,29 +2,25 @@
   NAME = 'button'
 
   toggleDisabled(what) {
-    this.isDisabled( what ?? !this.state.disabled )
+    this.isDisabled( what ?? !this.attr('disabled') )
   }
 
   toggleLoading(what) {
-    this.isLoading( what ?? !this.state.loading )
+    this.isLoading( what ?? !this.attr('loading') )
   }
 
   isDisabled(disabled) {
     if (disabled) {
-      this.state.disabled = true
       this.root.setAttribute('disabled', 'true')
     } else {
-      this.state.disabled = false
       this.root.removeAttribute('disabled')
     }
   }
 
   isLoading(active) {
     if (active) {
-      this.state.loading = true
       this.root.setAttribute('loading', 'true')
     } else {
-      this.state.loading = false
       this.root.removeAttribute('loading')
     }
   }
@@ -69,10 +65,12 @@
 
       .spinner-wrapper {
         display: inline-block;
+        line-height: 100%;
         width: 0;
         overflow: hidden;
         vertical-align: middle;
         transition: all 0.2s ease;
+        margin-top: -3px;
 
         i {
           opacity: 0;
@@ -238,7 +236,7 @@
 </style>
 
 <span class="spinner-wrapper">
-  <i class="fas fa-spinner fa-spin""></i>
+  <i class="fas fa-spinner fa-spin"></i>
 </span>
 
-<slot />
+<slot hide="true" />

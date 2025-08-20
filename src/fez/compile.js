@@ -102,8 +102,9 @@ function compile_bulk(data) {
       if (fezName && !fezName.includes('-')) {
         console.error(`Fez: Invalid custom element name "${fezName}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)
       }
-      // Compile the node directly
-      return compile(fezName, node.innerHTML)
+      // Compile the node directly when DOM is ready
+      Fez.onReady(() => compile(fezName, node.innerHTML))
+      return
     }
   }
   else {
@@ -192,7 +193,7 @@ function compile(tagName, html) {
   if (klass.includes('import ')) {
     Fez.head({script: klass})
 
-    // best we can do it inform that node did not compile, so we assume there is arrow
+    // best we can do it inform that node did not compile, so we assume there is an error
     setTimeout(()=>{
       if (!Fez.classes[tagName]) {
         Fez.error(`Template "${tagName}" possible compile error. (can be a false positive, it imports are not loaded)`)
