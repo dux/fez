@@ -622,7 +622,18 @@ export default class FezBase {
     methods.forEach(method => this[method] = this[method].bind(this))
   }
 
-  fezHide() {
+  // dissolve into parent, if you want to promote first child or given node with this.root
+  dissolve(inNode) {
+    if (inNode) {
+      inNode.classList.add('fez')
+      inNode.classList.add(`fez-${this.fezName}`)
+      inNode.fez = this
+      if (this.attr('id')) inNode.setAttribute('id', this.attr('id'))
+
+      this.root.innerHTML = ''
+      this.root.appendChild(inNode)
+    }
+
     const node = this.root
     const nodes = this.childNodes()
     const parent = this.root.parentNode
@@ -630,7 +641,12 @@ export default class FezBase {
     nodes.reverse().forEach(el => parent.insertBefore(el, node.nextSibling))
 
     this.root.remove()
-    this.root = parent
+    this.root = undefined
+
+    if (inNode) {
+      this.root = inNode
+    }
+
     return nodes
   }
 

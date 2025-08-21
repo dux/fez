@@ -21,7 +21,11 @@
 </xmp>
 
 <xmp fez="app-arrow">
-  <h1 class="jumbo" style="margin: 70px auto;">&darr;</h1>
+  <h1 class="jumbo" style="
+    margin: 70px auto; transform:
+    rotate([[ parseInt(props.rotate || 0) ]]deg);
+    color: [[ props.color || '#aaa' ]];
+  ">&darr;</h1>
 
   <!-- you can use {{ or [[ for template blocks -->
   [[if props.title]]

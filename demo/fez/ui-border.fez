@@ -1,6 +1,6 @@
 <script>
   onMount(props) {
-    const childNodes = this.fezHide()
+    const childNodes = this.dissolve()
 
     childNodes.forEach(node => {
       node.style = props.style

@@ -66,8 +66,8 @@
     "file": {
       "base": "ui-border",
       "path": "demo/fez/ui-border.fez",
-      "size": 152,
-      "modified": 1755695586,
+      "size": 153,
+      "modified": 1755816981,
       "created": 1755695586
     }
   },
@@ -159,6 +159,15 @@
       "size": 3434,
       "modified": 1753818448,
       "created": 1753818448
+    }
+  },
+  {
+    "file": {
+      "base": "ui-ficon",
+      "path": "demo/fez/ui-ficon.fez",
+      "size": 14046,
+      "modified": 1755817107,
+      "created": 1755788367
     }
   },
   {

@@ -301,8 +301,8 @@ Fez('foo-bar', class {
   // get/set attributes on root node
   this.attr(name, value)
 
-  // hide the custom element wrapper and move children to parent
-  this.fezHide()
+  // dissolves child nodes or given node into parent
+  this.dissolve()
 
   // automatic form submission handling if there is FORM as parent or child node
   this.onSubmit(formData) { ... }

@@ -1,0 +1,63 @@
+<div class="info">
+  <ul>
+    <li>File extension icon component with <code>ext</code> parameter</li>
+    <li>Accepts extension, full filename, or URL - automatically extracts extension</li>
+    <li>Shows Phosphor duotone SVG icons (36x36) for common file types</li>
+    <li>Default colors by file type: images (blue), videos (purple), PDF (red), docs (blue), Excel (green), etc.</li>
+    <li>Default titles for each file type (e.g., "PDF Document", "JPEG Image", "Excel Spreadsheet")</li>
+    <li>Override defaults with <code>color</code> and <code>title</code> props</li>
+    <li>Falls back to text-based icon with uppercase extension for unknown types</li>
+  </ul>
+</div>
+
+<h4>Common File Types (hover to see default titles)</h4>
+<div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+  <ui-ficon ext="pdf" id="pdf-icon"></ui-ficon>
+  <ui-ficon ext="txt"></ui-ficon>
+  <ui-ficon ext="html"></ui-ficon>
+  <ui-ficon ext="js"></ui-ficon>
+  <ui-ficon ext="ts"></ui-ficon>
+  <ui-ficon ext="jpg"></ui-ficon>
+  <ui-ficon ext="png"></ui-ficon>
+  <ui-ficon ext="doc"></ui-ficon>
+  <ui-ficon ext="xls"></ui-ficon>
+  <ui-ficon ext="ppt"></ui-ficon>
+  <ui-ficon ext="dwg"></ui-ficon>
+  <ui-ficon ext="mp4"></ui-ficon>
+  <ui-ficon ext="mp3"></ui-ficon>
+  <ui-ficon ext="ttf"></ui-ficon>
+  <ui-ficon ext="log"></ui-ficon>
+  <ui-ficon ext="md"></ui-ficon>
+</div>
+
+<h4>From Filenames</h4>
+<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+  <div style="display: flex; gap: 5px; align-items: center;"><ui-ficon ext="document.pdf"></ui-ficon> document.pdf</div>
+  <div style="display: flex; gap: 5px; align-items: center;"><ui-ficon ext="photo.jpg"></ui-ficon> photo.jpg</div>
+  <div style="display: flex; gap: 5px; align-items: center;"><ui-ficon ext="script.js"></ui-ficon> script.js</div>
+  <div style="display: flex; gap: 5px; align-items: center;"><ui-ficon ext="data.xlsx"></ui-ficon> data.xlsx</div>
+  <div style="display: flex; gap: 5px; align-items: center;"><ui-ficon ext="README.md"></ui-ficon> README.md</div>
+  <div style="display: flex; gap: 5px; align-items: center;"><ui-ficon ext="app.log"></ui-ficon> app.log</div>
+  <div style="display: flex; gap: 5px; align-items: center;"><ui-ficon ext="presentation.pptx"></ui-ficon> presentation.pptx</div>
+</div>
+
+<h4>From URLs</h4>
+<div style="font-size: 20px; display: flex; gap: 10px; align-items: center;">
+  <ui-ficon ext="https://example.com/file.pdf?v=123"></ui-ficon> https://example.com/file.pdf?v=123
+  <ui-ficon ext="http://site.com/image.png"></ui-ficon> http://site.com/image.png
+</div>
+
+<h4>Unknown Extensions (Text Fallback)</h4>
+<div style="font-size: 24px; display: flex; gap: 10px;">
+  <ui-ficon ext="xyz" title="Unknown XYZ"></ui-ficon>
+  <ui-ficon ext="abc" title="Unknown ABC"></ui-ficon>
+  <ui-ficon ext="custom" title="Custom Type"></ui-ficon>
+</div>
+
+<h4>Custom Colors (override defaults)</h4>
+<div style="display: flex; gap: 20px; align-items: center;">
+  <ui-ficon ext="pdf" color="#000000" title="Black PDF"></ui-ficon>
+  <ui-ficon ext="html" color="#FF6B6B" title="Custom Red HTML"></ui-ficon>
+  <ui-ficon ext="mp3" color="#4ECDC4" title="Custom Teal MP3"></ui-ficon>
+  <ui-ficon ext="xls" color="#95E1D3" title="Custom Green Excel"></ui-ficon>
+</div>
