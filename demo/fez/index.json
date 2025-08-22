@@ -145,6 +145,15 @@
   },
   {
     "file": {
+      "base": "ui-emoji",
+      "path": "demo/fez/ui-emoji.fez",
+      "size": 8560,
+      "modified": 1755862028,
+      "created": 1755856743
+    }
+  },
+  {
+    "file": {
       "base": "ui-fa",
       "path": "demo/fez/ui-fa.fez",
       "size": 1375,

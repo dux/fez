@@ -106,7 +106,9 @@ Fez.globalCss = (cssClass, opts = {}) => {
     cssClass = Fez.cssClass(text)
   }
 
-  document.body.parentElement.classList.add(cssClass)
+  Fez.onReady(() => {
+    document.body.parentElement.classList.add(cssClass)
+  })
 
   return cssClass
 }

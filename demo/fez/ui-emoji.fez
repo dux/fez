@@ -1,0 +1,369 @@
+<script>
+  const emojis = {
+    "hands": [
+      ["👋", "wave"],
+      ["✋", "hand"],
+      ["👌", "ok"],
+      ["✌️", "peace"],
+      ["🤞", "fingers crossed"],
+      ["🤘", "rock on"],
+      ["🤙", "call me"],
+      ["👈", "point left"],
+      ["👉", "point right"],
+      ["👆", "point up"],
+      ["👇", "point down"],
+      ["👍", "thumbs up"],
+      ["👎", "thumbs down"],
+      ["👊", "fist"],
+      ["👏", "clap"],
+      ["🙌", "praise"],
+      ["🤝", "handshake"],
+      ["🙏", "pray"],
+      ["✍️", "write"],
+      ["💪", "muscle"],
+      ["👂", "ear"],
+      ["👃", "nose"],
+      ["👀", "eyes"],
+      ["👅", "tongue"],
+      ["👄", "lips"],
+      ["💋", "kiss"]
+    ],
+    "people": [
+      ["😀", "grin"],
+      ["😂", "laugh"],
+      ["🙂", "smile"],
+      ["😉", "wink"],
+      ["😊", "happy"],
+      ["🥰", "love"],
+      ["😍", "heart eyes"],
+      ["😘", "kiss"],
+      ["😋", "yum"],
+      ["😛", "tongue"],
+      ["🤪", "crazy"],
+      ["🤔", "think"],
+      ["😐", "neutral"],
+      ["🙄", "eye roll"],
+      ["😔", "sad"],
+      ["😴", "sleep"],
+      ["😷", "mask"],
+      ["🤢", "sick"],
+      ["🥵", "hot"],
+      ["😵", "dizzy"],
+      ["🥳", "party"],
+      ["😎", "cool"],
+      ["🤓", "nerd"],
+      ["😕", "worried"],
+      ["😮", "surprised"],
+      ["🥺", "pleading"],
+      ["😨", "scared"],
+      ["😢", "cry"],
+      ["😭", "sob"],
+      ["😱", "scream"],
+      ["😤", "angry"],
+      ["😡", "mad"],
+      ["🤬", "swear"],
+      ["😈", "devil"],
+      ["💀", "skull"],
+      ["💩", "poop"],
+      ["🤡", "clown"],
+      ["👻", "ghost"],
+      ["👽", "alien"],
+      ["🤖", "robot"]
+    ],
+    "nature": [
+      ["🐶", "dog"],
+      ["🐱", "cat"],
+      ["🐭", "mouse"],
+      ["🐰", "rabbit"],
+      ["🦊", "fox"],
+      ["🐻", "bear"],
+      ["🐼", "panda"],
+      ["🐵", "monkey"],
+      ["🐸", "frog"],
+      ["🐯", "tiger"],
+      ["🦁", "lion"],
+      ["🐮", "cow"],
+      ["🐷", "pig"],
+      ["🐴", "horse"],
+      ["🦄", "unicorn"],
+      ["🐝", "bee"],
+      ["🦋", "butterfly"],
+      ["🐌", "snail"],
+      ["🐞", "ladybug"]
+    ],
+    "travel": [
+      ["🚗", "car"],
+      ["🚌", "bus"],
+      ["🏎️", "race car"],
+      ["🚓", "police"],
+      ["🚑", "ambulance"],
+      ["🚒", "fire truck"],
+      ["🚚", "truck"],
+      ["🚜", "tractor"],
+      ["🚲", "bike"],
+      ["🏍️", "motorcycle"],
+      ["🚨", "siren"],
+      ["🚁", "helicopter"],
+      ["✈️", "plane"],
+      ["🚀", "rocket"],
+      ["🛸", "ufo"]
+    ],
+    "symbols": [
+      ["❤️", "heart"],
+      ["💛", "yellow heart"],
+      ["💚", "green heart"],
+      ["💙", "blue heart"],
+      ["💜", "purple heart"],
+      ["🖤", "black heart"],
+      ["💔", "broken heart"],
+      ["💕", "two hearts"],
+      ["💗", "growing heart"],
+      ["💖", "sparkling heart"],
+      ["☮️", "peace"],
+      ["✝️", "cross"],
+      ["☪️", "crescent"],
+      ["✡️", "star of david"],
+      ["☯️", "yin yang"]
+    ]
+  }
+
+  class {
+    init(props) {
+      this.props = props || {}
+      this.state.selectedEmoji = props.value || '😀'
+      this.state.isOpen = false
+      this.state.searchTerm = ''
+      this.state.activeTab = 'hands'
+    }
+
+    getTabIcon(tab) {
+      const tabEmojis = emojis[tab]
+      return tabEmojis && tabEmojis.length > 0 ? tabEmojis[0][0] : '❓'
+    }
+
+    getFilteredEmojis() {
+      if (!this.state.searchTerm) {
+        // No search - show current tab
+        return emojis[this.state.activeTab] || []
+      }
+
+      // Search across all tabs
+      const searchLower = this.state.searchTerm.toLowerCase()
+      const allEmojis = []
+
+      Object.values(emojis).forEach(tabEmojis => {
+        tabEmojis.forEach(emojiData => {
+          const [emoji, title] = emojiData
+          if (title.toLowerCase().includes(searchLower)) {
+            allEmojis.push(emojiData)
+          }
+        })
+      })
+
+      return allEmojis
+    }
+
+    togglePicker() {
+      this.state.isOpen = !this.state.isOpen
+    }
+
+    getEmojiTabs() {
+      return Object.keys(emojis)
+    }
+
+
+    setTab(tab) {
+      this.state.activeTab = tab
+      this.state.searchTerm = ''
+    }
+
+    selectEmoji(emojiData) {
+      const [emoji, title] = emojiData
+      this.state.selectedEmoji = emoji
+      this.state.isOpen = false
+
+      Fez.publish('emoji-selected', {emoji, title, component: this})
+      Fez.getFunction(this.props.onselect)(emoji)
+    }
+  }
+</script>
+
+<style>
+  :fez {
+    position: relative;
+    display: inline-block;
+
+    .emoji-trigger {
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 24px;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #e8e8e8;
+        border-color: #ccc;
+      }
+
+      .selected-emoji {
+        display: inline-block;
+        line-height: 1;
+      }
+    }
+
+    .emoji-picker-dialog {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: 8px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      width: 320px;
+      max-height: 400px;
+      display: flex;
+      flex-direction: column;
+      z-index: 1000;
+
+      &:focus {
+        outline: none;
+      }
+
+      .emoji-search {
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+
+        input {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 14px;
+          outline: none;
+          box-sizing: border-box;
+
+          &:focus {
+            border-color: #4CAF50;
+          }
+        }
+      }
+
+      .emoji-tabs {
+        display: flex;
+        border-bottom: 1px solid #eee;
+        padding: 0 8px;
+
+        .emoji-tab {
+          flex: 1;
+          padding: 8px;
+          background: none;
+          border: none;
+          font-size: 18px;
+          cursor: pointer;
+          opacity: 0.6;
+          transition: opacity 0.2s;
+          border-bottom: 2px solid transparent;
+
+          &:hover {
+            opacity: 1;
+          }
+
+          &.active {
+            opacity: 1;
+            border-bottom-color: #4CAF50;
+          }
+        }
+      }
+
+      .emoji-grid {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 8px;
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+
+        .emoji-item {
+          background: none;
+          border: none;
+          padding: 8px;
+          font-size: 24px;
+          cursor: pointer;
+          border-radius: 4px;
+          transition: all 0.1s;
+          line-height: 1;
+
+          &:hover {
+            background: #f0f0f0;
+            transform: scale(1.2);
+          }
+        }
+      }
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 999;
+    }
+
+    @media (max-width: 400px) {
+      .emoji-picker-dialog {
+        width: 280px;
+
+        .emoji-grid {
+          grid-template-columns: repeat(6, 1fr);
+        }
+      }
+    }
+  }
+</style>
+
+<div class="emoji-picker-wrapper">
+  <span class="emoji-trigger" onclick="fez.togglePicker()">
+    <span class="selected-emoji">{{ state.selectedEmoji }}</span>
+  </span>
+  {{if state.isOpen}}
+    <div class="overlay" onclick="fez.state.isOpen = false"></div>
+    <div class="emoji-picker-dialog" tabindex="-1">
+      <div class="emoji-search">
+        <input
+          type="text"
+          placeholder="Search emojis..."
+          fez-bind="state.searchTerm"
+          fez-use="this.focus()"
+        />
+      </div>
+      {{if !state.searchTerm}}
+        <div class="emoji-tabs">
+          {{for tab in fez.getEmojiTabs()}}
+            <span
+              class={{ state.activeTab === tab ? 'emoji-tab active' : 'emoji-tab' }}
+              onclick="fez.setTab('{{ tab }}')"
+            >
+              {{ fez.getTabIcon(tab) }}
+            </span>
+          {{/for}}
+        </div>
+      {{/if}}
+      <div class="emoji-grid">
+        {{for emojiData in fez.getFilteredEmojis()}}
+          <span
+            class="emoji-item"
+            onclick="fez.selectEmoji({{ JSON.stringify(emojiData) }})"
+            title="{{ emojiData[1] }}"
+          >
+            {{ emojiData[0] }}
+          </span>
+        {{/for}}
+      </div>
+    </div>
+  {{/if}}
+</div>

@@ -390,11 +390,24 @@ export default class FezBase {
 
     // <button fez-use="animate" -> this.animate(node]
     fetchAttr('fez-use', (value, n) => {
-      const target = this[value]
-      if (typeof target == 'function') {
-        target(n)
-      } else {
-        console.error(`Fez error: "${value}" is not a function in ${this.fezName}`)
+      if (value.includes('=>')) {
+        // fez-use="el => el.focus()"
+        Fez.getFunction(value)(n)
+      }
+      else {
+        if (value.includes('.')) {
+          // fez-use="this.focus()"
+          Fez.getFunction(value).bind(n)()
+        }
+        else {
+          // fez-use="animate"
+          const target = this[value]
+          if (typeof target == 'function') {
+            target(n)
+          } else {
+            console.error(`Fez error: "${value}" is not a function in ${this.fezName}`)
+          }
+        }
       }
     })
 
@@ -406,7 +419,7 @@ export default class FezBase {
       if (lastClass) {
         setTimeout(()=>{
           n.classList.add(lastClass)
-        }, 300)
+        }, 1)
       }
     })
 

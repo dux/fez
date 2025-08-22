@@ -46,7 +46,7 @@ export default (Fez) => {
         script.type = 'module';
         script.textContent = config.script;
         document.head.appendChild(script);
-        setTimeout(()=>script.remove(), 100)
+        requestAnimationFrame(()=>script.remove())
       } else {
         try {
           new Function(config.script)();
@@ -295,7 +295,20 @@ export default (Fez) => {
       return pointer;
     }
     else if (typeof pointer === 'string') {
-      return new Function(pointer);
+      // Check if it's a function expression (arrow function or function keyword)
+      // Arrow function: (args) => or args =>
+      const arrowFuncPattern = /^\s*\(?\s*\w+(\s*,\s*\w+)*\s*\)?\s*=>/;
+      const functionPattern = /^\s*function\s*\(/;
+
+      if (arrowFuncPattern.test(pointer) || functionPattern.test(pointer)) {
+        return new Function('return ' + pointer)();
+      } else if (pointer.includes('.') && !pointer.includes('(')) {
+        // It's a property access like "this.focus" - return a function that calls it
+        return new Function(`return function() { return ${pointer}(); }`);
+      } else {
+        // It's a function body
+        return new Function(pointer);
+      }
     }
   }
 

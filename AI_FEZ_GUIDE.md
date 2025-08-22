@@ -30,7 +30,7 @@ Omit XMP tag when writing fez components in .fez files
       this.state.count = props.count || 0
       this.state.title = props.title || 'Default'
     }
-    onMount(props) { 
+    onMount(props) {
       // Props also available in onMount - use props.name
       if (props.autoFocus) {
         this.find('input').focus()
@@ -139,10 +139,18 @@ this.globalState.theme = "dark"  // Auto-publishes changes
 ### Special Attributes
 
 ```html
-<input fez-bind="state.username">       <!-- Two-way binding -->
+<input fez-bind="state.username">      <!-- Two-way binding -->
 <div fez-this="myElement">             <!-- Element reference -->
-<canvas fez-use="initCanvas">          <!-- DOM hook -->
-<child :data="state.object">           <!-- Non-string data -->
+<input fez-use="el => el.foucs()">     <!-- DOM hook -->
+
+<!-- IMPORTANT: Use colon prefix for evaluated attributes (functions, objects, etc.) -->
+<ui-emoji :onselect="handleEmojiSelect">   <!-- Pass function reference -->
+<my-component :config="{foo: 'bar'}">      <!-- Pass object literal -->
+<user-card :user="state.currentUser">      <!-- Pass state object -->
+<toggle :checked="state.isActive">         <!-- Pass boolean -->
+
+<!-- Without colon, values are treated as strings -->
+<my-component title="Hello World">         <!-- String value (no colon needed) -->
 ```
 
 ### Event Handling
@@ -159,12 +167,24 @@ this.globalState.theme = "dark"  // Auto-publishes changes
 * **IMPORTANT**: Props are passed as parameter to `init(props)` and `onMount(props)`
 * Use `props.name` to access props, NOT `this.prop('name')`
 * **ALWAYS** use lowercase with underscores for prop names (e.g., `fill_color`, `read_only`, `stroke_width`)
+* **Use colon prefix (`:`) for evaluated attributes** - functions, objects, booleans:
+  ```html
+  <!-- Passing evaluated values (functions, objects, etc.) -->
+  <my-component :onclick="handleClick" :config="{theme: 'dark'}" :is_active="true">
+
+  <!-- Passing string values (no colon needed) -->
+  <my-component title="Hello" class_name="primary">
+  ```
 * Example:
   ```javascript
   init(props) {
     this.state.font_size = props.font_size || 24
     this.state.background_color = props.background_color || '#000'
     this.state.is_active = props.is_active !== undefined
+    // Function props are already resolved
+    if (props.onselect) {
+      this.onSelectHandler = props.onselect
+    }
   }
   ```
 * For dynamic prop changes, use `onPropsChange(name, value)` method

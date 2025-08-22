@@ -54,8 +54,9 @@ const LOG = (() => {
   const logs = [];
   const logTypes = []; // Track the original type of each log
   let currentIndex = 0;
+  let renderContent = null; // Will hold the render function
 
-  // Add ESC key handler
+  // Add ESC key handler and arrow key navigation
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       e.preventDefault();
@@ -72,6 +73,28 @@ const LOG = (() => {
         button.remove();
         localStorage.setItem('_LOG_CLOSED', 'false');
         showLogDialog();
+      }
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      const dialog = document.getElementById('dump-dialog');
+      if (dialog && logs.length > 0) {
+        e.preventDefault();
+        if (e.key === 'ArrowLeft' && currentIndex > 0) {
+          currentIndex--;
+          localStorage.setItem('_LOG_INDEX', currentIndex);
+          renderContent();
+        } else if (e.key === 'ArrowRight' && currentIndex < logs.length - 1) {
+          currentIndex++;
+          localStorage.setItem('_LOG_INDEX', currentIndex);
+          renderContent();
+        } else if (e.key === 'ArrowUp' && currentIndex > 0) {
+          currentIndex = Math.max(0, currentIndex - 5);
+          localStorage.setItem('_LOG_INDEX', currentIndex);
+          renderContent();
+        } else if (e.key === 'ArrowDown' && currentIndex < logs.length - 1) {
+          currentIndex = Math.min(logs.length - 1, currentIndex + 5);
+          localStorage.setItem('_LOG_INDEX', currentIndex);
+          renderContent();
+        }
       }
     }
   });
@@ -117,7 +140,7 @@ const LOG = (() => {
       currentIndex = logs.length - 1;
     }
 
-    const renderContent = () => {
+    renderContent = () => {
       const buttons = logs.map((_, i) => {
         let bgColor = '#f0f0f0'; // default
         if (i !== currentIndex) {

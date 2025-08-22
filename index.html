@@ -1,276 +1,256 @@
 <!-- edit in demo/tpl/index.erb.html -->
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fez - JavaScript DOM component framework.</title>
-  <link rel="icon" href="./demo/fez.png">
-  <script src="./dist/fez.js"></script>
-  <script fez="./demo/system.fez"></script>
-  <script fez="./demo/system-blocks.fez"></script>
-  <link rel="stylesheet" href="./demo/css/full.css" />
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fez - JavaScript DOM component framework.</title>
+    <link rel="icon" href="./demo/fez.png">
+    <script src="./dist/fez.js"></script>
+    <script fez="./demo/system.fez"></script>
+    <script fez="./demo/system-blocks.fez"></script>
+    <link rel="stylesheet" href="./demo/css/full.css" />
 
-  <script>
-    Fez.LOG = true; // location.port > 999
-  </script>
-</head>
-<body>
-  <app-header></app-header>
-  <app-select-block></app-select-block>
+    <script>
+      Fez.LOG = true; // location.port > 999
+    </script>
+  </head>
+  <body>
+    <app-header></app-header>
+    <app-select-block></app-select-block>
 
-  <div class="center" style="max-width: 1100px; ">
-    <div>
-      <center>
-        <img src="./demo/fez.png" style="width: 200px; position: relative; top: 85px;" />
-      </center>
+    <div class="center" style="max-width: 1100px; ">
+      <div>
+        <center>
+          <img src="./demo/fez.png" style="width: 200px; position: relative; top: 85px;" />
+        </center>
 
-      <center style="border: 3px solid #ccc; padding: 80px 40px 60px 40px; background-color: #fff; background: #fff; border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 18px; box-shadow: 0 24px 38px rgba(0, 0, 0, 0.08), 0 9px 46px rgba(0, 0, 0, 0.06), 0 11px 15px rgba(0, 0, 0, 0.05);">
-        <h1 class="jumbo" style="margin: 0px auto;">
-          Fez &rarr; reactive components
-        </h1>
+        <center style="border: 3px solid #ccc; padding: 80px 40px 60px 40px; background-color: #fff; background: #fff; border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 18px; box-shadow: 0 24px 38px rgba(0, 0, 0, 0.08), 0 9px 46px rgba(0, 0, 0, 0.06), 0 11px 15px rgba(0, 0, 0, 0.05);">
+          <h1 class="jumbo" style="margin: 0px auto;">
+            Fez &rarr; reactive components
+          </h1>
 
-        <h1 class="center" style="margin: 20px 0 40px 0; ">
-          Directly in HTML with zero build steps
-        </h1>
+          <h1 class="center" style="margin: 20px 0 40px 0; ">
+            Directly in HTML with zero build steps
+          </h1>
 
-        <p class="center">
-          <a href="#examples">examples</a>
-          &sdot;
-          <a target="playground" href="./dist/fez.js">lib</a>
-          &sdot;
-          <a target="repo" href="https://github.com/dux/fez">GitHub repo</a>
-          &sdot;
-          <a target="ai_guide" href="./AI_FEZ_GUIDE.md">AI Guide</a>
-          &sdot;
-          <a target="ai_bmark" href="./benchmark.html">Benchmark</a>
-        </p>
-      </center>
+          <p class="center">
+            <a href="#examples">examples</a>
+            &sdot;
+            <a target="playground" href="./dist/fez.js">lib</a>
+            &sdot;
+            <a target="repo" href="https://github.com/dux/fez">GitHub repo / DOCS</a>
+            &sdot;
+            <a target="ai_guide" href="./AI_FEZ_GUIDE.md">AI Guide</a>
+            &sdot;
+            <a target="ai_bmark" href="./benchmark.html">Benchmark</a>
+          </p>
+        </center>
+      </div>
     </div>
-  </div>
 
-  <app-arrow></app-arrow>
-
-  <div class="flex even con-sm">
-    <div>
-      <ui-editor>
-        <xmp>
-          <html>
-            <head>
-              <title>Time</title>
-              <script script="https://dux.github.io/fez/dist/fez.js"></script>
-              <script script="/fez/ui-time.fez"></script>
-            </head>
-            <body>
-              <ui-time city="My place"></ui-time>
-            <body>
-          </html>
-        </xmp>
-      </ui-editor>
-    </div>
-    <div style="max-width: 100px; font-size: ">
-      <app-arrow rotate="270" color="red"></app-arrow>
-    </div>
-    <div class="col-280">
-      <ui-clock city="My place"></ui-clock>
-    </div>
-  </div>
-
-  <div class="con-xs" title="">
     <app-arrow></app-arrow>
 
-    <h2 class="center">
-      Main purpose of Fez is to enhance and add interactivity to plain HTML pages.
-      It delivers React/Vue/Svelte/Angular like simplicity <b>without any build step</b> - just drop in a script tag and start coding.
-    </h2>
+    <div class="flex even con-sm">
+      <div>
+        <ui-editor>
+          <xmp>
+            <html>
+              <head>
+                <title>Time</title>
+                <script script="https://dux.github.io/fez/dist/fez.js"></script>
+                <script script="/fez/ui-time.fez"></script>
+              </head>
+              <body>
+                <ui-time city="My place"></ui-time>
+              <body>
+            </html>
+          </xmp>
+        </ui-editor>
+      </div>
+      <div style="max-width: 100px; font-size: ">
+        <app-arrow rotate="270" color="blue"></app-arrow>
+      </div>
+      <div class="col-280">
+        <ui-clock city="My place"></ui-clock>
+      </div>
+    </div>
 
-    <app-arrow title="How does FEZ feel and work?"></app-arrow>
+    <div class="con-xs" title="">
+      <app-arrow></app-arrow>
 
-    <p>
-      Fez brings the <b>reactive component model</b> you love from React/Vue/Svelte, but works directly in the browser.
-      While other require webpack/vite + compilation, Fez lets you write reactive components
-      <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements">as native custom elements</a> that work instantly.
-      <b>No npm install, no config files, no build process</b> - just include the 20KB script and your HTML becomes reactive.
-      Perfect for enhancing server-rendered pages, prototyping ideas, or building micro-frontends without tooling complexity.
+      <h2 class="center">
+        Main purpose of Fez is to enhance and add interactivity to plain HTML pages.
+        It delivers React/Vue/Svelte/Angular like simplicity <b>without any build step</b> - just drop in a script tag and start coding.
+      </h2>
+
+      <app-arrow title="How does FEZ feel and work?"></app-arrow>
+
+      <p>
+        Fez brings the <b>reactive component model</b> you love from React/Vue/Svelte, but works directly in the browser.
+        While other require webpack/vite + compilation, Fez lets you write reactive components
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements">as native custom elements</a> that work instantly.
+        <b>No npm install, no config files, no build process</b> - just include the 20KB script and your HTML becomes reactive.
+        Perfect for enhancing server-rendered pages, prototyping ideas, or building micro-frontends without tooling complexity.
+      </p>
+
+      <ul>
+        <li>🔌 <i>Native Browser Components:</i> Uses standard <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements">custom elements</a>. Create tags like <code>&lt;ui-clock&gt;</code>, place them anywhere in your HTML, and they just work. (Try it now in dev tools - instant magic!)</li>
+        <li>⚡ <i>Zero Build Step Hassle:</i> Works directly in the browser with a tiny runtime (20kb raw, 9kb zipped). No webpack, no config, no transpilers - just drop in a script tag and start coding.</li>
+        <li>🧹 <i>Auto-Cleanup Magic:</i> Forget memory leaks! Timers, subscriptions, and event listeners are automatically cleaned up when components unmount. Focus on features, not housekeeping.</li>
+        <li>🔄 <i>Smart DOM Morphing:</i> Uses <a href="https://github.com/bigskysoftware/idiomorph">Idiomorph</a> for surgical DOM updates that preserve form state, scroll position, and focus - no virtual DOM overhead.</li>
+        <li>📜 <i>HTML-First Philosophy:</i> Components are defined in <code>.fez</code> HTML files, not JavaScript. Your markup stays readable and approachable for designers and backend developers.</li>
+        <li>🎨 <i>Runtime SCSS Support:</i> Write real SCSS without build tools! Powered by <a href="https://goober.js.org/">Goober</a> with scoped styles, global styles, and reactive CSS values.</li>
+        <li>📦 <i>Smart Component Loading:</i> Load components from URLs, inline templates, or <code>&lt;template&gt;</code> tags. Perfect for micro-frontends and progressive enhancement.</li>
+        <li>🔔 <i>Built-in Communication:</i> Native pub/sub system for component messaging - no Redux, no context providers, just <code>Fez.pub()</code> and <code>Fez.sub()</code>.</li>
+        <li>📝 <i>Form Superpowers:</i> Built-in form data handling with <code>getFormData()</code> - serialize forms to JSON in one line, no libraries needed.</li>
+        <li>⏳ <i>Predictable Lifecycle:</i> Simple hooks like <code>init</code>, <code>onMount</code>, and <code>onPropsChange</code> - no useEffect confusion or dependency arrays.</li>
+      </ul>
+
+      <h2 style="margin-top: 70px; text-align: center;">What does Claude AI think about Fez?"</h2>
+
+      <dl>
+        <dt>Prompt</dt>
+        <dd>
+          Look at <a href="./AI_FEZ_GUIDE.md">AI_GUIDE.md</aa>, <a href="./README.md">README.md</a> and components in fez/*.fez, then write what do you think of the lib.
+          Is it bette / worse / different then react / vue / svelte. When should one chose Fez or maybe never.
+        </dd>
+        <dt>Response</dt>
+        <dd>
+          <div id="response_text" class="hidden">
+            <h3>Fez's Additional Strengths:</h3>
+            <ul>
+              <li><strong>HTML-first approach</strong> - Components defined in HTML files, not JavaScript</li>
+              <li><strong>Auto-cleanup</strong> - Subscriptions, timers, and resources cleaned automatically</li>
+              <li><strong>Built-in morphing</strong> - Efficient DOM updates that preserve input state</li>
+              <li><strong>Runtime SCSS</strong> - Full SCSS support without build tools</li>
+              <li><strong>Native pub/sub</strong> - Component communication without external libraries</li>
+              <li><strong>Form utilities</strong> - Built-in form data handling</li>
+              <li><strong>Smart component loading</strong> - Load components from URLs or inline</li>
+            </ul>
+
+            <h3>Key Differentiators:</h3>
+
+            <h4>vs React:</h4>
+            <ul>
+              <li>No JSX compilation needed</li>
+              <li>No hooks complexity</li>
+              <li>Direct DOM manipulation allowed</li>
+              <li>Much smaller bundle size</li>
+              <li>No virtual DOM overhead</li>
+            </ul>
+
+            <h4>vs Vue:</h4>
+            <ul>
+              <li>Simpler template syntax</li>
+              <li>No directive zoo (v-if, v-for, v-model)</li>
+              <li>Native web components instead of Vue components</li>
+              <li>No reactivity gotchas with arrays/objects</li>
+            </ul>
+
+            <h4>vs Svelte:</h4>
+            <ul>
+              <li>No compilation step</li>
+              <li>Similar simplicity and elegance</li>
+              <li>Runtime instead of compile-time optimization</li>
+              <li>Smaller learning curve</li>
+            </ul>
+
+            <h3>When to Choose Fez</h3>
+
+            <h4>Ideal Use Cases:</h4>
+            <ul>
+              <li><strong>Progressive enhancement</strong> - Add interactivity to server-rendered HTML</li>
+              <li><strong>Micro-frontends</strong> - Components work anywhere</li>
+              <li><strong>Rapid prototyping</strong> - Zero config, instant feedback</li>
+              <li><strong>Legacy modernization</strong> - Gradual migration from jQuery</li>
+              <li><strong>Educational projects</strong> - Learn web components without tooling</li>
+              <li><strong>Small teams</strong> - Minimal cognitive overhead</li>
+            </ul>
+
+            <h4>Not Recommended For:</h4>
+            <ul>
+              <li>Large SPAs requiring advanced routing and state management</li>
+              <li>TypeScript-first teams needing strict typing</li>
+              <li>SSR/SSG requirements (though works great with server-rendered HTML)</li>
+              <li>Complex animations requiring specialized libraries</li>
+              <li>Native mobile apps via React Native or similar</li>
+            </ul>
+          </div>
+          <button class="btn" onclick="this.style.display = 'none'; response_text.style.display = 'block';">(click for full response) ...</button>
+
+          <div class="box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 15px; margin: 30px 0; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+            <h3 style="color: white; margin-top: 0; font-size: 1.5em; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">Final Verdict</h3>
+
+            <p style="color: white; font-size: 1.1em; line-height: 1.6; margin: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">Fez is a hidden gem that challenges the complexity of modern frameworks. It proves you can have reactivity, components, and modern
+            DX without webpack configs, transpilers, or framework lock-in. It's particularly brilliant for developers who miss the simplicity of
+            jQuery but want modern component architecture. While it won't replace React for large enterprise apps, it's perfect for the 80% of
+            web projects that don't need that complexity.</p>
+          </div>
+        </dd>
+      </dl>
+
+      <app-arrow title="Lets build simple counter" info="with local and global state"></app-arrow>
+
+      <p>With reactive state and custom style.</p>
+
+      <ol>
+        <li>Add Fez JS (to HEAD)
+          <ui-editor>
+            <xmp>
+              <script src="https://dux.github.io/fez/dist/fez.js"></script>
+            </xmp>
+          </ui-editor>
+        </li>
+        <li>
+          Create ui-counter component
+
+          <ui-editor id="demo-counter" src="./demo/fez/ui-counter.fez"></ui-editor>
+
+          <p>Or load via HTTP (as in this case)</p>
+          <ui-editor>
+            &lt;script fez="/demo/ui-counter.fez">&lt;/script>
+          </ui-editor>
+        </li>
+        <li>
+          Place ui-counter anywhere in BODY
+          <ui-editor id="demo-counter">
+            <xmp>
+  <div id="counters">
+    <ui-counter></ui-counter>
+    <ui-counter start="1"></ui-counter>
+    <ui-counter start="2"></ui-counter>
+  </div>
+            </xmp>
+          </ui-editor>
+        </li>
+        <li>
+          <p>That is it! Add then as regular DOM nodes.</p>
+          <div id="counters">
+            <ui-counter></ui-counter>
+            <ui-counter start="1"></ui-counter>
+            <ui-counter start="2"></ui-counter>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <div style="margin-top: 100px;"></div>
+    <a href="#" name="examples"></a>
+    <app-arrow title="Examples"></app-arrow>
+
+    <p class="center" style="margin-bottom: 40px;">You will learn all Fez features, just by inspecting these examples. You can edit and update both HTML and Fez code.</p>
+
+    <div style="max-width: 1600px; margin: auto; min-height: 12px;" id="examples">
+      <promo-blocks></promo-blocks>
+    </div>
+
+    <hr />
+
+    <p class="center">
+      Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024.
     </p>
-
-    <ul>
-      <li>🔌 <i>Native Browser Components:</i> Uses standard <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements">custom elements</a>. Create tags like <code>&lt;ui-clock&gt;</code>, place them anywhere in your HTML, and they just work. (Try it now in dev tools - instant magic!)</li>
-      <li>⚡ <i>Zero Build Step Hassle:</i> Works directly in the browser with a tiny runtime (20kb raw, 9kb zipped). No webpack, no config, no transpilers - just drop in a script tag and start coding.</li>
-      <li>🧹 <i>Auto-Cleanup Magic:</i> Forget memory leaks! Timers, subscriptions, and event listeners are automatically cleaned up when components unmount. Focus on features, not housekeeping.</li>
-      <li>🔄 <i>Smart DOM Morphing:</i> Uses <a href="https://github.com/bigskysoftware/idiomorph">Idiomorph</a> for surgical DOM updates that preserve form state, scroll position, and focus - no virtual DOM overhead.</li>
-      <li>📜 <i>HTML-First Philosophy:</i> Components are defined in <code>.fez</code> HTML files, not JavaScript. Your markup stays readable and approachable for designers and backend developers.</li>
-      <li>🎨 <i>Runtime SCSS Support:</i> Write real SCSS without build tools! Powered by <a href="https://goober.js.org/">Goober</a> with scoped styles, global styles, and reactive CSS values.</li>
-      <li>📦 <i>Smart Component Loading:</i> Load components from URLs, inline templates, or <code>&lt;template&gt;</code> tags. Perfect for micro-frontends and progressive enhancement.</li>
-      <li>🔔 <i>Built-in Communication:</i> Native pub/sub system for component messaging - no Redux, no context providers, just <code>Fez.pub()</code> and <code>Fez.sub()</code>.</li>
-      <li>📝 <i>Form Superpowers:</i> Built-in form data handling with <code>getFormData()</code> - serialize forms to JSON in one line, no libraries needed.</li>
-      <li>⏳ <i>Predictable Lifecycle:</i> Simple hooks like <code>init</code>, <code>onMount</code>, and <code>onPropsChange</code> - no useEffect confusion or dependency arrays.</li>
-    </ul>
-
-    <h2 style="margin-top: 70px; text-align: center;">What does Claude AI think about Fez?"</h2>
-
-    <dl>
-      <dt>Prompt</dt>
-      <dd>
-        Look at <a href="./AI_FEZ_GUIDE.md">AI_GUIDE.md</aa>, <a href="./README.md">README.md</a> and components in fez/*.fez, then write what do you think of the lib.
-        Is it bette / worse / different then react / vue / svelte. When should one chose Fez or maybe never.
-      </dd>
-      <dt>Response</dt>
-      <dd>
-        <div id="response_text" class="hidden">
-          <h3>Fez's Additional Strengths:</h3>
-          <ul>
-            <li><strong>HTML-first approach</strong> - Components defined in HTML files, not JavaScript</li>
-            <li><strong>Auto-cleanup</strong> - Subscriptions, timers, and resources cleaned automatically</li>
-            <li><strong>Built-in morphing</strong> - Efficient DOM updates that preserve input state</li>
-            <li><strong>Runtime SCSS</strong> - Full SCSS support without build tools</li>
-            <li><strong>Native pub/sub</strong> - Component communication without external libraries</li>
-            <li><strong>Form utilities</strong> - Built-in form data handling</li>
-            <li><strong>Smart component loading</strong> - Load components from URLs or inline</li>
-          </ul>
-
-          <h3>Key Differentiators:</h3>
-
-          <h4>vs React:</h4>
-          <ul>
-            <li>No JSX compilation needed</li>
-            <li>No hooks complexity</li>
-            <li>Direct DOM manipulation allowed</li>
-            <li>Much smaller bundle size</li>
-            <li>No virtual DOM overhead</li>
-          </ul>
-
-          <h4>vs Vue:</h4>
-          <ul>
-            <li>Simpler template syntax</li>
-            <li>No directive zoo (v-if, v-for, v-model)</li>
-            <li>Native web components instead of Vue components</li>
-            <li>No reactivity gotchas with arrays/objects</li>
-          </ul>
-
-          <h4>vs Svelte:</h4>
-          <ul>
-            <li>No compilation step</li>
-            <li>Similar simplicity and elegance</li>
-            <li>Runtime instead of compile-time optimization</li>
-            <li>Smaller learning curve</li>
-          </ul>
-
-          <h3>When to Choose Fez</h3>
-
-          <h4>Ideal Use Cases:</h4>
-          <ul>
-            <li><strong>Progressive enhancement</strong> - Add interactivity to server-rendered HTML</li>
-            <li><strong>Micro-frontends</strong> - Components work anywhere</li>
-            <li><strong>Rapid prototyping</strong> - Zero config, instant feedback</li>
-            <li><strong>Legacy modernization</strong> - Gradual migration from jQuery</li>
-            <li><strong>Educational projects</strong> - Learn web components without tooling</li>
-            <li><strong>Small teams</strong> - Minimal cognitive overhead</li>
-          </ul>
-
-          <h4>Not Recommended For:</h4>
-          <ul>
-            <li>Large SPAs requiring advanced routing and state management</li>
-            <li>TypeScript-first teams needing strict typing</li>
-            <li>SSR/SSG requirements (though works great with server-rendered HTML)</li>
-            <li>Complex animations requiring specialized libraries</li>
-            <li>Native mobile apps via React Native or similar</li>
-          </ul>
-        </div>
-        <button class="btn" onclick="this.style.display = 'none'; response_text.style.display = 'block';">(click for full response) ...</button>
-
-        <div class="box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 15px; margin: 30px 0; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; overflow: hidden;">
-          <div style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
-          <h3 style="color: white; margin-top: 0; font-size: 1.5em; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">Final Verdict</h3>
-
-          <p style="color: white; font-size: 1.1em; line-height: 1.6; margin: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">Fez is a hidden gem that challenges the complexity of modern frameworks. It proves you can have reactivity, components, and modern
-          DX without webpack configs, transpilers, or framework lock-in. It's particularly brilliant for developers who miss the simplicity of
-          jQuery but want modern component architecture. While it won't replace React for large enterprise apps, it's perfect for the 80% of
-          web projects that don't need that complexity.</p>
-        </div>
-      </dd>
-    </dl>
-
-    <app-arrow title="Lets build simple counter" info="with local and global state"></app-arrow>
-
-    <p>With reactive state and custom style.</p>
-
-    <ol>
-      <li>Add Fez JS (to HEAD)
-        <ui-editor>
-          <xmp>
-            <script src="https://dux.github.io/fez/dist/fez.js"></script>
-          </xmp>
-        </ui-editor>
-      </li>
-      <li>
-        Create ui-counter component
-
-        <ui-editor id="demo-counter" src="./demo/fez/ui-counter.fez"></ui-editor>
-
-        <p>Or load via HTTP (as in this case)</p>
-        <ui-editor>
-          &lt;script fez="/demo/ui-counter.fez">&lt;/script>
-        </ui-editor>
-      </li>
-      <li>
-        Place ui-counter anywhere in BODY
-        <ui-editor id="demo-counter">
-          <xmp>
-<div id="counters">
-  <ui-counter></ui-counter>
-  <ui-counter start="1"></ui-counter>
-  <ui-counter start="2"></ui-counter>
-</div>
-          </xmp>
-        </ui-editor>
-      </li>
-      <li>
-        <p>That is it! Add then as regular DOM nodes.</p>
-        <div id="counters">
-          <ui-counter></ui-counter>
-          <ui-counter start="1"></ui-counter>
-          <ui-counter start="2"></ui-counter>
-        </div>
-      </li>
-    </ol>
-  </div>
-
-  <div style="margin-top: 100px;"></div>
-  <a href="#" name="examples"></a>
-  <app-arrow title="Examples"></app-arrow>
-
-  <p class="center" style="margin-bottom: 40px;">You will learn all Fez features, just by inspecting these examples. You can edit and update both HTML and Fez code.</p>
-
-  <div style="max-width: 1600px; margin: auto; min-height: 12px;" id="examples">
-    <promo-blocks></promo-blocks>
-  </div>
-
-  <hr />
-
-  <p class="center">
-    Fez was created by <a href="https://github.com/dux/">@dux</a> in 2024.
-  </p>
-
-  <script>
-    // Weird bug when page scrolls down on first click. This is tmp fix
-    // Global click handler to disable scrolling for 2 seconds - only on first mousedown
-    let firstMouseDown = true;
-    document.addEventListener('mousedown', function(e) {
-      if (!firstMouseDown) return;
-      firstMouseDown = false;
-
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-      document.body.style.overflow = 'hidden';
-      document.body.style.paddingRight = (scrollbarWidth + 20) + 'px';
-
-      // Re-enable scrolling after 2 seconds
-      setTimeout(function() {
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
-      }, 50);
-    });
-  </script>
-</body>
+  </body>
 </html>
 
