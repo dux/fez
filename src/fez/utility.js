@@ -315,7 +315,9 @@ export default (Fez) => {
   // Execute a function when DOM is ready or immediately if already loaded
   Fez.onReady = (callback) => {
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', callback)
+      document.addEventListener('DOMContentLoaded', ()=>{
+        callback()
+      }, { once: true })
     } else {
       callback()
     }

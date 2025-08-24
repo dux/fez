@@ -102,8 +102,7 @@ function compile_bulk(data) {
       if (fezName && !fezName.includes('-')) {
         console.error(`Fez: Invalid custom element name "${fezName}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)
       }
-      // Compile the node directly when DOM is ready
-      Fez.onReady(() => compile(fezName, node.innerHTML))
+      compile(fezName, node.innerHTML)
       return
     }
   }

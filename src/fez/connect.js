@@ -105,7 +105,7 @@ export default function connect(name, klass) {
   if (!customElements.get(name)) {
     customElements.define(name, class extends HTMLElement {
       connectedCallback() {
-        connectNode(name, this)
+        Fez.onReady(()=>connectNode(name, this))
       }
     })
   }
@@ -124,7 +124,6 @@ function closeCustomTags(html) {
     return selfClosingTags.has(tagName) ? match : `<${tagName}${attributes}></${tagName}>`
   })
 }
-
 
 /**
  * Initializes a Fez component instance from a DOM node
