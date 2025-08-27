@@ -24,6 +24,11 @@ Omit XMP tag when writing fez components in .fez files
     Fez.head({js: 'https://cdn.example.com/script.js'})
     Fez.head({css: 'https://cdn.example.com/styles.css'})
 
+    // FAST rendering control (optional)
+    FAST = true  // Renders immediately (no flicker)
+    // OR as a function for conditional behavior
+    FAST = (node) => !node.children.length  // Fast only if no children
+
     init(props) {
       // Props are passed as parameter - use props.name, NOT this.prop('name')
       // do not rewrite state, just add to it
@@ -230,6 +235,17 @@ this.globalState.theme = "dark"  // Auto-publishes changes
 * Use throttled events: this.on('scroll', callback, 100)
 * Prefer fez-class for animations
 * Components are automatically rendered with optimized batching
+* Use `FAST = true` for components that don't work with slots to prevent render flicker
+* FAST rendering example:
+  ```javascript
+  // Always fast (no slots)
+  class { FAST = true }
+  
+  // Conditional fast rendering
+  class { 
+    FAST = (node) => node.hasAttribute('title')  // Fast if has title, slow if needs innerHTML
+  }
+  ```
 
 ### Component Communication
 

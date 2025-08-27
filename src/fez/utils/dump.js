@@ -66,12 +66,10 @@ const LOG = (() => {
       if (dialog) {
         // Close dialog
         dialog.remove();
-        localStorage.setItem('_LOG_CLOSED', 'true');
         createLogButton();
       } else if (button) {
         // Open dialog
         button.remove();
-        localStorage.setItem('_LOG_CLOSED', 'false');
         showLogDialog();
       }
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -113,7 +111,6 @@ const LOG = (() => {
         'opacity:1;visibility:visible;box-shadow:0 4px 12px rgba(255,51,51,0.3)';
       btn.onclick = () => {
         btn.remove();
-        localStorage.setItem('_LOG_CLOSED', 'false');
         showLogDialog();
       };
     }
@@ -164,7 +161,6 @@ const LOG = (() => {
 
       d.querySelector('button[style*="flex-shrink:0"]').onclick = () => {
         d.remove();
-        localStorage.setItem('_LOG_CLOSED', 'true');
         createLogButton();
       };
 
@@ -186,12 +182,16 @@ const LOG = (() => {
       return
     }
 
-    if (o instanceof Node) {
-      o = log_pretty_print(o.outerHTML)
-    }
-
     // Store the original type
     let originalType = typeof o;
+
+    if (o instanceof Node) {
+      if (o.nodeType === Node.TEXT_NODE) {
+        o = o.textContent || String(o)
+      } else {
+        o = log_pretty_print(o.outerHTML)
+      }
+    }
 
     if (o === undefined) { o = 'undefined' }
     if (o === null) { o = 'null' }
@@ -216,13 +216,19 @@ const LOG = (() => {
     logs.push(o + `\n\ntype: ${originalType}`);
     logTypes.push(originalType);
 
-    // Check if log was previously closed
-    const isClosed = localStorage.getItem('_LOG_CLOSED') === 'true';
+    // Check if log dialog is open by checking for element
+    const isOpen = !!document.getElementById('dump-dialog');
 
-    if (isClosed) {
-      createLogButton();
-    } else {
+    if (!isOpen) {
+      // Show log dialog by default
       showLogDialog();
+    } else {
+      // Update current index to the new log and refresh
+      currentIndex = logs.length - 1;
+      localStorage.setItem('_LOG_INDEX', currentIndex);
+      if (renderContent) {
+        renderContent();
+      }
     }
   };
 })();

@@ -471,7 +471,11 @@ export default class FezBase {
         }
         else {
           // First render - populate the slot with current root children
-          Array.from(this.root.childNodes).forEach(child => newEl.appendChild(child))
+          Array.from(this.root.childNodes).forEach(
+            child => {
+              newEl.appendChild(child)
+            }
+          )
         }
       }
     })

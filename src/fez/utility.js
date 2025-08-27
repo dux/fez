@@ -375,4 +375,19 @@ export default (Fez) => {
       }
     };
   }
+
+  // const firstTimeHash = new Map()
+  // Fez.firstTime = (key, func) => {
+  //   if ( !firstTimeHash.get(key) ) {
+  //     firstTimeHash.set(key, true)
+
+  //     if (func) {
+  //       func()
+  //     }
+
+  //     return true
+  //   }
+
+  //   return false
+  // }
 }

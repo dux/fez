@@ -14,3 +14,12 @@ in html write info block and usage data, no styles and html wrapper needed
 <h4>Section info</h4> <!-- use h4 and only h4 for title -->
 <div>more example data<div>
 
+## FAST Rendering Guidelines
+
+When creating Fez components, consider using the FAST property to control rendering timing:
+
+* Set `FAST = true` for components that don't work with **slots**:
+   * Components that generate their own content entirely
+   * Components that don't need to preserve original child elements
+   * Any component where slot content would be ignored anyway
+

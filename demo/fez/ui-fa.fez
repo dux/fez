@@ -3,6 +3,7 @@
 
   class {
     NAME = 'i'
+    FAST = true
 
     setSize(size) {
       if (size) {

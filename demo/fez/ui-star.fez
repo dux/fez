@@ -2,6 +2,8 @@
   // claude generated
 
   class {
+    FAST = true
+
     setFill(percentage) {
       this.state.fill = parseInt(percentage)
     }
@@ -9,7 +11,6 @@
     setRating(rating) {
       this.state.rating = parseFloat(rating)
     }
-
 
     getStarFill(starIndex, rating) {
       const fullStars = Math.floor(rating)

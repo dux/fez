@@ -106,11 +106,14 @@
     <a name="c-{{ file.base }}"></a>
     <div class="flex even top" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
       <div style="margin-top: 10px; flex: 0 0 600px;">
-        <small style="float: right;" onclick="fez.openCodePen('{{ file.base }}')">open in CodePen</small>
-        <h3 style="margin-top: 0;">
-          Demo: {{ file.base }}
-        </h3>
-
+        <div class="flex even">
+          <h3>
+            Demo: {{ file.base }}
+          </h3>
+          <div style="text-align: right;">
+            <small onclick="fez.openCodePen('{{ file.base }}')">open in CodePen</small>
+          </div>
+        </div>
         <div id="body-{{ file.base }}" style="padding-bottom: 20px;">
           {{raw state.html }}
         </div>

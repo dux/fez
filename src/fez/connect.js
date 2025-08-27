@@ -51,12 +51,13 @@ export default function connect(name, klass) {
     props.forEach(prop => newKlass.prototype[prop] = klassObj[prop])
 
     // Map component configuration properties
-    if (klassObj.GLOBAL) { newKlass.GLOBAL = klassObj.GLOBAL }     // Global instance reference
-    if (klassObj.CSS) { newKlass.css = klassObj.CSS }              // Component styles
+    if (klassObj.FAST) { newKlass.FAST = klassObj.FAST }           // Global instance reference
+    if (klassObj.GLOBAL) { newKlass.GLOBAL = klassObj.GLOBAL }       // Global instance reference
+    if (klassObj.CSS) { newKlass.css = klassObj.CSS }                // Component styles
     if (klassObj.HTML) {
-      newKlass.html = closeCustomTags(klassObj.HTML)               // Component template
+      newKlass.html = closeCustomTags(klassObj.HTML)                 // Component template
     }
-    if (klassObj.NAME) { newKlass.nodeName = klassObj.NAME }       // Custom DOM node name
+    if (klassObj.NAME) { newKlass.nodeName = klassObj.NAME }         // Custom DOM node name
 
     // Auto-mount global components to body
     if (klassObj.GLOBAL) {
@@ -73,23 +74,11 @@ export default function connect(name, klass) {
 
   // Process component template
   if (klass.html) {
-    // Replace <slot /> with reactive slot containers
-    klass.html = klass.html.replace(/<slot(\s+[^>]*)?(\s*\/?>|\s*>\s*<\/slot>)/g, (match, attributes) => {
-      let slotTag = klass.SLOT || 'div'
-      let attrs = attributes ? attributes.trim() : ''
+    let slotTag = klass.SLOT || 'div'
 
-      // Extract tag name from name attribute if present
-      const nameMatch = attrs.match(/name\s*=\s*["']([^"']+)["']/)
-      if (nameMatch) {
-        slotTag = nameMatch[1]
-        // Remove the name attribute from attrs
-        attrs = attrs.replace(/name\s*=\s*["'][^"']+["']/g, '').trim()
-      }
-
-      const baseAttrs = 'class="fez-slot" fez-keep="default-slot"'
-      const allAttrs = attrs ? `${baseAttrs} ${attrs}` : baseAttrs
-      return `<${slotTag} ${allAttrs}></${slotTag}>`
-    })
+    klass.html = klass.html
+      .replace('<slot', `<${slotTag} class="fez-slot" fez-keep="default-slot"`)
+      .replace('</slot>', `</${slotTag}>`)
 
     // Compile template function
     klass.fezHtmlFunc = createTemplate(klass.html)
@@ -105,9 +94,27 @@ export default function connect(name, klass) {
   if (!customElements.get(name)) {
     customElements.define(name, class extends HTMLElement {
       connectedCallback() {
-        Fez.onReady(()=>connectNode(name, this))
+        // Fez.onReady(()=>{connectNode(name, this)})
+        // connectNode(name, this)
+        if (useFastRender(this, klass)) {
+          connectNode(name, this)
+        } else {
+          requestAnimationFrame(()=>{
+            connectNode(name, this)
+          })
+        }
       }
     })
+  }
+}
+
+function useFastRender(node, klass) {
+  const fezFast = node.getAttribute('fez-fast')
+  var isFast = typeof klass.FAST === 'function' ? klass.FAST(node) : klass.FAST
+  if (fezFast == 'false') {
+    return false
+  } else {
+    return fezFast || isFast
   }
 }
 

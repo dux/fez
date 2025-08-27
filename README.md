@@ -200,6 +200,13 @@ Fez('foo-bar', class {
   // if you pair it with `reactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
   HTML = `...`
 
+  // Control rendering timing to prevent flicker (property or method)
+  // If true: renders immediately in main loop (no flicker)
+  // If false/undefined: renders in next animation frame (may flicker with nested non-fast elements)
+  // Components that don't accept slots or work without slots should set FAST = true
+  FAST = true
+  FAST = (node) => node.hasAttribute('title') // Function: e.g., ui-btn renders fast if has title attribute
+
   // Make it globally accessible as `window.Dialog`
   // The component is automatically appended to the document body as a singleton. See `demo/fez/ui-dialog.fez` for a complete example.
   GLOBAL = 'Dialog'

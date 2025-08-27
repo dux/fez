@@ -60,6 +60,7 @@ connect = (node, name, klass) ->
   svelteProps.self = "Svelte('#{newNode.id}')" if exported.includes('self')
 
   instance = newNode.svelte = new klass({target: newNode, props: svelteProps})
+  instance.svelteName = name
 
   # fill slots
   # slot has to be named sslot (not slot)
@@ -99,19 +100,19 @@ Svelte.connect = (name, klass) ->
       # %s-menu-vertical{ fast_connect: true }
 
       # connect @, name, klass
-      # if @firstChild && (klass.prototype.hasOwnProperty('fast') || @getAttribute('fast_connect') || @getAttribute('data-props') || @getAttribute('data-json-template'))
-      #   connect @, name, klass
-      # else
-      #   requestAnimationFrame =>
-      #     connect @, name, klass
 
-      me = @
-      if document.readyState == 'loading'
-        document.addEventListener 'DOMContentLoaded',
-          => connect(me, name, klass)
-        , once: true
+      if klass.prototype.hasOwnProperty('fast') || klass.prototype.hasOwnProperty('FAST') || @getAttribute('fast_connect') || @getAttribute('data-props') || @getAttribute('data-json-template')
+        connect @, name, klass
       else
-        connect(me, name, klass)
+        requestAnimationFrame =>
+          connect @, name, klass
+
+      # if document.readyState == 'loading'
+      #   document.addEventListener 'DOMContentLoaded',
+      #     => connect(@, name, klass)
+      #   , once: true
+      # else
+      #   connect(@, name, klass)
 
 # Creates HTML tag
 Svelte.tag = (tag, opts = {}, html = '') ->

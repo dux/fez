@@ -172,6 +172,8 @@
   ])
 
   class {
+    FAST = true
+
     getExtension(input) {
       if (!input) return null
 

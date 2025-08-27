@@ -2,16 +2,28 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Demo page</title>
+    <title>Test page</title>
     <link rel="icon" href="./demo/fez.png">
     <script src="./dist/fez.js"></script>
     <script fez="./demo/system-blocks.fez"></script>
     <link rel="stylesheet" href="./demo/css/full.css" />
+    <script>
+      function loadFez(name) {
+        Fez.onReady(()=>{
+          document.body.innerHTML += `
+            <template fez="./demo/fez/${name}.fez"></template>
+            <xfez-include src="./demo/fez/${name}.html"></xfez-include>
+          `
+        })
+      }
+
+      //loadFez('ui-style')
+    </script>
   </head>
   <body  style="max-width: 800px; margin: auto;">
     <button onclick="LOG(document.querySelector('.fez'))" style="position: fixed; top: 15px; right: 15px;">HTML</button>
 
-    <dev-block name="ui-emoji"></dev-block>
+    <dev-block name="ui-style"></dev-block>
   </body>
 </html>
 

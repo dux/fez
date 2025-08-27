@@ -5,6 +5,7 @@ import Gobber from './vendor/gobber.js'
 import { Idiomorph } from './vendor/idiomorph.js'
 
 import objectDump from './utils/dump.js'
+import highlightAll from './utils/highlight_all.js'
 import connect from './connect.js'
 import compile from './compile.js'
 import state from './lib/global-state.js'
@@ -196,7 +197,10 @@ cssMixin(Fez)
 Fez.compile = compile
 Fez.state = state
 Fez.dump = objectDump
+Fez.dump = highlightAll
 
-Fez.onReady(() => Fez.log('Fez.LOG === true, logging enabled.') )
+Fez.onReady(() => {
+  Fez.log('Fez.LOG === true, logging enabled.')
+})
 
 export default Fez
