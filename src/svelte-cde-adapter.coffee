@@ -101,7 +101,7 @@ Svelte.connect = (name, klass) ->
 
       # connect @, name, klass
 
-      if klass.prototype.hasOwnProperty('fast') || klass.prototype.hasOwnProperty('FAST') || @getAttribute('fast_connect') || @getAttribute('data-props') || @getAttribute('data-json-template')
+      if this.childNodes[0] || this.nextSibling || klass.prototype.hasOwnProperty('fast') || klass.prototype.hasOwnProperty('FAST') || @getAttribute('fast_connect') || @getAttribute('data-props') || @getAttribute('data-json-template')
         connect @, name, klass
       else
         requestAnimationFrame =>

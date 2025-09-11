@@ -111,10 +111,14 @@ export default function connect(name, klass) {
 function useFastRender(node, klass) {
   const fezFast = node.getAttribute('fez-fast')
   var isFast = typeof klass.FAST === 'function' ? klass.FAST(node) : klass.FAST
-  if (fezFast == 'false') {
+  if (fezFast || isFast || node.childNodes[0] || node.nextSibling) {
+    return true
+  }
+  else if (fezFast == 'false') {
     return false
-  } else {
-    return fezFast || isFast
+  }
+  else {
+    return false
   }
 }
 

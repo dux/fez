@@ -130,13 +130,11 @@ export default class FezBase {
           }
         }
 
-        if (name == 'style' || !this.root[name]) {
-          if (typeof value == 'string') {
-            this.root.setAttribute(name, value)
-          }
-          else {
-            this.root[name] = value
-          }
+        if (typeof value == 'string') {
+          this.root.setAttribute(name, value)
+        }
+        else {
+          this.root[name] = value
         }
       }
     }

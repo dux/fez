@@ -134,12 +134,62 @@ Fez.morphdom = (target, newNode, opts = {}) => {
   }
 }
 
+Fez._globalSubs ||= new Map()
+
 Fez.publish = (channel, ...args) => {
   Fez._subs ||= {}
   Fez._subs[channel] ||= []
   Fez._subs[channel].forEach((el) => {
     el[1].bind(el[0])(...args)
   })
+
+  // Trigger global subscriptions
+  const subs = Fez._globalSubs.get(channel)
+  if (subs) {
+    subs.forEach((sub) => {
+      if (sub.node.isConnected) {
+        sub.callback.call(sub.node, ...args)
+      } else {
+        // Remove disconnected nodes from subscriptions
+        subs.delete(sub)
+      }
+    })
+  }
+}
+
+Fez.subscribe = (node, eventName, callback) => {
+  // If second arg is function, shift arguments
+  if (typeof eventName === 'function') {
+    callback = eventName
+    eventName = node
+    node = document.body
+  }
+  
+  // Handle string selectors
+  if (typeof node === 'string') {
+    node = document.querySelector(node)
+  }
+  
+  if (!Fez._globalSubs.has(eventName)) {
+    Fez._globalSubs.set(eventName, new Set())
+  }
+  
+  const subs = Fez._globalSubs.get(eventName)
+  
+  // Remove existing subscription for same node and callback
+  subs.forEach(sub => {
+    if (sub.node === node && sub.callback === callback) {
+      subs.delete(sub)
+    }
+  })
+  
+  const subscription = { node, callback }
+  subs.add(subscription)
+  
+  // Return unsubscribe function
+  return () => {
+    subs.delete(subscription)
+  }
 }
 
 Fez.error = (text, show) => {

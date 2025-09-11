@@ -272,9 +272,23 @@ Fez('foo-bar', class {
   // set value to a node, uses value or innerHTML
   this.val(selector, value)
 
-  // you can publish globally, and subscribe locally
-  Fez.publish('channel', foo)
-  this.subscribe('channel', (foo) => { ... })
+  // Publish/Subscribe system
+  // Component-level: publishes bubble up to parent components until a subscriber is found
+  this.publish('channel', data)          // publish from component, bubbles up to parents
+  this.subscribe('channel', (data) => {}) // subscribe in component
+  
+  // Global-level: publish to all subscribers (components and global listeners)
+  Fez.publish('channel', data)            // publish globally
+  
+  // Global subscribe: runs only if node is connected to DOM
+  // Automatically removes subscription when node is disconnected
+  Fez.subscribe(node, 'channel', callback)     // subscribe specific node
+  Fez.subscribe('#myId', 'channel', callback)  // subscribe by selector
+  Fez.subscribe('channel', callback)           // subscribe to document.body
+  
+  // Manual unsubscribe (automatic cleanup happens when node disconnects)
+  const unsub = Fez.subscribe('channel', callback)
+  unsub() // manually remove subscription
 
   // gets root childNodes
   this.childNodes()
