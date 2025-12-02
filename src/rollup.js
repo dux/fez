@@ -13,7 +13,7 @@ const transformFez = (code, filePath) => {
   const baseName = filePath.split('/').pop().split('.');
 
   if (baseName[1] === 'fez') {
-    code = code.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+    code = code.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
     return `Fez.compile('${baseName[0]}', \`\n${code}\`)`;
   }
 }

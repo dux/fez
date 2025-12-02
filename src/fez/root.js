@@ -164,28 +164,28 @@ Fez.subscribe = (node, eventName, callback) => {
     eventName = node
     node = document.body
   }
-  
+
   // Handle string selectors
   if (typeof node === 'string') {
     node = document.querySelector(node)
   }
-  
+
   if (!Fez._globalSubs.has(eventName)) {
     Fez._globalSubs.set(eventName, new Set())
   }
-  
+
   const subs = Fez._globalSubs.get(eventName)
-  
+
   // Remove existing subscription for same node and callback
   subs.forEach(sub => {
     if (sub.node === node && sub.callback === callback) {
       subs.delete(sub)
     }
   })
-  
+
   const subscription = { node, callback }
   subs.add(subscription)
-  
+
   // Return unsubscribe function
   return () => {
     subs.delete(subscription)
@@ -247,7 +247,7 @@ cssMixin(Fez)
 Fez.compile = compile
 Fez.state = state
 Fez.dump = objectDump
-Fez.dump = highlightAll
+Fez.highlightAll = highlightAll
 
 Fez.onReady(() => {
   Fez.log('Fez.LOG === true, logging enabled.')

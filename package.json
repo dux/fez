@@ -1,22 +1,14 @@
 {
   "name": "@dinoreic/fez",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Runtime custom DOM elements lib",
   "main": "dist/fez.js",
   "type": "module",
   "exports": {
-    ".": {
-      "import": "./dist/fez.js",
-      "require": "./dist/fez.js"
-    },
-    "./rollup": {
-      "import": "./src/rollup.js",
-      "require": "./src/rollup.js"
-    },
-    "./log": {
-      "import": "./src/log.js",
-      "require": "./src/log.js"
-    },
+    ".": "./dist/fez.js",
+    "./rollup": "./src/rollup.js",
+    "./log": "./src/log.js",
+    "./svelte": "./src/svelte-cde-adapter.coffee",
     "./package.json": "./package.json"
   },
   "bin": {

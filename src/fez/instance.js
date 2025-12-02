@@ -250,7 +250,13 @@ export default class FezBase {
   }
 
   setStyle(key, value) {
-    this.root.style.setProperty(key, value);
+    if (key && typeof key == 'object') {
+      Object.entries(key).forEach(([prop, val]) => {
+        this.root.style.setProperty(prop, val);
+      });
+    } else {
+      this.root.style.setProperty(key, value);
+    }
   }
 
   connect() {}
@@ -669,8 +675,10 @@ export default class FezBase {
     obj ||= {}
 
     handler ||= (o, k, v, oldValue) => {
-      this.onStateChange(k, v, oldValue)
-      this.nextTick(this.render, 'render')
+      if (v != oldValue) {
+        this.onStateChange(k, v, oldValue)
+        this.nextTick(this.render, 'render')
+      }
     }
 
     handler.bind(this)

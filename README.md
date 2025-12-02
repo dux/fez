@@ -368,6 +368,12 @@ Fez.cssClass(text)
 // display information about registered components in console
 Fez.info()
 
+// inspect Fez or Svelte element, dumps props/state/template info to console
+Fez.dump(nodeOrSelector)
+
+// Dev helper: press Cmd/Ctrl + E to toggle overlays highlighting each component on the page.
+// Click a label to call Fez.dump for that element automatically.
+
 // low-level DOM morphing function
 Fez.morphdom(target, newNode, opts)
 

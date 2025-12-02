@@ -54,6 +54,17 @@ const loadDefaults = () => {
     }
   })
 
+  // Show node only if test validates
+  // <fez-if if="window.foo">...
+  Fez('fez-if', class {
+    init(props) {
+      const test = new Function(`return (${props.if || props.test})`)
+      if (!test()) {
+        this.root.remove()
+      }
+    }
+  })
+
   // Memory store for memoization
   const memoStore = new Map()
 
