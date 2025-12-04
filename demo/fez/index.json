@@ -10,15 +10,6 @@
   },
   {
     "file": {
-      "base": "css-base",
-      "path": "demo/fez/css-base.fez",
-      "size": 2774,
-      "modified": 1755695586,
-      "created": 1755695586
-    }
-  },
-  {
-    "file": {
       "base": "input-checkbox-toggle",
       "path": "demo/fez/input-checkbox-toggle.fez",
       "size": 3023,
