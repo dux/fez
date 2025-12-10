@@ -58,5 +58,8 @@
     "prepublishOnly": "bun run build && bun run test",
     "publish": "npm publish --access public",
     "index": "ruby ./bin/fez-index 'demo/fez/*.fez' > demo/fez/index.json"
+  },
+  "dependencies": {
+    "glob": "^13.0.0"
   }
 }

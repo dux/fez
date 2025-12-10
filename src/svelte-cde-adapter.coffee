@@ -121,3 +121,5 @@ Svelte.tag = (tag, opts = {}, html = '') ->
 
 Svelte.bind = Svelte.connect
 window.Svelte = Svelte
+
+export default Svelte
