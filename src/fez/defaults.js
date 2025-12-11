@@ -73,14 +73,14 @@ const loadDefaults = () => {
   Fez('fez-memoize', class {
     init(props) {
       if (!props.key) {
-        Fez.error('fez-memoize: key prop is required')
+        Fez.consoleError('fez-memoize: key prop is required')
         return
       }
 
       if (memoStore.has(props.key)) {
         // Restore from memory in init
         const storedNode = memoStore.get(props.key)
-        Fez.log(`Memoize - key: "${props.key}" - restore`)
+        Fez.consoleLog(`Memoize - key: "${props.key}" - restore`)
         this.root.innerHTML = ''
         this.root.appendChild(storedNode.cloneNode(true))
       }
@@ -93,7 +93,7 @@ const loadDefaults = () => {
           // Store current DOM content
           const contentNode = document.createElement('div')
           contentNode.innerHTML = this.root.innerHTML
-          Fez.log(`Memoize - key: "${props.key}" - set`)
+          Fez.consoleLog(`Memoize - key: "${props.key}" - set`)
           memoStore.set(props.key, contentNode)
         })
       }

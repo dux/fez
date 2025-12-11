@@ -20,7 +20,7 @@ const Fez = (name, klass) => {
     if (fez) {
       return fez
     } else {
-      Fez.error(`Instance with UID "${name}" not found.`)
+      Fez.consoleError(`Instance with UID "${name}" not found.`)
     }
   }
   else if (name) {
@@ -47,14 +47,14 @@ const Fez = (name, klass) => {
         if (node.fez) {
           return node.fez
         } else {
-          Fez.error(`node "${name}" has no Fez attached.`)
+          Fez.consoleError(`node "${name}" has no Fez attached.`)
         }
       } else {
-        Fez.error(`node "${name}" not found.`)
+        Fez.consoleError(`node "${name}" not found.`)
       }
     }
   } else {
-    Fez.error('Fez() ?')
+    Fez.consoleError('Fez() ?')
   }
 }
 
@@ -192,7 +192,7 @@ Fez.subscribe = (node, eventName, callback) => {
   }
 }
 
-Fez.error = (text, show) => {
+Fez.consoleError = (text, show) => {
   text = `Fez: ${text}`
   console.error(text)
   if (show) {
@@ -200,7 +200,7 @@ Fez.error = (text, show) => {
   }
 }
 
-Fez.log = (text) => {
+Fez.consoleLog = (text) => {
   if (Fez.LOG === true) {
     text = String(text).substring(0, 180)
     console.log(`Fez: ${text}`)
@@ -246,11 +246,11 @@ cssMixin(Fez)
 
 Fez.compile = compile
 Fez.state = state
-Fez.dump = objectDump
+Fez.log = objectDump
 Fez.highlightAll = highlightAll
 
 Fez.onReady(() => {
-  Fez.log('Fez.LOG === true, logging enabled.')
+  Fez.consoleLog('Fez.LOG === true, logging enabled.')
 })
 
 export default Fez

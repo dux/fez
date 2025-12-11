@@ -34,7 +34,7 @@ const GlobalState = {
   globalSubscribers: new Set(), // Set of functions that listen to all changes
 
   notify(key, value, oldValue) {
-    Fez.log(`Global state change for ${key}: ${value} (from ${oldValue})`)
+    Fez.consoleLog(`Global state change for ${key}: ${value} (from ${oldValue})`)
 
     // Notify component listeners
     const listeners = this.listeners.get(key)

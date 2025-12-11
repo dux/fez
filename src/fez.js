@@ -13,7 +13,7 @@ import('./fez/defaults.js')
 setInterval(() => {
   for (const [key, el] of Fez.instances) {
     if (!el?.isConnected) {
-      // Fez.error(`Found junk instance that is not connected ${el.fezName}`)
+      // Fez.consoleError(`Found junk instance that is not connected ${el.fezName}`)
       el.fez?.fezOnDestroy()
       Fez.instances.delete(key)
     }

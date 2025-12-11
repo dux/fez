@@ -38,7 +38,7 @@ export default (Fez) => {
     if (config.script) {
       if (config.script.includes('import ')) {
         if (callback) {
-          Fez.error('Fez.head callback is not supported when script with import is passed (module context).')
+          Fez.consoleError('Fez.head callback is not supported when script with import is passed (module context).')
         }
 
         // Evaluate inline script in context in the module
@@ -52,7 +52,7 @@ export default (Fez) => {
           new Function(config.script)();
           if (callback) callback();
         } catch (error) {
-          Fez.error('Error executing script:', error);
+          Fez.consoleError('Error executing script:', error);
           console.log(config.script);
         }
       }
@@ -185,7 +185,7 @@ export default (Fez) => {
     // Check cache first
     if (Fez._fetchCache[cacheKey]) {
       const cachedData = Fez._fetchCache[cacheKey];
-      Fez.log(`fetch cache hit: ${method} ${url}`);
+      Fez.consoleLog(`fetch cache hit: ${method} ${url}`);
       if (callback) {
         callback(cachedData);
         return;
@@ -194,7 +194,7 @@ export default (Fez) => {
     }
 
     // Log live fetch
-    Fez.log(`fetch live: ${method} ${url}`);
+    Fez.consoleLog(`fetch live: ${method} ${url}`);
 
     // Helper to process and cache response
     const processResponse = (response) => {

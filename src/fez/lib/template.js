@@ -123,6 +123,6 @@ export default function createTemplate(text, opts = {}) {
   } catch(e) {
     e.message = `FEZ template compile error: ${e.message}Template source:\n${result}`
     console.error(e)
-    return ()=>Fez.error(`Template Compile Error`, true)
+    return ()=>Fez.consoleError(`Template Compile Error`, true)
   }
 }

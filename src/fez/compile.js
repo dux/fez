@@ -118,7 +118,7 @@ function compile_bulk(data) {
 }
 
 function compile_from_url(url) {
-  Fez.log(`Loading from ${url}`)
+  Fez.consoleLog(`Loading from ${url}`)
 
   // Load HTML content via AJAX from URL
   Fez.fetch(url)
@@ -195,14 +195,14 @@ function compile(tagName, html) {
     // best we can do it inform that node did not compile, so we assume there is an error
     setTimeout(()=>{
       if (!Fez.classes[tagName]) {
-        Fez.error(`Template "${tagName}" possible compile error. (can be a false positive, it imports are not loaded)`)
+        Fez.consoleError(`Template "${tagName}" possible compile error. (can be a false positive, it imports are not loaded)`)
       }
     }, 2000)
   } else {
     try {
       new Function(klass)()
     } catch(e) {
-      Fez.error(`Template "${tagName}" compile error: ${e.message}`)
+      Fez.consoleError(`Template "${tagName}" compile error: ${e.message}`)
       console.log(klass)
     }
   }

@@ -276,16 +276,16 @@ Fez('foo-bar', class {
   // Component-level: publishes bubble up to parent components until a subscriber is found
   this.publish('channel', data)          // publish from component, bubbles up to parents
   this.subscribe('channel', (data) => {}) // subscribe in component
-  
+
   // Global-level: publish to all subscribers (components and global listeners)
   Fez.publish('channel', data)            // publish globally
-  
+
   // Global subscribe: runs only if node is connected to DOM
   // Automatically removes subscription when node is disconnected
   Fez.subscribe(node, 'channel', callback)     // subscribe specific node
   Fez.subscribe('#myId', 'channel', callback)  // subscribe by selector
   Fez.subscribe('channel', callback)           // subscribe to document.body
-  
+
   // Manual unsubscribe (automatic cleanup happens when node disconnects)
   const unsub = Fez.subscribe('channel', callback)
   unsub() // manually remove subscription
@@ -369,10 +369,10 @@ Fez.cssClass(text)
 Fez.info()
 
 // inspect Fez or Svelte element, dumps props/state/template info to console
-Fez.dump(nodeOrSelector)
+Fez.log(nodeOrSelector)
 
 // Dev helper: press Cmd/Ctrl + E to toggle overlays highlighting each component on the page.
-// Click a label to call Fez.dump for that element automatically.
+// Click a label to call Fez.log for that element automatically.
 
 // low-level DOM morphing function
 Fez.morphdom(target, newNode, opts)

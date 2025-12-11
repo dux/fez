@@ -70,7 +70,7 @@ export default class FezBase {
   static formData(node) {
     const formNode = node.closest('form') || node.querySelector('form')
     if (!formNode) {
-      Fez.log('No form found for formData()')
+      Fez.consoleLog('No form found for formData()')
       return {}
     }
     const formData = new FormData(formNode)
@@ -496,7 +496,7 @@ export default class FezBase {
     const storedNode = this.fezMemoStore.get(newMemoElKey)
 
     if (storedNode) {
-      Fez.log(`Memoize restore ${this.fezName}: ${newMemoElKey}`)
+      Fez.consoleLog(`Memoize restore ${this.fezName}: ${newMemoElKey}`)
       newMemoEl.parentNode.replaceChild(storedNode.cloneNode(true), newMemoEl)
     } else {
       const oldMemoEl = this.root.querySelector('[fez-memoize]:not(.fez)')

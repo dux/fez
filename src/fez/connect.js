@@ -61,12 +61,14 @@ export default function connect(name, klass) {
 
     // Auto-mount global components to body
     if (klassObj.GLOBAL) {
-      document.body.appendChild(document.createElement(name))
+      Fez.onReady(() => {
+        document.body.appendChild(document.createElement(name))
+      })
     }
 
     klass = newKlass
 
-    Fez.log(`${name} compiled`)
+    Fez.consoleLog(`${name} compiled`)
   } else if (klass.html) {
     // If klass already has html property, process it
     klass.html = closeCustomTags(klass.html)
