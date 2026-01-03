@@ -286,6 +286,24 @@ export default (Fez) => {
     return ['1', 'true', 'on'].includes(String(val).toLowerCase())
   }
 
+  // get document unique ID
+  Fez.UID = 111
+  Fez.uid = () => {
+    return 'fez_uid_' + (++Fez.UID).toString(32)
+  }
+
+  // get global function pointer, used to pass functions to nested or inline elements
+  // <some-node :callback="${Fez.pointer(opts.callback)}" ...>
+  Fez.POINTER_SEQ = 0
+  Fez.POINTER = {}
+  Fez.pointer = (func) => {
+    if (typeof func == 'function') {
+      const uid = ++Fez.POINTER_SEQ
+      Fez.POINTER[uid] = func
+      return `Fez.POINTER[${uid}]`
+    }
+  }
+
   // Resolve a function from a string or function reference
   Fez.getFunction = (pointer) => {
     if (!pointer) {

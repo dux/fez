@@ -29,21 +29,32 @@ const loadDefaults = () => {
   })
 
   // include remote data from url
-  // <fez-inline :state="{count: 0}">
+  // <fez-inline :state="{count: 0}" :wait-for="()=>window.SpritePet">
   //   <button onclick="fez.state.count += 1">&plus;</button>
   //   {{ state.count }} * {{ state.count }} = {{ state.count * state.count }}
   // </fez-inline>
   Fez('fez-inline', class {
     init(props) {
+      // <fez-inline :wait-for="()=>window.SpritePet">
+      props['wait-for'] ||= ()=>true
+      Fez.untilTrue(() => {
+        if (props['wait-for']()) {
+          this.mountIt()
+          return true
+        }
+      }, 100)
+    }
+
+    mountIt() {
       const html = this.root.innerHTML
 
-      if (this.root.innerHTML.includes('<')) {
+      if (html) {
         const hash = Fez.fnv1(this.root.outerHTML)
         const nodeName = `inline-${hash}`
         Fez(nodeName, class {
           HTML = html
           init() {
-            Object.assign(this.state, props.state || {})
+            Object.assign(this.state, this.props.state || {})
           }
         })
 

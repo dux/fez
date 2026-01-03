@@ -1,4 +1,4 @@
-# Fez Framework Quick Reference for AI Assistants
+# Fez JS lib Quick Reference for AI Assistants
 
 ## Core Rules for Claude
 1. **ALWAYS** use Fez-specific syntax (NO React/Vue conventions)
@@ -12,92 +12,87 @@
 
 ## Component Structure
 
-Omit XMP tag when writing fez components in .fez files
-
 ```html
-<xmp fez="component-name">
-  <script>
-    // ES Module imports (optional)
-    import library from 'https://cdn.jsdelivr.net/npm/library/+esm'
+<script>
+  // ES Module imports (optional)
+  import library from 'https://cdn.jsdelivr.net/npm/library/+esm'
 
-    // Or load scripts/styles dynamically
-    Fez.head({js: 'https://cdn.example.com/script.js'})
-    Fez.head({css: 'https://cdn.example.com/styles.css'})
+  // Or load scripts/styles dynamically
+  Fez.head({js: 'https://cdn.example.com/script.js'})
+  Fez.head({css: 'https://cdn.example.com/styles.css'})
 
-    // FAST rendering control (optional)
-    FAST = true  // Renders immediately (no flicker)
-    // OR as a function for conditional behavior
-    FAST = (node) => !node.children.length  // Fast only if no children
+  // FAST rendering control (optional)
+  FAST = true  // Renders immediately (no flicker)
 
-    init(props) {
-      // Props are passed as parameter - use props.name, NOT this.prop('name')
-      // do not rewrite state, just add to it
-      this.state.count = props.count || 0
-      this.state.title = props.title || 'Default'
+  onInit(props) {
+    // Props are passed as parameter - use props.name, NOT this.prop('name')
+    // do not rewrite state, just add to it
+    this.state.count = props.count || 0
+    this.state.title = props.title || 'Default'
+  }
+
+  onMount(props) {
+    // Props also available in onMount - use props.name
+    // called after render() method
+    if (props.autoFocus) {
+      this.find('input').focus()
     }
-    onMount(props) {
-      // Props also available in onMount - use props.name
-      if (props.autoFocus) {
-        this.find('input').focus()
-      }
-    } // DOM-ready logic
-    onStateChange(key, value)	// React to state changes
-    onDestroy()	// Cleanup resources
-    onWindowResize() // on Window resize
-    onWindowScroll() // on window scroll
-    // Custom methods
+  } // DOM-ready logic
+  onDestroy()	// Cleanup resources
+  onWindowResize() // on Window resize
+  onWindowScroll() // on window scroll
+  // Custom methods
 
-    increment() {
-      this.state.count++  // Reactive assignment
-    }
-  </script>
+  increment() {
+    this.state.count++  // Reactive assignment
+  }
+</script>
 
-  <style>
-    /* Global styles (affects entire page) */
-    body {
-      background: #f5f5f5;
-    }
+<style>
+  /* Global styles (affects entire page) */
+  body {
+    background: #f5f5f5;
+  }
 
-    /* Component-scoped styles - ALWAYS use nested SCSS syntax */
-    :fez {
-      /* Direct styles on component root */
-      padding: 20px;
+  /* Component-scoped styles - ALWAYS use nested SCSS syntax */
+  :fez {
+    /* Direct styles on component root */
+    padding: 20px;
 
-      /* Nested elements - this is the PREFERRED pattern */
-      button {
-        background: gold;
-        cursor: pointer;
+    /* Nested elements - this is the PREFERRED pattern */
+    button {
+      background: gold;
+      cursor: pointer;
 
-        /* Deep nesting is encouraged */
-        span {
-          color: black;
-          font-weight: bold;
-        }
-
-        &:hover {
-          background: orange;
-        }
+      /* Deep nesting is encouraged */
+      span {
+        color: black;
+        font-weight: bold;
       }
 
-      .card {
-        border: 1px solid #ddd;
+      &:hover {
+        background: orange;
+      }
+    }
 
-        .header {
-          font-size: 18px;
+    .card {
+      border: 1px solid #ddd;
 
-          h3 {
-            margin: 0;
-          }
+      .header {
+        font-size: 18px;
+
+        h3 {
+          margin: 0;
         }
       }
     }
-  </style>
+  }
+</style>
 
-  <!-- Template -->
-  <button onclick="fez.increment()" name={{ state.buttonName }}>
-    Count: {{ state.count }}
-  </button>
-</xmp>
+<!-- Template -->
+<button onclick="fez.increment()" name={{ state.buttonName }}>
+  Count: {{ state.count }}
+</button>
 ```
 
 ## Essential Syntax
@@ -145,7 +140,7 @@ this.globalState.theme = "dark"  // Auto-publishes changes
 
 ```html
 <input fez-bind="state.username">      <!-- Two-way binding -->
-<div fez-this="myElement">             <!-- Element reference -->
+<div fez-this="myElement">             <!-- Element reference via this.myElement -->
 <input fez-use="el => el.foucs()">     <!-- DOM hook -->
 
 <!-- IMPORTANT: Use colon prefix for evaluated attributes (functions, objects, etc.) -->
@@ -160,6 +155,8 @@ this.globalState.theme = "dark"  // Auto-publishes changes
 
 ### Event Handling
 
+Use `fez.` to access locally scoped components.
+
 ```html
 <button onclick="fez.handleClick()">    <!-- Component method -->
 <div onclick="Fez(this).method()">      <!-- Access from children -->
@@ -169,7 +166,7 @@ this.globalState.theme = "dark"  // Auto-publishes changes
 
 ### Props Handling
 
-* **IMPORTANT**: Props are passed as parameter to `init(props)` and `onMount(props)`
+* **IMPORTANT**: Props are passed as parameter to `onInit(props)` and `onMount(props)`
 * Use `props.name` to access props, NOT `this.prop('name')`
 * **ALWAYS** use lowercase with underscores for prop names (e.g., `fill_color`, `read_only`, `stroke_width`)
 * **Use colon prefix (`:`) for evaluated attributes** - functions, objects, booleans:
@@ -197,55 +194,14 @@ this.globalState.theme = "dark"  // Auto-publishes changes
 
 ### State Management
 
-* Initialize ALL properties in init()
+* Initialize ALL properties in onInit()
 * Modify arrays/objects directly (they're deeply reactive)
 * Use onMount() for updates that need mounted template
-
-### Styling
-
-* **ALWAYS use nested SCSS syntax** - Fez includes Goober which supports full SCSS nesting
-* Scope component styles with `:fez` selector to avoid global conflicts
-* Use deep nesting for element hierarchies:
-  ```scss
-  :fez {
-    .container {
-      padding: 20px;
-
-      .header {
-        font-size: 24px;
-
-        h1 {
-          margin: 0;
-          color: #333;
-        }
-      }
-
-      button {
-        &:hover { background: #f0f0f0; }
-        &.active { background: #007bff; }
-      }
-    }
-  }
-  ```
-* Avoid flat CSS selectors - embrace nesting for better organization
-* Use `&` for pseudo-selectors and modifiers
 
 ### Performance
 
 * Use throttled events: this.on('scroll', callback, 100)
-* Prefer fez-class for animations
-* Components are automatically rendered with optimized batching
-* Use `FAST = true` for components that don't work with slots to prevent render flicker
-* FAST rendering example:
-  ```javascript
-  // Always fast (no slots)
-  class { FAST = true }
-  
-  // Conditional fast rendering
-  class { 
-    FAST = (node) => node.hasAttribute('title')  // Fast if has title, slow if needs innerHTML
-  }
-  ```
+=* Use `FAST = true` for components that don't work with slots to prevent render flicker
 
 ### Component Communication
 

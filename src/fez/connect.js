@@ -172,7 +172,7 @@ function connectNode(name, node) {
     newNode.fez = fez
 
     if (klass.GLOBAL && klass.GLOBAL != true) {
-      window[klass.GLOBAL] = fez
+      window[klass.GLOBAL] ||= fez
     }
 
     if (window.$) {
@@ -187,7 +187,7 @@ function connectNode(name, node) {
     fez.fezRegister()
 
     // Call initialization method (init, created, or connect)
-    ;(fez.init || fez.created || fez.connect).bind(fez)(fez.props)
+    ;(fez.onInit || fez.init || fez.created || fez.connect).bind(fez)(fez.props)
 
     // Initial render
     fez.render()
