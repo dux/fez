@@ -1,0 +1,8 @@
+<script>
+  onInit() {
+    this.state.visible = true
+  }
+</script>
+
+{{if state.visible}}
+  <div>Visible content</div>

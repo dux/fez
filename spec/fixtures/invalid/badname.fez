@@ -1,0 +1,7 @@
+<script>
+  onInit() {
+    this.state.value = 'test'
+  }
+</script>
+
+<div>{{ state.value }}</div>

@@ -10,10 +10,29 @@ import connect from './connect.js'
 import compile from './compile.js'
 import state from './lib/global-state.js'
 
-// Fez('ui-slider')                             # first slider
-// Fez('ui-slider', (n)=>alert(n))              # find all and execute
-// Fez(this, 'ui-slider')                       # first parent ui-slider
-// Fez('ui-slider', class { init() { ... }}) # create Fez dom node
+/**
+ * Fez - Main framework function for component registration and lookup
+ *
+ * @example
+ * // Register a component
+ * Fez('ui-slider', class { init() { ... } })
+ *
+ * // Find first instance by name
+ * Fez('ui-slider')
+ *
+ * // Find by UID
+ * Fez(123)
+ *
+ * // Find all instances and execute callback
+ * Fez('ui-slider', (instance) => console.log(instance))
+ *
+ * // Find from DOM node
+ * Fez(domNode)
+ *
+ * @param {string|number|Node} name - Component name, UID, or DOM node
+ * @param {Class|Function} [klass] - Component class or callback function
+ * @returns {FezBase|Array|void} Component instance, array of instances, or void
+ */
 const Fez = (name, klass) => {
   if(typeof name === 'number') {
     const fez = Fez.instances.get(name)
@@ -58,10 +77,21 @@ const Fez = (name, klass) => {
   }
 }
 
+/** Registered component classes by name */
 Fez.classes = {}
+
+/** Counter for generating unique instance IDs */
 Fez.instanceCount = 0
+
+/** Map of all active component instances by UID */
 Fez.instances = new Map()
 
+/**
+ * Find a Fez component instance from a DOM node
+ * @param {Node|string} onode - DOM node or selector string
+ * @param {string} [name] - Optional component name to filter by
+ * @returns {FezBase|undefined} The component instance or undefined
+ */
 Fez.find = (onode, name) => {
   let node = onode
 
@@ -79,14 +109,27 @@ Fez.find = (onode, name) => {
   if (closestNode && closestNode.fez) {
     return closestNode.fez
   } else {
-    console.error('Fez node connector not found', onode, node)
+    Fez.onError('find', 'Node connector not found', { original: onode, resolved: node })
   }
 }
 
+/**
+ * Generate a unique CSS class name from CSS text using Goober
+ * @param {string} text - CSS rules to process
+ * @returns {string} Generated unique class name
+ */
 Fez.cssClass = (text) => {
   return Gobber.css(text)
 }
 
+/**
+ * Register global CSS styles for a component
+ * @param {string|Function} cssClass - CSS text or function returning CSS
+ * @param {Object} [opts] - Options
+ * @param {string} [opts.name] - Component name for scoping
+ * @param {boolean} [opts.wrap] - Wrap CSS in :fez selector
+ * @returns {string} Generated class name
+ */
 Fez.globalCss = (cssClass, opts = {}) => {
   if (typeof cssClass === 'function') {
     cssClass = cssClass()
@@ -118,6 +161,13 @@ Fez.info = () => {
   console.log('Fez components:', Object.keys(Fez.classes || {}))
 }
 
+/**
+ * Morph one DOM node into another using Idiomorph
+ * Preserves event handlers and minimizes DOM mutations
+ * @param {Element} target - Target element to morph
+ * @param {Element} newNode - New element state to morph into
+ * @param {Object} [opts] - Idiomorph options
+ */
 Fez.morphdom = (target, newNode, opts = {}) => {
   Array.from(target.attributes).forEach(attr => {
     newNode.setAttribute(attr.name, attr.value)
@@ -136,6 +186,11 @@ Fez.morphdom = (target, newNode, opts = {}) => {
 
 Fez._globalSubs ||= new Map()
 
+/**
+ * Publish an event to all subscribers on a channel
+ * @param {string} channel - Event channel name
+ * @param {...any} args - Arguments to pass to subscribers
+ */
 Fez.publish = (channel, ...args) => {
   Fez._subs ||= {}
   Fez._subs[channel] ||= []
@@ -157,6 +212,13 @@ Fez.publish = (channel, ...args) => {
   }
 }
 
+/**
+ * Subscribe to events on a channel
+ * @param {Node|string} node - DOM node, selector, or event name (if using simplified syntax)
+ * @param {string|Function} eventName - Event name or callback (if node is event name)
+ * @param {Function} [callback] - Event handler callback
+ * @returns {Function} Unsubscribe function
+ */
 Fez.subscribe = (node, eventName, callback) => {
   // If second arg is function, shift arguments
   if (typeof eventName === 'function') {
@@ -207,13 +269,12 @@ Fez.consoleLog = (text) => {
   }
 }
 
-Fez.onError = (kind, message) => {
-  // Ensure kind is always a string
-  if (typeof kind !== 'string') {
-    throw new Error('Fez.onError: kind must be a string');
-  }
-
-  console.error(`${kind}: ${message.toString()}`);
+// Error handler - can be overridden by user for custom error handling
+// Usage: Fez.onError = (kind, message, context) => { ... }
+Fez.onError = (kind, message, context) => {
+  const errorMsg = `Fez ${kind}: ${message?.toString?.() || message}`
+  console.error(errorMsg, context || '')
+  return errorMsg
 }
 
 // work with tmp store

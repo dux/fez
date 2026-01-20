@@ -1,0 +1,8 @@
+<script>
+  onInit() {
+    this.state.count = 0
+    let x =   // syntax error - incomplete assignment
+  }
+</script>
+
+<div>{{ state.count }}</div>

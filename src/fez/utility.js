@@ -121,6 +121,10 @@ export default (Fez) => {
     return element;
   }
 
+  // Cache configuration
+  const FETCH_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+  const FETCH_CACHE_MAX_SIZE = 100
+
   // Fetch wrapper with automatic caching and data handling
   // Usage:
   //   Fez.fetch(url) - GET request (default)
@@ -134,7 +138,7 @@ export default (Fez) => {
   //   - POST: sent as FormData (multipart/form-data) without custom headers
   Fez.fetch = function(...args) {
     // Initialize cache if not exists
-    Fez._fetchCache ||= {};
+    Fez._fetchCache ||= new Map()
 
     let method = 'GET';
     let url;
@@ -180,17 +184,17 @@ export default (Fez) => {
     opts.method = method;
 
     // Create cache key from method, url, and stringified opts
-    const cacheKey = `${method}:${url}:${JSON.stringify(opts)}`;
+    const cacheKey = `${method}:${url}:${JSON.stringify(opts)}`
 
-    // Check cache first
-    if (Fez._fetchCache[cacheKey]) {
-      const cachedData = Fez._fetchCache[cacheKey];
-      Fez.consoleLog(`fetch cache hit: ${method} ${url}`);
+    // Check cache first (with TTL validation)
+    const cached = Fez._fetchCache.get(cacheKey)
+    if (cached && (Date.now() - cached.timestamp < FETCH_CACHE_TTL)) {
+      Fez.consoleLog(`fetch cache hit: ${method} ${url}`)
       if (callback) {
-        callback(cachedData);
-        return;
+        callback(cached.data)
+        return
       }
-      return Promise.resolve(cachedData);
+      return Promise.resolve(cached.data)
     }
 
     // Log live fetch
@@ -199,30 +203,45 @@ export default (Fez) => {
     // Helper to process and cache response
     const processResponse = (response) => {
       if (response.headers.get('content-type')?.includes('application/json')) {
-        return response.json();
+        return response.json()
       }
-      return response.text();
-    };
+      return response.text()
+    }
+
+    // Helper to store in cache with size limit
+    const storeInCache = (key, data) => {
+      // Enforce max cache size by removing oldest entries
+      if (Fez._fetchCache.size >= FETCH_CACHE_MAX_SIZE) {
+        const oldestKey = Fez._fetchCache.keys().next().value
+        Fez._fetchCache.delete(oldestKey)
+      }
+      Fez._fetchCache.set(key, { data, timestamp: Date.now() })
+    }
 
     // If callback provided, execute and handle
     if (callback) {
       fetch(url, opts)
         .then(processResponse)
         .then(data => {
-          Fez._fetchCache[cacheKey] = data;
-          callback(data);
+          storeInCache(cacheKey, data)
+          callback(data)
         })
-        .catch(error => Fez.onError('fetch', error));
-      return;
+        .catch(error => Fez.onError('fetch', error))
+      return
     }
 
     // Return promise with automatic JSON parsing
     return fetch(url, opts)
       .then(processResponse)
       .then(data => {
-        Fez._fetchCache[cacheKey] = data;
-        return data;
-      });
+        storeInCache(cacheKey, data)
+        return data
+      })
+  }
+
+  // Clear fetch cache (useful for testing or manual cache invalidation)
+  Fez.clearFetchCache = () => {
+    Fez._fetchCache?.clear()
   }
 
   Fez.darkenColor = (color, percent = 20) => {
@@ -245,22 +264,21 @@ export default (Fez) => {
     return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1)
   }
 
+  /**
+   * Escapes HTML special characters in a string
+   * Also strips font-family styles (common source of XSS via CSS)
+   */
   Fez.htmlEscape = (text) => {
-    if (typeof text == 'string') {
-      text = text
-        // .replaceAll('&', "&amp;")
-        .replace(/font-family\s*:\s*(?:&[^;]+;|[^;])*?;/gi, '')
-        .replaceAll("&", '&amp;')
+    if (typeof text === 'string') {
+      return text
+        .replace(/font-family\s*:\s*(?:&[^;]+;|[^;])*?;/gi, '') // Strip font-family (CSS safety)
+        .replaceAll('&', '&amp;')
         .replaceAll("'", '&apos;')
         .replaceAll('"', '&quot;')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
-        // .replaceAll('@', '&#64;') // needed for template escaping
-
-      return text
-    } else {
-      return text === undefined ? '' : text
     }
+    return text === undefined ? '' : text
   }
 
   // create dom root and return it
@@ -294,14 +312,33 @@ export default (Fez) => {
 
   // get global function pointer, used to pass functions to nested or inline elements
   // <some-node :callback="${Fez.pointer(opts.callback)}" ...>
+  // Pointers are automatically cleaned up after first use (one-time use by default)
+  // Use Fez.pointer(func, { persist: true }) to keep the pointer
   Fez.POINTER_SEQ = 0
   Fez.POINTER = {}
-  Fez.pointer = (func) => {
+  Fez.pointer = (func, opts = {}) => {
     if (typeof func == 'function') {
       const uid = ++Fez.POINTER_SEQ
-      Fez.POINTER[uid] = func
+
+      if (opts.persist) {
+        // Persistent pointer - stays until manually removed
+        Fez.POINTER[uid] = func
+      } else {
+        // One-time use pointer - auto-cleanup after first call
+        Fez.POINTER[uid] = (...args) => {
+          const result = func(...args)
+          delete Fez.POINTER[uid]
+          return result
+        }
+      }
+
       return `Fez.POINTER[${uid}]`
     }
+  }
+
+  // Manually clear all pointers (useful for testing or cleanup)
+  Fez.clearPointers = () => {
+    Fez.POINTER = {}
   }
 
   // Resolve a function from a string or function reference
@@ -373,8 +410,11 @@ export default (Fez) => {
     }
   }
 
+  // Default throttle delay in ms
+  const DEFAULT_THROTTLE_DELAY = 200
+
   // throttle function calls
-  Fez.throttle = (func, delay = 200) => {
+  Fez.throttle = (func, delay = DEFAULT_THROTTLE_DELAY) => {
     let lastRun = 0;
     let timeout;
 
@@ -394,18 +434,4 @@ export default (Fez) => {
     };
   }
 
-  // const firstTimeHash = new Map()
-  // Fez.firstTime = (key, func) => {
-  //   if ( !firstTimeHash.get(key) ) {
-  //     firstTimeHash.set(key, true)
-
-  //     if (func) {
-  //       func()
-  //     }
-
-  //     return true
-  //   }
-
-  //   return false
-  // }
 }

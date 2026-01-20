@@ -3,10 +3,22 @@
 require 'pathname'
 require 'json'
 
-# Check if argument is provided
-if ARGV.empty?
-  puts "Usage: #{$0} <directory>"
-  exit 1
+INFO = 'Generate JSON index of files in a directory'
+
+if ARGV[0] == '--info'
+  puts INFO
+  exit 0
+end
+
+if ARGV.empty? || ARGV[0] == '-h' || ARGV[0] == '--help'
+  puts "Usage: fez index <directory>"
+  puts ""
+  puts INFO
+  puts ""
+  puts "Examples:"
+  puts "  fez index demo/fez"
+  puts "  fez index assets/*"
+  exit 0
 end
 
 dir = ARGV[0]

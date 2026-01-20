@@ -9,16 +9,18 @@ if (typeof window !== 'undefined') window.Fez = Fez
 // Load defaults after Fez is properly initialized
 import('./fez/defaults.js')
 
+// Configuration constants
+const GC_INTERVAL = 5_000 // Garbage collection interval in ms
+
 // clear all unattached nodes
 setInterval(() => {
   for (const [key, el] of Fez.instances) {
     if (!el?.isConnected) {
-      // Fez.consoleError(`Found junk instance that is not connected ${el.fezName}`)
       el.fez?.fezOnDestroy()
       Fez.instances.delete(key)
     }
   }
-}, 5_000)
+}, GC_INTERVAL)
 
 // define Fez observer
 const observer = new MutationObserver((mutations) => {

@@ -1,0 +1,17 @@
+<script>
+  const CONFIG = { maxItems: 10 }
+
+  class {
+    onInit() {
+      this.state.items = []
+    }
+
+    addItem(item) {
+      if (this.state.items.length < CONFIG.maxItems) {
+        this.state.items.push(item)
+      }
+    }
+  }
+</script>
+
+<div>Items: {{ state.items.length }}</div>

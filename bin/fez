@@ -2,6 +2,9 @@
 
 require 'pathname'
 
+# Resolve the actual bin directory (handles symlinks from bunx/npx)
+bin_dir = Pathname.new(__FILE__).realpath.dirname
+
 command = ARGV[0]
 args = ARGV[1..-1]
 
@@ -10,22 +13,29 @@ if command.nil? || command == '--help' || command == '-h'
   puts ""
   puts "Available commands:"
   
-  bin_dir = Pathname.new(__FILE__).dirname
-  commands = Dir[bin_dir.join("fez-*")].map do |path|
+  subcommands = Dir[bin_dir.join("fez-*")].map do |path|
     File.basename(path).sub(/^fez-/, '')
   end.sort
   
-  commands.each do |cmd|
-    puts "  #{cmd}"
+  max_len = subcommands.map(&:length).max || 0
+  
+  subcommands.each do |cmd|
+    cmd_path = bin_dir.join("fez-#{cmd}")
+    info = `#{cmd_path} --info 2>/dev/null`.strip
+    if info.empty?
+      puts "  #{cmd}"
+    else
+      puts "  #{cmd.ljust(max_len)}  #{info}"
+    end
   end
   
   exit 0
 end
 
-subcommand_path = File.join(File.dirname(__FILE__), "fez-#{command}")
+subcommand_path = bin_dir.join("fez-#{command}")
 
 if File.exist?(subcommand_path) && File.executable?(subcommand_path)
-  exec(subcommand_path, *args)
+  exec(subcommand_path.to_s, *args)
 else
   puts "fez: '#{command}' is not a fez command. See 'fez --help'."
   exit 1

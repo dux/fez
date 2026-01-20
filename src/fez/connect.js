@@ -110,18 +110,26 @@ export default function connect(name, klass) {
   }
 }
 
+/**
+ * Determines if component should render synchronously (fast) or async
+ * Fast render is used when:
+ * - Component has FAST class property set
+ * - Node has fez-fast attribute
+ * - Node has child content or siblings (to preserve DOM order)
+ */
 function useFastRender(node, klass) {
-  const fezFast = node.getAttribute('fez-fast')
-  var isFast = typeof klass.FAST === 'function' ? klass.FAST(node) : klass.FAST
-  if (fezFast || isFast || node.childNodes[0] || node.nextSibling) {
-    return true
-  }
-  else if (fezFast == 'false') {
+  const fezFastAttr = node.getAttribute('fez-fast')
+
+  // Explicit false attribute takes precedence
+  if (fezFastAttr === 'false') {
     return false
   }
-  else {
-    return false
-  }
+
+  // Check class-level FAST setting (can be function or boolean)
+  const klassFast = typeof klass.FAST === 'function' ? klass.FAST(node) : klass.FAST
+
+  // Fast render if any condition is true
+  return !!(fezFastAttr || klassFast || node.childNodes[0] || node.nextSibling)
 }
 
 /**

@@ -1,3 +1,7 @@
+// Template cache to avoid recompiling the same templates
+const templateCache = new Map()
+const TEMPLATE_CACHE_MAX_SIZE = 200
+
 function parseBlock(data, ifStack) {
   data = data
     .replace(/^#?raw/, '@html')
@@ -58,6 +62,12 @@ function parseBlock(data, ifStack) {
 // let tpl = createTemplate(string)
 // tpl({ ... this state ...})
 export default function createTemplate(text, opts = {}) {
+  // Check cache first
+  const cacheKey = text
+  if (templateCache.has(cacheKey)) {
+    return templateCache.get(cacheKey)
+  }
+
   const ifStack = []
 
   // some templating engines, as GoLangs use {{ for templates. Allow usage of [[ for fez
@@ -110,7 +120,7 @@ export default function createTemplate(text, opts = {}) {
         return ${result}
       }
     `
-    const tplFunc = new Function(funcBody);
+    const tplFunc = new Function(funcBody)
     const outFunc = (o) => {
       try {
         return tplFunc.bind(o)()
@@ -119,10 +129,23 @@ export default function createTemplate(text, opts = {}) {
         console.error(e)
       }
     }
+
+    // Store in cache with size limit
+    if (templateCache.size >= TEMPLATE_CACHE_MAX_SIZE) {
+      const oldestKey = templateCache.keys().next().value
+      templateCache.delete(oldestKey)
+    }
+    templateCache.set(cacheKey, outFunc)
+
     return outFunc
   } catch(e) {
     e.message = `FEZ template compile error: ${e.message}Template source:\n${result}`
     console.error(e)
-    return ()=>Fez.consoleError(`Template Compile Error`, true)
+    return () => Fez.consoleError(`Template Compile Error`, true)
   }
+}
+
+// Clear template cache (useful for testing)
+export function clearTemplateCache() {
+  templateCache.clear()
 }

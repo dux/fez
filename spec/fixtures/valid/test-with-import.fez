@@ -1,0 +1,19 @@
+<script>
+  import lib from 'https://cdn.example.com/lib.js'
+
+  class {
+    onInit() {
+      this.state.data = null
+    }
+
+    async loadData() {
+      this.state.data = await lib.fetch('/api/data')
+    }
+  }
+</script>
+
+{{if state.data}}
+  <div>{{ state.data }}</div>
+{{else}}
+  <div>Loading...</div>
+{{/if}}

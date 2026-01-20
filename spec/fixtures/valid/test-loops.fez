@@ -1,0 +1,12 @@
+<script>
+  onInit() {
+    this.state.items = ['apple', 'banana', 'cherry']
+    this.state.showAll = true
+  }
+</script>
+
+{{if state.showAll}}
+  {{for item in state.items}}
+    <div>{{ item }}</div>
+  {{/for}}
+{{/if}}

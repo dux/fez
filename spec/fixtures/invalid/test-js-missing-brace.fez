@@ -1,0 +1,10 @@
+<script>
+  onInit() {
+    this.state.active = false
+    if (true) {
+      console.log('test')
+    // missing closing brace
+  }
+</script>
+
+<div>Active: {{ state.active }}</div>

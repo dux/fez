@@ -1,0 +1,8 @@
+<script>
+  onInit() {
+    this.state.active = true
+  }
+</script>
+
+<!-- This is wrong - should use ternary instead -->
+<div class="{{if state.active}}active{{/if}}">Content</div>

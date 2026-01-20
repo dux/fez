@@ -1,0 +1,21 @@
+<script>
+  onInit() {
+    this.state.count = 0
+  }
+
+  increment() {
+    this.state.count++
+  }
+</script>
+
+<style>
+  :fez {
+    padding: 10px;
+
+    button {
+      background: blue;
+    }
+  }
+</style>
+
+<button onclick="fez.increment()">Count: {{ state.count }}</button>

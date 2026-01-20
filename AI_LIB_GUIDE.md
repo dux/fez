@@ -1,5 +1,15 @@
 # Fez JS lib Quick Reference for AI Assistants
 
+## CLI Tools
+
+```bash
+# Compile and validate components - catches JS syntax errors and template issues
+bunx @dinoreic/fez compile path/to/component.fez
+
+# Compile multiple files
+bunx @dinoreic/fez compile demo/fez/*.fez
+```
+
 ## Core Rules for Claude
 1. **ALWAYS** use Fez-specific syntax (NO React/Vue conventions)
 2. **NEVER** use hooks - `this.state` replaces useState/useEffect

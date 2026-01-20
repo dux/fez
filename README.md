@@ -19,6 +19,22 @@ It uses minimal abstraction. You will learn to use it in 15 minutes, just look a
 
 `<script src="https://dux.github.io/fez/dist/fez.js"></script>`
 
+## CLI Tools
+
+Fez provides command-line tools for development:
+
+```bash
+# Compile and validate Fez components
+bunx @dinoreic/fez compile demo/fez/*.fez
+```
+
+Or install globally:
+
+```bash
+bun add -g @dinoreic/fez
+fez compile my-component.fez
+```
+
 ## Little more details
 
 Uses DOM as a source of truth and tries to be as close to vanilla JS as possible. There is nothing to learn or "fight", or overload or "monkey patch" or anything. It just works.

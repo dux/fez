@@ -12,7 +12,9 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "fez": "bin/fez"
+    "fez": "bin/fez",
+    "fez-compile": "bin/fez-compile",
+    "fez-index": "bin/fez-index"
   },
   "files": [
     "bin",

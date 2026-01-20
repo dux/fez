@@ -2,8 +2,18 @@
 import parseNode from './lib/n.js'
 import createTemplate from './lib/template.js'
 
+/**
+ * FezBase - Base class for all Fez components
+ * Provides lifecycle hooks, reactive state, DOM utilities, and template rendering
+ */
 export default class FezBase {
-  // get node attributes as object
+  /**
+   * Extract props from a DOM node's attributes
+   * Handles :attr syntax for evaluated expressions and data-props JSON
+   * @param {Element} node - Source DOM node
+   * @param {Element} newNode - New node context for evaluation
+   * @returns {Object} Props object
+   */
   static getProps(node, newNode) {
     let attrs = {}
 
@@ -26,7 +36,7 @@ export default class FezBase {
           attrs[key.replace(/[\:_]/, '')] = newVal
 
         } catch (e) {
-          console.error(`Fez: Error evaluating attribute ${key}="${val}" for ${node.tagName}: ${e.message}`)
+          Fez.onError('attr', `Error evaluating ${key}="${val}" for ${node.tagName}: ${e.message}`)
         }
       }
     }
@@ -44,7 +54,7 @@ export default class FezBase {
         try {
           attrs = JSON.parse(data)
         } catch (e) {
-          console.error(`Fez: Invalid JSON in data-props for ${node.tagName}: ${e.message}`)
+          Fez.onError('props', `Invalid JSON in data-props for ${node.tagName}: ${e.message}`)
         }
       }
     }
@@ -59,7 +69,7 @@ export default class FezBase {
           attrs = JSON.parse(data)
           newNode.previousSibling.remove()
         } catch (e) {
-          console.error(`Fez: Invalid JSON in template for ${node.tagName}: ${e.message}`)
+          Fez.onError('props', `Invalid JSON in template for ${node.tagName}: ${e.message}`)
         }
       }
     }
@@ -147,12 +157,12 @@ export default class FezBase {
     if (this._onDestroyCallbacks) {
       this._onDestroyCallbacks.forEach(callback => {
         try {
-          callback();
+          callback()
         } catch (e) {
-          console.error('Fez: Error in cleanup callback:', e);
+          Fez.onError('destroy', 'Error in cleanup callback', e)
         }
-      });
-      this._onDestroyCallbacks = [];
+      })
+      this._onDestroyCallbacks = []
     }
 
     // Call user's onDestroy lifecycle hook
@@ -327,11 +337,11 @@ export default class FezBase {
     }
   }
 
-  // inject htmlString as innerHTML and replace $$. with local pointer
-  // $$. will point to current fez instance
-  // <slot></slot> will be replaced with current root
-  // this.render('...loading')
-  // this.render('.images', '...loading')
+  /**
+   * Render the component template to DOM
+   * Uses Idiomorph for efficient DOM diffing and patching
+   * @param {string|Array|Function} [template] - Template to render (defaults to class HTML)
+   */
   render(template) {
     template ||= this?.class?.fezHtmlFunc
 
@@ -409,7 +419,7 @@ export default class FezBase {
           if (typeof target == 'function') {
             target(n)
           } else {
-            console.error(`Fez error: "${value}" is not a function in ${this.fezName}`)
+            Fez.onError('fez-use', `"${value}" is not a function in ${this.fezName}`)
           }
         }
       }
@@ -436,7 +446,7 @@ export default class FezBase {
         n.setAttribute(eventName, `${this.fezHtmlRoot}${text} = this.${isCb ? 'checked' : 'value'}`)
         this.val(n, value)
       } else {
-        console.error(`Cant fez-bind="${text}" to ${n.nodeName} (needs INPUT, SELECT or TEXTAREA. Want to use fez-this?).`)
+        Fez.onError('fez-bind', `Can't bind "${text}" to ${n.nodeName} (needs INPUT, SELECT or TEXTAREA)`)
       }
     })
 
@@ -507,17 +517,7 @@ export default class FezBase {
     }
   }
 
-  // refresh single node only
-  refresh(selector) {
-    alert('NEEDS FIX and remove htmlTemplate')
-    if (selector) {
-      const n = Fez.domRoot(this.class.htmlTemplate)
-      const tpl = n.querySelector(selector).innerHTML
-      this.render(selector, tpl)
-    } else {
-      this.render()
-    }
-  }
+
 
   // run only if node is attached, clear otherwise
   setInterval(func, tick, name) {
@@ -671,6 +671,12 @@ export default class FezBase {
     return nodes
   }
 
+  /**
+   * Create a reactive store that triggers re-renders on changes
+   * @param {Object} [obj] - Initial state object
+   * @param {Function} [handler] - Custom change handler
+   * @returns {Proxy} Reactive proxy object
+   */
   reactiveStore(obj, handler) {
     obj ||= {}
 

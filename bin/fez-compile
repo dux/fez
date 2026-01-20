@@ -1,0 +1,256 @@
+#!/usr/bin/env bun
+
+import { parseArgs } from 'util'
+import fs from 'fs'
+import path from 'path'
+
+const INFO = 'Compile Fez components and report errors'
+
+const { values, positionals } = parseArgs({
+  args: Bun.argv.slice(2),
+  options: {
+    help: { type: 'boolean', short: 'h' },
+    verbose: { type: 'boolean', short: 'v' },
+    info: { type: 'boolean' },
+  },
+  allowPositionals: true,
+})
+
+if (values.info) {
+  console.log(INFO)
+  process.exit(0)
+}
+
+if (values.help || positionals.length === 0) {
+  console.log(`Usage: fez compile <file.fez> [file2.fez ...]
+
+${INFO}
+
+Options:
+  -h, --help     Show this help message
+  -v, --verbose  Show detailed output
+
+Examples:
+  fez compile demo/fez/ui-counter.fez
+  fez compile demo/fez/*.fez
+`)
+  process.exit(0)
+}
+
+// Parse a .fez file into its components
+function parseFezFile(content) {
+  const result = { script: '', style: '', html: '', head: '' }
+  const lines = content.split('\n')
+
+  let currentBlock = []
+  let currentType = ''
+
+  for (let line of lines) {
+    const trimmedLine = line.trim()
+    
+    if (trimmedLine.startsWith('<script') && !result.script && currentType !== 'head') {
+      currentType = 'script'
+    } else if (trimmedLine.startsWith('<head') && !result.script) {
+      currentType = 'head'
+    } else if (trimmedLine.startsWith('<style')) {
+      currentType = 'style'
+    } else if (trimmedLine.endsWith('</script>') && currentType === 'script' && !result.script) {
+      result.script = currentBlock.join('\n')
+      currentBlock = []
+      currentType = null
+    } else if (trimmedLine.endsWith('</style>') && currentType === 'style') {
+      result.style = currentBlock.join('\n')
+      currentBlock = []
+      currentType = null
+    } else if ((trimmedLine.endsWith('</head>') || trimmedLine.endsWith('</header>')) && currentType === 'head') {
+      result.head = currentBlock.join('\n')
+      currentBlock = []
+      currentType = null
+    } else if (currentType) {
+      currentBlock.push(line)
+    } else {
+      result.html += line + '\n'
+    }
+  }
+
+  return result
+}
+
+// Wrap script content in a class if not already wrapped
+function wrapInClass(script) {
+  if (/class\s+\{/.test(script)) {
+    return script
+  }
+  return `class {\n${script}\n}`
+}
+
+// Validate JavaScript syntax
+function validateScript(script, filePath) {
+  const errors = []
+  
+  if (!script.trim()) {
+    return errors
+  }
+
+  // Check for ES module imports
+  const hasImports = /^\s*import\s+/m.test(script)
+  
+  // Check if script has explicit class { } declaration
+  const hasExplicitClass = /class\s+\{/.test(script)
+  
+  if (hasExplicitClass) {
+    // Split into parts: imports/top-level code and class
+    let parts = script.split(/class\s+\{/, 2)
+    let preamble = parts[0] || ''
+    let classBody = parts[1] ? `class {\n${parts[1]}` : ''
+    
+    // Validate preamble (imports, const declarations)
+    if (preamble.trim()) {
+      // Remove import statements for validation (they're valid but can't be validated with new Function)
+      let preambleWithoutImports = preamble.replace(/^\s*import\s+.*$/gm, '// import removed')
+      
+      if (preambleWithoutImports.trim()) {
+        try {
+          new Function(preambleWithoutImports)
+        } catch (e) {
+          if (!hasImports || !e.message.includes('import')) {
+            const lineMatch = e.stack?.match(/<anonymous>:(\d+):(\d+)/)
+            let errorInfo = { message: e.message, file: filePath }
+            if (lineMatch) {
+              errorInfo.line = parseInt(lineMatch[1])
+              errorInfo.column = parseInt(lineMatch[2])
+            }
+            errors.push(errorInfo)
+          }
+        }
+      }
+    }
+    
+    // Validate class body
+    if (classBody.trim()) {
+      const code = `(${classBody})`
+      try {
+        new Function(code)
+      } catch (e) {
+        const lineMatch = e.stack?.match(/<anonymous>:(\d+):(\d+)/)
+        let errorInfo = { message: e.message, file: filePath }
+        if (lineMatch) {
+          // Adjust for preamble lines
+          const preambleLines = preamble.split('\n').length
+          errorInfo.line = parseInt(lineMatch[1]) + preambleLines - 2
+          errorInfo.column = parseInt(lineMatch[2])
+        }
+        errors.push(errorInfo)
+      }
+    }
+  } else {
+    // No explicit class - wrap entire script in class
+    let klass = wrapInClass(script)
+    const code = `(${klass})`
+    try {
+      new Function(code)
+    } catch (e) {
+      const lineMatch = e.stack?.match(/<anonymous>:(\d+):(\d+)/)
+      let errorInfo = { message: e.message, file: filePath }
+      if (lineMatch) {
+        errorInfo.line = parseInt(lineMatch[1]) - 2
+        errorInfo.column = parseInt(lineMatch[2])
+      }
+      errors.push(errorInfo)
+    }
+  }
+
+  return errors
+}
+
+// Validate template syntax (basic checks)
+function validateTemplate(html, filePath) {
+  const errors = []
+  
+  // Count both {{if and {{#if variants
+  const ifOpens = (html.match(/\{\{#?if\s/g) || []).length
+  const ifCloses = (html.match(/\{\{\/?#?if\}\}/g) || []).length
+  if (ifOpens !== ifCloses) {
+    errors.push({
+      message: `Unmatched {{if}} blocks: ${ifOpens} opens, ${ifCloses} closes`,
+      file: filePath
+    })
+  }
+
+  // Check for unmatched {{for}}/{{/for}}
+  const forOpens = (html.match(/\{\{for\s/g) || []).length
+  const forCloses = (html.match(/\{\{\/for\}\}/g) || []).length
+  if (forOpens !== forCloses) {
+    errors.push({
+      message: `Unmatched {{for}} blocks: ${forOpens} opens, ${forCloses} closes`,
+      file: filePath
+    })
+  }
+
+  // Check for {{if}} inside attributes (common mistake)
+  const attrIfMatch = html.match(/\w+=["'][^"']*\{\{#?if\s/g)
+  if (attrIfMatch) {
+    errors.push({
+      message: `{{if}} block found inside attribute - use ternary operator instead`,
+      file: filePath
+    })
+  }
+
+  return errors
+}
+
+// Process a single file
+function compileFile(filePath) {
+  const errors = []
+  const absolutePath = path.resolve(filePath)
+  
+  if (!fs.existsSync(absolutePath)) {
+    return [{ message: `File not found: ${filePath}`, file: filePath }]
+  }
+
+  const content = fs.readFileSync(absolutePath, 'utf-8')
+  const componentName = path.basename(filePath, '.fez')
+  
+  // Validate component name has a dash
+  if (!componentName.includes('-')) {
+    errors.push({
+      message: `Invalid component name "${componentName}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`,
+      file: filePath
+    })
+  }
+
+  const parsed = parseFezFile(content)
+  
+  // Validate script
+  errors.push(...validateScript(parsed.script, filePath))
+  
+  // Validate template
+  errors.push(...validateTemplate(parsed.html, filePath))
+
+  return errors
+}
+
+// Main execution
+let totalErrors = 0
+let filesProcessed = 0
+
+for (const filePath of positionals) {
+  filesProcessed++
+  const errors = compileFile(filePath)
+  
+  if (errors.length > 0) {
+    totalErrors += errors.length
+    for (const error of errors) {
+      const location = error.line ? `:${error.line}${error.column ? ':' + error.column : ''}` : ''
+      console.error(`${error.file}${location}: ${error.message}`)
+    }
+  } else if (values.verbose) {
+    console.log(`${filePath}: OK`)
+  }
+}
+
+if (values.verbose || totalErrors > 0) {
+  console.log(`\nProcessed ${filesProcessed} file(s), ${totalErrors} error(s)`)
+}
+
+process.exit(totalErrors > 0 ? 1 : 0)

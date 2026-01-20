@@ -145,7 +145,7 @@ function compile_from_url(url) {
       }
     })
     .catch(error => {
-      console.error(`FEZ template load error for "${url}": ${error.message}`)
+      Fez.onError('compile', `Template load error for "${url}": ${error.message}`)
     })
 }
 
