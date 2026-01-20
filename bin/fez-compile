@@ -11,6 +11,7 @@ const { values, positionals } = parseArgs({
   options: {
     help: { type: 'boolean', short: 'h' },
     verbose: { type: 'boolean', short: 'v' },
+    output: { type: 'boolean', short: 'o' },
     info: { type: 'boolean' },
   },
   allowPositionals: true,
@@ -22,19 +23,25 @@ if (values.info) {
 }
 
 if (values.help || positionals.length === 0) {
-  console.log(`Usage: fez compile <file.fez> [file2.fez ...]
+  console.log(`Usage: fez compile <file.fez>
 
 ${INFO}
 
 Options:
   -h, --help     Show this help message
   -v, --verbose  Show detailed output
+  -o, --output   Output compiled JavaScript to stdout (on success)
 
 Examples:
   fez compile demo/fez/ui-counter.fez
-  fez compile demo/fez/*.fez
+  fez compile -o demo/fez/ui-counter.fez > compiled.js
 `)
   process.exit(0)
+}
+
+if (positionals.length > 1) {
+  console.error('Error: Only one file can be compiled at a time')
+  process.exit(1)
 }
 
 // Parse a .fez file into its components
@@ -199,13 +206,56 @@ function validateTemplate(html, filePath) {
   return errors
 }
 
+// Generate compiled JavaScript from parsed .fez file
+function generateCompiledJS(parsed, componentName) {
+  let klass = parsed.script
+
+  if (!/class\s+\{/.test(klass)) {
+    klass = `class {\n${klass}\n}`
+  }
+
+  // Add CSS if present
+  if (parsed.style && parsed.style.includes(':')) {
+    let style = parsed.style
+    // Wrap in :fez if not already scoped
+    if (!style.includes(':fez') && !/(?:^|\s)body\s*\{/.test(style)) {
+      style = `:fez {\n${style}\n}`
+    }
+    klass = klass.replace(/\}\s*$/, `\n  CSS = \`${style}\`\n}`)
+  }
+
+  // Add HTML if present
+  if (parsed.html && /\w/.test(parsed.html)) {
+    // Escape backticks and dollar signs in template, trim whitespace
+    let html = parsed.html
+      .trim()
+      .replaceAll('`', '&#x60;')
+      .replaceAll('$', '\\$')
+    klass = klass.replace(/\}\s*$/, `\n  HTML = \`${html}\`\n}`)
+  }
+
+  // Split into preamble (imports) and class body
+  let parts = klass.split(/class\s+\{/, 2)
+  let preamble = parts[0] || ''
+  let classBody = parts[1] ? `class {\n${parts[1]}` : klass
+
+  // Build final output
+  let output = ''
+  if (preamble.trim()) {
+    output += preamble.trim() + '\n\n'
+  }
+  output += `Fez('${componentName}', ${classBody})`
+
+  return output
+}
+
 // Process a single file
 function compileFile(filePath) {
   const errors = []
   const absolutePath = path.resolve(filePath)
   
   if (!fs.existsSync(absolutePath)) {
-    return [{ message: `File not found: ${filePath}`, file: filePath }]
+    return { errors: [{ message: `File not found: ${filePath}`, file: filePath }], compiled: null }
   }
 
   const content = fs.readFileSync(absolutePath, 'utf-8')
@@ -227,30 +277,30 @@ function compileFile(filePath) {
   // Validate template
   errors.push(...validateTemplate(parsed.html, filePath))
 
-  return errors
+  // Generate compiled output only if no errors
+  const compiled = errors.length === 0 ? generateCompiledJS(parsed, componentName) : null
+
+  return { errors, compiled }
 }
 
 // Main execution
-let totalErrors = 0
-let filesProcessed = 0
+const filePath = positionals[0]
+const { errors, compiled } = compileFile(filePath)
 
-for (const filePath of positionals) {
-  filesProcessed++
-  const errors = compileFile(filePath)
-  
-  if (errors.length > 0) {
-    totalErrors += errors.length
-    for (const error of errors) {
-      const location = error.line ? `:${error.line}${error.column ? ':' + error.column : ''}` : ''
-      console.error(`${error.file}${location}: ${error.message}`)
-    }
-  } else if (values.verbose) {
-    console.log(`${filePath}: OK`)
+if (errors.length > 0) {
+  for (const error of errors) {
+    const location = error.line ? `:${error.line}${error.column ? ':' + error.column : ''}` : ''
+    console.error(`${error.file}${location}: ${error.message}`)
   }
+  process.exit(1)
 }
 
-if (values.verbose || totalErrors > 0) {
-  console.log(`\nProcessed ${filesProcessed} file(s), ${totalErrors} error(s)`)
+if (values.verbose) {
+  console.error(`${filePath}: OK`)
 }
 
-process.exit(totalErrors > 0 ? 1 : 0)
+if (values.output && compiled) {
+  console.log(compiled)
+}
+
+process.exit(0)

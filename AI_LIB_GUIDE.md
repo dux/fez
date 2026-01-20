@@ -4,10 +4,7 @@
 
 ```bash
 # Compile and validate components - catches JS syntax errors and template issues
-bunx @dinoreic/fez compile path/to/component.fez
-
-# Compile multiple files
-bunx @dinoreic/fez compile demo/fez/*.fez
+bunx fez-compile path/to/component.fez
 ```
 
 ## Core Rules for Claude
@@ -31,30 +28,32 @@ bunx @dinoreic/fez compile demo/fez/*.fez
   Fez.head({js: 'https://cdn.example.com/script.js'})
   Fez.head({css: 'https://cdn.example.com/styles.css'})
 
-  // FAST rendering control (optional)
-  FAST = true  // Renders immediately (no flicker)
+  // component logic
+  class {
+    FAST = true  // Renders immediately (no flicker, only if does not have slot data)
 
-  onInit(props) {
-    // Props are passed as parameter - use props.name, NOT this.prop('name')
-    // do not rewrite state, just add to it
-    this.state.count = props.count || 0
-    this.state.title = props.title || 'Default'
-  }
-
-  onMount(props) {
-    // Props also available in onMount - use props.name
-    // called after render() method
-    if (props.autoFocus) {
-      this.find('input').focus()
+    onInit(props) {
+      // Props are passed as parameter - use props.name, NOT this.prop('name')
+      // do not rewrite state, just add to it
+      this.state.count = props.count || 0
+      this.state.title = props.title || 'Default'
     }
-  } // DOM-ready logic
-  onDestroy()	// Cleanup resources
-  onWindowResize() // on Window resize
-  onWindowScroll() // on window scroll
-  // Custom methods
 
-  increment() {
-    this.state.count++  // Reactive assignment
+    onMount(props) {
+      // Props also available in onMount - use props.name
+      // called after render() method
+      if (props.autoFocus) {
+        this.find('input').focus()
+      }
+    } // DOM-ready logic
+    onDestroy()	// Cleanup resources
+    onWindowResize() // on Window resize
+    onWindowScroll() // on window scroll
+    // Custom methods
+
+    increment() {
+      this.state.count++  // Reactive assignment
+    }
   }
 </script>
 

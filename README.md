@@ -63,19 +63,23 @@ Here's a simple counter component that demonstrates Fez's core features:
 ```html
 <!-- Define a counter component in ex-counter.fez.html -->
 <script>
-  // called when Fez node is connected to DOM
-  init() {
-    this.MAX = 6
-    this.state.count = 0
-  }
+  // stuff to do ono component init
 
-  isMax() {
-    return this.state.count >= this.MAX
-  }
+  class {
+    // called when Fez node is connected to DOM
+    init() {
+      this.MAX = 6
+      this.state.count = 0
+    }
 
-  // is state is changed, template is re-rendered
-  more() {
-    this.state.count += this.isMax() ? 0 : 1
+    isMax() {
+      return this.state.count >= this.MAX
+    }
+
+    // is state is changed, template is re-rendered
+    more() {
+      this.state.count += this.isMax() ? 0 : 1
+    }
   }
 </script>
 

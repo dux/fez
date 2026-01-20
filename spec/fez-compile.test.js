@@ -1,18 +1,7 @@
 import { describe, test, expect } from 'bun:test'
 import { $ } from 'bun'
-import { glob } from 'glob'
 
-const compile = async (...patterns) => {
-  // Expand glob patterns
-  const files = []
-  for (const pattern of patterns) {
-    if (pattern.includes('*')) {
-      files.push(...await glob(pattern))
-    } else {
-      files.push(pattern)
-    }
-  }
-  
+const compile = async (...files) => {
   const result = await $`bin/fez-compile ${files}`.quiet().nothrow()
   return {
     exitCode: result.exitCode,
@@ -43,10 +32,7 @@ describe('fez compile', () => {
       expect(result.exitCode).toBe(0)
     })
 
-    test('compiles all valid files', async () => {
-      const result = await compile('spec/fixtures/valid/*.fez')
-      expect(result.exitCode).toBe(0)
-    })
+
   })
 
   describe('invalid files - JavaScript errors', () => {
@@ -91,17 +77,27 @@ describe('fez compile', () => {
     })
   })
 
-  describe('multiple files', () => {
-    test('reports errors from multiple invalid files', async () => {
-      const result = await compile('spec/fixtures/invalid/*.fez')
+  describe('single file only', () => {
+    test('rejects multiple files', async () => {
+      const result = await compile('spec/fixtures/valid/test-basic.fez', 'spec/fixtures/valid/test-loops.fez')
       expect(result.exitCode).toBe(1)
-      // Should have multiple errors reported
-      expect(result.stderr.split('\n').filter(l => l.trim()).length).toBeGreaterThan(1)
+      expect(result.stderr).toContain('Only one file')
+    })
+  })
+
+  describe('output flag', () => {
+    test('outputs compiled JavaScript with -o flag', async () => {
+      const result = await $`bin/fez-compile -o spec/fixtures/valid/test-basic.fez`.quiet().nothrow()
+      expect(result.exitCode).toBe(0)
+      const stdout = result.stdout.toString()
+      expect(stdout).toContain("Fez('test-basic'")
+      expect(stdout).toContain('class {')
     })
 
-    test('mixed valid and invalid files fails', async () => {
-      const result = await compile('spec/fixtures/valid/test-basic.fez spec/fixtures/invalid/test-js-syntax.fez')
+    test('does not output on error even with -o flag', async () => {
+      const result = await $`bin/fez-compile -o spec/fixtures/invalid/test-js-syntax.fez`.quiet().nothrow()
       expect(result.exitCode).toBe(1)
+      expect(result.stdout.toString()).toBe('')
     })
   })
 
