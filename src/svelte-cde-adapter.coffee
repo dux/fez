@@ -6,8 +6,11 @@ getAttributes = (node) ->
     if el.name.startsWith('on') && el.value[0] == '('
       el.value = new Function('arg1, arg2', "(#{el.value})(arg1, arg2)")
     if el.name.startsWith(':')
-      el.value = new Function("return (#{el.value})").bind(node)()
-      el.name = el.name.replace(':', '')
+      try
+        el.value = new Function("return (#{el.value})").bind(node)()
+        el.name = el.name.replace(':', '')
+      catch e
+        console.error "Error evaluating #{el.name}=\"#{el.value}\" for #{node.tagName}: #{e.message}"
     attrs[el.name] = el.value
 
   if attrs['data-props']

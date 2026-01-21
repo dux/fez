@@ -1,6 +1,10 @@
 import createTemplate from './lib/template.js'
 import FezBase from './instance.js'
 
+const SELF_CLOSING_TAGS = new Set([
+  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr'
+])
+
 /**
  * Global mutation observer for reactive attribute changes
  * Watches for attribute changes and triggers component updates
@@ -36,43 +40,11 @@ export default function connect(name, klass) {
   // Validate custom element name format (must contain a dash)
   if (!name.includes('-')) {
     console.error(`Fez: Invalid custom element name "${name}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)
+    return
   }
 
-  // Transform simple class definitions into Fez components
-  if (!klass.fezHtmlRoot) {
-    const klassObj = new klass()
-    const newKlass = class extends FezBase {}
-
-    // Copy all properties and methods from the original class
-    const props = Object.getOwnPropertyNames(klassObj)
-      .concat(Object.getOwnPropertyNames(klass.prototype))
-      .filter(el => !['constructor', 'prototype'].includes(el))
-
-    props.forEach(prop => newKlass.prototype[prop] = klassObj[prop])
-
-    // Map component configuration properties
-    if (klassObj.FAST) { newKlass.FAST = klassObj.FAST }           // Global instance reference
-    if (klassObj.GLOBAL) { newKlass.GLOBAL = klassObj.GLOBAL }       // Global instance reference
-    if (klassObj.CSS) { newKlass.css = klassObj.CSS }                // Component styles
-    if (klassObj.HTML) {
-      newKlass.html = closeCustomTags(klassObj.HTML)                 // Component template
-    }
-    if (klassObj.NAME) { newKlass.nodeName = klassObj.NAME }         // Custom DOM node name
-
-    // Auto-mount global components to body
-    if (klassObj.GLOBAL) {
-      Fez.onReady(() => {
-        document.body.appendChild(document.createElement(name))
-      })
-    }
-
-    klass = newKlass
-
-    Fez.consoleLog(`${name} compiled`)
-  } else if (klass.html) {
-    // If klass already has html property, process it
-    klass.html = closeCustomTags(klass.html)
-  }
+  // Transform plain class to FezBase subclass if needed
+  klass = ensureFezBase(Fez, name, klass)
 
   // Process component template
   if (klass.html) {
@@ -111,6 +83,51 @@ export default function connect(name, klass) {
 }
 
 /**
+ * Transforms a plain class into a FezBase subclass
+ * Copies all properties/methods and maps uppercase config props (HTML, CSS, etc.)
+ */
+function ensureFezBase(Fez, name, klass) {
+  // Already a FezBase subclass
+  if (klass.prototype instanceof FezBase) {
+    if (klass.html) {
+      klass.html = closeCustomTags(klass.html)
+    }
+    return klass
+  }
+
+  const instance = new klass()
+  const newKlass = class extends FezBase {}
+
+  // Copy all properties and methods from original class
+  const propNames = [
+    ...Object.getOwnPropertyNames(instance),
+    ...Object.getOwnPropertyNames(klass.prototype)
+  ].filter(p => p !== 'constructor' && p !== 'prototype')
+
+  for (const prop of propNames) {
+    newKlass.prototype[prop] = instance[prop]
+  }
+
+  // Map uppercase config properties to their internal names
+  const configMap = { FAST: 'FAST', GLOBAL: 'GLOBAL', CSS: 'css', NAME: 'nodeName' }
+  for (const [from, to] of Object.entries(configMap)) {
+    if (instance[from]) newKlass[to] = instance[from]
+  }
+
+  if (instance.HTML) {
+    newKlass.html = closeCustomTags(instance.HTML)
+  }
+
+  // Auto-mount global components
+  if (instance.GLOBAL) {
+    Fez.onReady(() => document.body.appendChild(document.createElement(name)))
+  }
+
+  Fez.consoleLog(`${name} compiled`)
+  return newKlass
+}
+
+/**
  * Determines if component should render synchronously (fast) or async
  * Fast render is used when:
  * - Component has FAST class property set
@@ -137,12 +154,8 @@ function useFastRender(node, klass) {
  * Required for proper HTML parsing of custom elements
  */
 function closeCustomTags(html) {
-  const selfClosingTags = new Set([
-    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr'
-  ])
-
   return html.replace(/<([a-z-]+)\b([^>]*)\/>/g, (match, tagName, attributes) => {
-    return selfClosingTags.has(tagName) ? match : `<${tagName}${attributes}></${tagName}>`
+    return SELF_CLOSING_TAGS.has(tagName) ? match : `<${tagName}${attributes}></${tagName}>`
   })
 }
 
@@ -151,75 +164,75 @@ function closeCustomTags(html) {
  * Replaces the custom element with the component's rendered content
  */
 function connectNode(name, node) {
+  if (!node.isConnected) return
+
   const klass = Fez.classes[name]
-  const parentNode = node.parentNode
+  const nodeName = typeof klass.nodeName == 'function' ? klass.nodeName(node) : klass.nodeName
+  const newNode = document.createElement(nodeName || 'div')
 
-  if (node.isConnected) {
-    const nodeName = typeof klass.nodeName == 'function' ? klass.nodeName(node) : klass.nodeName
-    const newNode = document.createElement(nodeName || 'div')
+  newNode.classList.add('fez')
+  newNode.classList.add(`fez-${name}`)
 
-    newNode.classList.add('fez')
-    newNode.classList.add(`fez-${name}`)
+  node.parentNode.replaceChild(newNode, node)
 
-    parentNode.replaceChild(newNode, node);
+  const fez = new klass()
 
-    const fez = new klass()
+  fez.UID = ++Fez.instanceCount
+  Fez.instances.set(fez.UID, fez)
 
-    fez.UID = ++Fez.instanceCount
-    Fez.instances.set(fez.UID, fez)
+  fez.oldRoot = node
+  fez.fezName = name
+  fez.root = newNode
+  fez.props = klass.getProps(node, newNode)
+  fez.class = klass
 
-    fez.oldRoot = node
-    fez.fezName = name
-    fez.root = newNode
-    fez.props = klass.getProps(node, newNode)
-    fez.class = klass
+  // Move child nodes to preserve DOM event listeners
+  fez.slot(node, newNode)
 
-    // Move child nodes to preserve DOM event listeners
-    fez.slot(node, newNode)
+  newNode.fez = fez
 
-    newNode.fez = fez
+  if (klass.GLOBAL && klass.GLOBAL != true) {
+    window[klass.GLOBAL] ||= fez
+  }
 
-    if (klass.GLOBAL && klass.GLOBAL != true) {
-      window[klass.GLOBAL] ||= fez
-    }
+  if (window.$) {
+    fez.$root = $(newNode)
+  }
 
-    if (window.$) {
-      fez.$root = $(newNode)
-    }
+  if (fez.props.id) {
+    newNode.setAttribute('id', fez.props.id)
+  }
 
-    if (fez.props.id) {
-      newNode.setAttribute('id', fez.props.id)
-    }
+  // Component lifecycle initialization
+  fez.fezRegister()
 
-    // Component lifecycle initialization
-    fez.fezRegister()
+  // Call initialization method (init, created, or connect)
+  const initMethod = fez.onInit || fez.init || fez.created || fez.connect
+  initMethod(fez.props)
 
-    // Call initialization method (init, created, or connect)
-    ;(fez.onInit || fez.init || fez.created || fez.connect).bind(fez)(fez.props)
+  // Initial render
+  fez.render()
 
-    // Initial render
-    fez.render()
-    fez.firstRender = true
+  // Trigger mount lifecycle hook
+  fez.onMount(fez.props)
 
-    // Trigger mount lifecycle hook
-    fez.onMount(fez.props)
-
-    if (fez.onSubmit) {
-      const form = fez.root.nodeName == 'FORM' ? fez.root : fez.find('form')
+  if (fez.onSubmit) {
+    const form = fez.root.nodeName == 'FORM' ? fez.root : fez.find('form')
+    if (form) {
       form.onsubmit = (e) => {
         e.preventDefault()
         fez.onSubmit(fez.formData())
       }
     }
+  }
 
-    // Set up reactive attribute watching
-    if (fez.onPropsChange) {
-      observer.observe(newNode, {attributes:true})
+  // Set up reactive attribute watching
+  if (fez.onPropsChange) {
+    observer.observe(newNode, {attributes:true})
 
-      // Trigger initial prop change callbacks
-      for (const [key, value] of Object.entries(fez.props)) {
-        fez.onPropsChange(key, value)
-      }
+    // Trigger initial prop change callbacks
+    for (const [key, value] of Object.entries(fez.props)) {
+      fez.onPropsChange(key, value)
     }
   }
 }
