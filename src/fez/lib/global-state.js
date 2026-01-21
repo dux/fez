@@ -3,7 +3,7 @@
 // Components access state via this.globalState proxy which automatically:
 // - Registers component as listener when reading a value
 // - Notifies component when that value changes
-// - Calls onGlobalStateChange(key, value) if defined, then render()
+// - Calls onGlobalStateChange(key, value) if defined, then fezRender()
 //
 // Example usage:
 //
@@ -42,7 +42,7 @@ const GlobalState = {
       listeners.forEach(comp => {
         if (comp.isConnected) {
           comp.onGlobalStateChange(key, value, oldValue)
-          comp.render()
+          comp.fezRender()
         } else {
           listeners.delete(comp)
         }

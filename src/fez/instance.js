@@ -238,7 +238,7 @@ export default class FezBase {
 
   // copy child nodes, natively to preserve bound events
   // if node name is SLOT insert adjacent and remove SLOT, else as a child nodes
-  slot(source, target) {
+  fezSlot(source, target) {
     target ||= document.createElement('template')
     const isSlot = target.nodeName == 'SLOT'
 
@@ -313,7 +313,7 @@ export default class FezBase {
 
   fezBlocks = {}
 
-  parseHtml(text) {
+  fezParseHtml(text) {
     const base = this.fezHtmlRoot.replaceAll('"', '&quot;')
 
     text = text
@@ -325,7 +325,7 @@ export default class FezBase {
 
 
   // pass name to have only one tick of a kind
-  nextTick(func, name) {
+  fezNextTick(func, name) {
     if (name) {
       this._nextTicks ||= {}
       this._nextTicks[name] ||= window.requestAnimationFrame(() => {
@@ -342,7 +342,7 @@ export default class FezBase {
    * Uses Idiomorph for efficient DOM diffing and patching
    * @param {string|Array|Function} [template] - Template to render (defaults to class HTML)
    */
-  render(template) {
+  fezRender(template) {
     template ||= this?.class?.fezHtmlFunc
 
     if (!template || !this.root) return
@@ -370,7 +370,7 @@ export default class FezBase {
 
     if (renderedTpl) {
       renderedTpl = renderedTpl.replace(/\s\w+="undefined"/g, '')
-      newNode.innerHTML = this.parseHtml(renderedTpl)
+      newNode.innerHTML = this.fezParseHtml(renderedTpl)
     }
 
     // Handle fez-keep attributes
@@ -630,7 +630,7 @@ export default class FezBase {
       this.class.css = Fez.globalCss(this.class.css, {name: this.fezName})
     }
 
-    this.state ||= this.reactiveStore()
+    this.state ||= this.fezReactiveStore()
     this.globalState = Fez.state.createProxy(this)
     this.fezRegisterBindMethods()
   }
@@ -677,13 +677,13 @@ export default class FezBase {
    * @param {Function} [handler] - Custom change handler
    * @returns {Proxy} Reactive proxy object
    */
-  reactiveStore(obj, handler) {
+  fezReactiveStore(obj, handler) {
     obj ||= {}
 
     handler ||= (o, k, v, oldValue) => {
       if (v != oldValue) {
         this.onStateChange(k, v, oldValue)
-        this.nextTick(this.render, 'render')
+        this.fezNextTick(this.fezRender, 'fezRender')
       }
     }
 

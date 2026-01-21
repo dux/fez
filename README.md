@@ -170,7 +170,7 @@ This example showcases:
 
 ### Developer Experience
 
-* **Built-in Utilities** - Helpful methods like `formData()`, `setInterval()` (auto-cleanup), `onWindowResize()`, and `nextTick()`
+* **Built-in Utilities** - Helpful methods like `formData()`, `setInterval()` (auto-cleanup), `onWindowResize()`, and `fezNextTick()`
 * **Two-Way Data Binding** - Use `fez-bind` directive for automatic form synchronization
 * **Advanced Slot System** - Full `<slot />` support with event listener preservation
 * **Publish/Subscribe** - Built-in pub/sub system for component communication
@@ -216,8 +216,8 @@ Fez('foo-bar', class {
   // set element style, set as property or method
   CSS = `scss string... `
 
-  // define static HTML. calling `this.render()` (no arguments) will refresh current node.
-  // if you pair it with `reactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
+  // define static HTML. calling `this.fezRender()` (no arguments) will refresh current node.
+  // if you pair it with `fezReactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
   HTML = `...`
 
   // Control rendering timing to prevent flicker (property or method)
@@ -317,7 +317,7 @@ Fez('foo-bar', class {
   // check if the this.root node is attached to dom
   this.isConnected
 
-  // this.state has reactiveStore() attached by default. any change will trigger this.render()
+  // this.state has fezReactiveStore() attached by default. any change will trigger this.fezRender()
   this.state.foo = 123
 
   // generic window event handler with automatic cleanup
@@ -334,7 +334,7 @@ Fez('foo-bar', class {
   this.onWindowScroll(func, delay)
 
   // requestAnimationFrame wrapper with deduplication
-  this.nextTick(func, name)
+  this.fezNextTick(func, name)
 
   // get unique ID for root node, set one if needed
   this.rootId()
@@ -349,8 +349,8 @@ Fez('foo-bar', class {
   this.onSubmit(formData) { ... }
 
   // render template and attach result dom to root. uses Idiomorph for DOM morph
-  this.render()
-  this.render(this.find('.body'), someHtmlTemplate) // you can render to another root too
+  this.fezRender()
+  this.fezRender(this.find('.body'), someHtmlTemplate) // you can render to another root too
 })
 
 /* Utility methods */

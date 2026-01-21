@@ -41,7 +41,7 @@ bunx fez-compile path/to/component.fez
 
     onMount(props) {
       // Props also available in onMount - use props.name
-      // called after render() method
+      // called after fezRender() method
       if (props.autoFocus) {
         this.find('input').focus()
       }

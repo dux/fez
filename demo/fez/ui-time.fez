@@ -59,7 +59,7 @@
 <p>Fnv1: <span>{{ state.fnv1 }}</span></p>
 <button onclick="fez.setRandomColor()">random color</button>
 &sdot;
-<button onclick="fez.render()">refresh & preserve slot</button>
+<button onclick="fez.fezRender()">refresh & preserve slot</button>
 <hr />
 
 <slot></slot>

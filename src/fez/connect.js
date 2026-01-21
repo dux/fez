@@ -187,7 +187,7 @@ function connectNode(name, node) {
   fez.class = klass
 
   // Move child nodes to preserve DOM event listeners
-  fez.slot(node, newNode)
+  fez.fezSlot(node, newNode)
 
   newNode.fez = fez
 
@@ -211,7 +211,7 @@ function connectNode(name, node) {
   initMethod(fez.props)
 
   // Initial render
-  fez.render()
+  fez.fezRender()
 
   // Trigger mount lifecycle hook
   fez.onMount(fez.props)
