@@ -134,21 +134,21 @@
   </div>
 </div>
 
-{{if props.arrows}}
+{#if props.arrows}
   <div class="arrow prev" onclick="fez.changeSlide(-1)">
-    <span>‹</span>
+    <span>&#8249;</span>
   </div>
 
   <div class="arrow next" onclick="fez.changeSlide(1)">
-    <span>›</span>
+    <span>&#8250;</span>
   </div>
-{{/if}}
+{/if}
 
-{{if props.dots}}
+{#if props.dots}
   <div class="dots">
-    {{#each Array(slidesCount).fill(0) as dot, index}}
-      <div class="dot {{ state.slide === index ? 'active' : '' }}" onclick="fez.setSlide({{ index }})"></div>
-    {{/each}}
+    {#each Array(slidesCount).fill(0) as dot, index}
+      <div class="dot {state.slide === index ? 'active' : ''}" onclick="fez.setSlide(index)"></div>
+    {/each}
   </div>
-{{/if}}
+{/if}
 

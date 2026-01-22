@@ -201,10 +201,10 @@
   }
 </style>
 
-<div class="global-dialog" onclick="fez.close()" style="display: {{ state.data ? 'block' : 'none' }};">
-  <div class="dialog-content {{ state.class }}" onclick="event.stopPropagation()">
+<div class="global-dialog" onclick="fez.close()" style="display: {state.data ? 'block' : 'none'};">
+  <div class="dialog-content {state.class}" onclick="event.stopPropagation()">
     <ui-btn sm class="dialog-close" onclick="fez.close()">&times;</ui-btn>
-    {{raw state.data }}
+    {@html state.data}
     <center style="padding-top: 30px;">
       <tmp-test-attr :func="fez.testFunc"></tmp-test-attr>
     </center>

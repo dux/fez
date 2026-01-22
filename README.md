@@ -56,15 +56,118 @@ There is no some "internal state" that is by some magic reflected to DOM. No! Al
 
 That is all.
 
+## Template Syntax (Svelte-like)
+
+Fez uses a Svelte-inspired template syntax with single braces `{ }` for expressions and block directives.
+
+### Expressions
+
+```html
+<!-- Simple expression -->
+<div>{state.name}</div>
+
+<!-- Expressions in attributes (automatically quoted) -->
+<input value={state.text} class={state.active ? 'active' : ''} />
+
+<!-- Raw HTML (unescaped) -->
+<div>{@html state.htmlContent}</div>
+
+<!-- JSON debug output -->
+{@json state.data}
+```
+
+### Conditionals
+
+```html
+{#if state.isLoggedIn}
+  <p>Welcome, {state.username}!</p>
+{:else if state.isGuest}
+  <p>Hello, Guest!</p>
+{:else}
+  <p>Please log in</p>
+{/if}
+
+<!-- Unless (opposite of if) -->
+{#unless state.items.length}
+  <p>No items found</p>
+{/unless}
+```
+
+### Loops
+
+```html
+<!-- Each loop with implicit index 'i' -->
+{#each state.items as item}
+  <li>{item.name} (index: {i})</li>
+{/each}
+
+<!-- Each loop with explicit index -->
+{#each state.items as item, index}
+  <li>{index}: {item.name}</li>
+{/each}
+
+<!-- For loop syntax -->
+{#for item in state.items}
+  <li>{item}</li>
+{/for}
+
+<!-- For loop with index -->
+{#for item, idx in state.items}
+  <li>{idx}: {item}</li>
+{/for}
+
+<!-- Object iteration -->
+{#each state.config as key, value, index}
+  <div>{index}. {key} = {value}</div>
+{/each}
+
+<!-- Empty list fallback with :else -->
+{#each state.items as item}
+  <li>{item}</li>
+{:else}
+  <li>No items found</li>
+{/each}
+```
+
+### Arrow Function Event Handlers
+
+Use arrow functions for clean event handling with automatic loop variable interpolation:
+
+```html
+<!-- Simple handler -->
+<button onclick={() => handleClick()}>Click me</button>
+
+<!-- With event parameter -->
+<button onclick={(e) => handleClick(e)}>Click me</button>
+
+<!-- Inside loops - index is automatically interpolated -->
+{#each state.tasks as task, index}
+  <button onclick={() => removeTask(index)}>Remove #{index}</button>
+  <button onclick={(e) => editTask(index, e)}>Edit</button>
+{/each}
+```
+
+Arrow functions in event attributes are automatically transformed:
+- `{() => foo()}` becomes `onclick="fez.foo()"`
+- `{(e) => foo(e)}` becomes `onclick="fez.foo(event)"`
+- Loop variables like `index` are evaluated at render time
+
+### Self-Closing Custom Elements
+
+Custom elements can use self-closing syntax:
+
+```html
+<ui-icon name="star" />
+<!-- Automatically converted to: <ui-icon name="star"></ui-icon> -->
+```
+
 ## Example: Counter Component
 
 Here's a simple counter component that demonstrates Fez's core features:
 
 ```html
-<!-- Define a counter component in ex-counter.fez.html -->
+<!-- Define a counter component in ex-counter.fez -->
 <script>
-  // stuff to do ono component init
-
   class {
     // called when Fez node is connected to DOM
     init() {
@@ -76,7 +179,7 @@ Here's a simple counter component that demonstrates Fez's core features:
       return this.state.count >= this.MAX
     }
 
-    // is state is changed, template is re-rendered
+    // if state is changed, template is re-rendered
     more() {
       this.state.count += this.isMax() ? 0 : 1
     }
@@ -104,25 +207,25 @@ Here's a simple counter component that demonstrates Fez's core features:
   }
 </style>
 
-<button onclick="fez.state.count -= 1" disabled={{ state.count == 1 }}>-</button>
+<button onclick={() => state.count -= 1} disabled={state.count == 1}>-</button>
 
 <span>
-  {{ state.count }}
+  {state.count}
 </span>
 
-<button onclick="fez.more()" disabled={{ isMax() }}>+</button>
-{{if state.count > 0}}
+<button onclick={() => more()} disabled={isMax()}>+</button>
+{#if state.count > 0}
   <span>&mdash;</span>
-  {{if state.count == MAX }}
+  {#if state.count == MAX}
     MAX
-  {{else}}
-    {{#if state.count % 2 }}
+  {:else}
+    {#if state.count % 2}
       odd
-    {{else}}
+    {:else}
       even
-    {{/if}}
-  {{/if}}
-{{/if}}
+    {/if}
+  {/if}
+{/if}
 ```
 
 To use this component in your HTML:
@@ -132,7 +235,7 @@ To use this component in your HTML:
 <script src="https://dux.github.io/fez/dist/fez.js"></script>
 
 <!-- Load component via template tag -->
-<template fez="/fez-libs/ex-counter.fez.html"></template>
+<template fez="/fez-libs/ex-counter.fez"></template>
 
 <!-- Use the component -->
 <ex-counter></ex-counter>
@@ -140,9 +243,9 @@ To use this component in your HTML:
 
 This example showcases:
 - **Reactive state**: Changes to `this.state` automatically update the DOM
-- **Template syntax**: `{{ }}` for expressions, `@` as shorthand for `this.`
-- **Event handling**: Direct DOM event handlers with access to component methods
-- **Conditional rendering**: `{{#if}}`, `{{:else}}` blocks for dynamic UI
+- **Template syntax**: `{ }` for expressions, `{#if}`, `{#each}` for control flow
+- **Arrow function handlers**: `onclick={() => method()}` for clean event binding
+- **Conditional rendering**: `{#if}`, `{:else}` blocks for dynamic UI
 - **Scoped styling**: SCSS support with styles automatically scoped to component
 - **Component lifecycle**: `init()` method called when component mounts
 
@@ -160,7 +263,8 @@ This example showcases:
 
 ### Advanced Templating & Styling
 
-* **Powerful Template Engine** - Multiple syntaxes (`{{ }}` and `[[ ]]`), control flow (`#if`, `#unless`, `#for`, `#each`), and block templates
+* **Svelte-like Template Engine** - Single brace syntax (`{ }`), control flow (`{#if}`, `{#unless}`, `{#for}`, `{#each}`), and block templates
+* **Arrow Function Handlers** - Clean event syntax with automatic loop variable interpolation
 * **Reactive State Management** - Built-in reactive `state` object automatically triggers re-renders on property changes
 * **DOM Morphing** - Uses [Idiomorph](https://github.com/bigskysoftware/idiomorph) for intelligent DOM updates that preserve element state and animations
 * **Preserve DOM Elements** - Use `fez-keep="unique-key"` attribute to preserve DOM elements across re-renders (useful for animations, form inputs, or stateful elements)
@@ -175,8 +279,8 @@ This example showcases:
 * **Advanced Slot System** - Full `<slot />` support with event listener preservation
 * **Publish/Subscribe** - Built-in pub/sub system for component communication
 * **Global State Management** - Automatic subscription-based global state with `this.globalState` proxy
-* **Dynamic Component Loading** - Load components from URLs with `<template fez="path/to/component.html">`
-* **Auto HTML Correction** - Fixes invalid self-closing tags (`<fez-icon name="gear" />` → `<fez-icon name="gear"></fez-icon>`)
+* **Dynamic Component Loading** - Load components from URLs with `<template fez="path/to/component.fez">`
+* **Auto HTML Correction** - Fixes invalid self-closing tags (`<ui-icon name="gear" />` → `<ui-icon name="gear"></ui-icon>`)
 
 ### Performance & Integration
 
@@ -430,7 +534,7 @@ Fez.head(config, callback)
   <!-- Component name is extracted from filename (ui-button) -->
   <!-- If remote HTML contains template/xmp tags with fez attributes, they are compiled -->
   <!-- Otherwise, the entire content is compiled as the component -->
-  <script fez="path/to/ui-button.fez.html"></script>
+  <script fez="path/to/ui-button.fez"></script>
 
   <!-- prefix with : to calc before node mount -->
   <foo-bar :size="document.getElementById('icon-range').value"></foo-bar>
@@ -479,30 +583,31 @@ All parts are optional
   </style>
 
   <div> ... <!-- any other html after head, script or style is considered template-->
-    <!-- resolve any condition -->
-    {{if foo}} ... {{/if}}
+    <!-- Conditionals -->
+    {#if foo}...{/if}
+    {#if foo}...{:else}...{/if}
+    {#if foo}...{:else if bar}...{:else}...{/if}
 
-    <!-- unless directive - opposite of if -->
-    {{unless fez.list.length}}
+    <!-- Unless directive - opposite of if -->
+    {#unless state.list.length}
       <p>No items to display</p>
-    {{/unless}}
+    {/unless}
 
-    <!-- runs in node scope, you can use for loop -->
-    {{each fez.list as name, index}} ... {{/each}}
-    {{for name, index in fez.list}} ... {{/for}}
+    <!-- Loops -->
+    {#each state.list as name, index}...{/each}
+    {#for name, index in state.list}...{/for}
 
     <!-- Block definitions -->
-    {{block image}}
-      <img src={{ props.src}} />
-    {{/block}}
-    {{block:image}} <!-- Use the header block -->
-    {{block:image}} <!-- Use the header block -->
+    {@block image}
+      <img src={props.src} />
+    {/block}
+    {@block:image} <!-- Use the block -->
 
-    {{raw data}} <!-- unescape HTML -->
-    {{json data}} <!-- JSON dump in PRE.json tag -->
+    {@html data} <!-- unescaped HTML -->
+    {@json data} <!-- JSON dump in PRE.json tag -->
 
     <!-- fez-this will link DOM node to object property (inspired by Svelte) -->
-    <!-- linkes to -> this.listRoot -->
+    <!-- links to -> this.listRoot -->
     <ul fez-this="listRoot">
 
     <!-- when node is added to dom fez-use will call object function by name, and pass current node -->
@@ -518,7 +623,7 @@ All parts are optional
     -->
     <span fez-class="active:100">Delayed class</span>
 
-    <!-- preserve state by key, not affected by state changes-->>
+    <!-- preserve state by key, not affected by state changes-->
     <p fez-keep="key">...</p>
 
     <!-- memoize DOM content by key (component-scoped) -->
@@ -620,7 +725,7 @@ Creates inline components with reactive state:
 ```html
 <fez-inline :state="{count: 0}">
   <button onclick="fez.state.count += 1">+</button>
-  {{ state.count }} * {{ state.count }} = {{ state.count * state.count }}
+  {state.count} * {state.count} = {state.count * state.count}
 </fez-inline>
 ```
 
@@ -736,3 +841,50 @@ class Counter extends FezBase {
   }
 }
 ```
+
+---
+
+## Legacy Template Syntax
+
+The original double-brace syntax `{{ }}` is still fully supported for backward compatibility. New projects should use the Svelte-like single-brace syntax documented above.
+
+### Legacy Syntax Reference
+
+```html
+<!-- Expressions -->
+{{ state.name }}
+{{ state.active ? 'yes' : 'no' }}
+
+<!-- Conditionals -->
+{{if state.show}}...{{/if}}
+{{if state.show}}...{{else}}...{{/if}}
+{{unless state.hidden}}...{{/unless}}
+
+<!-- Loops -->
+{{for item in state.items}}...{{/for}}
+{{each state.items as item, index}}...{{/each}}
+
+<!-- Raw HTML and JSON -->
+{{raw state.htmlContent}}
+{{json state.data}}
+
+<!-- Event handlers (string interpolation) -->
+<button onclick="fez.remove({{index}})">Remove</button>
+```
+
+The legacy syntax uses `[[ ]]` as an alternative to `{{ }}` for compatibility with Go templates and other templating engines.
+
+### Migration
+
+To migrate from legacy to Svelte-like syntax:
+
+| Legacy | Svelte-like |
+|--------|-------------|
+| `{{ expr }}` | `{expr}` |
+| `{{if cond}}` | `{#if cond}` |
+| `{{else}}` | `{:else}` |
+| `{{/if}}` | `{/if}` |
+| `{{for x in list}}` | `{#for x in list}` |
+| `{{each list as x}}` | `{#each list as x}` |
+| `{{raw html}}` | `{@html html}` |
+| `onclick="fez.foo({{i}})"` | `onclick={() => foo(i)}` |

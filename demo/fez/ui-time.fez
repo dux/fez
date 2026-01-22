@@ -53,13 +53,13 @@
   }
 </style>
 
-<p>Param city: {{ props.city }}</p>
+<p>Param city: {props.city}</p>
 <p>Time now: <span class="time"></span></p>
-<p>Random num: <span>{{ Math.random() }}</span></p>
-<p>Fnv1: <span>{{ state.fnv1 }}</span></p>
+<p>Random num: <span>{Math.random()}</span></p>
+<p>Fnv1: <span>{state.fnv1}</span></p>
 <button onclick="fez.setRandomColor()">random color</button>
 &sdot;
-<button onclick="fez.fezRender()">refresh & preserve slot</button>
+<button onclick="fez.fezRender()">refresh &amp; preserve slot</button>
 <hr />
 
 <slot></slot>

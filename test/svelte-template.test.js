@@ -10,7 +10,7 @@ globalThis.Node = window.Node
 
 // Mock Fez.htmlEscape
 globalThis.Fez = {
-  htmlEscape: (s) => String(s).replace(/[&<>"']/g, c => ({
+  htmlEscape: (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]))
 }
@@ -18,17 +18,9 @@ globalThis.Fez = {
 // Helper to render template and get HTML string
 const render = (template, ctx) => {
   ctx.UID = ctx.UID || 123
+  ctx.Fez = Fez
   const fn = createSvelteTemplate(template)
-  const result = fn(ctx)
-
-  // Convert DocumentFragment to HTML string
-  if (result instanceof DocumentFragment || result instanceof Node) {
-    const div = document.createElement('div')
-    div.appendChild(result.cloneNode(true))
-    // Remove comment nodes from output for cleaner test comparisons
-    return div.innerHTML.replace(/<!--[^>]*-->/g, '')
-  }
-  return result
+  return fn(ctx)
 }
 
 describe('Svelte-style template', () => {
@@ -51,24 +43,45 @@ describe('Svelte-style template', () => {
     test('@json outputs formatted JSON', () => {
       const html = render('{@json state.obj}', { state: { obj: { a: 1 } } })
       expect(html).toContain('<pre class="json">')
-      expect(html).toContain('"a": 1')
+      expect(html).toContain('&quot;a&quot;: 1')  // JSON keys are escaped
+    })
+
+    test('@block defines and references reusable content', () => {
+      const html = render('{@block avatar}<img src="test.png"/>{/block}<div>{@block:avatar}</div><span>{@block:avatar}</span>', { state: {} })
+      expect(html).toBe('<div><img src="test.png"/></div><span><img src="test.png"/></span>')
     })
   })
 
-  describe('#if / #unless blocks', () => {
-    test('#if true', () => {
-      const html = render('{#if state.show}<p>visible</p>{/if}', { state: { show: true } })
-      expect(html).toBe('<p>visible</p>')
+  describe('#if / #unless conditionals', () => {
+    test('basic #if', () => {
+      const html = render('{#if state.show}visible{/if}', { state: { show: true } })
+      expect(html).toBe('visible')
     })
 
     test('#if false', () => {
-      const html = render('{#if state.show}<p>visible</p>{/if}', { state: { show: false } })
+      const html = render('{#if state.show}visible{/if}', { state: { show: false } })
       expect(html).toBe('')
     })
 
+    test('#if with :else', () => {
+      expect(render('{#if state.show}yes{:else}no{/if}', { state: { show: true } })).toBe('yes')
+      expect(render('{#if state.show}yes{:else}no{/if}', { state: { show: false } })).toBe('no')
+    })
+
+    test('#if with :else if', () => {
+      expect(render('{#if state.x === 1}one{:else if state.x === 2}two{:else}other{/if}', { state: { x: 1 } })).toBe('one')
+      expect(render('{#if state.x === 1}one{:else if state.x === 2}two{:else}other{/if}', { state: { x: 2 } })).toBe('two')
+      expect(render('{#if state.x === 1}one{:else if state.x === 2}two{:else}other{/if}', { state: { x: 3 } })).toBe('other')
+    })
+
     test('#unless', () => {
-      const html = render('{#unless state.hidden}<p>visible</p>{/unless}', { state: { hidden: false } })
-      expect(html).toBe('<p>visible</p>')
+      expect(render('{#unless state.hidden}visible{/unless}', { state: { hidden: false } })).toBe('visible')
+      expect(render('{#unless state.hidden}visible{/unless}', { state: { hidden: true } })).toBe('')
+    })
+
+    test('nested #if in element', () => {
+      const html = render('<div>{#if state.show}<span>inside</span>{/if}</div>', { state: { show: true } })
+      expect(html).toBe('<div><span>inside</span></div>')
     })
   })
 
@@ -140,88 +153,64 @@ describe('Svelte-style template', () => {
   })
 
   describe('attributes', () => {
-    test('dynamic attribute', () => {
-      const html = render('<div class={state.cls}>test</div>', { state: { cls: 'active' } })
-      expect(html).toBe('<div class="active">test</div>')
+    test('static attribute preserved', () => {
+      const html = render('<div class="box">test</div>', { state: {} })
+      expect(html).toBe('<div class="box">test</div>')
     })
 
-    test('expression in attribute', () => {
-      const html = render('<div class={state.active ? "on" : "off"}>test</div>', { state: { active: true } })
-      expect(html).toBe('<div class="on">test</div>')
+    test('embedded expression in quoted attribute value', () => {
+      const html = render('<a name="section-{state.id}">link</a>', { state: { id: 'foo' } })
+      expect(html).toBe('<a name="section-foo">link</a>')
+    })
+
+    test('multiple embedded expressions in attribute', () => {
+      const html = render('<div id="{state.prefix}-{state.suffix}">test</div>', { state: { prefix: 'a', suffix: 'b' } })
+      expect(html).toBe('<div id="a-b">test</div>')
+    })
+
+    test('conditional class expression', () => {
+      expect(render('<div class="box {state.active ? \'on\' : \'\'}">test</div>', { state: { active: true } }))
+        .toBe('<div class="box on">test</div>')
+      expect(render('<div class="box {state.active ? \'on\' : \'\'}">test</div>', { state: { active: false } }))
+        .toBe('<div class="box ">test</div>')
     })
   })
 
-  describe('event handlers', () => {
-    test('onclick adds event listener', () => {
-      const ctx = {
-        state: {},
-        clicked: false,
-        doIt() { this.clicked = true }
-      }
-      const fn = createSvelteTemplate('<button onclick={this.doIt()}>click</button>')
-      const frag = fn(ctx)
-      const btn = frag.querySelector('button')
-
-      // Simulate click
-      btn.click()
-      expect(ctx.clicked).toBe(true)
+  describe('event handlers in HTML', () => {
+    // Event handlers are rendered as attributes - the actual binding happens during morphing
+    test('onclick attribute is preserved', () => {
+      const html = render('<button onclick="fez.doIt()">click</button>', { state: {} })
+      expect(html).toContain('onclick="fez.doIt()"')
     })
 
-    test('onclick inside loop captures loop variable', () => {
-      const ctx = {
-        state: { items: ['a', 'b', 'c'] },
-        clickedItems: [],
-        handleClick(item) { this.clickedItems.push(item) }
-      }
-      const fn = createSvelteTemplate(
-        '{#each state.items as item}<button onclick={this.handleClick(item)}>{item}</button>{/each}'
-      )
-      const frag = fn(ctx)
-      const buttons = frag.querySelectorAll('button')
-
-      // Click all buttons
-      buttons[0].click()
-      buttons[1].click()
-      buttons[2].click()
-
-      // Each handler should capture correct item
-      expect(ctx.clickedItems).toEqual(['a', 'b', 'c'])
-    })
-
-    test('onclick with object in loop preserves reference', () => {
-      const users = [
-        { id: 1, name: 'Alice' },
-        { id: 2, name: 'Bob' }
-      ]
-      const ctx = {
-        state: { users },
-        selected: null,
-        select(user) { this.selected = user }
-      }
-      const fn = createSvelteTemplate(
-        '{#each state.users as user}<div onclick={this.select(user)}>{user.name}</div>{/each}'
-      )
-      const frag = fn(ctx)
-      const divs = frag.querySelectorAll('div')
-
-      // Click first user
-      divs[0].click()
-
-      // Should be the same object reference, not a copy
-      expect(ctx.selected).toBe(users[0])
-      expect(ctx.selected.id).toBe(1)
+    test('onclick with expression in loop', () => {
+      const html = render('{#each state.items as item}<button onclick="fez.click(\'{item}\')">click</button>{/each}', {
+        state: { items: ['a', 'b'] }
+      })
+      expect(html).toContain("onclick=\"fez.click('a')\"")
+      expect(html).toContain("onclick=\"fez.click('b')\"")
     })
   })
 
   describe('edge cases', () => {
-    test('empty array', () => {
+    test('handles empty state.items array', () => {
       const html = render('{#each state.items as item}<li>{item}</li>{/each}', { state: { items: [] } })
       expect(html).toBe('')
     })
 
-    test('null/undefined collection', () => {
-      const html = render('{#each state.items as item}<li>{item}</li>{/each}', { state: { items: null } })
+    test('handles undefined state.items', () => {
+      const html = render('{#each state.items as item}<li>{item}</li>{/each}', { state: {} })
       expect(html).toBe('')
+    })
+
+    test('escapes HTML in expressions', () => {
+      const html = render('{state.text}', { state: { text: '<script>evil</script>' } })
+      expect(html).toBe('&lt;script&gt;evil&lt;/script&gt;')
+    })
+
+    test('preserves whitespace in text', () => {
+      const html = render('<pre>{state.code}</pre>', { state: { code: 'line1\nline2' } })
+      expect(html).toBe('<pre>line1\nline2</pre>')
     })
   })
 })

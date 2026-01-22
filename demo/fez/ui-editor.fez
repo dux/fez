@@ -98,25 +98,25 @@
   }
 </style>
 
-{{#if props.file}}
+{#if props.file}
   <div style="margin: 0; position: relative; top: 7px;">
     <a
-      href="https://raw.githubusercontent.com/dux/fez/main/{{ props.file.replace('./', '') }}"
+      href="https://raw.githubusercontent.com/dux/fez/main/{props.file.replace('./', '')}"
       target="raw"
-    >{{ props.file }}</a>
+    >{props.file}</a>
     &sdot;
     <button class="btn-sm" onclick="fez.copy()">Copy</button>
-    {{#if props.action }}
+    {#if props.action}
       &sdot;
       <button
         class="btn-sm"
         style="cursor: pointer; font-weight: 600;"
-        onclick="fez.props.action('{{ props.name }}')"
+        onclick="fez.props.action('{props.name}')"
       >Update</button>
-    {{/if}}
+    {/if}
   </div>
-{{/if}}
+{/if}
 
 <pre>
-  <code class="language-{{ props.language }}" contenteditable="{{ !!props.file }}"></code>
+  <code class="language-{props.language}" contenteditable="{!!props.file}"></code>
 </pre>

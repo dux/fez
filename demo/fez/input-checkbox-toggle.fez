@@ -118,17 +118,17 @@
   fez-this="inputNode"
   type="hidden"
   class="hidden-input"
-  name={{ state.name }}
-  value={{ state.value }}
+  name={state.name}
+  value={state.value}
 />
 
-<div class="toggle-container {{state.disabled ? 'disabled' : ''}}" onclick="fez.toggle()">
-  {{if state.kind === 'classic'}}
-    <div class="classic-checkbox {{state.checked ? 'checked' : ''}} {{state.disabled ? 'disabled' : ''}}"></div>
-  {{else}}
-    <div class="toggle-track {{state.checked ? 'checked' : ''}}">
-      <div class="toggle-circle {{state.checked ? 'checked' : ''}}"></div>
+<div class="toggle-container {state.disabled ? 'disabled' : ''}" onclick="fez.toggle()">
+  {#if state.kind === 'classic'}
+    <div class="classic-checkbox {state.checked ? 'checked' : ''} {state.disabled ? 'disabled' : ''}"></div>
+  {:else}
+    <div class="toggle-track {state.checked ? 'checked' : ''}">
+      <div class="toggle-circle {state.checked ? 'checked' : ''}"></div>
     </div>
-  {{/if}}
-  <span class="toggle-label">{{ props.label || props.title || '' }}</span>
+  {/if}
+  <span class="toggle-label">{props.label || props.title || ''}</span>
 </div>

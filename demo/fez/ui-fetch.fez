@@ -33,7 +33,7 @@
   }
 
   clearCache() {
-    Fez._fetchCache = {}
+    Fez.clearFetchCache()
     this.state.results = {
       promise: '',
       callback: '',
@@ -119,40 +119,40 @@
 <h2>Fez.fetch Demo</h2>
 
 <div class="status">
-  Logging: <strong>{{ state.logEnabled ? 'Enabled' : 'Disabled' }}</strong>
-  {{if state.logEnabled}}
+  Logging: <strong>{state.logEnabled ? 'Enabled' : 'Disabled'}</strong>
+  {#if state.logEnabled}
     (check console for fetch logs)
-  {{/if}}
+  {/if}
 </div>
 
 <div class="controls">
-  <button onclick="fez.fetchData()" disabled={{ state.loading }}>
-    {{ state.loading ? 'Loading...' : 'Fetch Data' }}
+  <button onclick="fez.fetchData()" disabled={state.loading}>
+    {state.loading ? 'Loading...' : 'Fetch Data'}
   </button>
   <button onclick="fez.clearCache()">Clear Cache</button>
   <button onclick="fez.toggleLogging()">
-    {{ state.logEnabled ? 'Disable' : 'Enable' }} Logging
+    {state.logEnabled ? 'Disable' : 'Enable'} Logging
   </button>
 </div>
 
-{{if state.results.promise || state.results.callback || state.results.post}}
+{#if state.results.promise || state.results.callback || state.results.post}
   <div class="results">
-    {{if state.results.promise}}
+    {#if state.results.promise}
       <h3>Promise-based GET:</h3>
-      <pre>{{ state.results.promise }}</pre>
-    {{/if}}
+      <pre>{state.results.promise}</pre>
+    {/if}
 
-    {{if state.results.callback}}
+    {#if state.results.callback}
       <h3>Callback-based GET:</h3>
       <p class="hint">Same URL - should hit cache on second click</p>
-      <pre>{{ state.results.callback }}</pre>
-    {{/if}}
+      <pre>{state.results.callback}</pre>
+    {/if}
 
-    {{if state.results.post}}
+    {#if state.results.post}
       <h3>POST Request:</h3>
-      <pre>{{ state.results.post }}</pre>
-    {{/if}}
+      <pre>{state.results.post}</pre>
+    {/if}
   </div>
-{{else}}
+{:else}
   <p class="hint">Click "Fetch Data" to see the results</p>
-{{/if}}
+{/if}

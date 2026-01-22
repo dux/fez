@@ -12,45 +12,45 @@
     "file": {
       "base": "input-checkbox-toggle",
       "path": "demo/fez/input-checkbox-toggle.fez",
-      "size": 3023,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 2997,
+      "modified": 1769085227,
+      "created": 1769084671
     }
   },
   {
     "file": {
       "base": "input-color",
       "path": "demo/fez/input-color.fez",
-      "size": 5393,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 5335,
+      "modified": 1769076483,
+      "created": 1769072701
     }
   },
   {
     "file": {
       "base": "input-date",
       "path": "demo/fez/input-date.fez",
-      "size": 3455,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 4040,
+      "modified": 1769088765,
+      "created": 1769072701
     }
   },
   {
     "file": {
       "base": "ui-auto-height",
       "path": "demo/fez/ui-auto-height.fez",
-      "size": 1342,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 1338,
+      "modified": 1769076569,
+      "created": 1769072701
     }
   },
   {
     "file": {
       "base": "ui-avatar",
       "path": "demo/fez/ui-avatar.fez",
-      "size": 897,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 872,
+      "modified": 1769087047,
+      "created": 1769072701
     }
   },
   {
@@ -75,9 +75,9 @@
     "file": {
       "base": "ui-button-nav",
       "path": "demo/fez/ui-button-nav.fez",
-      "size": 3918,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 3896,
+      "modified": 1769089033,
+      "created": 1769072701
     }
   },
   {
@@ -93,9 +93,9 @@
     "file": {
       "base": "ui-clock",
       "path": "demo/fez/ui-clock.fez",
-      "size": 2334,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 2310,
+      "modified": 1769073704,
+      "created": 1769072701
     }
   },
   {
@@ -111,36 +111,36 @@
     "file": {
       "base": "ui-counter",
       "path": "demo/fez/ui-counter.fez",
-      "size": 1683,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 1653,
+      "modified": 1769073153,
+      "created": 1769072701
     }
   },
   {
     "file": {
       "base": "ui-dialog",
       "path": "demo/fez/ui-dialog.fez",
-      "size": 4667,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 4658,
+      "modified": 1769087056,
+      "created": 1769072701
     }
   },
   {
     "file": {
       "base": "ui-editor",
       "path": "demo/fez/ui-editor.fez",
-      "size": 3227,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 3198,
+      "modified": 1769087067,
+      "created": 1769072701
     }
   },
   {
     "file": {
       "base": "ui-emoji",
       "path": "demo/fez/ui-emoji.fez",
-      "size": 8560,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 8479,
+      "modified": 1769076438,
+      "created": 1769072701
     }
   },
   {
@@ -156,9 +156,9 @@
     "file": {
       "base": "ui-fetch",
       "path": "demo/fez/ui-fetch.fez",
-      "size": 3434,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 3391,
+      "modified": 1769095184,
+      "created": 1769072701
     }
   },
   {
@@ -210,18 +210,18 @@
     "file": {
       "base": "ui-slider",
       "path": "demo/fez/ui-slider.fez",
-      "size": 3332,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 3320,
+      "modified": 1769074544,
+      "created": 1769072701
     }
   },
   {
     "file": {
       "base": "ui-star",
       "path": "demo/fez/ui-star.fez",
-      "size": 3901,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 3817,
+      "modified": 1769074242,
+      "created": 1769072701
     }
   },
   {
@@ -235,29 +235,20 @@
   },
   {
     "file": {
-      "base": "ui-svelte-demo",
-      "path": "demo/fez/ui-svelte-demo.fez",
-      "size": 6844,
-      "modified": 1769041033,
-      "created": 1769040412
-    }
-  },
-  {
-    "file": {
       "base": "ui-tabs",
       "path": "demo/fez/ui-tabs.fez",
-      "size": 2004,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 2453,
+      "modified": 1769092074,
+      "created": 1769072701
     }
   },
   {
     "file": {
       "base": "ui-time",
       "path": "demo/fez/ui-time.fez",
-      "size": 1477,
-      "modified": 1769038457,
-      "created": 1765062449
+      "size": 1469,
+      "modified": 1769073999,
+      "created": 1769072701
     }
   },
   {
@@ -282,9 +273,9 @@
     "file": {
       "base": "ui-todo",
       "path": "demo/fez/ui-todo.fez",
-      "size": 2130,
-      "modified": 1765062449,
-      "created": 1765062449
+      "size": 2042,
+      "modified": 1769087087,
+      "created": 1769072701
     }
   }
 ]

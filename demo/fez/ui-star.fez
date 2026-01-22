@@ -82,32 +82,32 @@
   }
 </style>
 
-{{if state.stars}}
-  <div class="star-rating" fez-memoize={{ state.rating }}>
-    {{for i in Array(state.stars).fill(0).map((_, i) => i)}}
+{#if state.stars}
+  <div class="star-rating" fez-memoize={state.rating}>
+    {#for i in [...Array(state.stars).keys()]}
       <ui-star
-        fill={{ this.getStarFill(i, state.rating) }}
-        color={{ state.color }}
-        size={{ state.size }}
+        fill={getStarFill(i, state.rating)}
+        color={state.color}
+        size={state.size}
       ></ui-star>
-    {{/for}}
+    {/for}
   </div>
-{{else}}
-  <svg xmlns="http://www.w3.org/2000/svg" width="{{ props.size }}" viewBox="0 -10 187.673 179.503" height="{{ props.size }}">
-    {{if parseInt(state.fill) > 0 && parseInt(state.fill) < 100}}
+{:else}
+  <svg xmlns="http://www.w3.org/2000/svg" width="{props.size}" viewBox="0 -10 187.673 179.503" height="{props.size}">
+    {#if parseInt(state.fill) > 0 && parseInt(state.fill) < 100}
       <defs>
-        <linearGradient id="linear-gradient-{{ gradient_id }}" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" style="stop-color:{{ props.fill_color }};stop-opacity:1" />
-          <stop offset="{{ state.fill }}%" style="stop-color:{{ props.fill_color }};stop-opacity:1"/>
-          <stop offset="{{ state.fill }}%" style="stop-color:{{ props.unfilled_color }};stop-opacity:1" />
+        <linearGradient id="linear-gradient-{gradient_id}" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:{props.fill_color};stop-opacity:1" />
+          <stop offset="{state.fill}%" style="stop-color:{props.fill_color};stop-opacity:1"/>
+          <stop offset="{state.fill}%" style="stop-color:{props.unfilled_color};stop-opacity:1" />
         </linearGradient>
       </defs>
-    {{/if}}
+    {/if}
     <path
       stroke-width="5"
-      stroke={{ parseInt(state.fill) > 0 ? props.stroke_color : props.stroke_unfilled_color }}
-      fill={{ parseInt(state.fill) === 100 ? props.fill_color : (parseInt(state.fill) === 0 ? props.unfilled_color : 'url(#linear-gradient-' + gradient_id + ')') }}
+      stroke={parseInt(state.fill) > 0 ? props.stroke_color : props.stroke_unfilled_color}
+      fill={parseInt(state.fill) === 100 ? props.fill_color : (parseInt(state.fill) === 0 ? props.unfilled_color : 'url(#linear-gradient-' + gradient_id + ')')}
       d="M187.183 57.47a9.955 9.955 0 00-8.587-6.86l-54.167-4.918-21.42-50.134a9.978 9.978 0 00-9.172-6.052 9.972 9.972 0 00-9.172 6.061l-21.42 50.125L9.07 50.611a9.973 9.973 0 00-8.578 6.858 9.964 9.964 0 002.917 10.596l40.944 35.908-12.073 53.184a9.97 9.97 0 003.878 10.298A9.953 9.953 0 0042 169.357a9.937 9.937 0 005.114-1.424l46.724-27.925 46.707 27.925a9.936 9.936 0 0010.964-.478 9.979 9.979 0 003.88-10.298l-12.074-53.184 40.944-35.9a9.98 9.98 0 002.925-10.604zm0 0"
     />
   </svg>
-{{/if}}
+{/if}

@@ -328,9 +328,9 @@
 
 <div class="emoji-picker-wrapper">
   <span class="emoji-trigger" onclick="fez.togglePicker()">
-    <span class="selected-emoji">{{ state.selectedEmoji }}</span>
+    <span class="selected-emoji">{state.selectedEmoji}</span>
   </span>
-  {{if state.isOpen}}
+  {#if state.isOpen}
     <div class="overlay" onclick="fez.state.isOpen = false"></div>
     <div class="emoji-picker-dialog" tabindex="-1">
       <div class="emoji-search">
@@ -341,29 +341,29 @@
           fez-use="this.focus()"
         />
       </div>
-      {{if !state.searchTerm}}
+      {#if !state.searchTerm}
         <div class="emoji-tabs">
-          {{for tab in fez.getEmojiTabs()}}
+          {#for tab in getEmojiTabs()}
             <span
-              class={{ state.activeTab === tab ? 'emoji-tab active' : 'emoji-tab' }}
-              onclick="fez.setTab('{{ tab }}')"
+              class="emoji-tab {state.activeTab === tab ? 'active' : ''}"
+              onclick="fez.setTab(tab)"
             >
-              {{ fez.getTabIcon(tab) }}
+              {getTabIcon(tab)}
             </span>
-          {{/for}}
+          {/for}
         </div>
-      {{/if}}
+      {/if}
       <div class="emoji-grid">
-        {{for emojiData in fez.getFilteredEmojis()}}
+        {#for emojiData in getFilteredEmojis()}
           <span
             class="emoji-item"
-            onclick="fez.selectEmoji({{ JSON.stringify(emojiData) }})"
-            title="{{ emojiData[1] }}"
+            onclick="fez.selectEmoji(emojiData)"
+            title="{emojiData[1]}"
           >
-            {{ emojiData[0] }}
+            {emojiData[0]}
           </span>
-        {{/for}}
+        {/for}
       </div>
     </div>
-  {{/if}}
+  {/if}
 </div>

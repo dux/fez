@@ -50,7 +50,7 @@
   }
 </style>
 
-<div class="auto-height" style="height: {{ state.currentHeight }}">
+<div class="auto-height" style="height: {state.currentHeight}">
   <div class="content">
     <slot />
   </div>

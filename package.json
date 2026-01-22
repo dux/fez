@@ -48,7 +48,8 @@
     "glob-cli": "^1.0.0",
     "happy-dom": "^18.0.1",
     "jsdom": "^26.1.0",
-    "mime": "^4.0.7"
+    "mime": "^4.0.7",
+    "playwright": "^1.57.0"
   },
   "scripts": {
     "build": "bun build.js b",

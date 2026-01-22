@@ -15,25 +15,40 @@
     }
 
     onMount(props) {
-      let initialDate
+      let initialDate = null
 
       // Process initial value if provided
       if (this.props.value !== undefined && this.props.value !== '') {
-        const val = this.props.value
+        const val = String(this.props.value).trim()
 
-        // If value is a small integer (-365 to 365), treat as days offset from today
-        if (Number.isInteger(+val) && Math.abs(+val) <= 365) {
-          initialDate = new Date()
-          initialDate.setDate(initialDate.getDate() + parseInt(val))
-        } else if (Number(val) && Number(val) > 365) {
-          // Unix timestamp
-          initialDate = new Date(parseInt(val) * 1000)
-        } else {
-          // Date string
-          initialDate = new Date(val)
+        // Skip invalid/empty values (including things like "/" or empty)
+        if (val && !/^[\s\/\-\.]*$/.test(val)) {
+          try {
+            // If value is a small integer (-365 to 365), treat as days offset from today
+            if (Number.isInteger(+val) && Math.abs(+val) <= 365) {
+              initialDate = new Date()
+              initialDate.setDate(initialDate.getDate() + parseInt(val))
+            } else if (Number(val) && Number(val) > 365) {
+              // Unix timestamp
+              initialDate = new Date(parseInt(val) * 1000)
+            } else {
+              // Date string - validate before using
+              const parsed = new Date(val)
+              if (!isNaN(parsed.getTime())) {
+                initialDate = parsed
+              }
+            }
+
+            if (initialDate && !isNaN(initialDate.getTime())) {
+              this.state.oldValue = this.state.selectedDate = flatpickr.formatDate(initialDate, "d.m.Y")
+            } else {
+              initialDate = null
+            }
+          } catch (e) {
+            console.warn('input-date: Invalid date value:', val)
+            initialDate = null
+          }
         }
-
-        this.state.oldValue = this.state.selectedDate = flatpickr.formatDate(initialDate, "d.m.Y")
       }
 
       // Use wrap mode to handle custom trigger button
@@ -44,7 +59,7 @@
         },
         enableTime: false,
         dateFormat: "d.m.Y",
-        defaultDate: initialDate
+        defaultDate: initialDate || undefined
       })
     }
 
@@ -55,7 +70,7 @@
 
       if (this.state.oldValue != value) {
         this.state.oldValue = value
-        
+
         // Trigger onchange handler if provided
         if (this.props.onchange) {
           Fez.resolveFunction(this.props.onchange, this.inputElement)
@@ -120,11 +135,11 @@
 </style>
 
 <div class="date-picker-wrapper">
-  <input fez-this="inputElement" type="text" name="{{ props.name }}" data-input value={{ state.selectedDate }} />
-  <span data-toggle class="btn {{ props.class || '' }} {{ state.selectedDate ? 'has-date' : 'no-date' }}">
-    {{ state.selectedDate || state.buttonText }}
+  <input fez-this="inputElement" type="text" name={props.name} data-input value={state.selectedDate} />
+  <span data-toggle class="btn {props.class || ''} {state.selectedDate ? 'has-date' : 'no-date'}">
+    {state.selectedDate || state.buttonText}
   </span>
-  {{if state.selectedDate}}
-    <span onclick="fez.setDate('')" class="close btn {{ props.class || '' }}">&times;</span>
-  {{/if}}
+  {#if state.selectedDate}
+    <span onclick="fez.setDate('')" class="close btn {props.class || ''}">&times;</span>
+  {/if}
 </div>

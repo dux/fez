@@ -147,12 +147,12 @@
 <div class="button-nav">
   <div class="nav-mask"></div>
 
-  {{for button, index in navButtons}}
+  {#for button, index in navButtons}
     <span
-      class="nav-button {{ state.activeIndex === index ? 'active' : '' }} {{ button.getAttribute('disabled') ? 'disabled' : '' }}"
-      onclick="fez.handleClick({{ index }}, event)"
+      class="nav-button {state.activeIndex === index ? 'active' : ''} {button.getAttribute('disabled') ? 'disabled' : ''}"
+      onclick={(e) => handleClick(index, e)}
     >
-      {{ button.getAttribute('label') || button._cleanText || `Item ${index + 1}` }}
+      {button.getAttribute('label') || button._cleanText || `Item ${index + 1}`}
     </span>
-  {{/for}}
+  {/for}
 </div>

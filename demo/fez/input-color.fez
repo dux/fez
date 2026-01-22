@@ -197,32 +197,32 @@
   }
 </style>
 
-<div class="color-input-wrapper {{ props.disabled ? 'disabled' : '' }}" onclick="fez.togglePicker()">
-  <div class="color-preview" style="background-color: {{ state.color }}"></div>
-  <span class="color-value">{{ state.color }}</span>
+<div class="color-input-wrapper {props.disabled ? 'disabled' : ''}" onclick="fez.togglePicker()">
+  <div class="color-preview" style="background-color: {state.color}"></div>
+  <span class="color-value">{state.color}</span>
 </div>
 
-<div class="color-picker-popup" style="display: {{ state.showPicker && !props.disabled ? 'block' : 'none' }};" onclick="event.stopPropagation()">
+<div class="color-picker-popup" style="display: {state.showPicker && !props.disabled ? 'block' : 'none'};" onclick="event.stopPropagation()">
   <div class="color-palette">
-    {{for row in fez.palette}}
-      {{for color in row}}
+    {#for row in palette}
+      {#for color in row}
         <div
-          class="color-option {{ state.color === color ? 'selected' : '' }}"
-          style="background-color: {{ color }}"
-          onclick="fez.selectColor('{{ color }}')"
-          title="{{ color }}"
+          class="color-option {state.color === color ? 'selected' : ''}"
+          style="background-color: {color}"
+          onclick="fez.selectColor(color)"
+          title="{color}"
         ></div>
-      {{/for}}
-    {{/for}}
+      {/for}
+    {/for}
   </div>
 
   <div class="custom-color-section">
     <label>Custom:</label>
-    <div class="custom-preview" style="background-color: {{ state.customColor }};"></div>
+    <div class="custom-preview" style="background-color: {state.customColor};"></div>
     <input
       type="text"
-      name={{ props.name }}
-      value={{ state.customColor }}
+      name={props.name}
+      value={state.customColor}
       oninput="fez.updateCustomColor(event)"
       placeholder="#000000"
       maxlength="7"

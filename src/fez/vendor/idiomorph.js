@@ -287,7 +287,12 @@ var Idiomorph = (function () {
 
                     try {
                         if (to.getAttribute(fromAttribute.name) !== fromAttribute.value) {
-                            to.setAttribute(fromAttribute.name, fromAttribute.value);
+                            // Use classList for class attribute to preserve animations
+                            if (fromAttribute.name === 'class') {
+                                syncClassList(from, to);
+                            } else {
+                                to.setAttribute(fromAttribute.name, fromAttribute.value);
+                            }
                         }
                     } catch (error) {
                         // dux fix
@@ -320,6 +325,30 @@ var Idiomorph = (function () {
             if (!ignoreValueOfActiveElement(to, ctx)) {
                 // sync input values
                 syncInputValue(from, to, ctx);
+            }
+        }
+
+        /**
+         * Sync class attribute using classList.add/remove to preserve CSS animations
+         * @param from {Element} element to sync classes from
+         * @param to {Element} element to sync classes to
+         */
+        function syncClassList(from, to) {
+            const fromClasses = new Set(from.className.split(/\s+/).filter(Boolean));
+            const toClasses = new Set(to.className.split(/\s+/).filter(Boolean));
+
+            // Remove classes that are no longer present
+            for (const cls of toClasses) {
+                if (!fromClasses.has(cls)) {
+                    to.classList.remove(cls);
+                }
+            }
+
+            // Add new classes
+            for (const cls of fromClasses) {
+                if (!toClasses.has(cls)) {
+                    to.classList.add(cls);
+                }
             }
         }
 

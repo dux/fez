@@ -56,23 +56,23 @@
 </style>
 
 <!-- fez points to local fez component instance -->
-<button class="btn-sm" onclick="fez.state.count -= 1" disabled={{ state.count < 1 }}>-</button>
-<span>{{ state.count }}</span>
-<button class="btn-sm" onclick="fez.more()" disabled={{ isMax() }}>+</button>
+<button class="btn-sm" onclick="fez.state.count -= 1" disabled={state.count < 1}>-</button>
+<span>{state.count}</span>
+<button class="btn-sm" onclick="fez.more()" disabled={isMax()}>+</button>
 
 <span>&mdash;</span>
-{{if state.count > 0}}
-  {{if state.count == MAX }}
+{#if state.count > 0}
+  {#if state.count == MAX}
     MAX
-  {{else}}
-    {{if state.count % 2 }}
+  {:else}
+    {#if state.count % 2}
       odd
-    {{else}}
+    {:else}
       even
-    {{/if}}
-  {{/if}}
-{{else}}
+    {/if}
+  {/if}
+{:else}
   zero
-{{/if}}
+{/if}
 <span>&mdash;</span>
-(global max: {{ globalState.maxCount }})
+(global max: {globalState.maxCount})

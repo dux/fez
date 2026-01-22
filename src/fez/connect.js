@@ -51,11 +51,13 @@ export default function connect(name, klass) {
     let slotTag = klass.SLOT || 'div'
 
     klass.html = klass.html
-      .replace('<slot', `<${slotTag} class="fez-slot" fez-keep="default-slot"`)
+      // Replace <slot> or <slot > (with optional space/attributes) with fez-slot div
+      // Use component name in fez-keep to make it unique for nested components
+      .replace(/<slot(\s[^>]*)?>/, `<${slotTag} class="fez-slot fez-slot-${name}" fez-keep="slot-${name}"$1>`)
       .replace('</slot>', `</${slotTag}>`)
 
     // Compile template function
-    klass.fezHtmlFunc = createTemplate(klass.html)
+    klass.fezHtmlFunc = createTemplate(klass.html, { name })
   }
 
   // Register component styles globally (available to all components)
@@ -166,12 +168,20 @@ function closeCustomTags(html) {
 function connectNode(name, node) {
   if (!node.isConnected) return
 
+  // Skip if already processed
+  if (node.classList?.contains('fez')) return
+
   const klass = Fez.classes[name]
   const nodeName = typeof klass.nodeName == 'function' ? klass.nodeName(node) : klass.nodeName
   const newNode = document.createElement(nodeName || 'div')
 
   newNode.classList.add('fez')
   newNode.classList.add(`fez-${name}`)
+
+  if (!node.parentNode) {
+    console.warn(`Fez: ${name} node has no parent, skipping`)
+    return
+  }
 
   node.parentNode.replaceChild(newNode, node)
 

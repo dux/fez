@@ -338,6 +338,21 @@ export default class FezBase {
   }
 
   /**
+   * Force a re-render on the next animation frame
+   * Useful when you need to trigger a render without state change
+   */
+  fezRefresh() {
+    this.fezNextTick(() => this.fezRender(), 'refresh')
+  }
+
+  /**
+   * Alias for fezRefresh - can be overwritten in component
+   */
+  refresh() {
+    this.fezRefresh()
+  }
+
+  /**
    * Render the component template to DOM
    * Uses Idiomorph for efficient DOM diffing and patching
    * @param {string|Array|Function} [template] - Template to render (defaults to class HTML)
@@ -469,12 +484,37 @@ export default class FezBase {
   fezKeepNode(newNode) {
     newNode.querySelectorAll('[fez-keep]').forEach(newEl => {
       const key = newEl.getAttribute('fez-keep')
-      const oldEl = this.root.querySelector(`[fez-keep="${key}"]`)
+      const isSlot = key === 'default-slot' || key.startsWith('slot-')
+
+      // For slots, find one that belongs to THIS component, not nested components.
+      // A slot belongs to this component if there's no .fez ancestor between it and this.root.
+      let oldEl
+      if (isSlot) {
+        const candidates = this.root.querySelectorAll(`[fez-keep="${key}"]`)
+        for (const el of candidates) {
+          let parent = el.parentElement
+          let isNested = false
+          while (parent && parent !== this.root) {
+            if (parent.classList.contains('fez')) {
+              isNested = true
+              break
+            }
+            parent = parent.parentElement
+          }
+          if (!isNested) {
+            oldEl = el
+            break
+          }
+        }
+      } else {
+        oldEl = this.root.querySelector(`[fez-keep="${key}"]`)
+      }
 
       if (oldEl) {
         // Keep the old element in place of the new one
         newEl.parentNode.replaceChild(oldEl, newEl)
-      } else if (key === 'default-slot') {
+      } else if (isSlot) {
+        // This is a slot element - populate with root children on first render
         if (newEl.getAttribute('hide')) {
           // You cant use state any more
           this.state = null
@@ -491,7 +531,8 @@ export default class FezBase {
         }
         else {
           // First render - populate the slot with current root children
-          Array.from(this.root.childNodes).forEach(
+          const children = Array.from(this.root.childNodes)
+          children.forEach(
             child => {
               newEl.appendChild(child)
             }

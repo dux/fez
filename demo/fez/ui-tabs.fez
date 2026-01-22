@@ -1,6 +1,7 @@
 <script>
   // add active class to node and remove it from siblings
   activateNode(node) {
+    if (!node || !node.parentElement) return
     Array.from(node.parentElement.children).forEach(child => {
       child.classList.remove('active')
     })
@@ -9,16 +10,31 @@
 
   // activate header tab and active tab
   activate(num) {
-    if (this.tabs[num].getAttribute('disabled')) {
+    // Get fresh reference to tabs from the slot - only direct child slot
+    let slot = null
+    for (const child of this.root.children) {
+      if (child.classList.contains('fez-slot-ui-tabs')) {
+        slot = child
+        break
+      }
+    }
+    if (!slot) return
+
+    const tabs = Array.from(slot.children)
+
+    if (tabs[num]?.getAttribute('disabled')) {
       return
     }
 
-    const header = this.root.querySelector('div.header')
+    // Use :scope > to only select direct child header, not nested ones
+    const header = this.root.querySelector(':scope > div.header')
+    if (!header) return
+
     const target = header.children[num]
 
     this.active = parseInt(num)
     this.activateNode(target)
-    this.activateNode(this.tabs[num])
+    this.activateNode(tabs[num])
   }
 
   init(props) {
@@ -71,7 +87,7 @@
     }
   }
 
-  .fez-slot {
+  .fez-slot-ui-tabs {
     border: var(--tabs-border);
     padding: 8px 15px;
     background: #fff;
@@ -87,14 +103,14 @@
 </style>
 
 <div class="header">
-  {{for tab, index in tabs}}
+  {#for tab, index in tabs}
     <span
-      onclick="fez.activate({{index}})"
-      class="{{ tab.getAttribute('disabled') ? 'disabled' : '' }}"
+      onclick={() => activate(index)}
+      class={tab.getAttribute('disabled') ? 'disabled' : ''}
     >
-      {{ tab.getAttribute('title') }}
+      {tab.getAttribute('title')}
     </span>
-  {{/for}}
+  {/for}
 </div>
 
 <slot />

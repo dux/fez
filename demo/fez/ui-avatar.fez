@@ -31,21 +31,21 @@
   }
 </style>
 
-{{block avatar}}
+{@block avatar}
   <img
-    src={{ props.src }}
+    src={props.src}
     class="avatar"
-    style="width: {{ size }}; height: {{ size }};"
+    style="width: {size}; height: {size};"
   />
-{{/block}}
+{/block}
 
-{{if props.name}}
+{#if props.name}
   <span class="avatar">
-    <div class="title">{{ props.name }}</div>
+    <div class="title">{props.name}</div>
     <div>
-      {{block:avatar}}
+      {@block:avatar}
     </div>
   </span>
-{{else}}
-  {{block:avatar}}
-{{/if}}
+{:else}
+  {@block:avatar}
+{/if}

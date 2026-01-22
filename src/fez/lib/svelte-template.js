@@ -1,12 +1,6 @@
 // Svelte-like template parser for Fez
-// Compiles to direct DOM operations with root-level state dependency tracking
+// Compiles to a single function that returns HTML string
 //
-// HTML void elements - these never have children and should not be pushed to stack
-const VOID_ELEMENTS = new Set([
-  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
-  'link', 'meta', 'param', 'source', 'track', 'wbr'
-])
-
 // Supports:
 //   {#if cond}...{:else if cond}...{:else}...{/if}
 //   {#unless cond}...{/unless}
@@ -18,74 +12,6 @@ const VOID_ELEMENTS = new Set([
 //   {@html rawContent}                     - unescaped HTML
 //   {@json obj}                            - debug JSON output
 //   {expression}                           - escaped expression
-
-/**
- * Skip over a string literal, handling escape sequences
- */
-function skipString(text, startIndex, quote) {
-  let i = startIndex + 1
-  while (i < text.length) {
-    if (text[i] === '\\') {
-      i += 2
-      continue
-    }
-    if (text[i] === quote) return i
-    if (quote === '`' && text[i] === '$' && text[i + 1] === '{') {
-      i += 2
-      let depth = 1
-      while (i < text.length && depth > 0) {
-        if (text[i] === '{') depth++
-        else if (text[i] === '}') depth--
-        else if (text[i] === '"' || text[i] === "'" || text[i] === '`') {
-          i = skipString(text, i, text[i])
-        }
-        i++
-      }
-      continue
-    }
-    i++
-  }
-  return text.length - 1
-}
-
-/**
- * Extract a braced expression with proper depth counting
- */
-function extractBracedExpression(text, startIndex) {
-  let depth = 0
-  let i = startIndex
-
-  while (i < text.length) {
-    const char = text[i]
-    if (char === '{') {
-      depth++
-    } else if (char === '}') {
-      depth--
-      if (depth === 0) {
-        return { expression: text.slice(startIndex + 1, i), endIndex: i }
-      }
-    } else if (char === '"' || char === "'" || char === '`') {
-      i = skipString(text, i, char)
-    }
-    i++
-  }
-  throw new Error(`Unmatched brace at ${startIndex}`)
-}
-
-/**
- * Extract root-level state dependencies from expression
- * "state.users.length" -> ["users"]
- * "state.count + state.total" -> ["count", "total"]
- */
-function extractStateDeps(expr) {
-  const deps = new Set()
-  const re = /\bstate\.(\w+)/g
-  let match
-  while ((match = re.exec(expr)) !== null) {
-    deps.add(match[1])
-  }
-  return [...deps]
-}
 
 /**
  * Parse loop binding to get params and detect object iteration
@@ -141,7 +67,8 @@ function buildLoopParams(binding) {
 
   if (parsed.isDestructured) {
     const destructure = '[' + parsed.params.join(', ') + ']'
-    return destructure + ', ' + (parsed.indexParam || 'i')
+    const indexName = parsed.indexParam || (parsed.params.includes('i') ? '_i' : 'i')
+    return destructure + ', ' + indexName
   }
 
   if (parsed.params.length >= 3) {
@@ -154,519 +81,339 @@ function buildLoopParams(binding) {
     return parsed.params.join(', ')
   }
 
-  return parsed.params[0] + ', i'
+  // If loop var is 'i', use '_i' for index to avoid collision
+  const indexName = parsed.params[0] === 'i' ? '_i' : 'i'
+  return parsed.params[0] + ', ' + indexName
 }
 
 /**
- * Rewrite expression to use _ctx context
- * - state.foo -> _ctx.state.foo
- * - this.method() -> _ctx.method()
- * - Loop variables remain unchanged
- * @param {string} expr - The expression to rewrite
- * @param {string[]} loopVars - Current loop variable names to exclude
+ * Check if expression is an arrow function
  */
-function rewriteExpr(expr, loopVars = []) {
-  // Replace this. with _ctx.
-  let result = expr.replace(/\bthis\./g, '_ctx.')
-
-  // Replace state. with _ctx.state. (but not if already prefixed)
-  // Use negative lookbehind to avoid _ctx.state.state.
-  result = result.replace(/(?<![._\w])state\./g, '_ctx.state.')
-
-  // Replace props. with _ctx.props.
-  result = result.replace(/(?<![._\w])props\./g, '_ctx.props.')
-
-  return result
-}
-
-// Simple HTML parser to tokenize template
-function tokenize(html) {
-  const tokens = []
-  let i = 0
-
-  while (i < html.length) {
-    // Escaped brace
-    if (html[i] === '\\' && html[i + 1] === '{') {
-      tokens.push({ type: 'text', value: '{' })
-      i += 2
-      continue
-    }
-
-    // Brace expression
-    if (html[i] === '{') {
-      const { expression, endIndex } = extractBracedExpression(html, i)
-      tokens.push({ type: 'expr', value: expression.trim() })
-      i = endIndex + 1
-      continue
-    }
-
-    // HTML comment - skip entirely
-    if (html.slice(i, i + 4) === '<!--') {
-      const endComment = html.indexOf('-->', i + 4)
-      if (endComment === -1) {
-        // Unclosed comment, skip to end
-        break
-      }
-      i = endComment + 3
-      continue
-    }
-
-    // HTML tag - need to handle braces inside attributes
-    if (html[i] === '<') {
-      let j = i + 1
-      // Find the actual end of the tag, handling braces
-      while (j < html.length) {
-        if (html[j] === '>') {
-          // Found the tag end
-          break
-        } else if (html[j] === '{') {
-          // Skip over braced expression
-          const { endIndex } = extractBracedExpression(html, j)
-          j = endIndex + 1
-          continue
-        } else if (html[j] === '"' || html[j] === "'") {
-          // Skip over quoted string
-          const quote = html[j]
-          j++
-          while (j < html.length && html[j] !== quote) {
-            if (html[j] === '\\') j++
-            j++
-          }
-          j++
-          continue
-        }
-        j++
-      }
-
-      if (j >= html.length) {
-        tokens.push({ type: 'text', value: html.slice(i) })
-        break
-      }
-      const tag = html.slice(i, j + 1)
-      tokens.push({ type: 'tag', value: tag })
-      i = j + 1
-      continue
-    }
-
-    // Text content
-    let end = i
-    while (end < html.length && html[end] !== '<' && html[end] !== '{') {
-      if (html[end] === '\\' && html[end + 1] === '{') break
-      end++
-    }
-    if (end > i) {
-      tokens.push({ type: 'text', value: html.slice(i, end) })
-    }
-    i = end
-  }
-
-  return tokens
-}
-
-// Parse a tag string into name, attributes, and flags
-function parseTag(tagStr) {
-  const isClose = tagStr.startsWith('</')
-  const isSelfClose = tagStr.endsWith('/>')
-
-  let inner = tagStr.slice(isClose ? 2 : 1, isSelfClose ? -2 : -1).trim()
-  const spaceIdx = inner.indexOf(' ')
-
-  let name, attrStr
-  if (spaceIdx === -1) {
-    name = inner
-    attrStr = ''
-  } else {
-    name = inner.slice(0, spaceIdx)
-    attrStr = inner.slice(spaceIdx + 1).trim()
-  }
-
-  // Parse attributes
-  const attrs = []
-  if (attrStr) {
-    let i = 0
-    while (i < attrStr.length) {
-      // Skip whitespace
-      while (i < attrStr.length && /\s/.test(attrStr[i])) i++
-      if (i >= attrStr.length) break
-
-      // Match attribute name
-      const nameStart = i
-      while (i < attrStr.length && /[\w-]/.test(attrStr[i])) i++
-      const attrName = attrStr.slice(nameStart, i)
-      if (!attrName) break
-
-      // Check for = sign
-      if (attrStr[i] !== '=') {
-        // Boolean attribute
-        attrs.push({ name: attrName, value: true, isDynamic: false })
-        continue
-      }
-      i++ // skip =
-
-      let value, isDynamic = false
-      if (attrStr[i] === '"' || attrStr[i] === "'") {
-        // Quoted string value
-        const quote = attrStr[i]
-        i++
-        const valueStart = i
-        while (i < attrStr.length && attrStr[i] !== quote) i++
-        value = attrStr.slice(valueStart, i)
-        i++ // skip closing quote
-      } else if (attrStr[i] === '{') {
-        // Dynamic expression - need to handle nested braces
-        isDynamic = true
-        i++ // skip opening {
-        let depth = 1
-        const valueStart = i
-        while (i < attrStr.length && depth > 0) {
-          if (attrStr[i] === '{') depth++
-          else if (attrStr[i] === '}') depth--
-          else if (attrStr[i] === '"' || attrStr[i] === "'" || attrStr[i] === '`') {
-            const quote = attrStr[i]
-            i++
-            while (i < attrStr.length && attrStr[i] !== quote) {
-              if (attrStr[i] === '\\') i++
-              i++
-            }
-          }
-          if (depth > 0) i++
-        }
-        value = attrStr.slice(valueStart, i)
-        i++ // skip closing }
-      } else {
-        // Unquoted value (shouldn't happen often)
-        const valueStart = i
-        while (i < attrStr.length && !/[\s>]/.test(attrStr[i])) i++
-        value = attrStr.slice(valueStart, i)
-      }
-
-      attrs.push({ name: attrName, value, isDynamic })
-    }
-  }
-
-  return { name, attrs, isClose, isSelfClose }
+function isArrowFunction(expr) {
+  // Match: () => ..., (e) => ..., (e, foo) => ..., e => ...
+  return /^\s*(\([^)]*\)|[a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>/.test(expr)
 }
 
 /**
- * Compile template to render function that builds DOM directly
+ * Transform arrow function to onclick-compatible string
+ * Input: "(e) => removeTask(index)" with loopVars = ['item', 'index', 'i']
+ * Output: "removeTask(${index})" (loop vars get interpolated)
+ */
+function transformArrowToHandler(expr, loopVars = []) {
+  // Extract the arrow function body
+  const arrowMatch = expr.match(/^\s*(?:\([^)]*\)|[a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>\s*(.+)$/s)
+  if (!arrowMatch) return expr
+
+  let body = arrowMatch[1].trim()
+
+  // Check if arrow has event param: (e) => or (event) => or e =>
+  const paramMatch = expr.match(/^\s*\(?\s*([a-zA-Z_$][a-zA-Z0-9_$]*)?\s*(?:,\s*[^)]+)?\)?\s*=>/)
+  const eventParam = paramMatch?.[1]
+  const hasEventParam = eventParam && ['e', 'event', 'ev'].includes(eventParam)
+
+  // Replace event param with 'event' (the actual DOM event)
+  if (hasEventParam && eventParam !== 'event') {
+    // Replace the event param variable in the body with 'event'
+    const eventRegex = new RegExp(`\\b${eventParam}\\b`, 'g')
+    body = body.replace(eventRegex, 'event')
+  }
+
+  // Interpolate loop variables - they need to be evaluated at render time
+  // e.g., removeTask(index) becomes removeTask(${index})
+  for (const varName of loopVars) {
+    // Match the variable as a standalone identifier (not part of another word)
+    // and not already inside a template literal
+    const varRegex = new RegExp(`(?<!\\$\\{)\\b${varName}\\b(?![^{]*\\})`, 'g')
+    body = body.replace(varRegex, `\${${varName}}`)
+  }
+
+  // Prefix bare function calls with fez.
+  // This handles: removeTask(x) -> fez.removeTask(x)
+  // But not: this.foo(), obj.method(), console.log()
+  // Use negative lookbehind to avoid matching after a dot
+  body = body.replace(/(?<![.\w])([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g, (match, funcName) => {
+    // Don't prefix if it's a known global or already qualified
+    const globals = ['console', 'window', 'document', 'Math', 'JSON', 'Date', 'Array', 'Object', 'String', 'Number', 'Boolean', 'parseInt', 'parseFloat', 'setTimeout', 'setInterval', 'clearTimeout', 'clearInterval', 'alert', 'confirm', 'prompt', 'fetch', 'event']
+    if (globals.includes(funcName)) {
+      return match
+    }
+    return `fez.${funcName}(`
+  })
+
+  return body
+}
+
+/**
+ * Extract a braced expression with proper depth counting
+ */
+function extractBracedExpression(text, startIndex) {
+  let depth = 0
+  let i = startIndex
+
+  while (i < text.length) {
+    const char = text[i]
+    if (char === '{') {
+      depth++
+    } else if (char === '}') {
+      depth--
+      if (depth === 0) {
+        return { expression: text.slice(startIndex + 1, i), endIndex: i }
+      }
+    } else if (char === '"' || char === "'" || char === '`') {
+      // Skip string literals
+      const quote = char
+      i++
+      while (i < text.length && text[i] !== quote) {
+        if (text[i] === '\\') i++
+        i++
+      }
+    }
+    i++
+  }
+  throw new Error(`Unmatched brace at ${startIndex}`)
+}
+
+/**
+ * Check if position is inside an attribute (attr={...})
+ * Returns the attribute name if inside one, null otherwise
+ */
+function getAttributeContext(text, pos) {
+  // Look backwards for pattern like: attr={
+  // We need to find the last '=' before pos that's preceded by an attribute name
+  let j = pos - 1
+  // Skip whitespace and opening brace
+  while (j >= 0 && (text[j] === '{' || text[j] === ' ' || text[j] === '\t')) j--
+  if (j >= 0 && text[j] === '=') {
+    // Found '=', now look for attribute name
+    j--
+    while (j >= 0 && (text[j] === ' ' || text[j] === '\t')) j--
+    // Extract attribute name
+    let attrEnd = j + 1
+    while (j >= 0 && /[a-zA-Z0-9_:-]/.test(text[j])) j--
+    const attrName = text.slice(j + 1, attrEnd)
+    if (attrName && /^[a-zA-Z]/.test(attrName)) {
+      return attrName.toLowerCase()
+    }
+  }
+  return null
+}
+
+/**
+ * Check if position is inside an event attribute (onclick=, onchange=, etc.)
+ * Returns the attribute name if inside one, null otherwise
+ */
+function getEventAttributeContext(text, pos) {
+  const attr = getAttributeContext(text, pos)
+  if (attr && /^on[a-z]+$/.test(attr)) {
+    return attr
+  }
+  return null
+}
+
+/**
+ * Compile template to a function that returns HTML string
  */
 export default function createSvelteTemplate(text, opts = {}) {
-  // Normalize whitespace
-  text = text.replace(/>\s+</g, '><').trim()
+  const componentName = opts.name || 'unknown'
 
-  const tokens = tokenize(text)
+  try {
+    // Decode HTML entities that might have been encoded by browser DOM
+    text = text
+      .replaceAll('&#x60;', '`')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&amp;', '&')
 
-  // Generate code that builds DOM
-  let code = ''
-  let varCounter = 0
-  const stack = [] // stack of parent variable names
-  const loopStack = [] // track loop variables
-  const blockStack = [] // track block info for nested if/each/unless
+    // Process block definitions and references before parsing
+    const blocks = {}
+    text = text.replace(/\{@block\s+(\w+)\}([\s\S]*?)\{\/block\}/g, (_, name, content) => {
+      blocks[name] = content
+      return ''
+    })
+    text = text.replace(/\{@block:(\w+)\}/g, (_, name) => blocks[name] || '')
 
-  const newVar = () => `_n${varCounter++}`
+    // Remove HTML comments
+    text = text.replace(/<!--[\s\S]*?-->/g, '')
 
-  const currentParent = () => stack.length ? stack[stack.length - 1] : '_root'
+    // Normalize whitespace between tags
+    text = text.replace(/>\s+</g, '><').trim()
 
-  // Track dependencies per variable
-  const depTracking = [] // [{varName, deps, updateCode}]
+    // Convert self-closing custom elements to paired tags
+    // <ui-icon name="foo" /> -> <ui-icon name="foo"></ui-icon>
+    // Custom elements contain a hyphen in the tag name
+    text = text.replace(/<([a-z][a-z0-9]*-[a-z0-9-]*)([^>]*?)\s*\/>/gi, '<$1$2></$1>')
 
-  for (let ti = 0; ti < tokens.length; ti++) {
-    const token = tokens[ti]
+    // Convert self-closing <slot /> to <slot></slot>
+    text = text.replace(/<slot\s*\/>/gi, '<slot></slot>')
 
-    if (token.type === 'text') {
-      const text = token.value.trim()
-      if (text) {
-        const v = newVar()
-        code += `const ${v} = document.createTextNode(${JSON.stringify(text)});\n`
-        code += `${currentParent()}.appendChild(${v});\n`
+    // Parse and build template literal
+    let result = ''
+    let i = 0
+    const ifStack = []  // Track if blocks have else
+    const loopVarStack = []  // Track loop variables for arrow function transformation
+    const loopStack = []  // Track loop info for :else support
+
+    while (i < text.length) {
+      // Escaped brace
+      if (text[i] === '\\' && text[i + 1] === '{') {
+        result += '{'
+        i += 2
+        continue
       }
-    }
 
-    else if (token.type === 'tag') {
-      const tag = parseTag(token.value)
+      // Expression or directive
+      if (text[i] === '{') {
+        const { expression, endIndex } = extractBracedExpression(text, i)
+        const expr = expression.trim()
 
-      if (tag.isClose) {
-        stack.pop()
-      } else {
-        const v = newVar()
-        code += `const ${v} = document.createElement('${tag.name}');\n`
-
-        for (const attr of tag.attrs) {
-          if (attr.name.startsWith('on')) {
-            // Event handler
-            const eventName = attr.name.slice(2)
-            const allLoopVars = loopStack.flat()
-            let handler = attr.value
-              .replace(/^\(\s*\)\s*=>\s*/, '')
-              .replace(/^\(\s*e\s*\)\s*=>\s*/, '(e) => ')
-            handler = rewriteExpr(handler, allLoopVars)
-
-            // Check if handler uses loop variables
-            const usesLoopVar = loopStack.length > 0 && loopStack.some(vars =>
-              vars.some(v => handler.includes(v))
-            )
-
-            if (usesLoopVar || handler.includes('=>')) {
-              code += `${v}.addEventListener('${eventName}', (e) => { ${handler.startsWith('(e)') ? handler.slice(6) : handler} });\n`
-            } else {
-              // Handler already rewritten with _ctx. prefix
-              code += `${v}.addEventListener('${eventName}', (e) => { ${handler} });\n`
-            }
-          } else if (attr.isDynamic) {
-            // Dynamic attribute
-            const deps = extractStateDeps(attr.value)
-            const allLoopVars = loopStack.flat()
-            const expr = rewriteExpr(attr.value, allLoopVars)
-
-            if (attr.name === 'class' && attr.value.includes('?')) {
-              // Conditional class
-              code += `${v}.setAttribute('class', ${expr});\n`
-            } else {
-              code += `${v}.setAttribute('${attr.name}', ${expr});\n`
-            }
-
-            if (deps.length > 0) {
-              depTracking.push({
-                deps,
-                code: `${v}.setAttribute('${attr.name}', ${expr});`
-              })
-            }
-          } else if (attr.value !== true) {
-            // Static attribute
-            code += `${v}.setAttribute('${attr.name}', ${JSON.stringify(attr.value)});\n`
+        // Block directives
+        if (expr.startsWith('#if ')) {
+          const cond = expr.slice(4)
+          result += '${(' + cond + ') ? `'
+          ifStack.push(false)  // No else yet
+        }
+        else if (expr.startsWith('#unless ')) {
+          const cond = expr.slice(8)
+          result += '${!(' + cond + ') ? `'
+          ifStack.push(false)  // No else yet
+        }
+        else if (expr === ':else') {
+          // Check if we're inside a loop (for empty list handling)
+          if (loopStack.length > 0 && !ifStack.length) {
+            // :else inside a loop - for empty array case
+            const loopInfo = loopStack[loopStack.length - 1]
+            loopInfo.hasElse = true
+            result += '`).join("") : `'
           } else {
-            // Boolean attribute
-            code += `${v}.setAttribute('${attr.name}', '');\n`
+            // :else inside an if block
+            result += '` : `'
+            ifStack[ifStack.length - 1] = true  // Has else
+          }
+        }
+        else if (expr.startsWith(':else if ')) {
+          const cond = expr.slice(9)
+          result += '` : (' + cond + ') ? `'
+          // Keep hasElse as false - still need final else
+        }
+        else if (expr === '/if' || expr === '/unless') {
+          const hasElse = ifStack.pop()
+          result += hasElse ? '`}' : '` : ``}'
+        }
+        else if (expr.startsWith('#each ') || expr.startsWith('#for ')) {
+          const isEach = expr.startsWith('#each ')
+          let collection, binding
+
+          if (isEach) {
+            const rest = expr.slice(6)
+            const asIdx = rest.indexOf(' as ')
+            collection = rest.slice(0, asIdx).trim()
+            binding = rest.slice(asIdx + 4).trim()
+          } else {
+            const rest = expr.slice(5)
+            const inIdx = rest.indexOf(' in ')
+            binding = rest.slice(0, inIdx).trim()
+            collection = rest.slice(inIdx + 4).trim()
+          }
+
+          const collectionExpr = buildCollectionExpr(collection, binding)
+          const loopParams = buildLoopParams(binding)
+
+          // Track loop variables for arrow function transformation
+          loopVarStack.push(getLoopVarNames(binding))
+
+          // Track loop info for :else support
+          // Use a wrapper that allows checking length and provides else support
+          // ((_arr) => _arr.length ? _arr.map(...).join('') : elseContent)(collection)
+          loopStack.push({ collectionExpr, hasElse: false })
+
+          result += '${((_arr) => _arr.length ? _arr.map((' + loopParams + ') => `'
+        }
+        else if (expr === '/each' || expr === '/for') {
+          loopVarStack.pop()  // Remove loop vars when exiting loop
+          const loopInfo = loopStack.pop()
+          if (loopInfo.hasElse) {
+            // Close the else branch
+            result += '`)(' + loopInfo.collectionExpr + ')}'
+          } else {
+            // No else - just close the ternary with empty string
+            result += '`).join("") : "")(' + loopInfo.collectionExpr + ')}'
+          }
+        }
+        else if (expr.startsWith('@html ')) {
+          const content = expr.slice(6)
+          result += '${' + content + '}'
+        }
+        else if (expr.startsWith('@json ')) {
+          const content = expr.slice(6)
+          result += '${`<pre class="json">${Fez.htmlEscape(JSON.stringify(' + content + ', null, 2))}</pre>`}'
+        }
+        else if (isArrowFunction(expr)) {
+          // Arrow function - check if we're in an event attribute
+          const eventAttr = getEventAttributeContext(text, i)
+          if (eventAttr) {
+            // Get all current loop variables
+            const allLoopVars = loopVarStack.flat()
+            let handler = transformArrowToHandler(expr, allLoopVars)
+            // Escape double quotes for HTML attribute
+            handler = handler.replace(/"/g, '&quot;')
+            // Output as quoted attribute value with interpolation for loop vars
+            result += '"' + handler + '"'
+          } else {
+            // Arrow function outside event attribute - just output as expression
+            result += '${' + expr + '}'
+          }
+        }
+        else {
+          // Plain expression - check if inside attribute
+          const attrContext = getAttributeContext(text, i)
+          if (attrContext) {
+            // Inside attribute - wrap with quotes and escape
+            result += '"${Fez.htmlEscape(' + expr + ')}"'
+          } else {
+            // Regular content - just escape HTML
+            result += '${Fez.htmlEscape(' + expr + ')}'
           }
         }
 
-        code += `${currentParent()}.appendChild(${v});\n`
-
-        // Don't push void elements or self-closing tags onto the stack
-        const isVoidElement = VOID_ELEMENTS.has(tag.name.toLowerCase())
-        if (!tag.isSelfClose && !isVoidElement) {
-          stack.push(v)
-        }
+        i = endIndex + 1
+        continue
       }
+
+      // Escape backticks and $ for template literal
+      if (text[i] === '`') {
+        result += '\\`'
+      } else if (text[i] === '$' && text[i + 1] === '{') {
+        result += '\\$'
+      } else if (text[i] === '\\') {
+        result += '\\\\'
+      } else {
+        result += text[i]
+      }
+      i++
     }
 
-    else if (token.type === 'expr') {
-      const expr = token.value
-
-      // Block directives
-      if (expr.startsWith('#if ')) {
-        const allLoopVars = loopStack.flat()
-        const cond = rewriteExpr(expr.slice(4), allLoopVars)
-        const deps = extractStateDeps(expr)
-        const fragVar = newVar()
-        const anchorVar = newVar()
-
-        code += `const ${anchorVar} = document.createComment('if');\n`
-        code += `${currentParent()}.appendChild(${anchorVar});\n`
-        code += `let ${fragVar} = null;\n`
-        code += `const _render${fragVar} = () => {\n`
-        code += `  if (${fragVar}) { ${fragVar}.remove(); ${fragVar} = null; }\n`
-        code += `  if (${cond}) {\n`
-        code += `    ${fragVar} = document.createDocumentFragment();\n`
-        code += `    const _root = ${fragVar};\n`
-
-        stack.push('_root')
-        blockStack.push({ type: 'if', fragVar, anchorVar, deps, hasElse: false })
+    // Build the function
+    const funcBody = `
+      const fez = this;
+      with (this) {
+        return \`${result}\`
       }
+    `
 
-      else if (expr === ':else') {
-        const info = blockStack[blockStack.length - 1]
-        code += `  } else {\n`
-        info.hasElse = true
-      }
-
-      else if (expr.startsWith(':else if ')) {
-        const allLoopVars = loopStack.flat()
-        const cond = rewriteExpr(expr.slice(9), allLoopVars)
-        code += `  } else if (${cond}) {\n`
-      }
-
-      else if (expr === '/if' || expr === '/unless') {
-        stack.pop() // pop _root
-        const info = blockStack.pop()
-        code += `  }\n` // close if/else block
-        code += `  if (${info.fragVar}) ${info.anchorVar}.parentNode.insertBefore(${info.fragVar}, ${info.anchorVar});\n`
-        code += `};\n`
-        code += `_render${info.fragVar}();\n`
-
-        if (info.deps.length > 0) {
-          depTracking.push({ deps: info.deps, code: `_render${info.fragVar}();` })
-        }
-      }
-
-      else if (expr.startsWith('#unless ')) {
-        const allLoopVars = loopStack.flat()
-        const cond = rewriteExpr(expr.slice(8), allLoopVars)
-        const deps = extractStateDeps(expr)
-        const fragVar = newVar()
-        const anchorVar = newVar()
-
-        code += `const ${anchorVar} = document.createComment('unless');\n`
-        code += `${currentParent()}.appendChild(${anchorVar});\n`
-        code += `let ${fragVar} = null;\n`
-        code += `const _render${fragVar} = () => {\n`
-        code += `  if (${fragVar}) { ${fragVar}.remove(); ${fragVar} = null; }\n`
-        code += `  if (!(${cond})) {\n`
-        code += `    ${fragVar} = document.createDocumentFragment();\n`
-        code += `    const _root = ${fragVar};\n`
-
-        stack.push('_root')
-        blockStack.push({ type: 'unless', fragVar, anchorVar, deps, hasElse: false })
-      }
-
-      else if (expr.startsWith('#each ') || expr.startsWith('#for ')) {
-        const isEach = expr.startsWith('#each ')
-        let collection, binding
-
-        if (isEach) {
-          const rest = expr.slice(6)
-          const asIdx = rest.indexOf(' as ')
-          collection = rest.slice(0, asIdx).trim()
-          binding = rest.slice(asIdx + 4).trim()
-        } else {
-          const rest = expr.slice(5)
-          const inIdx = rest.indexOf(' in ')
-          binding = rest.slice(0, inIdx).trim()
-          collection = rest.slice(inIdx + 4).trim()
-        }
-
-        const deps = extractStateDeps(collection)
-        const loopVars = getLoopVarNames(binding)
-        loopStack.push(loopVars)
-
-        const anchorVar = newVar()
-        const containerVar = newVar()
-        const allLoopVars = loopStack.flat()
-        const collectionExpr = buildCollectionExpr(rewriteExpr(collection, allLoopVars), binding)
-        const loopParams = buildLoopParams(binding)
-
-        code += `const ${anchorVar} = document.createComment('each');\n`
-        code += `${currentParent()}.appendChild(${anchorVar});\n`
-        code += `let ${containerVar} = [];\n`
-        code += `const _render${containerVar} = () => {\n`
-        code += `  ${containerVar}.forEach(n => n.remove());\n`
-        code += `  ${containerVar} = [];\n`
-        code += `  ${collectionExpr}.forEach((${loopParams}) => {\n`
-        code += `    const _frag = document.createDocumentFragment();\n`
-        code += `    const _root = _frag;\n`
-
-        stack.push('_root')
-        blockStack.push({ type: 'each', anchorVar, containerVar, deps })
-      }
-
-      else if (expr === '/each' || expr === '/for') {
-        stack.pop()
-        loopStack.pop()
-        const info = blockStack.pop()
-
-        code += `    ${info.containerVar}.push(..._frag.childNodes);\n`
-        code += `    ${info.anchorVar}.parentNode.insertBefore(_frag, ${info.anchorVar});\n`
-        code += `  });\n`
-        code += `};\n`
-        code += `_render${info.containerVar}();\n`
-
-        if (info.deps.length > 0) {
-          depTracking.push({ deps: info.deps, code: `_render${info.containerVar}();` })
-        }
-      }
-
-      else if (expr.startsWith('@html ')) {
-        const allLoopVars = loopStack.flat()
-        const content = rewriteExpr(expr.slice(6), allLoopVars)
-        const deps = extractStateDeps(expr)
-        const v = newVar()
-        const spanVar = newVar()
-
-        code += `const ${spanVar} = document.createElement('span');\n`
-        code += `${spanVar}.innerHTML = ${content};\n`
-        code += `${currentParent()}.appendChild(${spanVar});\n`
-
-        if (deps.length > 0) {
-          depTracking.push({ deps, code: `${spanVar}.innerHTML = ${content};` })
-        }
-      }
-
-      else if (expr.startsWith('@json ')) {
-        const allLoopVars = loopStack.flat()
-        const content = rewriteExpr(expr.slice(6), allLoopVars)
-        const deps = extractStateDeps(expr)
-        const v = newVar()
-
-        code += `const ${v} = document.createElement('pre');\n`
-        code += `${v}.className = 'json';\n`
-        code += `${v}.textContent = JSON.stringify(${content}, null, 2);\n`
-        code += `${currentParent()}.appendChild(${v});\n`
-
-        if (deps.length > 0) {
-          depTracking.push({ deps, code: `${v}.textContent = JSON.stringify(${content}, null, 2);` })
-        }
-      }
-
-      else {
-        // Plain expression - text node
-        const allLoopVars = loopStack.flat()
-        const content = rewriteExpr(expr, allLoopVars)
-        const deps = extractStateDeps(expr)
-        const v = newVar()
-
-        code += `const ${v} = document.createTextNode(${content});\n`
-        code += `${currentParent()}.appendChild(${v});\n`
-
-        if (deps.length > 0) {
-          depTracking.push({ deps, code: `${v}.textContent = ${content};` })
-        }
-      }
-    }
-  }
-
-  // Build dependency map
-  const depMap = {}
-  for (const { deps, code: updateCode } of depTracking) {
-    for (const dep of deps) {
-      depMap[dep] = depMap[dep] || []
-      depMap[dep].push(updateCode)
-    }
-  }
-
-  // Generate final function
-  const depMapCode = Object.keys(depMap).length > 0
-    ? `_ctx._fezDeps = ${JSON.stringify(depMap)};\n` +
-      `_ctx._fezUpdate = (prop) => {\n` +
-      `  const updates = _ctx._fezDeps[prop];\n` +
-      `  if (updates) updates.forEach(code => eval(code));\n` +
-      `};\n`
-    : ''
-
-  const funcBody = `
-    return function(_ctx) {
-      const _root = document.createDocumentFragment();
-      ${code}
-      ${depMapCode}
-      return _root;
-    }
-  `
-
-  try {
-    const factory = new Function(funcBody)
-    const renderFn = factory()
+    const tplFunc = new Function(funcBody)
 
     return (ctx) => {
       try {
-        return renderFn(ctx)
+        return tplFunc.bind(ctx)()
       } catch (e) {
-        console.error('FEZ svelte template runtime error:', e.message)
-        console.error('Generated code:', funcBody)
-        return document.createDocumentFragment()
+        console.error(`FEZ svelte template runtime error in <${ctx.fezName || componentName}>:`, e.message)
+        console.error('Template source:', result.substring(0, 500))
+        return ''
       }
     }
   } catch (e) {
-    console.error('FEZ svelte template compile error:', e.message)
-    console.error('Generated code:', funcBody)
-    return () => document.createDocumentFragment()
+    console.error(`FEZ svelte template compile error in <${componentName}>:`, e.message)
+    console.error('Template:', text.substring(0, 200))
+    return () => ''
   }
 }

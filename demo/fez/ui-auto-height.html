@@ -74,6 +74,12 @@
     }
   };
 
-  // Initialize first paragraph
-  window.requestAnimationFrame(()=>DemoText.addParagraph())
+  // Initialize first paragraph after DOM is ready
+  Fez.untilTrue(() => {
+    const content = document.getElementById('demo-text-content')
+    if (content) {
+      DemoText.addParagraph()
+      return true
+    }
+  }, 50)
 </script>

@@ -294,6 +294,7 @@ export default (Fez) => {
 
   // add class by name to node and remove it from siblings
   Fez.activateNode = (node, klass = 'active') => {
+    if (!node || !node.parentElement) return
     Array.from(node.parentElement.children).forEach(child => {
       child.classList.remove(klass)
     })
