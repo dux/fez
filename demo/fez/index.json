@@ -235,6 +235,15 @@
   },
   {
     "file": {
+      "base": "ui-svelte-demo",
+      "path": "demo/fez/ui-svelte-demo.fez",
+      "size": 6844,
+      "modified": 1769041033,
+      "created": 1769040412
+    }
+  },
+  {
+    "file": {
       "base": "ui-tabs",
       "path": "demo/fez/ui-tabs.fez",
       "size": 2004,

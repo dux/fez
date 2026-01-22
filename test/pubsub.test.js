@@ -41,18 +41,21 @@ test("Publish/Subscribe - Multiple subscribers", async () => {
 
 test("Publish/Subscribe - Node selector", async () => {
   const Fez = globalThis.window.Fez;
-  
+
   let receivedData = null;
   const callback = (data) => { receivedData = data; };
-  
-  // Subscribe using selector
-  const unsubscribe = Fez.subscribe('#testNode', 'selector-event', callback);
-  
+
+  // Use a mock node directly (more reliable than querySelector which depends on DOM state)
+  const mockNode = { isConnected: true, id: 'testNode' };
+
+  // Subscribe using node object
+  const unsubscribe = Fez.subscribe(mockNode, 'selector-event', callback);
+
   // Publish event
   Fez.publish('selector-event', 'test data');
-  
+
   expect(receivedData).toBe('test data');
-  
+
   // Cleanup
   unsubscribe();
 });

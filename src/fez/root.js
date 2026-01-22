@@ -202,10 +202,10 @@ Fez.publish = (channel, ...args) => {
   const subs = Fez._globalSubs.get(channel)
   if (subs) {
     subs.forEach((sub) => {
-      if (sub.node.isConnected) {
+      if (sub.node && sub.node.isConnected) {
         sub.callback.call(sub.node, ...args)
       } else {
-        // Remove disconnected nodes from subscriptions
+        // Remove disconnected or null nodes from subscriptions
         subs.delete(sub)
       }
     })

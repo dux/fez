@@ -1,6 +1,17 @@
+import createSvelteTemplate from './svelte-template.js'
+
 // Template cache to avoid recompiling the same templates
 const templateCache = new Map()
-const TEMPLATE_CACHE_MAX_SIZE = 200
+
+/**
+ * Detect if template uses old-style double-brace syntax
+ * Old style: {{ expression }} or [[ expression ]]
+ * New style: { expression }
+ */
+function isOldStyleTemplate(text) {
+  return (text.includes('{{') && text.includes('}}')) ||
+         (text.includes('[[') && text.includes(']]'))
+}
 
 function parseBlock(data, ifStack) {
   data = data
@@ -68,6 +79,21 @@ export default function createTemplate(text, opts = {}) {
     return templateCache.get(cacheKey)
   }
 
+  // Route to appropriate parser based on syntax detection
+  const templateFunc = isOldStyleTemplate(text)
+    ? createOldTemplate(text, opts)
+    : createSvelteTemplate(text, opts)
+
+  templateCache.set(cacheKey, templateFunc)
+
+  return templateFunc
+}
+
+/**
+ * Old-style template parser using double-brace syntax {{ }}
+ * Kept for backwards compatibility
+ */
+function createOldTemplate(text, opts = {}) {
   const ifStack = []
 
   // some templating engines, as GoLangs use {{ for templates. Allow usage of [[ for fez
@@ -121,7 +147,7 @@ export default function createTemplate(text, opts = {}) {
       }
     `
     const tplFunc = new Function(funcBody)
-    const outFunc = (o) => {
+    return (o) => {
       try {
         return tplFunc.bind(o)()
       } catch(e) {
@@ -129,15 +155,6 @@ export default function createTemplate(text, opts = {}) {
         console.error(e)
       }
     }
-
-    // Store in cache with size limit
-    if (templateCache.size >= TEMPLATE_CACHE_MAX_SIZE) {
-      const oldestKey = templateCache.keys().next().value
-      templateCache.delete(oldestKey)
-    }
-    templateCache.set(cacheKey, outFunc)
-
-    return outFunc
   } catch(e) {
     e.message = `FEZ template compile error: ${e.message}Template source:\n${result}`
     console.error(e)

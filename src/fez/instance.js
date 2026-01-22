@@ -369,8 +369,14 @@ export default class FezBase {
     }
 
     if (renderedTpl) {
-      renderedTpl = renderedTpl.replace(/\s\w+="undefined"/g, '')
-      newNode.innerHTML = this.fezParseHtml(renderedTpl)
+      // Handle DocumentFragment (from svelte-template DOM compiler)
+      if (renderedTpl instanceof DocumentFragment || renderedTpl instanceof Node) {
+        newNode.appendChild(renderedTpl)
+      } else {
+        // Handle HTML string
+        renderedTpl = renderedTpl.replace(/\s\w+="undefined"/g, '')
+        newNode.innerHTML = this.fezParseHtml(renderedTpl)
+      }
     }
 
     // Handle fez-keep attributes

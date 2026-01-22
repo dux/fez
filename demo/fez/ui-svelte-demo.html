@@ -1,0 +1,21 @@
+<div class="info">
+  <ul>
+    <li><strong>Svelte-like Template Syntax</strong> - Uses single braces <code>{expression}</code> instead of double braces <code>{{expression}}</code></li>
+    <li>Supports: <code>{#if}</code>, <code>{:else if}</code>, <code>{:else}</code>, <code>{/if}</code></li>
+    <li>Supports: <code>{#unless}</code>, <code>{/unless}</code></li>
+    <li>Supports: <code>{#each items as item}</code>, <code>{/each}</code> - implicit <code>i</code> available</li>
+    <li>Supports: <code>{#each items as item, index}</code> - explicit index name</li>
+    <li>Supports: <code>{#for item in items}</code>, <code>{/for}</code> - implicit <code>i</code> available</li>
+    <li>Supports: <code>{#for item, index in items}</code> - explicit index name</li>
+    <li>Object iteration (3 params): <code>{#each obj as key, value, index}</code></li>
+    <li>Object iteration (3 params): <code>{#for key, value, index in obj}</code></li>
+    <li>Object iteration (destructured): <code>{#for [key, value] in obj}</code></li>
+    <li>Supports: <code>{@html rawContent}</code> for unescaped HTML</li>
+    <li>Supports: <code>{@json obj}</code> for debug output</li>
+    <li>Supports: <code>onclick={()=>this.method()}</code> event handlers</li>
+    <li>Event handlers in loops capture loop variables as closures (direct reference, not serialized)</li>
+    <li>Automatic brace-depth counting for complex expressions like <code>{items.map(x => ({...x}))}</code></li>
+  </ul>
+</div>
+
+<ui-svelte-demo></ui-svelte-demo>
