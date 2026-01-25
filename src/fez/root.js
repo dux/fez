@@ -25,6 +25,7 @@ import connect from './connect.js'
 import compile from './compile.js'
 import state from './lib/global-state.js'
 import createTemplate from './lib/template.js'
+import { subscribe, publish } from './lib/pubsub.js'
 
 // =============================================================================
 // MAIN FEZ FUNCTION
@@ -196,68 +197,11 @@ Fez.morphdom = (target, newNode) => {
 }
 
 // =============================================================================
-// PUB/SUB SYSTEM
+// PUB/SUB SYSTEM (see lib/pubsub.js)
 // =============================================================================
 
-Fez._globalSubs = new Map()
-Fez._subs = {}
-
-/**
- * Publish event to all subscribers
- * @param {string} channel - Event name
- * @param {...any} args - Event arguments
- */
-Fez.publish = (channel, ...args) => {
-  // Legacy subscriptions
-  Fez._subs[channel]?.forEach(el => el[1].bind(el[0])(...args))
-
-  // Global subscriptions
-  const subs = Fez._globalSubs.get(channel)
-  if (subs) {
-    subs.forEach(sub => {
-      if (sub.node?.isConnected) {
-        sub.callback.call(sub.node, ...args)
-      } else {
-        subs.delete(sub)
-      }
-    })
-  }
-}
-
-/**
- * Subscribe to events
- * @param {Node|string} node - DOM node or event name
- * @param {string|Function} eventName - Event name or callback
- * @param {Function} [callback] - Handler
- * @returns {Function} Unsubscribe function
- */
-Fez.subscribe = (node, eventName, callback) => {
-  // Normalize arguments
-  if (typeof eventName === 'function') {
-    callback = eventName
-    eventName = node
-    node = document.body
-  }
-  if (typeof node === 'string') {
-    node = document.querySelector(node)
-  }
-
-  if (!Fez._globalSubs.has(eventName)) {
-    Fez._globalSubs.set(eventName, new Set())
-  }
-
-  const subs = Fez._globalSubs.get(eventName)
-
-  // Remove duplicate
-  subs.forEach(sub => {
-    if (sub.node === node && sub.callback === callback) subs.delete(sub)
-  })
-
-  const subscription = { node, callback }
-  subs.add(subscription)
-
-  return () => subs.delete(subscription)
-}
+Fez.subscribe = subscribe
+Fez.publish = publish
 
 // =============================================================================
 // TEMPORARY STORE

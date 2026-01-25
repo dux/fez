@@ -6,6 +6,7 @@
 
 import parseNode from './lib/n.js'
 import createTemplate from './lib/template.js'
+import { componentSubscribe, componentPublish } from './lib/pubsub.js'
 
 export default class FezBase {
 
@@ -754,47 +755,25 @@ export default class FezBase {
   // ===========================================================================
 
   /**
-   * Publish to parent component that subscribes
+   * Publish to parent components (bubbles up through DOM)
+   * @param {string} channel - Event name
+   * @param {...any} args - Arguments to pass
+   * @returns {boolean} True if a parent handled the event
    */
   publish(channel, ...args) {
-    const handle_publish = (component) => {
-      if (Fez._subs && Fez._subs[channel]) {
-        const sub = Fez._subs[channel].find(([comp]) => comp === component)
-        if (sub) {
-          sub[1].bind(component)(...args)
-          return true
-        }
-      }
-      return false
-    }
-
-    // Check current component
-    if (handle_publish(this)) {
-      return true
-    }
-
-    // Bubble up to parents
-    let parent = this.root.parentElement
-    while (parent) {
-      if (parent.fez) {
-        if (handle_publish(parent.fez)) {
-          return true
-        }
-      }
-      parent = parent.parentElement
-    }
-
-    return false
+    return componentPublish(this, channel, ...args)
   }
 
   /**
-   * Subscribe to a channel
+   * Subscribe to a channel (auto-cleanup on destroy)
+   * @param {string} channel - Event name
+   * @param {Function} func - Handler function
+   * @returns {Function} Unsubscribe function
    */
   subscribe(channel, func) {
-    Fez._subs ||= {}
-    Fez._subs[channel] ||= []
-    Fez._subs[channel] = Fez._subs[channel].filter((el) => el[0].isConnected)
-    Fez._subs[channel].push([this, func])
+    const unsubscribe = componentSubscribe(this, channel, func)
+    this.addOnDestroy(unsubscribe)
+    return unsubscribe
   }
 
   // ===========================================================================
