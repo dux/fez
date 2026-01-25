@@ -10,11 +10,11 @@
   </style>
 
   <div>
-    {{#if props.small}}
+    {#if props.small}
       <p>
-        <small>{{ props.small }}</small>
+        <small>{props.small}</small>
       </p>
-    {{/if}}
+    {/if}
 
     <slot />
   </div>
@@ -23,18 +23,17 @@
 <xmp fez="app-arrow">
   <h1 class="jumbo" style="
     margin: 70px auto; transform:
-    rotate([[ parseInt(props.rotate || 0) ]]deg);
-    color: [[ props.color || '#aaa' ]];
+    rotate({parseInt(props.rotate || 0)}deg);
+    color: {props.color || '#aaa'};
   ">&darr;</h1>
 
-  <!-- you can use {{ or [[ for template blocks -->
-  [[if props.title]]
-    <h1>[[ props.title ]]</h1>
-  [[/if]]
+  {#if props.title}
+    <h1>{props.title}</h1>
+  {/if}
 
-  [[if props.info]]
-    <p style="text-align: center; color: #aaa; position: relative; top: -30px;">[[ props.info ]]</p>
-  [[/if]]
+  {#if props.info}
+    <p style="text-align: center; color: #aaa; position: relative; top: -30px;">{props.info}</p>
+  {/if}
 </xmp>
 
 <xmp fez="app-header">
@@ -130,14 +129,14 @@
     }
   </style>
 
-  <header class="{{state.isVisible ? 'visible' : ''}}">
+  <header class="{state.isVisible ? 'visible' : ''}">
     <div class="header-container">
       <div class="logo-section" onclick="fez.scrollToTop()">
         <img src="demo/fez.png" alt="Fez Logo">
       </div>
     </div>
   </header>
-  <div class="blur-bar {{state.isVisible ? 'visible' : ''}}"></div>
+  <div class="blur-bar {state.isVisible ? 'visible' : ''}"></div>
 </xmp>
 
 <xmp fez="app-select-block">
@@ -199,16 +198,16 @@
   <div class="compoents">
     <button class="btn-sm title" onclick="fez.state.show = !fez.state.show">?</button>
 
-    {{if state.show }}
+    {#if state.show}
       <div class="list">
-        {{for el in (globalState.fezComponents || [])}}
+        {#for el in (globalState.fezComponents || [])}
           <button
-            class="btn btn-sm {{ state.activeJump === el.file.base ? 'active' : '' }}"
-            onclick="fez.jump('{{ el.file.base }}')"
-          >{{el.file.base }}</button>
-        {{/for}}
+            class="btn btn-sm {state.activeJump === el.file.base ? 'active' : ''}"
+            onclick="fez.jump('{el.file.base}')"
+          >{el.file.base}</button>
+        {/for}
       </div>
-    {{/if}}
+    {/if}
 
   </div>
 </xmp>

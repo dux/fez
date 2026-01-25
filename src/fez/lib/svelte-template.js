@@ -232,6 +232,17 @@ export default function createSvelteTemplate(text, opts = {}) {
     })
     text = text.replace(/\{@block:(\w+)\}/g, (_, name) => blocks[name] || '')
 
+    // Convert :attr="expr" to use Fez.store for passing values through DOM
+    // This allows loop variables to be passed as props to child components
+    // :file="el.file" -> :file={`Fez.store.delete(${Fez.store.set(el.file)})`}
+    text = text.replace(/:(\w+)="([^"{}]+)"/g, (match, attr, expr) => {
+      // Only convert if expr looks like a variable access (not a string literal)
+      if (/^[\w.[\]]+$/.test(expr.trim())) {
+        return `:${attr}={\`Fez.store.delete(\${Fez.store.set(${expr})})\`}`
+      }
+      return match
+    })
+
     // Remove HTML comments
     text = text.replace(/<!--[\s\S]*?-->/g, '')
 

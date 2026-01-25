@@ -1,6 +1,6 @@
 <xmp fez="dev-block">
-  <template fez="./demo/fez/{{ props.name }}.fez"></template>
-  <fez-include src="./demo/fez/{{ props.name }}.html"></fez-include>
+  <template fez="./demo/fez/{props.name}.fez"></template>
+  <fez-include src="./demo/fez/{props.name}.html"></fez-include>
 </xmp>
 
 <xmp fez="promo-blocks">
@@ -32,9 +32,9 @@
     }
   </script>
 
-  {{for el in state.data}}
+  {#for el in state.data}
      <block-promo :file="el.file" />
-  {{/for}}
+  {/for}
 </xmp>
 
 <xmp fez="block-promo">
@@ -102,51 +102,50 @@
     }
   </script>
 
-  {{if state.code && state.html }}
-    <a name="c-{{ file.base }}"></a>
+  {#if state.code && state.html}
+    <a name="c-{file.base}"></a>
     <div class="flex even top" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
       <div style="margin-top: 10px; flex: 0 0 600px;">
         <div class="flex even">
           <h3>
-            Demo: {{ file.base }}
+            Demo: {file.base}
           </h3>
           <div style="text-align: right;">
-            <small onclick="fez.openCodePen('{{ file.base }}')">open in CodePen</small>
+            <small onclick="fez.openCodePen('{file.base}')">open in CodePen</small>
           </div>
         </div>
-        <div id="body-{{ file.base }}" style="padding-bottom: 20px;">
-          {{raw state.html }}
+        <div id="body-{file.base}" style="padding-bottom: 20px;">
+          {@html state.html}
         </div>
       </div>
       <div style="margin-top: 20px;">
         <ui-tabs>
           <div title="Info" active="true">
-            {{raw state.info }}
+            {@html state.info}
           </div>
           <div title="HTML">
             <ui-editor
-              name="{{ file.base }}"
-              id="html-{{ file.base }}"
-              file="./demo/fez/{{ file.base }}.html"
+              name="{file.base}"
+              id="html-{file.base}"
+              file="./demo/fez/{file.base}.html"
               language="html"
               :action="fez.applyChanges"
             >
-              {{ state.html }}
+              {state.html}
             </ui-editor>
           </div>
           <div title="Fez component">
             <ui-editor
-              id="code-{{ file.base }}"
-              file="./demo/fez/{{ file.base }}.fez"
-              name="{{ file.base }}"
+              id="code-{file.base}"
+              file="./demo/fez/{file.base}.fez"
+              name="{file.base}"
               :action="fez.applyChanges"
             >
-              {{ state.code }}
+              {state.code}
             </ui-editor>
           </div>
         </ui-tabs>
       </div>
     </div>
-  {{/if}}
+  {/if}
 </xmp>
-

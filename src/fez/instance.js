@@ -36,7 +36,7 @@ export default class FezBase {
           attrs[key.replace(/[\:_]/, '')] = newVal
 
         } catch (e) {
-          Fez.onError('attr', `Error evaluating ${key}="${val}" for ${node.tagName}: ${e.message}`)
+          Fez.onError('attr', `<${node.tagName.toLowerCase()}> Error evaluating ${key}="${val}": ${e.message}`)
         }
       }
     }
@@ -54,7 +54,7 @@ export default class FezBase {
         try {
           attrs = JSON.parse(data)
         } catch (e) {
-          Fez.onError('props', `Invalid JSON in data-props for ${node.tagName}: ${e.message}`)
+          Fez.onError('props', `<${node.tagName.toLowerCase()}> Invalid JSON in data-props: ${e.message}`)
         }
       }
     }
@@ -69,7 +69,7 @@ export default class FezBase {
           attrs = JSON.parse(data)
           newNode.previousSibling.remove()
         } catch (e) {
-          Fez.onError('props', `Invalid JSON in template for ${node.tagName}: ${e.message}`)
+          Fez.onError('props', `<${node.tagName.toLowerCase()}> Invalid JSON in template: ${e.message}`)
         }
       }
     }
@@ -99,6 +99,12 @@ export default class FezBase {
   constructor() {}
 
   n = parseNode
+
+  // Report error with component name always included
+  fezError(kind, message, context) {
+    const name = this.fezName || this.root?.tagName?.toLowerCase() || 'unknown'
+    return Fez.onError(kind, `<${name}> ${message}`, context)
+  }
 
   // string selector for use in HTML nodes
   get fezHtmlRoot() {
@@ -159,7 +165,7 @@ export default class FezBase {
         try {
           callback()
         } catch (e) {
-          Fez.onError('destroy', 'Error in cleanup callback', e)
+          this.fezError('destroy', 'Error in cleanup callback', e)
         }
       })
       this._onDestroyCallbacks = []
@@ -377,7 +383,8 @@ export default class FezBase {
       }
     }
     else if (typeof template == 'string') {
-      renderedTpl = createTemplate(template)(this)
+      const name = this.root?.tagName?.toLowerCase()
+      renderedTpl = createTemplate(template, { name })(this)
     }
     else if (typeof template == 'function') {
       renderedTpl = template(this)
@@ -440,7 +447,7 @@ export default class FezBase {
           if (typeof target == 'function') {
             target(n)
           } else {
-            Fez.onError('fez-use', `"${value}" is not a function in ${this.fezName}`)
+            this.fezError('fez-use', `"${value}" is not a function`)
           }
         }
       }
@@ -467,7 +474,7 @@ export default class FezBase {
         n.setAttribute(eventName, `${this.fezHtmlRoot}${text} = this.${isCb ? 'checked' : 'value'}`)
         this.val(n, value)
       } else {
-        Fez.onError('fez-bind', `Can't bind "${text}" to ${n.nodeName} (needs INPUT, SELECT or TEXTAREA)`)
+        this.fezError('fez-bind', `Can't bind "${text}" to ${n.nodeName} (needs INPUT, SELECT or TEXTAREA)`)
       }
     })
 
