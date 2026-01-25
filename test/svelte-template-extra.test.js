@@ -1,12 +1,12 @@
-import { describe, test, expect, beforeAll } from 'bun:test'
+import { describe, test, expect, beforeAll, afterAll } from 'bun:test'
 import { Window } from 'happy-dom'
 import createSvelteTemplate from '../src/fez/lib/svelte-template.js'
 
-// Setup happy-dom globals
+// Setup happy-dom globals (scoped to this test file)
 let window, document
 
-// Mock Fez.htmlEscape
-const Fez = {
+// Mock Fez.htmlEscape for template tests
+const MockFez = {
   htmlEscape: (str) => {
     if (str == null) return ''
     return String(str)
@@ -17,18 +17,32 @@ const Fez = {
   }
 }
 
+// Save original globals
+let originalWindow, originalDocument, originalFez
+
 beforeAll(() => {
+  originalWindow = global.window
+  originalDocument = global.document
+  originalFez = global.Fez
+
   window = new Window()
   document = window.document
   global.document = document
   global.window = window
-  global.Fez = Fez
+  global.Fez = MockFez
+})
+
+afterAll(() => {
+  // Restore original globals
+  global.window = originalWindow
+  global.document = originalDocument
+  global.Fez = originalFez
 })
 
 // Helper to render template and get HTML
 function render(template, ctx) {
   const tpl = createSvelteTemplate(template)
-  return tpl({ ...ctx, Fez })
+  return tpl({ ...ctx, Fez: MockFez })
 }
 
 describe('svelte template', () => {

@@ -3,3 +3,4 @@
 * use bun, not npm
 * if you need AI guide for this fez js lib consult AI_LIB_GUIDE.md
 * if you need to write new component consult AI_COMPONENTS_GUIDE.md
+* ignore ./dist folder, all code is in ./src and demo is in ./demo

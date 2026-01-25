@@ -54,5 +54,7 @@ globalThis.customElements = {
 // Make Fez available globally for defaults.js
 globalThis.Fez = null;
 
-// Import Fez once
-await import('../src/fez.js');
+// Import Fez once and expose it properly
+const { default: Fez } = await import('../src/fez.js');
+globalThis.Fez = Fez;
+globalThis.window.Fez = Fez;

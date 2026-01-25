@@ -17,7 +17,7 @@ bunx fez-compile path/to/component.fez
 6. **NEVER** use `{#if}` blocks inside HTML attributes - use ternary operators `{condition ? 'value' : ''}` instead
 7. **Attribute expressions** are automatically quoted - write `attr={value}` (quotes added automatically)
 8. **ALWAYS** use lowercase with underscores for props (e.g., `fill_color`, `read_only`, `stroke_width`)
-9. **USE arrow functions** for event handlers: `onclick={() => method()}` or `onclick={(e) => method(e)}`
+9. **PREFER simple `fez.` prefix** for event handlers: `onclick="fez.toggle()"` - use arrow functions only when passing complex data from loops
 
 ## Component Structure
 
@@ -102,7 +102,7 @@ bunx fez-compile path/to/component.fez
 </style>
 
 <!-- Template (Svelte-like syntax) -->
-<button onclick={() => increment()} name={state.buttonName}>
+<button onclick="fez.increment()" name={state.buttonName}>
   Count: {state.count}
 </button>
 ```
@@ -196,22 +196,29 @@ bunx fez-compile path/to/component.fez
 {/each}
 ```
 
-### Arrow Function Event Handlers
+### Event Handlers
 
-**This is the preferred way to handle events in Fez:**
+**PREFER simple `fez.` prefix syntax for event handlers:**
 
 ```html
-<!-- Simple handler -->
-<button onclick={() => handleClick()}>Click me</button>
+<!-- PREFERRED - simple fez. prefix -->
+<button onclick="fez.handleClick()">Click me</button>
+<button onclick="fez.toggle()">Toggle</button>
+<input onchange="fez.setValue(this.value)" />
+```
 
-<!-- With event parameter -->
-<button onclick={(e) => handleClick(e)}>Click me</button>
-<input onchange={(e) => setValue(e.target.value)} />
+**Use arrow functions ONLY when passing complex data from loops:**
 
-<!-- Inside loops - variables are automatically interpolated -->
+```html
+<!-- Arrow functions - use only in loops with complex data -->
 {#each state.tasks as task, index}
   <button onclick={() => removeTask(index)}>Remove #{index}</button>
-  <button onclick={(e) => editTask(index, e)}>Edit</button>
+  <button onclick={() => editTask(task, index)}>Edit</button>
+{/each}
+
+<!-- Or when you need the event object in loops -->
+{#each state.items as item}
+  <button onclick={(e) => handleItem(item, e)}>Process</button>
 {/each}
 ```
 
@@ -263,16 +270,24 @@ Arrow functions are automatically transformed:
   <!-- Passing string values (no colon needed) -->
   <my-component title="Hello" class_name="primary">
   ```
-* Example:
+* **ALWAYS use `Fez.getFunction()` for handler props** (onclick, ping, onselect, etc.):
+  Props can come as strings or functions, so always normalize them with `Fez.getFunction()`:
   ```javascript
   init(props) {
     this.state.font_size = props.font_size || 24
     this.state.background_color = props.background_color || '#000'
     this.state.is_active = props.is_active !== undefined
-    // Function props are already resolved
-    if (props.onselect) {
-      this.onSelectHandler = props.onselect
-    }
+
+    // ALWAYS wrap handler props with Fez.getFunction()
+    // This handles both string and function values correctly
+    this.onClickHandler = Fez.getFunction(props.onclick)
+    this.pingHandler = Fez.getFunction(props.ping)
+    this.onSelectHandler = Fez.getFunction(props.onselect)
+  }
+
+  handleClick() {
+    // Safe to call - Fez.getFunction returns empty function if prop was undefined
+    this.onClickHandler()
   }
   ```
 * For dynamic prop changes, use `onPropsChange(name, value)` method
@@ -283,6 +298,18 @@ Arrow functions are automatically transformed:
 * Initialize ALL properties in `init()`
 * Modify arrays/objects directly (they're deeply reactive)
 * Use `onMount()` for updates that need mounted template
+* **NEVER assign props to state if they are not used in state itself** - keep them as `props.name`:
+  ```javascript
+  // WRONG - don't copy props to state if not needed
+  init(props) {
+    this.state.onclick = props.onclick  // Don't do this!
+  }
+
+  // CORRECT - keep handler props as props, use directly
+  init(props) {
+    this.onClickHandler = Fez.getFunction(props.onclick)
+  }
+  ```
 
 ### Performance
 
@@ -312,6 +339,7 @@ Fez.publish('event', data)
 - Writing flat CSS instead of nested SCSS syntax
 - Using `this.prop('name')` instead of `props.name` in `init()` and `onMount()`
 - Forgetting to use `{index}` or arrow functions for loop variables in event handlers
+- **Not using `Fez.getFunction()` for handler props** - props like `onclick`, `ping`, `onselect` can be strings or functions, always normalize them
 
 ## External Libraries & Modules
 
@@ -354,7 +382,7 @@ Fez.state.get('key')       // Check global state
 * Use `this.globalState` for cross-component data
 * Access elements via `fez-this` instead of querySelector
 * Put DOM-dependent logic in `onMount()` not `init()`
-* Use arrow functions for event handlers: `onclick={() => method()}`
+* Prefer simple `fez.` prefix for handlers: `onclick="fez.method()"`
 
 ---
 

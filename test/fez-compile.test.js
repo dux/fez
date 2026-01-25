@@ -13,22 +13,22 @@ const compile = async (...files) => {
 describe('fez compile', () => {
   describe('valid files', () => {
     test('compiles basic component', async () => {
-      const result = await compile('spec/fixtures/valid/test-basic.fez')
+      const result = await compile('test/fixtures/valid/test-basic.fez')
       expect(result.exitCode).toBe(0)
     })
 
     test('compiles component with explicit class and const', async () => {
-      const result = await compile('spec/fixtures/valid/test-with-class.fez')
+      const result = await compile('test/fixtures/valid/test-with-class.fez')
       expect(result.exitCode).toBe(0)
     })
 
     test('compiles component with ES module import', async () => {
-      const result = await compile('spec/fixtures/valid/test-with-import.fez')
+      const result = await compile('test/fixtures/valid/test-with-import.fez')
       expect(result.exitCode).toBe(0)
     })
 
     test('compiles component with loops and conditionals', async () => {
-      const result = await compile('spec/fixtures/valid/test-loops.fez')
+      const result = await compile('test/fixtures/valid/test-loops.fez')
       expect(result.exitCode).toBe(0)
     })
 
@@ -37,13 +37,13 @@ describe('fez compile', () => {
 
   describe('invalid files - JavaScript errors', () => {
     test('detects incomplete assignment syntax error', async () => {
-      const result = await compile('spec/fixtures/invalid/test-js-syntax.fez')
+      const result = await compile('test/fixtures/invalid/test-js-syntax.fez')
       expect(result.exitCode).toBe(1)
       expect(result.stderr).toContain('Unexpected')
     })
 
     test('detects missing closing brace', async () => {
-      const result = await compile('spec/fixtures/invalid/test-js-missing-brace.fez')
+      const result = await compile('test/fixtures/invalid/test-js-missing-brace.fez')
       expect(result.exitCode).toBe(1)
       expect(result.stderr).toContain('Unexpected')
     })
@@ -51,19 +51,19 @@ describe('fez compile', () => {
 
   describe('invalid files - template errors', () => {
     test('detects unmatched {{if}} block', async () => {
-      const result = await compile('spec/fixtures/invalid/test-unmatched-if.fez')
+      const result = await compile('test/fixtures/invalid/test-unmatched-if.fez')
       expect(result.exitCode).toBe(1)
       expect(result.stderr).toContain('Unmatched {{if}}')
     })
 
     test('detects unmatched {{for}} block', async () => {
-      const result = await compile('spec/fixtures/invalid/test-unmatched-for.fez')
+      const result = await compile('test/fixtures/invalid/test-unmatched-for.fez')
       expect(result.exitCode).toBe(1)
       expect(result.stderr).toContain('Unmatched {{for}}')
     })
 
     test('detects {{if}} inside attribute', async () => {
-      const result = await compile('spec/fixtures/invalid/test-if-in-attribute.fez')
+      const result = await compile('test/fixtures/invalid/test-if-in-attribute.fez')
       expect(result.exitCode).toBe(1)
       expect(result.stderr).toContain('attribute')
     })
@@ -71,7 +71,7 @@ describe('fez compile', () => {
 
   describe('invalid files - naming errors', () => {
     test('detects component name without dash', async () => {
-      const result = await compile('spec/fixtures/invalid/badname.fez')
+      const result = await compile('test/fixtures/invalid/badname.fez')
       expect(result.exitCode).toBe(1)
       expect(result.stderr).toContain('must contain a dash')
     })
@@ -79,7 +79,7 @@ describe('fez compile', () => {
 
   describe('single file only', () => {
     test('rejects multiple files', async () => {
-      const result = await compile('spec/fixtures/valid/test-basic.fez', 'spec/fixtures/valid/test-loops.fez')
+      const result = await compile('test/fixtures/valid/test-basic.fez', 'test/fixtures/valid/test-loops.fez')
       expect(result.exitCode).toBe(1)
       expect(result.stderr).toContain('Only one file')
     })
@@ -87,7 +87,7 @@ describe('fez compile', () => {
 
   describe('output flag', () => {
     test('outputs compiled JavaScript with -o flag', async () => {
-      const result = await $`bin/fez-compile -o spec/fixtures/valid/test-basic.fez`.quiet().nothrow()
+      const result = await $`bin/fez-compile -o test/fixtures/valid/test-basic.fez`.quiet().nothrow()
       expect(result.exitCode).toBe(0)
       const stdout = result.stdout.toString()
       expect(stdout).toContain("Fez('test-basic'")
@@ -95,7 +95,7 @@ describe('fez compile', () => {
     })
 
     test('does not output on error even with -o flag', async () => {
-      const result = await $`bin/fez-compile -o spec/fixtures/invalid/test-js-syntax.fez`.quiet().nothrow()
+      const result = await $`bin/fez-compile -o test/fixtures/invalid/test-js-syntax.fez`.quiet().nothrow()
       expect(result.exitCode).toBe(1)
       expect(result.stdout.toString()).toBe('')
     })
@@ -103,7 +103,7 @@ describe('fez compile', () => {
 
   describe('file not found', () => {
     test('reports error for missing file', async () => {
-      const result = await compile('spec/fixtures/nonexistent.fez')
+      const result = await compile('test/fixtures/nonexistent.fez')
       expect(result.exitCode).toBe(1)
       expect(result.stderr).toContain('File not found')
     })
