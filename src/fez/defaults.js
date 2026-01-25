@@ -63,54 +63,6 @@ const loadDefaults = () => {
     }
   })
 
-  // Memory store for memoization with size limit
-  const memoStore = new Map()
-  const MEMO_STORE_MAX_SIZE = 50
-
-  // Expose memoStore cleanup to Fez for manual clearing
-  Fez.clearMemoStore = () => {
-    memoStore.clear()
-    Fez.consoleLog('Memoize store cleared')
-  }
-
-  // memoize component content by key
-  // <fez-memoize key="unique-key">content to memoize</fez-memoize>
-  Fez('fez-memoize', class {
-    init(props) {
-      if (!props.key) {
-        Fez.consoleError('fez-memoize: key prop is required')
-        return
-      }
-
-      if (memoStore.has(props.key)) {
-        // Restore from memory in init
-        const storedNode = memoStore.get(props.key)
-        Fez.consoleLog(`Memoize - key: "${props.key}" - restore`)
-        this.root.innerHTML = ''
-        this.root.appendChild(storedNode.cloneNode(true))
-      }
-    }
-
-    onMount(props) {
-      // Only store if not already in memory
-      if (!memoStore.has(props.key)) {
-        requestAnimationFrame(() => {
-          // Enforce max size by removing oldest entries
-          if (memoStore.size >= MEMO_STORE_MAX_SIZE) {
-            const oldestKey = memoStore.keys().next().value
-            memoStore.delete(oldestKey)
-            Fez.consoleLog(`Memoize - evicted oldest key: "${oldestKey}"`)
-          }
-
-          // Store current DOM content
-          const contentNode = document.createElement('div')
-          contentNode.innerHTML = this.root.innerHTML
-          Fez.consoleLog(`Memoize - key: "${props.key}" - set`)
-          memoStore.set(props.key, contentNode)
-        })
-      }
-    }
-  })
 }
 
 // Only load defaults if Fez is available

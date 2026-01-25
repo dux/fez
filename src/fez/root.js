@@ -178,7 +178,23 @@ Fez.globalCss = (cssClass, opts = {}) => {
 // =============================================================================
 
 /**
+ * Shallow equality check for props
+ */
+function shallowEqual(obj1, obj2) {
+  if (obj1 === obj2) return true
+  if (!obj1 || !obj2) return false
+  const keys1 = Object.keys(obj1)
+  const keys2 = Object.keys(obj2)
+  if (keys1.length !== keys2.length) return false
+  for (const key of keys1) {
+    if (obj1[key] !== obj2[key]) return false
+  }
+  return true
+}
+
+/**
  * Morph DOM node to new state (via Idiomorph)
+ * Preserves child Fez components and only updates their props if changed
  * @param {Element} target - Element to morph
  * @param {Element} newNode - New state
  */
@@ -188,7 +204,46 @@ Fez.morphdom = (target, newNode) => {
     newNode.setAttribute(attr.name, attr.value)
   })
 
-  Idiomorph.morph(target, newNode, { morphStyle: 'outerHTML' })
+  Idiomorph.morph(target, newNode, {
+    morphStyle: 'outerHTML',
+    callbacks: {
+      // Skip morphing child fez components - preserve them entirely
+      beforeNodeMorphed: (oldNode, newNode) => {
+        // Check if this is a child fez component (not the root being morphed)
+        if (oldNode !== target &&
+            oldNode.classList?.contains('fez') &&
+            oldNode.fez &&
+            !oldNode.fez._destroyed) {
+
+          Fez.consoleLog(`Preserving child component ${oldNode.fez.fezName} (UID ${oldNode.fez.UID})`)
+
+          // Get new props from the newNode
+          const newProps = Fez.classes[oldNode.fez.fezName]?.getProps?.(newNode, oldNode) || {}
+          const oldProps = oldNode.fez.props || {}
+
+          // Only trigger update if props actually changed
+          if (!shallowEqual(oldProps, newProps)) {
+            oldNode.fez.props = newProps
+            oldNode.fez.onPropsChange?.(newProps, oldProps)
+            // Schedule re-render of child with new props
+            oldNode.fez.fezNextTick(oldNode.fez.fezRender, 'fezRender')
+          }
+
+          // Return false to skip morphing this element - preserve it as is
+          return false
+        }
+        return true
+      },
+
+      // When removing a node, check if it's a fez component and cleanup
+      beforeNodeRemoved: (node) => {
+        if (node.classList?.contains('fez') && node.fez) {
+          node.fez.fezOnDestroy()
+        }
+        return true
+      }
+    }
+  })
 
   // Clean up whitespace
   const next = target.nextSibling

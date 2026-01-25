@@ -46,14 +46,22 @@ const observer = new MutationObserver(mutations => {
     })
 
     // Cleanup removed components
+    // Use microtask to check if node was just moved (will be reconnected)
+    // vs actually removed from the document
     removedNodes.forEach(node => {
       if (node.nodeType !== 1) return
 
       // Helper to cleanup a single element
       const cleanup = (el) => {
-        if (el.fez) {
-          Fez.instances.delete(el.fez.UID)
-          el.fez.fezOnDestroy()
+        if (el.fez && !el.fez._destroyed) {
+          // Delay cleanup to check if node is reconnected (just moved, not removed)
+          queueMicrotask(() => {
+            // If still not connected and not destroyed, cleanup
+            if (!el.isConnected && el.fez && !el.fez._destroyed) {
+              Fez.instances.delete(el.fez.UID)
+              el.fez.fezOnDestroy()
+            }
+          })
         }
       }
 

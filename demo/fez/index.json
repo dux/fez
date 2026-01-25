@@ -219,8 +219,8 @@
     "file": {
       "base": "ui-star",
       "path": "demo/fez/ui-star.fez",
-      "size": 3817,
-      "modified": 1769074242,
+      "size": 3790,
+      "modified": 1769371305,
       "created": 1769072701
     }
   },
@@ -273,8 +273,8 @@
     "file": {
       "base": "ui-todo",
       "path": "demo/fez/ui-todo.fez",
-      "size": 2042,
-      "modified": 1769087087,
+      "size": 2040,
+      "modified": 1769375050,
       "created": 1769072701
     }
   }

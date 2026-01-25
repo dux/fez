@@ -4,7 +4,7 @@
 
 Check the Demo site https://dux.github.io/fez/
 
-FEZ is a small library (20kb minified) that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
+FEZ is a small library (49KB minified, ~18KB gzipped) that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
 
 It uses
 
@@ -34,6 +34,39 @@ Or install globally:
 bun add -g @dinoreic/fez
 fez compile my-component.fez
 ```
+
+## Why Fez is Simpler
+
+| Concept | React | Svelte 5 | Vue 3 | **Fez** |
+|---------|-------|----------|-------|---------|
+| State | `useState`, `useReducer` | `$state` rune | `ref`, `reactive` | `this.state.x = y` |
+| Computed | `useMemo` | `$derived` rune | `computed` | Just use a method |
+| Side effects | `useEffect` | `$effect` rune | `watch`, `watchEffect` | `afterRender()` |
+| Global state | Context, Redux, Zustand | stores | Pinia | `this.globalState` |
+| Re-render control | `memo`, `useMemo`, keys | `{#key}` | `v-memo` | Automatic |
+
+**No special syntax. No runes. No hooks. No compiler magic.** Just plain JavaScript:
+
+```js
+class MyComponent extends FezBase {
+  init() {
+    this.state.count = 0      // reactive - nested changes tracked too
+  }
+
+  increment() {
+    this.state.count++        // triggers re-render automatically
+  }
+
+  get doubled() {             // computed value - just a getter
+    return this.state.count * 2
+  }
+}
+```
+
+The whole mental model:
+1. Change `this.state` → component re-renders
+2. Idiomorph diffs the DOM efficiently
+3. Child components preserved unless props change
 
 ## Little more details
 
@@ -127,7 +160,17 @@ Fez uses a Svelte-inspired template syntax with single braces `{ }` for expressi
 {:else}
   <li>No items found</li>
 {/each}
+
+<!-- Child components in loops - automatically optimized -->
+<!-- Use :prop="expr" to pass objects/functions (not just strings) -->
+{#each state.users as user}
+  <user-card :user="user" />
+{/each}
 ```
+
+**Note on passing props:** Use `:prop="expr"` syntax to pass JavaScript objects, arrays, or functions as props. Regular `prop={expr}` will stringify the value.
+
+**Component Isolation:** Child components in loops are automatically preserved during parent re-renders. They only re-render when their props actually change - making loops with many items very efficient.
 
 ### Arrow Function Event Handlers
 
@@ -267,8 +310,8 @@ This example showcases:
 * **Arrow Function Handlers** - Clean event syntax with automatic loop variable interpolation
 * **Reactive State Management** - Built-in reactive `state` object automatically triggers re-renders on property changes
 * **DOM Morphing** - Uses [Idiomorph](https://github.com/bigskysoftware/idiomorph) for intelligent DOM updates that preserve element state and animations
+* **Smart Component Isolation** - Child components are preserved during parent re-renders; only re-render when their props actually change
 * **Preserve DOM Elements** - Use `fez-keep="unique-key"` attribute to preserve DOM elements across re-renders (useful for animations, form inputs, or stateful elements)
-* **DOM Memoization** - Use `fez-memoize="key"` attribute to memoize and restore DOM content by key (component-scoped) or `<fez-memoize key="unique-key">` component for global memoization
 * **Style Macros** - Define custom CSS shortcuts like `Fez.cssMixin('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }`
 * **Scoped & Global Styles** - Components can define both scoped CSS (`:fez { ... }`) and global styles in the same component
 
@@ -294,7 +337,7 @@ This example showcases:
 ### Why It's Great
 
 * **Zero Build Step** - Just include the script and start coding
-* **20KB Minified** - Tiny footprint with powerful features
+* **49KB Minified (~18KB gzipped)** - Tiny footprint with powerful features
 * **Framework Agnostic** - Use alongside React, Vue, or any other framework
 * **Progressive Enhancement** - Perfect for modernizing legacy applications one component at a time
 * **Native Performance** - Leverages browser's native Custom Elements API
@@ -634,10 +677,6 @@ All parts are optional
     <!-- preserve state by key, not affected by state changes-->
     <p fez-keep="key">...</p>
 
-    <!-- memoize DOM content by key (component-scoped) -->
-    <!-- stores DOM on first render, restores on subsequent renders with same key -->
-    <div fez-memoize="unique-key">expensive content</div>
-
     <!-- :attribute for evaluated attributes (converts to JSON) -->
     <div :data-config="state.config"></div>
   </div>
@@ -735,20 +774,6 @@ Creates inline components with reactive state:
   <button onclick="fez.state.count += 1">+</button>
   {state.count} * {state.count} = {state.count * state.count}
 </fez-inline>
-```
-
-### fez-memoize
-Memoizes DOM content by key (global scope):
-```html
-<!-- First render: stores the content -->
-<fez-memoize key="unique-key">
-  <expensive-component></expensive-component>
-</fez-memoize>
-
-<!-- Subsequent renders: restores stored content instantly -->
-<fez-memoize key="unique-key">
-  <!-- Content here is ignored, stored version is used -->
-</fez-memoize>
 ```
 
 ## Global State Management

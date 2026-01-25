@@ -81,22 +81,46 @@
 
       <h2 class="center">
         Main purpose of Fez is to enhance and add interactivity to plain HTML pages.
-        It delivers React/Vue/Svelte/Angular like simplicity <b>without any build step</b> - just drop in a script tag and start coding.
+        It's <b>simpler than React/Vue/Svelte</b> - no hooks, no runes, no special syntax - just plain JavaScript <b>without any build step</b>.
       </h2>
 
       <app-arrow title="How does FEZ feel and work?"></app-arrow>
+
+      <div style="margin: 40px -100px; padding: 30px 40px; background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%); border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+        <h3 style="text-align: center; margin: 0 0 20px 0; color: #333;">No special syntax. No runes. No hooks. Just plain JavaScript.</h3>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 15px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.06);">
+            <thead>
+              <tr>
+                <th style="padding: 16px; text-align: left; border-bottom: 2px solid #eee; background: #f8f8f8; font-weight: 600;">Concept</th>
+                <th style="padding: 16px; text-align: left; border-bottom: 2px solid #eee; background: #f8f8f8; font-weight: 600;">React</th>
+                <th style="padding: 16px; text-align: left; border-bottom: 2px solid #eee; background: #f8f8f8; font-weight: 600;">Svelte 5</th>
+                <th style="padding: 16px; text-align: left; border-bottom: 2px solid #eee; background: #f8f8f8; font-weight: 600;">Vue 3</th>
+                <th style="padding: 16px; text-align: left; border-bottom: 2px solid #eee; background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%); color: white; font-weight: 700; font-size: 16px;">Fez</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0; font-weight: 500;">State</td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0;"><code>useState</code>, <code>useReducer</code></td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0;"><code>$state</code> rune</td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0;"><code>ref</code>, <code>reactive</code></td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0; background: #e8f5e9; font-weight: 500;"><code>this.state.x = y</code></td></tr>
+              <tr><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0; font-weight: 500;">Computed</td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0;"><code>useMemo</code></td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0;"><code>$derived</code> rune</td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0;"><code>computed</code></td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0; background: #e8f5e9; font-weight: 500;">Just use a method</td></tr>
+              <tr><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0; font-weight: 500;">Side effects</td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0;"><code>useEffect</code></td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0;"><code>$effect</code> rune</td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0;"><code>watch</code>, <code>watchEffect</code></td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0; background: #e8f5e9; font-weight: 500;"><code>afterRender()</code></td></tr>
+              <tr><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0; font-weight: 500;">Global state</td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0;">Context, Redux, Zustand</td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0;">stores</td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0;">Pinia</td><td style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0; background: #e8f5e9; font-weight: 500;"><code>this.globalState</code></td></tr>
+              <tr><td style="padding: 14px 16px; font-weight: 500;">Re-render control</td><td style="padding: 14px 16px;"><code>memo</code>, <code>useMemo</code>, keys</td><td style="padding: 14px 16px;"><code>{#key}</code></td><td style="padding: 14px 16px;"><code>v-memo</code></td><td style="padding: 14px 16px; background: #e8f5e9; font-weight: 500;">Automatic</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <p>
         Fez brings the <b>reactive component model</b> you love from React/Vue/Svelte, but works directly in the browser.
         While other require webpack/vite + compilation, Fez lets you write reactive components
         <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements">as native custom elements</a> that work instantly.
-        <b>No npm install, no config files, no build process</b> - just include the 20KB script and your HTML becomes reactive.
+        <b>No npm install, no config files, no build process</b> - just include the script (49KB, ~18KB gzipped) and your HTML becomes reactive.
         Perfect for enhancing server-rendered pages, prototyping ideas, or building micro-frontends without tooling complexity.
       </p>
 
       <ul>
         <li>🔌 <i>Native Browser Components:</i> Uses standard <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements">custom elements</a>. Create tags like <code>&lt;ui-clock&gt;</code>, place them anywhere in your HTML, and they just work. (Try it now in dev tools - instant magic!)</li>
-        <li>⚡ <i>Zero Build Step Hassle:</i> Works directly in the browser with a tiny runtime (20kb raw, 9kb zipped). No webpack, no config, no transpilers - just drop in a script tag and start coding.</li>
+        <li>⚡ <i>Zero Build Step Hassle:</i> Works directly in the browser with a tiny runtime (49KB, ~18KB gzipped). No webpack, no config, no transpilers - just drop in a script tag and start coding.</li>
         <li>🧹 <i>Auto-Cleanup Magic:</i> Forget memory leaks! Timers, subscriptions, and event listeners are automatically cleaned up when components unmount. Focus on features, not housekeeping.</li>
         <li>🔄 <i>Smart DOM Morphing:</i> Uses <a href="https://github.com/bigskysoftware/idiomorph">Idiomorph</a> for surgical DOM updates that preserve form state, scroll position, and focus - no virtual DOM overhead.</li>
         <li>📜 <i>HTML-First Philosophy:</i> Components are defined in <code>.fez</code> HTML files, not JavaScript. Your markup stays readable and approachable for designers and backend developers.</li>
@@ -105,79 +129,83 @@
         <li>🔔 <i>Built-in Communication:</i> Native pub/sub system for component messaging - no Redux, no context providers, just <code>Fez.pub()</code> and <code>Fez.sub()</code>.</li>
         <li>📝 <i>Form Superpowers:</i> Built-in form data handling with <code>getFormData()</code> - serialize forms to JSON in one line, no libraries needed.</li>
         <li>⏳ <i>Predictable Lifecycle:</i> Simple hooks like <code>init</code>, <code>onMount</code>, and <code>onPropsChange</code> - no useEffect confusion or dependency arrays.</li>
+        <li>🧩 <i>Smart Component Isolation:</i> Child components are preserved during parent re-renders - only update when their props actually change. Loops with 100 items? Only changed items re-render.</li>
+        <li>🔗 <i>Deep State Tracking:</i> Nested state changes just work - <code>this.state.user.address.city = 'NYC'</code> triggers re-render automatically. No immutable update patterns needed.</li>
       </ul>
 
-      <h2 style="margin-top: 70px; text-align: center;">What does Claude AI think about Fez?"</h2>
+      <h2 style="margin-top: 70px; text-align: center;">What does Claude AI think about Fez?</h2>
 
-      <dl>
-        <dt>Prompt</dt>
-        <dd>
-          Look at <a href="./AGENTS.md">AGENTS.md</a>, <a href="./README.md">README.md</a> and components in fez/*.fez, then write what do you think of the lib.
-          Is it bette / worse / different then react / vue / svelte. When should one chose Fez or maybe never.
-        </dd>
-        <dt>Response</dt>
-        <dd>
-          <div id="response_text" class="hidden">
-            <h3>Fez's Additional Strengths:</h3>
-            <ul>
-              <li><strong>HTML-first approach</strong> - Components defined in HTML files, not JavaScript</li>
-              <li><strong>Auto-cleanup</strong> - Subscriptions, timers, and resources cleaned automatically</li>
-              <li><strong>Built-in morphing</strong> - Efficient DOM updates that preserve input state</li>
-              <li><strong>Runtime SCSS</strong> - Full SCSS support without build tools</li>
-              <li><strong>Native pub/sub</strong> - Component communication without external libraries</li>
-              <li><strong>Form utilities</strong> - Built-in form data handling</li>
-              <li><strong>Smart component loading</strong> - Load components from URLs or inline</li>
-            </ul>
+      <div style="background: #f8f9fa; border-radius: 12px; padding: 20px 25px; margin: 20px 0; border-left: 4px solid #667eea;">
+        <p style="margin: 0; color: #555; font-style: italic;">
+          <strong style="color: #333;">Prompt:</strong>
+          Look at <a href="./AGENTS.md">AGENTS.md</a>, <a href="./README.md">README.md</a> and components in fez/*.fez, then write what you think of the lib.
+          Is it better / worse / different than React / Vue / Svelte? When should one choose Fez, or maybe never?
+        </p>
+      </div>
 
-            <h3>Key Differentiators:</h3>
+      <div id="response_text" class="hidden" style="margin-top: 20px;">
+        <h3>Fez's Additional Strengths:</h3>
+        <ul>
+          <li><strong>HTML-first approach</strong> - Components defined in HTML files, not JavaScript</li>
+          <li><strong>Auto-cleanup</strong> - Subscriptions, timers, and resources cleaned automatically</li>
+          <li><strong>Built-in morphing</strong> - Efficient DOM updates that preserve input state</li>
+          <li><strong>Component isolation</strong> - Child components preserved during parent re-renders, only update when props change</li>
+          <li><strong>Deep state tracking</strong> - Nested state changes (<code>state.a.b.c = x</code>) just work</li>
+          <li><strong>Runtime SCSS</strong> - Full SCSS support without build tools</li>
+          <li><strong>Native pub/sub</strong> - Component communication without external libraries</li>
+          <li><strong>Form utilities</strong> - Built-in form data handling</li>
+          <li><strong>Smart component loading</strong> - Load components from URLs or inline</li>
+        </ul>
 
-            <h4>vs React:</h4>
-            <ul>
-              <li>No JSX compilation needed</li>
-              <li>No hooks complexity</li>
-              <li>Direct DOM manipulation allowed</li>
-              <li>Much smaller bundle size</li>
-              <li>No virtual DOM overhead</li>
-            </ul>
+        <h3>Key Differentiators:</h3>
 
-            <h4>vs Vue:</h4>
-            <ul>
-              <li>Simpler template syntax</li>
-              <li>No directive zoo (v-if, v-for, v-model)</li>
-              <li>Native web components instead of Vue components</li>
-              <li>No reactivity gotchas with arrays/objects</li>
-            </ul>
+        <h4>vs React:</h4>
+        <ul>
+          <li>No JSX compilation needed</li>
+          <li>No hooks complexity</li>
+          <li>Direct DOM manipulation allowed</li>
+          <li>Much smaller bundle size</li>
+          <li>No virtual DOM overhead</li>
+        </ul>
 
-            <h4>vs Svelte:</h4>
-            <ul>
-              <li>No compilation step</li>
-              <li>Similar simplicity and elegance</li>
-              <li>Runtime instead of compile-time optimization</li>
-              <li>Smaller learning curve</li>
-            </ul>
+        <h4>vs Vue:</h4>
+        <ul>
+          <li>Simpler template syntax</li>
+          <li>No directive zoo (v-if, v-for, v-model)</li>
+          <li>Native web components instead of Vue components</li>
+          <li>No reactivity gotchas with arrays/objects</li>
+        </ul>
 
-            <h3>When to Choose Fez</h3>
+        <h4>vs Svelte:</h4>
+        <ul>
+          <li>No compilation step</li>
+          <li>Similar simplicity and elegance</li>
+          <li>Runtime instead of compile-time optimization</li>
+          <li>Smaller learning curve</li>
+        </ul>
 
-            <h4>Ideal Use Cases:</h4>
-            <ul>
-              <li><strong>Progressive enhancement</strong> - Add interactivity to server-rendered HTML</li>
-              <li><strong>Micro-frontends</strong> - Components work anywhere</li>
-              <li><strong>Rapid prototyping</strong> - Zero config, instant feedback</li>
-              <li><strong>Legacy modernization</strong> - Gradual migration from jQuery</li>
-              <li><strong>Educational projects</strong> - Learn web components without tooling</li>
-              <li><strong>Small teams</strong> - Minimal cognitive overhead</li>
-            </ul>
+        <h3>When to Choose Fez</h3>
 
-            <h4>Not Recommended For:</h4>
-            <ul>
-              <li>Large SPAs requiring advanced routing and state management</li>
-              <li>TypeScript-first teams needing strict typing</li>
-              <li>SSR/SSG requirements (though works great with server-rendered HTML)</li>
-              <li>Complex animations requiring specialized libraries</li>
-              <li>Native mobile apps via React Native or similar</li>
-            </ul>
-          </div>
-          <button class="btn" onclick="this.style.display = 'none'; response_text.style.display = 'block';">(click for full response) ...</button>
+        <h4>Ideal Use Cases:</h4>
+        <ul>
+          <li><strong>Progressive enhancement</strong> - Add interactivity to server-rendered HTML</li>
+          <li><strong>Micro-frontends</strong> - Components work anywhere</li>
+          <li><strong>Rapid prototyping</strong> - Zero config, instant feedback</li>
+          <li><strong>Legacy modernization</strong> - Gradual migration from jQuery</li>
+          <li><strong>Educational projects</strong> - Learn web components without tooling</li>
+          <li><strong>Small teams</strong> - Minimal cognitive overhead</li>
+        </ul>
+
+        <h4>Not Recommended For:</h4>
+        <ul>
+          <li>Large SPAs requiring advanced routing and state management</li>
+          <li>TypeScript-first teams needing strict typing</li>
+          <li>SSR/SSG requirements (though works great with server-rendered HTML)</li>
+          <li>Complex animations requiring specialized libraries</li>
+          <li>Native mobile apps via React Native or similar</li>
+        </ul>
+      </div>
+      <button class="btn" onclick="this.style.display = 'none'; response_text.style.display = 'block';">Show Claude's full response...</button>
 
           <div class="box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 15px; margin: 30px 0; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; overflow: hidden;">
             <div style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>

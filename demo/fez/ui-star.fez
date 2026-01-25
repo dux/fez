@@ -83,7 +83,7 @@
 </style>
 
 {#if state.stars}
-  <div class="star-rating" fez-memoize={state.rating}>
+  <div class="star-rating">
     {#for i in [...Array(state.stars).keys()]}
       <ui-star
         fill={getStarFill(i, state.rating)}

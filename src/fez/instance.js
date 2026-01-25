@@ -148,6 +148,7 @@ export default class FezBase {
   onDestroy() {}
   onStateChange() {}
   onGlobalStateChange() {}
+  onPropsChange() {}
 
   /**
    * Centralized destroy logic - called by MutationObserver when element is removed
@@ -242,6 +243,9 @@ export default class FezBase {
 
     if (!template || !this.root) return
 
+    // Prevent re-render loops from state changes in beforeRender/afterRender
+    this._isRendering = true
+
     this.beforeRender()
 
     const nodeName = typeof this.class.nodeName == 'function' ? this.class.nodeName(this.root) : this.class.nodeName
@@ -273,12 +277,13 @@ export default class FezBase {
     }
 
     this.fezKeepNode(newNode)
-    this.fezMemoization(newNode)
 
     Fez.morphdom(this.root, newNode)
 
     this.fezRenderPostProcess()
     this.afterRender()
+
+    this._isRendering = false
   }
 
   /**
@@ -388,6 +393,8 @@ export default class FezBase {
       }
 
       if (oldEl) {
+        // Move the old element to replace the new placeholder
+        // This preserves all children including nested fez components
         newEl.parentNode.replaceChild(oldEl, newEl)
       } else if (isSlot) {
         if (newEl.getAttribute('hide')) {
@@ -407,29 +414,7 @@ export default class FezBase {
     })
   }
 
-  /**
-   * Handle fez-memoize attributes for cached nodes
-   */
-  fezMemoization(newNode) {
-    const newMemoEl = newNode.querySelector('[fez-memoize]:not(.fez)')
-    if (!newMemoEl) return
 
-    this.fezMemoStore ||= new Map()
-
-    const newMemoElKey = newMemoEl.getAttribute('fez-memoize')
-    const storedNode = this.fezMemoStore.get(newMemoElKey)
-
-    if (storedNode) {
-      Fez.consoleLog(`Memoize restore ${this.fezName}: ${newMemoElKey}`)
-      newMemoEl.parentNode.replaceChild(storedNode.cloneNode(true), newMemoEl)
-    } else {
-      const oldMemoEl = this.root.querySelector('[fez-memoize]:not(.fez)')
-      if (oldMemoEl) {
-        const oldMemoElKey = oldMemoEl.getAttribute('fez-memoize')
-        this.fezMemoStore.set(oldMemoElKey, oldMemoEl.cloneNode(true))
-      }
-    }
-  }
 
   // ===========================================================================
   // REACTIVE STATE
@@ -470,7 +455,10 @@ export default class FezBase {
     handler ||= (o, k, v, oldValue) => {
       if (v != oldValue) {
         this.onStateChange(k, v, oldValue)
-        this.fezNextTick(this.fezRender, 'fezRender')
+        // Don't schedule re-render if we're already rendering (e.g., state change in beforeRender)
+        if (!this._isRendering) {
+          this.fezNextTick(this.fezRender, 'fezRender')
+        }
       }
     }
 

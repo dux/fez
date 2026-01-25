@@ -212,6 +212,10 @@ function getEventAttributeContext(text, pos) {
 
 /**
  * Compile template to a function that returns HTML string
+ *
+ * @param {string} text - Template source
+ * @param {Object} opts - Options
+ * @param {string} opts.name - Component name for error messages
  */
 export default function createSvelteTemplate(text, opts = {}) {
   const componentName = opts.name || 'unknown'
