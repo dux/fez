@@ -236,7 +236,8 @@ export default class FezBase {
    * Uses Idiomorph for efficient DOM diffing
    */
   fezRender(template) {
-    template ||= this?.class?.fezHtmlFunc
+    // Check instance-level template first, then class-level
+    template ||= this.fezHtmlFunc || this?.class?.fezHtmlFunc
 
     if (!template || !this.root) return
 

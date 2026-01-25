@@ -28,39 +28,26 @@ const loadDefaults = () => {
     }
   })
 
-  // include remote data from url
-  // <fez-inline :state="{count: 0}" :wait-for="()=>window.SpritePet">
-  //   <button onclick="fez.state.count += 1">&plus;</button>
-  //   {{ state.count }} * {{ state.count }} = {{ state.count * state.count }}
+  // Render inline template with full component features (state, globalState, props)
+  // <fez-inline :state="{count: 0}">
+  //   <button onclick="fez.state.count++">+</button>
+  //   Count: {state.count}
   // </fez-inline>
   Fez('fez-inline', class {
     init(props) {
-      // <fez-inline :wait-for="()=>window.SpritePet">
-      props['wait-for'] ||= ()=>true
-      Fez.untilTrue(() => {
-        if (props['wait-for']()) {
-          this.mountIt()
-          return true
-        }
-      }, 100)
-    }
+      // Capture slot content as template (moved to root by fezSlot before init)
+      const template = this.root?.innerHTML?.trim()
 
-    mountIt() {
-      const html = this.root.innerHTML
+      if (template) {
+        // Clear the literal template content (will be replaced by rendered output)
+        this.root.innerHTML = ''
+        // Compile and store on instance (not class) for reactivity
+        this.fezHtmlFunc = Fez.createTemplate(template, { name: 'fez-inline' })
+      }
 
-      if (html) {
-        const hash = Fez.fnv1(this.root.outerHTML)
-        const nodeName = `inline-${hash}`
-        Fez(nodeName, class {
-          HTML = html
-          init() {
-            Object.assign(this.state, this.props.state || {})
-          }
-        })
-
-        const el = document.createElement(nodeName)
-        this.root.after(this.root.lastChild, el);
-        this.root.remove()
+      // Copy initial state from props
+      if (props.state) {
+        Object.assign(this.state, props.state)
       }
     }
   })
