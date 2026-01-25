@@ -41,8 +41,12 @@ const GlobalState = {
     if (listeners) {
       listeners.forEach(comp => {
         if (comp.isConnected) {
-          comp.onGlobalStateChange(key, value, oldValue)
-          comp.fezRender()
+          try {
+            comp.onGlobalStateChange(key, value, oldValue)
+            comp.fezRender()
+          } catch (error) {
+            console.error(`Error in component listener for key ${key}:`, error)
+          }
         } else {
           listeners.delete(comp)
         }
@@ -72,8 +76,19 @@ const GlobalState = {
   },
 
   createProxy(component) {
+    // Register cleanup when component is destroyed
+    component.addOnDestroy(() => {
+      for (const [key, listeners] of this.listeners) {
+        listeners.delete(component)
+      }
+      component._globalStateKeys?.clear()
+    })
+
     return new Proxy({}, {
       get: (target, key) => {
+        // Skip symbol keys and prototype methods
+        if (typeof key === 'symbol') return undefined
+
         // Skip if already listening to this key
         component._globalStateKeys ||= new Set()
         if (!component._globalStateKeys.has(key)) {
@@ -89,6 +104,9 @@ const GlobalState = {
       },
 
       set: (target, key, value) => {
+        // Skip symbol keys
+        if (typeof key === 'symbol') return true
+
         const oldValue = this.data[key]
         if (oldValue !== value) {
           this.data[key] = value

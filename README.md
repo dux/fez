@@ -473,6 +473,15 @@ Fez.globalCss(`
   ...
 `)
 
+// localStorage with automatic JSON serialization (preserves types)
+Fez.localStorage.set('count', 42)
+Fez.localStorage.get('count')              // 42 (number, not string)
+Fez.localStorage.set('user', { name: 'John' })
+Fez.localStorage.get('user')               // { name: 'John' }
+Fez.localStorage.get('missing', 'default') // 'default' (fallback value)
+Fez.localStorage.remove('key')
+Fez.localStorage.clear()
+
 // internal, get unique ID for a string, poor mans MD5 / SHA1
 Fez.fnv1('some string')
 

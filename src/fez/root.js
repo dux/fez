@@ -26,6 +26,7 @@ import compile from './compile.js'
 import state from './lib/global-state.js'
 import createTemplate from './lib/template.js'
 import { subscribe, publish } from './lib/pubsub.js'
+import fezLocalStorage from './lib/localstorage.js'
 
 // =============================================================================
 // MAIN FEZ FUNCTION
@@ -228,6 +229,12 @@ Fez.store = {
     return value
   }
 }
+
+// =============================================================================
+// LOCAL STORAGE (see lib/localstorage.js)
+// =============================================================================
+
+Fez.localStorage = fezLocalStorage
 
 // =============================================================================
 // ERROR HANDLING & LOGGING

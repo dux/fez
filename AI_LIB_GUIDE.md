@@ -372,6 +372,11 @@ this.setInterval(fn, 1000)  // Auto-cleaned interval
 Fez.fetch('/data')          // Built-in cached fetch
 this.formData()             // Get form values
 
+// localStorage with JSON serialization (preserves types)
+Fez.localStorage.set('count', 42)
+Fez.localStorage.get('count')              // 42 (number)
+Fez.localStorage.get('missing', 'default') // fallback value
+
 // Resolve a function from a string or function reference
 Fez.getFunction(this.props.onclick)
 Fez.getFunction('alert("Hi")', window)

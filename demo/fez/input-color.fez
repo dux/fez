@@ -209,7 +209,7 @@
         <div
           class="color-option {state.color === color ? 'selected' : ''}"
           style="background-color: {color}"
-          onclick="fez.selectColor(color)"
+          onclick="fez.selectColor('{color}')"
           title="{color}"
         ></div>
       {/for}

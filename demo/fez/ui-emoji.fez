@@ -177,8 +177,7 @@
       this.state.searchTerm = ''
     }
 
-    selectEmoji(emojiData) {
-      const [emoji, title] = emojiData
+    selectEmoji(emoji, title) {
       this.state.selectedEmoji = emoji
       this.state.isOpen = false
 
@@ -346,7 +345,7 @@
           {#for tab in getEmojiTabs()}
             <span
               class="emoji-tab {state.activeTab === tab ? 'active' : ''}"
-              onclick="fez.setTab(tab)"
+              onclick="fez.setTab('{tab}')"
             >
               {getTabIcon(tab)}
             </span>
@@ -357,7 +356,7 @@
         {#for emojiData in getFilteredEmojis()}
           <span
             class="emoji-item"
-            onclick="fez.selectEmoji(emojiData)"
+            onclick="fez.selectEmoji('{emojiData[0]}', '{emojiData[1]}')"
             title="{emojiData[1]}"
           >
             {emojiData[0]}

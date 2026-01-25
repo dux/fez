@@ -51,6 +51,15 @@ globalThis.customElements = {
   get: () => null
 };
 
+// Mock localStorage
+const localStorageData = new Map();
+globalThis.localStorage = {
+  getItem: (key) => localStorageData.has(key) ? localStorageData.get(key) : null,
+  setItem: (key, value) => localStorageData.set(key, String(value)),
+  removeItem: (key) => localStorageData.delete(key),
+  clear: () => localStorageData.clear()
+};
+
 // Make Fez available globally for defaults.js
 globalThis.Fez = null;
 
