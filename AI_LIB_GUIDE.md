@@ -316,16 +316,28 @@ Arrow functions are automatically transformed:
 * Use throttled events: `this.on('scroll', callback, 100)`
 * Use `FAST = true` for components that don't work with slots to prevent render flicker
 
-### Component Communication
+### Component Communication (Pub/Sub)
 
 ```javascript
-// Subscribe (auto-cleanup)
+// Component-level: subscribe with auto-cleanup on destroy
 init() {
-  this.subscribe('event', this.handler)
+  this.subscribe('user-login', (user) => {
+    this.state.user = user
+  })
 }
 
-// Publish
-Fez.publish('event', data)
+// Component-level: publish bubbles up to parent components
+handleSelect() {
+  this.publish('item-selected', this.state.item) // parent can subscribe to handle this
+}
+
+// Global publish: broadcast to all subscribers
+Fez.publish('theme-changed', 'dark')
+
+// Global subscribe with targeting options:
+Fez.subscribe('event', callback)                  // always fires
+Fez.subscribe(node, 'event', callback)            // fires only if node.isConnected
+Fez.subscribe('#modal', 'event', callback)        // fires only if #modal exists at publish time
 ```
 
 ## Common Mistakes to Avoid

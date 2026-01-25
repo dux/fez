@@ -259,7 +259,7 @@ This example showcases:
 * **Single-File Components** - Define CSS, HTML, and JavaScript in one file, no build step required
 * **No Framework Magic** - Plain vanilla JS classes with clear, documented methods. No hooks, runes, or complex abstractions
 * **Runtime SCSS** - Style components using SCSS syntax via [Goober](https://goober.js.org/), compiled at runtime
-* **Smart Memory Management** - Automatic garbage collection cleans up disconnected nodes every 5 seconds
+* **Smart Memory Management** - MutationObserver automatically cleans up disconnected components and their resources (intervals, event listeners, subscriptions)
 
 ### Advanced Templating & Styling
 
@@ -398,19 +398,18 @@ Fez('foo-bar', class {
 
   // Publish/Subscribe system
   // Component-level: publishes bubble up to parent components until a subscriber is found
-  this.publish('channel', data)          // publish from component, bubbles up to parents
-  this.subscribe('channel', (data) => {}) // subscribe in component
+  this.publish('channel', data)           // publish from component, bubbles up to parents
+  this.subscribe('channel', (data) => {}) // subscribe in component (auto-cleanup on destroy)
 
-  // Global-level: publish to all subscribers (components and global listeners)
+  // Global-level: publish to all subscribers
   Fez.publish('channel', data)            // publish globally
 
-  // Global subscribe: runs only if node is connected to DOM
-  // Automatically removes subscription when node is disconnected
-  Fez.subscribe(node, 'channel', callback)     // subscribe specific node
-  Fez.subscribe('#myId', 'channel', callback)  // subscribe by selector
-  Fez.subscribe('channel', callback)           // subscribe to document.body
+  // Global subscribe with different targeting options:
+  Fez.subscribe('channel', callback)                   // always fires
+  Fez.subscribe(node, 'channel', callback)             // fires only if node.isConnected
+  Fez.subscribe('#selector', 'channel', callback)      // fires only if selector found at publish time
 
-  // Manual unsubscribe (automatic cleanup happens when node disconnects)
+  // Unsubscribe manually (auto-cleanup for disconnected nodes)
   const unsub = Fez.subscribe('channel', callback)
   unsub() // manually remove subscription
 
