@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fez onDestroy Test</title>
+</head>
+<body>
+  <div id="container"></div>
+  <div id="results"></div>
+
+  <script>
+    // Track cleanup events
+    window.cleanupLog = [];
+
+    // Define components after Fez is loaded
+    // Using plain class syntax (not FezBase) so HTML property is converted properly
+    window.defineTestComponents = function() {
+      // Component with interval
+      Fez('test-interval', class {
+        HTML = '<div>Interval: {state.count}</div>'
+
+        init() {
+          this.state.count = 0;
+          this.setInterval(() => {
+            this.state.count++;
+            window.cleanupLog.push(`interval-tick-${this.state.count}`);
+          }, 50);
+        }
+
+        onDestroy() {
+          window.cleanupLog.push('interval-destroyed');
+        }
+      });
+
+      // Component with window event
+      Fez('test-event', class {
+        HTML = '<div>Event component</div>'
+
+        init() {
+          this.on('resize', () => {
+            window.cleanupLog.push('resize-fired');
+          }, 10);
+        }
+
+        onDestroy() {
+          window.cleanupLog.push('event-destroyed');
+        }
+      });
+
+      // Component with ResizeObserver
+      Fez('test-observer', class {
+        HTML = '<div class="observed">Observer component</div>'
+
+        init() {
+          this.onElementResize(this.root, () => {
+            window.cleanupLog.push('resize-observed');
+          }, 10);
+        }
+
+        onDestroy() {
+          window.cleanupLog.push('observer-destroyed');
+        }
+      });
+
+      // Component with custom cleanup callback
+      Fez('test-custom', class {
+        HTML = '<div>Custom cleanup</div>'
+
+        init() {
+          this.addOnDestroy(() => {
+            window.cleanupLog.push('custom-callback');
+          });
+        }
+
+        onDestroy() {
+          window.cleanupLog.push('custom-destroyed');
+        }
+      });
+
+      // Nested components to test parent-child cleanup
+      // Using plain class syntax (not FezBase) so HTML property is converted
+      Fez('test-parent', class {
+        HTML = '<div><test-child></test-child></div>'
+
+        onDestroy() {
+          window.cleanupLog.push('parent-destroyed');
+        }
+      });
+
+      Fez('test-child', class {
+        HTML = '<div>Child</div>'
+
+        init() {
+          this.setInterval(() => {
+            window.cleanupLog.push('child-interval');
+          }, 50);
+        }
+
+        onDestroy() {
+          window.cleanupLog.push('child-destroyed');
+        }
+      });
+
+      window.componentsReady = true;
+    };
+  </script>
+</body>
+</html>

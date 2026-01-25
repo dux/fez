@@ -1,67 +1,79 @@
-// base class for custom dom objects
+/**
+ * Fez - Runtime Custom DOM Elements Library
+ *
+ * Entry point that:
+ * - Exports FezBase and Fez
+ * - Sets up auto-compilation observer
+ * - Handles garbage collection
+ */
+
+// =============================================================================
+// EXPORTS
+// =============================================================================
+
 import FezBase from './fez/instance.js'
-if (typeof window !== 'undefined') window.FezBase = FezBase
-
-// base class for custom dom objects
 import Fez from './fez/root.js'
-if (typeof window !== 'undefined') window.Fez = Fez
 
-// Load defaults after Fez is properly initialized
+// Expose to window
+if (typeof window !== 'undefined') {
+  window.FezBase = FezBase
+  window.Fez = Fez
+}
+
+// Load default components
 import('./fez/defaults.js')
 
-// Configuration constants
-const GC_INTERVAL = 5_000 // Garbage collection interval in ms
+// =============================================================================
+// AUTO-COMPILATION OBSERVER
+// =============================================================================
 
-// clear all unattached nodes
-setInterval(() => {
-  for (const [key, el] of Fez.instances) {
-    if (!el?.isConnected) {
-      el.fez?.fezOnDestroy()
-      Fez.instances.delete(key)
-    }
-  }
-}, GC_INTERVAL)
-
-// define Fez observer
-const observer = new MutationObserver((mutations) => {
+// Watch for template/xmp/script[fez] elements and compile them
+const observer = new MutationObserver(mutations => {
   for (const { addedNodes, removedNodes } of mutations) {
-    addedNodes.forEach((node) => {
-      if (node.nodeType !== 1) return; // only elements
+    // Compile new fez templates
+    addedNodes.forEach(node => {
+      if (node.nodeType !== 1) return
 
-      if (node.matches('template[fez], xmp[fez], script[fez]')) {
-        Fez.compile(node);
-        node.remove();
+      if (node.matches?.('template[fez], xmp[fez], script[fez]')) {
+        Fez.compile(node)
+        node.remove()
       }
 
-      if (node.querySelectorAll) {
-        const nestedTemplates = node.querySelectorAll('template[fez], xmp[fez], script[fez]');
-        nestedTemplates.forEach(template => {
-          Fez.compile(template);
-          template.remove();
-        });
-      }
-    });
+      node.querySelectorAll?.('template[fez], xmp[fez], script[fez]').forEach(tpl => {
+        Fez.compile(tpl)
+        tpl.remove()
+      })
+    })
 
-    removedNodes.forEach((node) => {
-      if (node.nodeType === 1 && node.querySelectorAll) {
-        const fezElements = node.querySelectorAll('.fez, :scope.fez');
-        fezElements
-          .forEach(el => {
-            if (el.fez && el.root) {
-              Fez.instances.delete(el.fez.UID)
-              el.fez.fezOnDestroy()
-            }
-          });
+    // Cleanup removed components
+    removedNodes.forEach(node => {
+      if (node.nodeType !== 1) return
+
+      // Helper to cleanup a single element
+      const cleanup = (el) => {
+        if (el.fez) {
+          Fez.instances.delete(el.fez.UID)
+          el.fez.fezOnDestroy()
+        }
       }
-    });
+
+      // Check if removed node itself is a fez component
+      cleanup(node)
+
+      // Check all children for fez components
+      node.querySelectorAll?.('.fez')?.forEach(cleanup)
+    })
   }
-});
+})
 
-// start observing the whole document
 observer.observe(document.documentElement, {
   childList: true,
   subtree: true
-});
+})
+
+// =============================================================================
+// MODULE EXPORTS
+// =============================================================================
 
 export default Fez
-export { Fez }
+export { Fez, FezBase }

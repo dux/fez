@@ -1,53 +1,56 @@
-// HTML node builder
+/**
+ * FezBase - Base class for all Fez components
+ *
+ * Provides lifecycle hooks, reactive state, DOM utilities, and template rendering
+ */
+
 import parseNode from './lib/n.js'
 import createTemplate from './lib/template.js'
 
-/**
- * FezBase - Base class for all Fez components
- * Provides lifecycle hooks, reactive state, DOM utilities, and template rendering
- */
 export default class FezBase {
+
+  // ===========================================================================
+  // STATIC METHODS
+  // ===========================================================================
+
+  static nodeName = 'div'
+
   /**
    * Extract props from a DOM node's attributes
    * Handles :attr syntax for evaluated expressions and data-props JSON
-   * @param {Element} node - Source DOM node
-   * @param {Element} newNode - New node context for evaluation
-   * @returns {Object} Props object
    */
   static getProps(node, newNode) {
     let attrs = {}
 
-    // we can directly attach props to DOM node instance
+    // Direct props attachment
     if (node.props) {
       return node.props
     }
 
-    // LOG(node.nodeName, node.attributes)
+    // Collect attributes
     for (const attr of node.attributes) {
       attrs[attr.name] = attr.value
     }
 
+    // Evaluate :attr expressions
     for (const [key, val] of Object.entries(attrs)) {
       if ([':'].includes(key[0])) {
-        // LOG([key, val])
         delete attrs[key]
         try {
           const newVal = new Function(`return (${val})`).bind(newNode)()
           attrs[key.replace(/[\:_]/, '')] = newVal
-
         } catch (e) {
           Fez.onError('attr', `<${node.tagName.toLowerCase()}> Error evaluating ${key}="${val}": ${e.message}`)
         }
       }
     }
 
+    // Handle data-props JSON
     if (attrs['data-props']) {
       let data = attrs['data-props']
-
       if (typeof data == 'object') {
         return data
-      }
-      else {
+      } else {
         if (data[0] != '{') {
           data = decodeURIComponent(data)
         }
@@ -58,10 +61,7 @@ export default class FezBase {
         }
       }
     }
-
-    // pass props as json template
-    // <script type="text/template">{...}</script>
-    // <foo-bar data-json-template="true"></foo-bar>
+    // Handle JSON template
     else if (attrs['data-json-template']) {
       const data = newNode.previousSibling?.textContent
       if (data) {
@@ -77,6 +77,9 @@ export default class FezBase {
     return attrs
   }
 
+  /**
+   * Get form data from closest/child form
+   */
   static formData(node) {
     const formNode = node.closest('form') || node.querySelector('form')
     if (!formNode) {
@@ -91,75 +94,69 @@ export default class FezBase {
     return formObject
   }
 
-
-  static nodeName = 'div'
-
-  // instance methods
+  // ===========================================================================
+  // CONSTRUCTOR & CORE
+  // ===========================================================================
 
   constructor() {}
 
   n = parseNode
+  fezBlocks = {}
 
-  // Report error with component name always included
+  /**
+   * Report error with component name always included
+   */
   fezError(kind, message, context) {
     const name = this.fezName || this.root?.tagName?.toLowerCase() || 'unknown'
     return Fez.onError(kind, `<${name}> ${message}`, context)
   }
 
-  // string selector for use in HTML nodes
+  /**
+   * String selector for use in HTML nodes
+   */
   get fezHtmlRoot() {
     return `Fez(${this.UID}).`
-    // return this.props.id ? `Fez.find("#${this.props.id}").` : `Fez.find(this, "${this.fezName}").`
   }
 
-  // checks if node is attached and clears all if not
+  /**
+   * Check if node is attached to DOM
+   */
   get isConnected() {
-    if (this.root?.isConnected) {
-      return true
-    } else {
-      this.fezOnDestroy()
-      return false
-    }
+    return !!this.root?.isConnected
   }
 
-  // get single node property
+  /**
+   * Get single node property
+   */
   prop(name) {
     let v = this.oldRoot[name] || this.props[name]
     if (typeof v == 'function') {
-      // if this.prop('onclick'), we want "this" to point to this.root (dom node)
       v = v.bind(this.root)
     }
     return v
   }
 
-  // copy attributes to root node
-  copy() {
-    for (const name of Array.from(arguments)) {
-      let value = this.props[name]
+  // ===========================================================================
+  // LIFECYCLE HOOKS
+  // ===========================================================================
 
-      if (value !== undefined) {
-        if (name == 'class') {
-          const klass = this.root.getAttribute(name, value)
+  connect() {}
+  onMount() {}
+  beforeRender() {}
+  afterRender() {}
+  onDestroy() {}
+  onStateChange() {}
+  onGlobalStateChange() {}
 
-          if (klass) {
-            value = [klass, value].join(' ')
-          }
-        }
-
-        if (typeof value == 'string') {
-          this.root.setAttribute(name, value)
-        }
-        else {
-          this.root[name] = value
-        }
-      }
-    }
-  }
-
-  // clear all node references
-  // Centralized destroy logic
+  /**
+   * Centralized destroy logic - called by MutationObserver when element is removed
+   */
   fezOnDestroy() {
-    // Execute all registered cleanup callbacks
+    // Guard against double-cleanup
+    if (this._destroyed) return
+    this._destroyed = true
+
+    // Execute cleanup callbacks (intervals, observers, event listeners)
     if (this._onDestroyCallbacks) {
       this._onDestroyCallbacks.forEach(callback => {
         try {
@@ -171,7 +168,7 @@ export default class FezBase {
       this._onDestroyCallbacks = []
     }
 
-    // Call user's onDestroy lifecycle hook
+    // Call user's onDestroy hook
     this.onDestroy()
     this.onDestroy = () => {}
 
@@ -179,158 +176,35 @@ export default class FezBase {
     if (this.root) {
       this.root.fez = undefined
     }
-
     this.root = undefined
   }
 
-  // Add a cleanup callback to be executed on destroy
+  /**
+   * Add a cleanup callback for destroy
+   */
   addOnDestroy(callback) {
     this._onDestroyCallbacks = this._onDestroyCallbacks || [];
     this._onDestroyCallbacks.push(callback);
   }
 
-  // Generic function to handle window events with automatic cleanup
-  on(eventName, func, delay = 200) {
-    this._eventHandlers = this._eventHandlers || {};
+  // ===========================================================================
+  // RENDERING
+  // ===========================================================================
 
-    if (this._eventHandlers[eventName]) {
-      window.removeEventListener(eventName, this._eventHandlers[eventName]);
-    }
-
-    const throttledFunc = Fez.throttle(() => {
-      if (this.isConnected) {
-        func.call(this);
-      }
-    }, delay);
-
-    this._eventHandlers[eventName] = throttledFunc;
-    window.addEventListener(eventName, throttledFunc);
-
-    this.addOnDestroy(() => {
-      window.removeEventListener(eventName, throttledFunc);
-      delete this._eventHandlers[eventName];
-    });
-  }
-
-  // Helper function for resize events
-  onWindowResize(func, delay) {
-    this.on('resize', func, delay);
-    func();
-  }
-
-  // Helper function for scroll events
-  onWindowScroll(func, delay) {
-    this.on('scroll', func, delay);
-    func();
-  }
-
-  // Helper function for element resize events using ResizeObserver
-  onElementResize(el, func, delay = 200) {
-    const throttledFunc = Fez.throttle(() => {
-      if (this.isConnected) {
-        func.call(this, el.getBoundingClientRect(), el);
-      }
-    }, delay);
-
-    const observer = new ResizeObserver(throttledFunc);
-    observer.observe(el);
-
-    func.call(this, el.getBoundingClientRect(), el);
-
-    this.addOnDestroy(() => {
-      observer.disconnect();
-    });
-  }
-
-  // copy child nodes, natively to preserve bound events
-  // if node name is SLOT insert adjacent and remove SLOT, else as a child nodes
-  fezSlot(source, target) {
-    target ||= document.createElement('template')
-    const isSlot = target.nodeName == 'SLOT'
-
-    while (source.firstChild) {
-      if (isSlot) {
-        target.parentNode.insertBefore(source.lastChild, target.nextSibling);
-      } else {
-        target.appendChild(source.firstChild)
-      }
-    }
-
-    if (isSlot) {
-      target.parentNode.removeChild(target)
-    } else {
-      source.innerHTML = ''
-    }
-
-    return target
-  }
-
-  setStyle(key, value) {
-    if (key && typeof key == 'object') {
-      Object.entries(key).forEach(([prop, val]) => {
-        this.root.style.setProperty(prop, val);
-      });
-    } else {
-      this.root.style.setProperty(key, value);
-    }
-  }
-
-  connect() {}
-  onMount() {}
-  beforeRender() {}
-  afterRender() {}
-  onDestroy() {}
-  onStateChange() {}
-  onGlobalStateChange() {}
-
-  // component publish will search for parent component that subscribes by name
-  publish(channel, ...args) {
-    const handle_publish = (component) => {
-      if (Fez._subs && Fez._subs[channel]) {
-        const sub = Fez._subs[channel].find(([comp]) => comp === component)
-        if (sub) {
-          sub[1].bind(component)(...args)
-          return true
-        }
-      }
-      return false
-    }
-
-    // Check if current component has subscription
-    if (handle_publish(this)) {
-      return true
-    }
-
-    // Bubble up to parent components
-    let parent = this.root.parentElement
-    while (parent) {
-      if (parent.fez) {
-        if (handle_publish(parent.fez)) {
-          return true
-        }
-      }
-      parent = parent.parentElement
-    }
-
-    // If no parent handled it, fall back to global publish
-    // Fez.publish(channel, ...args)
-    return false
-  }
-
-  fezBlocks = {}
-
+  /**
+   * Parse HTML and replace fez. references
+   */
   fezParseHtml(text) {
     const base = this.fezHtmlRoot.replaceAll('"', '&quot;')
-
     text = text
       .replace(/([!'"\s;])fez\.(\w)/g, `$1${base}$2`)
       .replace(/>\s+</g, '><')
-
     return text.trim()
   }
 
-
-  // pass name to have only one tick of a kind
+  /**
+   * Schedule work on next animation frame (debounced by name)
+   */
   fezNextTick(func, name) {
     if (name) {
       this._nextTicks ||= {}
@@ -344,15 +218,14 @@ export default class FezBase {
   }
 
   /**
-   * Force a re-render on the next animation frame
-   * Useful when you need to trigger a render without state change
+   * Force a re-render on next frame
    */
   fezRefresh() {
     this.fezNextTick(() => this.fezRender(), 'refresh')
   }
 
   /**
-   * Alias for fezRefresh - can be overwritten in component
+   * Alias for fezRefresh - can be overwritten
    */
   refresh() {
     this.fezRefresh()
@@ -360,8 +233,7 @@ export default class FezBase {
 
   /**
    * Render the component template to DOM
-   * Uses Idiomorph for efficient DOM diffing and patching
-   * @param {string|Array|Function} [template] - Template to render (defaults to class HTML)
+   * Uses Idiomorph for efficient DOM diffing
    */
   fezRender(template) {
     template ||= this?.class?.fezHtmlFunc
@@ -375,10 +247,9 @@ export default class FezBase {
 
     let renderedTpl
     if (Array.isArray(template)) {
-      // array nodes this.n(...), look tabs example
       if (template[0] instanceof Node) {
-        template.forEach( n => newNode.appendChild(n) )
-      } else{
+        template.forEach(n => newNode.appendChild(n))
+      } else {
         renderedTpl = template.join('')
       }
     }
@@ -391,32 +262,29 @@ export default class FezBase {
     }
 
     if (renderedTpl) {
-      // Handle DocumentFragment (from svelte-template DOM compiler)
       if (renderedTpl instanceof DocumentFragment || renderedTpl instanceof Node) {
         newNode.appendChild(renderedTpl)
       } else {
-        // Handle HTML string
         renderedTpl = renderedTpl.replace(/\s\w+="undefined"/g, '')
         newNode.innerHTML = this.fezParseHtml(renderedTpl)
       }
     }
 
-    // Handle fez-keep attributes
     this.fezKeepNode(newNode)
-
-    // Handle fez-memoize attributes
     this.fezMemoization(newNode)
 
     Fez.morphdom(this.root, newNode)
 
     this.fezRenderPostProcess()
-
     this.afterRender()
   }
 
+  /**
+   * Post-render processing for fez-* attributes
+   */
   fezRenderPostProcess() {
     const fetchAttr = (name, func) => {
-      this.root.querySelectorAll(`*[${name}]`).forEach((n)=>{
+      this.root.querySelectorAll(`*[${name}]`).forEach((n) => {
         let value = n.getAttribute(name)
         n.removeAttribute(name)
         if (value) {
@@ -425,24 +293,21 @@ export default class FezBase {
       })
     }
 
-    // <button fez-this="button" -> this.button = node
+    // fez-this="button" -> this.button = node
     fetchAttr('fez-this', (value, n) => {
       (new Function('n', `this.${value} = n`)).bind(this)(n)
     })
 
-    // <button fez-use="animate" -> this.animate(node]
+    // fez-use="animate" -> this.animate(node)
     fetchAttr('fez-use', (value, n) => {
       if (value.includes('=>')) {
-        // fez-use="el => el.focus()"
         Fez.getFunction(value)(n)
       }
       else {
         if (value.includes('.')) {
-          // fez-use="this.focus()"
           Fez.getFunction(value).bind(n)()
         }
         else {
-          // fez-use="animate"
           const target = this[value]
           if (typeof target == 'function') {
             target(n)
@@ -453,19 +318,19 @@ export default class FezBase {
       }
     })
 
-    // <button fez-class="dialog animate" -> add class "animate" after node init to trigger animation
+    // fez-class="dialog animate" -> add class after init for animation
     fetchAttr('fez-class', (value, n) => {
       let classes = value.split(/\s+/)
       let lastClass = classes.pop()
-      classes.forEach((c)=> n.classList.add(c) )
+      classes.forEach((c) => n.classList.add(c))
       if (lastClass) {
-        setTimeout(()=>{
+        setTimeout(() => {
           n.classList.add(lastClass)
         }, 1)
       }
     })
 
-    // <input fez-bind="state.inputNode" -> this.state.inputNode will be the value of input
+    // fez-bind="state.inputNode" -> two-way binding
     fetchAttr('fez-bind', (text, n) => {
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(n.nodeName)) {
         const value = (new Function(`return this.${text}`)).bind(this)()
@@ -478,7 +343,8 @@ export default class FezBase {
       }
     })
 
-    this.root.querySelectorAll(`*[disabled]`).forEach((n)=>{
+    // Normalize disabled attribute
+    this.root.querySelectorAll(`*[disabled]`).forEach((n) => {
       let value = n.getAttribute('disabled')
       if (['false'].includes(value)) {
         n.removeAttribute('disabled')
@@ -488,15 +354,17 @@ export default class FezBase {
     })
   }
 
+  /**
+   * Handle fez-keep attributes for preserved nodes
+   */
   fezKeepNode(newNode) {
     newNode.querySelectorAll('[fez-keep]').forEach(newEl => {
       const key = newEl.getAttribute('fez-keep')
       const isSlot = key === 'default-slot' || key.startsWith('slot-')
 
-      // For slots, find one that belongs to THIS component, not nested components.
-      // A slot belongs to this component if there's no .fez ancestor between it and this.root.
       let oldEl
       if (isSlot) {
+        // Find slot belonging to THIS component, not nested
         const candidates = this.root.querySelectorAll(`[fez-keep="${key}"]`)
         for (const el of candidates) {
           let parent = el.parentElement
@@ -518,39 +386,29 @@ export default class FezBase {
       }
 
       if (oldEl) {
-        // Keep the old element in place of the new one
         newEl.parentNode.replaceChild(oldEl, newEl)
       } else if (isSlot) {
-        // This is a slot element - populate with root children on first render
         if (newEl.getAttribute('hide')) {
-          // You cant use state any more
           this.state = null
-
           const parent = newEl.parentNode
-
-          // Insert all root children before the slot's next sibling
           Array.from(this.root.childNodes).forEach(child => {
             parent.insertBefore(child, newEl)
           })
-
-          // Remove the slot element
           newEl.remove()
-        }
-        else {
-          // First render - populate the slot with current root children
+        } else {
           const children = Array.from(this.root.childNodes)
-          children.forEach(
-            child => {
-              newEl.appendChild(child)
-            }
-          )
+          children.forEach(child => {
+            newEl.appendChild(child)
+          })
         }
       }
     })
   }
 
+  /**
+   * Handle fez-memoize attributes for cached nodes
+   */
   fezMemoization(newNode) {
-    // Find the single memoize element in new DOM (excluding fez components)
     const newMemoEl = newNode.querySelector('[fez-memoize]:not(.fez)')
     if (!newMemoEl) return
 
@@ -571,41 +429,99 @@ export default class FezBase {
     }
   }
 
+  // ===========================================================================
+  // REACTIVE STATE
+  // ===========================================================================
 
-
-  // run only if node is attached, clear otherwise
-  setInterval(func, tick, name) {
-    if (typeof func == 'number') {
-      [tick, func] = [func, tick]
+  /**
+   * Register component: setup CSS, state, and bind methods
+   */
+  fezRegister() {
+    if (this.css) {
+      this.css = Fez.globalCss(this.css, { name: this.fezName, wrap: true })
     }
 
-    name ||= Fez.fnv1(String(func))
+    if (this.class.css) {
+      this.class.css = Fez.globalCss(this.class.css, { name: this.fezName })
+    }
 
-    this._setIntervalCache ||= {}
-    clearInterval(this._setIntervalCache[name])
-
-    const intervalID = setInterval(() => {
-      if (this.isConnected) {
-        func()
-      }
-    }, tick)
-
-    this._setIntervalCache[name] = intervalID
-
-    // Register cleanup callback
-    this.addOnDestroy(() => {
-      clearInterval(intervalID);
-      delete this._setIntervalCache[name];
-    });
-
-    return intervalID
+    this.state ||= this.fezReactiveStore()
+    this.globalState = Fez.state.createProxy(this)
+    this.fezRegisterBindMethods()
   }
 
+  /**
+   * Bind all instance methods to this
+   */
+  fezRegisterBindMethods() {
+    const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(this))
+      .filter(method => method !== 'constructor' && typeof this[method] === 'function')
+    methods.forEach(method => this[method] = this[method].bind(this))
+  }
+
+  /**
+   * Create a reactive store that triggers re-renders on changes
+   */
+  fezReactiveStore(obj, handler) {
+    obj ||= {}
+
+    handler ||= (o, k, v, oldValue) => {
+      if (v != oldValue) {
+        this.onStateChange(k, v, oldValue)
+        this.fezNextTick(this.fezRender, 'fezRender')
+      }
+    }
+
+    handler.bind(this)
+
+    function createReactive(obj, handler) {
+      if (typeof obj !== 'object' || obj === null) {
+        return obj;
+      }
+
+      return new Proxy(obj, {
+        set(target, property, value, receiver) {
+          const currentValue = Reflect.get(target, property, receiver);
+
+          if (currentValue !== value) {
+            if (typeof value === 'object' && value !== null) {
+              value = createReactive(value, handler);
+            }
+
+            const result = Reflect.set(target, property, value, receiver);
+            handler(target, property, value, currentValue);
+            return result;
+          }
+
+          return true;
+        },
+        get(target, property, receiver) {
+          const value = Reflect.get(target, property, receiver);
+          if (typeof value === 'object' && value !== null) {
+            return createReactive(value, handler);
+          }
+          return value;
+        }
+      });
+    }
+
+    return createReactive(obj, handler);
+  }
+
+  // ===========================================================================
+  // DOM HELPERS
+  // ===========================================================================
+
+  /**
+   * Find element by selector
+   */
   find(selector) {
     return typeof selector == 'string' ? this.root.querySelector(selector) : selector
   }
 
-  // get or set node value
+  /**
+   * Get or set node value (input/textarea/select or innerHTML)
+   */
   val(selector, data) {
     const node = this.find(selector)
 
@@ -630,11 +546,16 @@ export default class FezBase {
     }
   }
 
+  /**
+   * Instance form data helper
+   */
   formData(node) {
     return this.class.formData(node || this.root)
   }
 
-  // get or set attribute
+  /**
+   * Get or set root attribute
+   */
   attr(name, value) {
     if (typeof value === 'undefined') {
       return this.root.getAttribute(name)
@@ -644,12 +565,13 @@ export default class FezBase {
     }
   }
 
-  // get root node child nodes as array
+  /**
+   * Get root children as array, optionally transform
+   */
   childNodes(func) {
     let children = Array.from(this.root.children)
 
     if (func) {
-      // Create temporary container to avoid ancestor-parent errors
       const tmpContainer = document.createElement('div')
       tmpContainer.style.display = 'none'
       document.body.appendChild(tmpContainer)
@@ -662,42 +584,55 @@ export default class FezBase {
     return children
   }
 
-  subscribe(channel, func) {
-    Fez._subs ||= {}
-    Fez._subs[channel] ||= []
-    Fez._subs[channel] = Fez._subs[channel].filter((el) => el[0].isConnected)
-    Fez._subs[channel].push([this, func])
+  /**
+   * Set CSS properties on root
+   */
+  setStyle(key, value) {
+    if (key && typeof key == 'object') {
+      Object.entries(key).forEach(([prop, val]) => {
+        this.root.style.setProperty(prop, val);
+      });
+    } else {
+      this.root.style.setProperty(key, value);
+    }
   }
 
-  // get and set root node ID
+  /**
+   * Copy props as attributes to root
+   */
+  copy() {
+    for (const name of Array.from(arguments)) {
+      let value = this.props[name]
+
+      if (value !== undefined) {
+        if (name == 'class') {
+          const klass = this.root.getAttribute(name, value)
+          if (klass) {
+            value = [klass, value].join(' ')
+          }
+        }
+
+        if (typeof value == 'string') {
+          this.root.setAttribute(name, value)
+        }
+        else {
+          this.root[name] = value
+        }
+      }
+    }
+  }
+
+  /**
+   * Get or set root ID
+   */
   rootId() {
     this.root.id ||= `fez_${this.UID}`
     return this.root.id
   }
 
-  fezRegister() {
-    if (this.css) {
-      this.css = Fez.globalCss(this.css, {name: this.fezName, wrap: true})
-    }
-
-    if (this.class.css) {
-      this.class.css = Fez.globalCss(this.class.css, {name: this.fezName})
-    }
-
-    this.state ||= this.fezReactiveStore()
-    this.globalState = Fez.state.createProxy(this)
-    this.fezRegisterBindMethods()
-  }
-
-  // bind all instance method to this, to avoid calling with .bind(this)
-  fezRegisterBindMethods() {
-    const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(this))
-      .filter(method => method !== 'constructor' && typeof this[method] === 'function')
-
-    methods.forEach(method => this[method] = this[method].bind(this))
-  }
-
-  // dissolve into parent, if you want to promote first child or given node with this.root
+  /**
+   * Dissolve component into parent
+   */
   dissolve(inNode) {
     if (inNode) {
       inNode.classList.add('fez')
@@ -725,63 +660,167 @@ export default class FezBase {
     return nodes
   }
 
+  // ===========================================================================
+  // EVENTS
+  // ===========================================================================
+
   /**
-   * Create a reactive store that triggers re-renders on changes
-   * @param {Object} [obj] - Initial state object
-   * @param {Function} [handler] - Custom change handler
-   * @returns {Proxy} Reactive proxy object
+   * Add window event listener with auto-cleanup
    */
-  fezReactiveStore(obj, handler) {
-    obj ||= {}
+  on(eventName, func, delay = 200) {
+    this._eventHandlers = this._eventHandlers || {};
 
-    handler ||= (o, k, v, oldValue) => {
-      if (v != oldValue) {
-        this.onStateChange(k, v, oldValue)
-        this.fezNextTick(this.fezRender, 'fezRender')
-      }
+    if (this._eventHandlers[eventName]) {
+      window.removeEventListener(eventName, this._eventHandlers[eventName]);
     }
 
-    handler.bind(this)
+    const throttledFunc = Fez.throttle(() => {
+      if (this.isConnected) func.call(this);
+    }, delay);
 
-    // licence ? -> generated by ChatGPT 2024
-    function createReactive(obj, handler) {
-      if (typeof obj !== 'object' || obj === null) {
-        return obj;
-      }
+    this._eventHandlers[eventName] = throttledFunc;
+    window.addEventListener(eventName, throttledFunc);
 
-      return new Proxy(obj, {
-        set(target, property, value, receiver) {
-          // Get the current value of the property
-          const currentValue = Reflect.get(target, property, receiver);
+    this.addOnDestroy(() => {
+      window.removeEventListener(eventName, throttledFunc);
+      delete this._eventHandlers[eventName];
+    });
+  }
 
-          // Only proceed if the new value is different from the current value
-          if (currentValue !== value) {
-            if (typeof value === 'object' && value !== null) {
-              value = createReactive(value, handler); // Recursively make nested objects reactive
-            }
+  /**
+   * Window resize handler
+   */
+  onWindowResize(func, delay) {
+    this.on('resize', func, delay);
+    func();
+  }
 
-            // Set the new value
-            const result = Reflect.set(target, property, value, receiver);
+  /**
+   * Window scroll handler
+   */
+  onWindowScroll(func, delay) {
+    this.on('scroll', func, delay);
+    func();
+  }
 
-            // Call the handler only if the value has changed
-            handler(target, property, value, currentValue);
+  /**
+   * Element resize handler using ResizeObserver
+   */
+  onElementResize(el, func, delay = 200) {
+    const throttledFunc = Fez.throttle(() => {
+      if (this.isConnected) func.call(this, el.getBoundingClientRect(), el);
+    }, delay);
 
-            return result;
-          }
+    const observer = new ResizeObserver(throttledFunc);
+    observer.observe(el);
 
-          // If the value hasn't changed, return true (indicating success) without calling the handler
-          return true;
-        },
-        get(target, property, receiver) {
-          const value = Reflect.get(target, property, receiver);
-          if (typeof value === 'object' && value !== null) {
-            return createReactive(value, handler); // Recursively make nested objects reactive
-          }
-          return value;
+    func.call(this, el.getBoundingClientRect(), el);
+
+    this.addOnDestroy(() => {
+      observer.disconnect();
+    });
+  }
+
+  /**
+   * Interval with auto-cleanup
+   */
+  setInterval(func, tick, name) {
+    if (typeof func == 'number') {
+      [tick, func] = [func, tick]
+    }
+
+    name ||= Fez.fnv1(String(func))
+
+    this._setIntervalCache ||= {}
+    clearInterval(this._setIntervalCache[name])
+
+    const intervalID = setInterval(() => {
+      if (this.isConnected) func()
+    }, tick)
+
+    this._setIntervalCache[name] = intervalID
+
+    this.addOnDestroy(() => {
+      clearInterval(intervalID);
+      delete this._setIntervalCache[name];
+    });
+
+    return intervalID
+  }
+
+  // ===========================================================================
+  // PUB/SUB
+  // ===========================================================================
+
+  /**
+   * Publish to parent component that subscribes
+   */
+  publish(channel, ...args) {
+    const handle_publish = (component) => {
+      if (Fez._subs && Fez._subs[channel]) {
+        const sub = Fez._subs[channel].find(([comp]) => comp === component)
+        if (sub) {
+          sub[1].bind(component)(...args)
+          return true
         }
-      });
+      }
+      return false
     }
 
-    return createReactive(obj, handler);
+    // Check current component
+    if (handle_publish(this)) {
+      return true
+    }
+
+    // Bubble up to parents
+    let parent = this.root.parentElement
+    while (parent) {
+      if (parent.fez) {
+        if (handle_publish(parent.fez)) {
+          return true
+        }
+      }
+      parent = parent.parentElement
+    }
+
+    return false
+  }
+
+  /**
+   * Subscribe to a channel
+   */
+  subscribe(channel, func) {
+    Fez._subs ||= {}
+    Fez._subs[channel] ||= []
+    Fez._subs[channel] = Fez._subs[channel].filter((el) => el[0].isConnected)
+    Fez._subs[channel].push([this, func])
+  }
+
+  // ===========================================================================
+  // SLOTS
+  // ===========================================================================
+
+  /**
+   * Copy child nodes natively to preserve bound events
+   */
+  fezSlot(source, target) {
+    target ||= document.createElement('template')
+    const isSlot = target.nodeName == 'SLOT'
+
+    while (source.firstChild) {
+      if (isSlot) {
+        target.parentNode.insertBefore(source.lastChild, target.nextSibling);
+      } else {
+        target.appendChild(source.firstChild)
+      }
+    }
+
+    if (isSlot) {
+      target.parentNode.removeChild(target)
+    } else {
+      source.innerHTML = ''
+    }
+
+    return target
   }
 }

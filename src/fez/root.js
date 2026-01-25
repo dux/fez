@@ -1,139 +1,159 @@
-// runtime scss
+/**
+ * Fez - Main Framework Object
+ *
+ * This file contains:
+ * - Main Fez function (component registration and lookup)
+ * - Component registry
+ * - CSS utilities
+ * - Pub/Sub system
+ * - DOM morphing
+ * - Error handling
+ * - Temporary store
+ *
+ * For component instance methods, see instance.js
+ */
+
+// =============================================================================
+// IMPORTS
+// =============================================================================
+
 import Gobber from './vendor/gobber.js'
-
-// morph dom from one state to another
 import { Idiomorph } from './vendor/idiomorph.js'
-
 import objectDump from './utils/dump.js'
 import highlightAll from './utils/highlight_all.js'
 import connect from './connect.js'
 import compile from './compile.js'
 import state from './lib/global-state.js'
 
+// =============================================================================
+// MAIN FEZ FUNCTION
+// =============================================================================
+
 /**
- * Fez - Main framework function for component registration and lookup
+ * Main Fez function - register or find components
  *
  * @example
- * // Register a component
- * Fez('ui-slider', class { init() { ... } })
- *
- * // Find first instance by name
- * Fez('ui-slider')
- *
- * // Find by UID
- * Fez(123)
- *
- * // Find all instances and execute callback
- * Fez('ui-slider', (instance) => console.log(instance))
- *
- * // Find from DOM node
- * Fez(domNode)
+ * Fez('ui-foo', class { ... })  // Register component
+ * Fez('ui-foo')                  // Find first instance
+ * Fez(123)                       // Find by UID
+ * Fez(domNode)                   // Find from DOM node
+ * Fez('ui-foo', fn)              // Find all & execute callback
  *
  * @param {string|number|Node} name - Component name, UID, or DOM node
- * @param {Class|Function} [klass] - Component class or callback function
- * @returns {FezBase|Array|void} Component instance, array of instances, or void
+ * @param {Class|Function} [klass] - Component class or callback
+ * @returns {FezBase|Array|void}
  */
 const Fez = (name, klass) => {
-  if(typeof name === 'number') {
+  // Find by UID
+  if (typeof name === 'number') {
     const fez = Fez.instances.get(name)
-    if (fez) {
-      return fez
-    } else {
-      Fez.consoleError(`Instance with UID "${name}" not found.`)
-    }
+    if (fez) return fez
+    Fez.consoleError(`Instance with UID "${name}" not found.`)
+    return
   }
-  else if (name) {
-    if (klass) {
-      const isPureFn = typeof klass === 'function' && !/^\s*class/.test(klass.toString()) && !/\b(this|new)\b/.test(klass.toString())
 
-      if (isPureFn) {
-        const list = Array
-          .from(document.querySelectorAll(`.fez.fez-${name}`))
-          .filter( n => n.fez )
-
-        list.forEach( el => klass(el.fez) )
-        return list
-      } else if (typeof klass != 'function') {
-        return Fez.find(name, klass)
-      } else {
-        return connect(name, klass)
-      }
-    } else {
-      const node = name.nodeName ? name.closest('.fez') : (
-        document.querySelector( name.includes('#') ? name : `.fez.fez-${name}` )
-      )
-      if (node) {
-        if (node.fez) {
-          return node.fez
-        } else {
-          Fez.consoleError(`node "${name}" has no Fez attached.`)
-        }
-      } else {
-        Fez.consoleError(`node "${name}" not found.`)
-      }
-    }
-  } else {
+  if (!name) {
     Fez.consoleError('Fez() ?')
+    return
   }
+
+  // With second argument
+  if (klass) {
+    const isPureFn = typeof klass === 'function' &&
+      !/^\s*class/.test(klass.toString()) &&
+      !/\b(this|new)\b/.test(klass.toString())
+
+    // Fez('name', callback) - find all & execute
+    if (isPureFn) {
+      const list = Array
+        .from(document.querySelectorAll(`.fez.fez-${name}`))
+        .filter(n => n.fez)
+      list.forEach(el => klass(el.fez))
+      return list
+    }
+
+    // Fez('name', selector) - find with context
+    if (typeof klass !== 'function') {
+      return Fez.find(name, klass)
+    }
+
+    // Fez('name', class) - register component
+    return connect(name, klass)
+  }
+
+  // Find instance by name or node
+  const node = name.nodeName
+    ? name.closest('.fez')
+    : document.querySelector(name.includes('#') ? name : `.fez.fez-${name}`)
+
+  if (!node) {
+    Fez.consoleError(`node "${name}" not found.`)
+    return
+  }
+
+  if (!node.fez) {
+    Fez.consoleError(`node "${name}" has no Fez attached.`)
+    return
+  }
+
+  return node.fez
 }
+
+// =============================================================================
+// COMPONENT REGISTRY
+// =============================================================================
 
 /** Registered component classes by name */
 Fez.classes = {}
 
-/** Counter for generating unique instance IDs */
+/** Counter for unique instance IDs */
 Fez.instanceCount = 0
 
-/** Map of all active component instances by UID */
+/** Active component instances by UID */
 Fez.instances = new Map()
 
 /**
- * Find a Fez component instance from a DOM node
- * @param {Node|string} onode - DOM node or selector string
- * @param {string} [name] - Optional component name to filter by
- * @returns {FezBase|undefined} The component instance or undefined
+ * Find a component instance from a DOM node
+ * @param {Node|string} onode - DOM node or selector
+ * @param {string} [name] - Optional component name filter
+ * @returns {FezBase|undefined}
  */
 Fez.find = (onode, name) => {
-  let node = onode
+  let node = typeof onode === 'string' ? document.body.querySelector(onode) : onode
 
-  if (typeof node == 'string') {
-    node = document.body.querySelector(node)
-  }
+  // jQuery compatibility
+  if (typeof node.val === 'function') node = node[0]
 
-  if (typeof node.val == 'function') {
-    node = node[0]
-  }
+  const selector = name ? `.fez.fez-${name}` : '.fez'
+  const closestNode = node.closest(selector)
 
-  const klass = name ? `.fez.fez-${name}` : '.fez'
+  if (closestNode?.fez) return closestNode.fez
 
-  const closestNode = node.closest(klass)
-  if (closestNode && closestNode.fez) {
-    return closestNode.fez
-  } else {
-    Fez.onError('find', 'Node connector not found', { original: onode, resolved: node })
-  }
+  Fez.onError('find', 'Node connector not found', { original: onode, resolved: node })
 }
 
+/** Print registered components */
+Fez.info = () => console.log('Fez components:', Object.keys(Fez.classes || {}))
+
+// =============================================================================
+// CSS UTILITIES
+// =============================================================================
+
 /**
- * Generate a unique CSS class name from CSS text using Goober
- * @param {string} text - CSS rules to process
- * @returns {string} Generated unique class name
+ * Generate unique CSS class from CSS text (via Goober)
+ * @param {string} text - CSS rules
+ * @returns {string} Generated class name
  */
-Fez.cssClass = (text) => {
-  return Gobber.css(text)
-}
+Fez.cssClass = (text) => Gobber.css(text)
 
 /**
- * Register global CSS styles for a component
- * @param {string|Function} cssClass - CSS text or function returning CSS
- * @param {Object} [opts] - Options
- * @param {string} [opts.name] - Component name for scoping
- * @param {boolean} [opts.wrap] - Wrap CSS in :fez selector
+ * Register global CSS styles
+ * @param {string|Function} cssClass - CSS text or function
+ * @param {Object} opts - { name, wrap }
  * @returns {string} Generated class name
  */
 Fez.globalCss = (cssClass, opts = {}) => {
-  if (typeof cssClass === 'function') {
-    cssClass = cssClass()
-  }
+  if (typeof cssClass === 'function') cssClass = cssClass()
 
   if (cssClass.includes(':')) {
     let text = cssClass
@@ -141,71 +161,62 @@ Fez.globalCss = (cssClass, opts = {}) => {
       .filter(line => !(/^\s*\/\//.test(line)))
       .join("\n")
 
-    if (opts.wrap) {
-      text = `:fez { ${text} }`
-    }
-
+    if (opts.wrap) text = `:fez { ${text} }`
     text = text.replace(/\:fez|\:host/, `.fez.fez-${opts.name}`)
-
     cssClass = Fez.cssClass(text)
   }
 
-  Fez.onReady(() => {
-    document.body.parentElement.classList.add(cssClass)
-  })
-
+  Fez.onReady(() => document.body.parentElement.classList.add(cssClass))
   return cssClass
 }
 
-Fez.info = () => {
-  console.log('Fez components:', Object.keys(Fez.classes || {}))
-}
+// =============================================================================
+// DOM MORPHING
+// =============================================================================
 
 /**
- * Morph one DOM node into another using Idiomorph
- * Preserves event handlers and minimizes DOM mutations
- * @param {Element} target - Target element to morph
- * @param {Element} newNode - New element state to morph into
- * @param {Object} [opts] - Idiomorph options
+ * Morph DOM node to new state (via Idiomorph)
+ * @param {Element} target - Element to morph
+ * @param {Element} newNode - New state
  */
-Fez.morphdom = (target, newNode, opts = {}) => {
+Fez.morphdom = (target, newNode) => {
+  // Preserve attributes
   Array.from(target.attributes).forEach(attr => {
     newNode.setAttribute(attr.name, attr.value)
   })
 
-  Idiomorph.morph(target, newNode, {
-    morphStyle: 'outerHTML'
-  })
+  Idiomorph.morph(target, newNode, { morphStyle: 'outerHTML' })
 
-  // remove whitespace on next node, if exists (you never want this)
-  const nextSibling = target.nextSibling
-  if (nextSibling?.nodeType === Node.TEXT_NODE && nextSibling.textContent.trim() === '') {
-    nextSibling.remove();
+  // Clean up whitespace
+  const next = target.nextSibling
+  if (next?.nodeType === Node.TEXT_NODE && !next.textContent.trim()) {
+    next.remove()
   }
 }
 
-Fez._globalSubs ||= new Map()
+// =============================================================================
+// PUB/SUB SYSTEM
+// =============================================================================
+
+Fez._globalSubs = new Map()
+Fez._subs = {}
 
 /**
- * Publish an event to all subscribers on a channel
- * @param {string} channel - Event channel name
- * @param {...any} args - Arguments to pass to subscribers
+ * Publish event to all subscribers
+ * @param {string} channel - Event name
+ * @param {...any} args - Event arguments
  */
 Fez.publish = (channel, ...args) => {
-  Fez._subs ||= {}
-  Fez._subs[channel] ||= []
-  Fez._subs[channel].forEach((el) => {
-    el[1].bind(el[0])(...args)
-  })
+  // Legacy subscriptions
+  Fez._subs[channel]?.forEach(el => el[1].bind(el[0])(...args))
 
-  // Trigger global subscriptions
+  // Global subscriptions
   const subs = Fez._globalSubs.get(channel)
   if (subs) {
-    subs.forEach((sub) => {
-      if (sub.node && sub.node.isConnected) {
+    subs.forEach(sub => {
+      if (sub.node?.isConnected) {
         sub.callback.call(sub.node, ...args)
       } else {
-        // Remove disconnected or null nodes from subscriptions
         subs.delete(sub)
       }
     })
@@ -213,21 +224,19 @@ Fez.publish = (channel, ...args) => {
 }
 
 /**
- * Subscribe to events on a channel
- * @param {Node|string} node - DOM node, selector, or event name (if using simplified syntax)
- * @param {string|Function} eventName - Event name or callback (if node is event name)
- * @param {Function} [callback] - Event handler callback
+ * Subscribe to events
+ * @param {Node|string} node - DOM node or event name
+ * @param {string|Function} eventName - Event name or callback
+ * @param {Function} [callback] - Handler
  * @returns {Function} Unsubscribe function
  */
 Fez.subscribe = (node, eventName, callback) => {
-  // If second arg is function, shift arguments
+  // Normalize arguments
   if (typeof eventName === 'function') {
     callback = eventName
     eventName = node
     node = document.body
   }
-
-  // Handle string selectors
   if (typeof node === 'string') {
     node = document.querySelector(node)
   }
@@ -238,21 +247,46 @@ Fez.subscribe = (node, eventName, callback) => {
 
   const subs = Fez._globalSubs.get(eventName)
 
-  // Remove existing subscription for same node and callback
+  // Remove duplicate
   subs.forEach(sub => {
-    if (sub.node === node && sub.callback === callback) {
-      subs.delete(sub)
-    }
+    if (sub.node === node && sub.callback === callback) subs.delete(sub)
   })
 
   const subscription = { node, callback }
   subs.add(subscription)
 
-  // Return unsubscribe function
-  return () => {
-    subs.delete(subscription)
+  return () => subs.delete(subscription)
+}
+
+// =============================================================================
+// TEMPORARY STORE
+// =============================================================================
+
+/** Store for passing values through DOM (e.g., loop vars to child components) */
+Fez.store = {
+  _data: new Map(),
+  _counter: 0,
+
+  set(value) {
+    const key = this._counter++
+    this._data.set(key, value)
+    return key
+  },
+
+  get(key) {
+    return this._data.get(key)
+  },
+
+  delete(key) {
+    const value = this._data.get(key)
+    this._data.delete(key)
+    return value
   }
 }
+
+// =============================================================================
+// ERROR HANDLING & LOGGING
+// =============================================================================
 
 Fez.consoleError = (text, show) => {
   text = `Fez: ${text}`
@@ -263,45 +297,25 @@ Fez.consoleError = (text, show) => {
 }
 
 Fez.consoleLog = (text) => {
-  if (Fez.LOG === true) {
-    text = String(text).substring(0, 180)
-    console.log(`Fez: ${text}`)
+  if (Fez.LOG) {
+    console.log(`Fez: ${String(text).substring(0, 180)}`)
   }
 }
 
-// Error handler - can be overridden by user for custom error handling
-// Usage: Fez.onError = (kind, message, context) => { ... }
+/** Error handler - can be overridden */
 Fez.onError = (kind, message, context) => {
   const errorMsg = `Fez ${kind}: ${message?.toString?.() || message}`
   console.error(errorMsg, context || '')
   return errorMsg
 }
 
-// work with tmp store
-Fez.store = {
-  store: new Map(),
-  counter: 0,
+// =============================================================================
+// LOAD UTILITIES & EXPORTS
+// =============================================================================
 
-  set(value) {
-    const key = this.counter++;
-    this.store.set(key, value);
-    return key;
-  },
-
-  get(key) {
-    return this.store.get(key);
-  },
-
-  delete(key) {
-    const value = this.store.get(key);
-    this.store.delete(key)
-    return value;
-  }
-};
-
-// Load utility functions
 import addUtilities from './utility.js'
 import cssMixin from './utils/css_mixin.js'
+
 addUtilities(Fez)
 cssMixin(Fez)
 
@@ -310,8 +324,6 @@ Fez.state = state
 Fez.log = objectDump
 Fez.highlightAll = highlightAll
 
-Fez.onReady(() => {
-  Fez.consoleLog('Fez.LOG === true, logging enabled.')
-})
+Fez.onReady(() => Fez.consoleLog('Fez.LOG === true, logging enabled.'))
 
 export default Fez

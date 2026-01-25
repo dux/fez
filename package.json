@@ -57,7 +57,7 @@
     "watch": "bun build.js w",
     "server": "bun run lib/server.js",
     "dev": "bunx concurrently --kill-others \"bun run server\" \"find src demo lib | entr -cn sh -c 'bun run index && bun run b'\"",
-    "test": "bun test",
+    "test": "bun test test/*.test.js && bun test test/browser/*.test.js",
     "prepublishOnly": "bun run build && bun run test",
     "publish": "npm publish --access public",
     "index": "ruby ./bin/fez-index 'demo/fez/*.fez' > demo/fez/index.json"

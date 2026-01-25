@@ -1,212 +1,283 @@
-const compileToClass = (html) => {
-  const result = { script: '', style: '', html: '', head: '' }
-  const lines = html.split('\n')
+/**
+ * Fez Component Compiler
+ *
+ * Compiles component definitions from various sources:
+ * - <template fez="name">...</template>
+ * - <xmp fez="name">...</xmp>
+ * - <script fez="name">...</script>
+ * - Remote URLs
+ *
+ * Flow:
+ * 1. Source (template/xmp/url) -> compile()
+ * 2. Extract parts (script/style/html) -> compileToClass()
+ * 3. Generate class string -> Fez('name', class { ... })
+ */
 
-  let currentBlock = []
-  let currentType = ''
+// =============================================================================
+// MAIN COMPILE FUNCTION
+// =============================================================================
 
-  for (var line of lines) {
-    line = line.trim()
-    if (line.startsWith('<script') && !result.script && currentType != 'head') {
-      currentType = 'script';
-    } else if (line.startsWith('<head') && !result.script) { // you must use XMP tag if you want to define <head> tag, and it has to be first
-      currentType = 'head';
-    } else if (line.startsWith('<style')) {
-      currentType = 'style';
-    } else if (line.endsWith('</script>') && currentType === 'script' && !result.script) {
-      result.script = currentBlock.join('\n');
-      currentBlock = [];
-      currentType = null;
-    } else if (line.endsWith('</style>') && currentType === 'style') {
-      result.style = currentBlock.join('\n');
-      currentBlock = [];
-      currentType = null;
-    } else if ((line.endsWith('</head>') || line.endsWith('</header>')) && currentType === 'head') {
-      result.head = currentBlock.join('\n');
-      currentBlock = [];
-      currentType = null;
-    } else if (currentType) {
-      // if (currentType == 'script' && line.startsWith('//')) {
-      //   continue
-      // }
-      currentBlock.push(line);
-    } else {
-      result.html += line + '\n';
-    }
+/**
+ * Compile a Fez component
+ *
+ * @example
+ * Fez.compile()                        // Compile all templates in document
+ * Fez.compile(templateNode)            // Compile a template node
+ * Fez.compile('ui-foo', htmlString)    // Compile from string
+ *
+ * @param {string|Node} tagName - Component name or template node
+ * @param {string} [html] - Component HTML source
+ */
+export default function compile(tagName, html) {
+  // Single argument: compile node or all templates
+  if (arguments.length === 1) {
+    return compileBulk(tagName)
   }
 
-  if (result.head) {
-    const container = Fez.domRoot(result.head)
-
-    // Process all children of the container
-    Array.from(container.children).forEach(node => {
-      if (node.tagName === 'SCRIPT') {
-        const script = document.createElement('script')
-        // Copy all attributes
-        Array.from(node.attributes).forEach(attr => {
-          script.setAttribute(attr.name, attr.value)
-        })
-        script.type ||= 'text/javascript'
-
-        if (node.src) {
-          // External script - will load automatically
-          document.head.appendChild(script)
-        } else if (script.type.includes('javascript') || script.type == 'module') {
-          // Inline script - set content and execute
-          script.textContent = node.textContent
-          document.head.appendChild(script)
-        }
-      } else {
-        // For other elements (link, meta, etc.), just append them
-        document.head.appendChild(node.cloneNode(true))
-      }
-    })
+  // Multiple xmp tags in html? Process them
+  if (html?.includes('</xmp>')) {
+    return compileBulk(html)
   }
 
-  let klass = result.script
-
-  if (!/class\s+\{/.test(klass)) {
-    klass = `class {\n${klass}\n}`
+  // Validate component name
+  if (tagName && !tagName.includes('-') && !tagName.includes('.') && !tagName.includes('/')) {
+    console.error(`Fez: Invalid name "${tagName}". Must contain a dash (e.g., 'my-element').`)
+    return
   }
 
-  if (String(result.style).includes(':')) {
-    result.style = Fez.cssMixin(result.style)
-    result.style = result.style.includes(':fez') || /(?:^|\s)body\s*\{/.test(result.style) ? result.style : `:fez {\n${result.style}\n}`
-    klass = klass.replace(/\}\s*$/, `\n  CSS = \`${result.style}\`\n}`)
-  }
+  // Extract and compile
+  const classCode = generateClassCode(tagName, compileToClass(html))
 
-  if (/\w/.test(String(result.html))) {
-    // escape backticks in whole template block
-    result.html = result.html.replaceAll('`', '&#x60;')
-    result.html = result.html.replaceAll('$', '\\$')
-    klass = klass.replace(/\}\s*$/, `\n  HTML = \`${result.html}\`\n}`)
-  }
+  // Hide custom element until compiled
+  hideCustomElement(tagName)
 
-  return klass
+  // Execute the class code
+  executeClassCode(tagName, classCode)
 }
 
-// Handle single argument cases - compile all, compile node, or compile from URL
-function compile_bulk(data) {
+// =============================================================================
+// COMPILE FROM VARIOUS SOURCES
+// =============================================================================
+
+/**
+ * Compile from node or HTML string containing templates
+ */
+function compileBulk(data) {
+  // Single template node
   if (data instanceof Node) {
     const node = data
     node.remove()
 
     const fezName = node.getAttribute('fez')
 
-    // Check if fezName contains dot or slash (indicates URL)
-    if (fezName && (fezName.includes('.') || fezName.includes('/'))) {
-      compile_from_url(fezName)
-      return
-    } else {
-      // Validate fezName format for non-URL names
-      if (fezName && !fezName.includes('-')) {
-        console.error(`Fez: Invalid custom element name "${fezName}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)
-      }
-      compile(fezName, node.innerHTML)
+    // URL reference
+    if (fezName?.includes('.') || fezName?.includes('/')) {
+      return compileFromUrl(fezName)
+    }
+
+    // Validate name
+    if (fezName && !fezName.includes('-')) {
+      console.error(`Fez: Invalid name "${fezName}". Must contain a dash.`)
       return
     }
-  }
-  else {
-    let root = data ? Fez.domRoot(data) : document.body
 
-    root.querySelectorAll('template[fez], xmp[fez]').forEach((n) => {
-      compile_bulk(n)
-    })
-
-    return
+    return compile(fezName, node.innerHTML)
   }
+
+  // HTML string or document
+  const root = data ? Fez.domRoot(data) : document.body
+  root.querySelectorAll('template[fez], xmp[fez]').forEach(n => compileBulk(n))
 }
 
-function compile_from_url(url) {
+/**
+ * Compile component(s) from remote URL
+ */
+function compileFromUrl(url) {
   Fez.consoleLog(`Loading from ${url}`)
 
-  // Load HTML content via AJAX from URL
   Fez.fetch(url)
-    .then(htmlContent => {
-      // Check if remote HTML has template/xmp tags with fez attribute
-      const parser = new DOMParser()
-      const doc = parser.parseFromString(htmlContent, 'text/html')
+    .then(content => {
+      const doc = new DOMParser().parseFromString(content, 'text/html')
       const fezElements = doc.querySelectorAll('template[fez], xmp[fez]')
 
       if (fezElements.length > 0) {
-        // Compile each found fez element
+        // Multiple components in file
         fezElements.forEach(el => {
           const name = el.getAttribute('fez')
           if (name && !name.includes('-') && !name.includes('.') && !name.includes('/')) {
-            console.error(`Fez: Invalid custom element name "${name}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)
+            console.error(`Fez: Invalid name "${name}". Must contain a dash.`)
+            return
           }
-          const content = el.innerHTML
-          compile(name, content)
+          compile(name, el.innerHTML)
         })
       } else {
-        // No fez elements found, use extracted name from URL
+        // Single component, derive name from URL
         const name = url.split('/').pop().split('.')[0]
-        compile(name, htmlContent)
+        compile(name, content)
       }
     })
     .catch(error => {
-      Fez.onError('compile', `Template load error for "${url}": ${error.message}`)
+      Fez.onError('compile', `Load error for "${url}": ${error.message}`)
     })
 }
 
-// <template fez="ui-form">
-//   <script>
-//     ...
-// Fez.compile()                                  # compile all
-// Fez.compile(templateNode)                      # compile template node or string with template or xmp tags
-// Fez.compile('ui-form', templateNode.innerHTML) # compile string
-function compile(tagName, html) {
-  // Handle single argument cases
-  if (arguments.length === 1) {
-    return compile_bulk(tagName)
-  }
+export { compileFromUrl as compile_from_url }
 
-  // If html contains </xmp>, send to compile_bulk for processing
-  if (html && html.includes('</xmp>')) {
-    return compile_bulk(html)
-  }
+// =============================================================================
+// PARSE COMPONENT SOURCE
+// =============================================================================
 
-  // Validate element name if it's not a URL
-  if (tagName && !tagName.includes('-') && !tagName.includes('.') && !tagName.includes('/')) {
-    console.error(`Fez: Invalid custom element name "${tagName}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`)
-  }
+/**
+ * Parse component HTML into { script, style, html, head }
+ */
+function compileToClass(html) {
+  const result = { script: '', style: '', html: '', head: '' }
+  const lines = html.split('\n')
 
-  let klass = compileToClass(html)
-  let parts = klass.split(/class\s+\{/, 2)
+  let block = []
+  let type = ''
 
-  klass = `${parts[0]};\n\nwindow.Fez('${tagName}', class {\n${parts[1]})`
+  for (let line of lines) {
+    line = line.trim()
 
-  // Add tag to global hidden styles container
-  if (tagName) {
-    let styleContainer = document.getElementById('fez-hidden-styles')
-    if (!styleContainer) {
-      styleContainer = document.createElement('style')
-      styleContainer.id = 'fez-hidden-styles'
-      document.head.appendChild(styleContainer)
+    // Start blocks
+    if (line.startsWith('<script') && !result.script && type !== 'head') {
+      type = 'script'
+    } else if (line.startsWith('<head') && !result.script) {
+      type = 'head'
+    } else if (line.startsWith('<style')) {
+      type = 'style'
+
+    // End blocks
+    } else if (line.endsWith('</script>') && type === 'script' && !result.script) {
+      result.script = block.join('\n')
+      block = []
+      type = ''
+    } else if (line.endsWith('</style>') && type === 'style') {
+      result.style = block.join('\n')
+      block = []
+      type = ''
+    } else if ((line.endsWith('</head>') || line.endsWith('</header>')) && type === 'head') {
+      result.head = block.join('\n')
+      block = []
+      type = ''
+
+    // Collect content
+    } else if (type) {
+      block.push(line)
+    } else {
+      result.html += line + '\n'
     }
-    const allTags = [...Object.keys(Fez.classes), tagName].sort().join(', ')
-    styleContainer.textContent = `${allTags} { display: none; }\n`
   }
 
-  // we cant try/catch javascript modules (they use imports)
-  if (klass.includes('import ')) {
-    Fez.head({script: klass})
+  // Process head elements (scripts, links, etc.)
+  if (result.head) {
+    processHeadElements(result.head)
+  }
 
-    // best we can do it inform that node did not compile, so we assume there is an error
-    setTimeout(()=>{
+  return result
+}
+
+/**
+ * Process <head> elements from component
+ */
+function processHeadElements(headHtml) {
+  const container = Fez.domRoot(headHtml)
+
+  Array.from(container.children).forEach(node => {
+    if (node.tagName === 'SCRIPT') {
+      const script = document.createElement('script')
+      Array.from(node.attributes).forEach(attr => {
+        script.setAttribute(attr.name, attr.value)
+      })
+      script.type ||= 'text/javascript'
+
+      if (node.src) {
+        document.head.appendChild(script)
+      } else if (script.type.includes('javascript') || script.type === 'module') {
+        script.textContent = node.textContent
+        document.head.appendChild(script)
+      }
+    } else {
+      document.head.appendChild(node.cloneNode(true))
+    }
+  })
+}
+
+// =============================================================================
+// GENERATE CLASS CODE
+// =============================================================================
+
+/**
+ * Generate executable class code from parsed parts
+ */
+function generateClassCode(tagName, parts) {
+  let klass = parts.script
+
+  // Wrap in class if needed
+  if (!/class\s+\{/.test(klass)) {
+    klass = `class {\n${klass}\n}`
+  }
+
+  // Add CSS
+  if (String(parts.style).includes(':')) {
+    let css = Fez.cssMixin(parts.style)
+    css = css.includes(':fez') || /(?:^|\s)body\s*\{/.test(css)
+      ? css
+      : `:fez {\n${css}\n}`
+    klass = klass.replace(/\}\s*$/, `\n  CSS = \`${css}\`\n}`)
+  }
+
+  // Add HTML
+  if (/\w/.test(String(parts.html))) {
+    const html = parts.html
+      .replaceAll('`', '&#x60;')
+      .replaceAll('$', '\\$')
+    klass = klass.replace(/\}\s*$/, `\n  HTML = \`${html}\`\n}`)
+  }
+
+  // Wrap in Fez call
+  const [before, after] = klass.split(/class\s+\{/, 2)
+  return `${before};\n\nwindow.Fez('${tagName}', class {\n${after})`
+}
+
+/**
+ * Execute generated class code
+ */
+function executeClassCode(tagName, code) {
+  // Module imports require script tag
+  if (code.includes('import ')) {
+    Fez.head({ script: code })
+
+    // Check for compile errors after delay
+    setTimeout(() => {
       if (!Fez.classes[tagName]) {
-        Fez.consoleError(`Template "${tagName}" possible compile error. (can be a false positive, it imports are not loaded)`)
+        Fez.consoleError(`Template "${tagName}" possible compile error.`)
       }
     }, 2000)
   } else {
     try {
-      new Function(klass)()
-    } catch(e) {
+      new Function(code)()
+    } catch (e) {
       Fez.consoleError(`Template "${tagName}" compile error: ${e.message}`)
-      console.log(klass)
+      console.log(code)
     }
   }
 }
 
-export { compile_from_url }
-export default compile
+/**
+ * Add CSS to hide custom element until compiled
+ */
+function hideCustomElement(tagName) {
+  if (!tagName) return
+
+  let styleEl = document.getElementById('fez-hidden-styles')
+  if (!styleEl) {
+    styleEl = document.createElement('style')
+    styleEl.id = 'fez-hidden-styles'
+    document.head.appendChild(styleEl)
+  }
+
+  const allTags = [...Object.keys(Fez.classes), tagName].sort().join(', ')
+  styleEl.textContent = `${allTags} { display: none; }\n`
+}

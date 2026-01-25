@@ -1,92 +1,116 @@
+/**
+ * Fez Template Compiler
+ *
+ * Compiles Svelte-style templates to render functions.
+ * Supports legacy {{ }} and [[ ]] syntax via auto-conversion.
+ *
+ * Syntax:
+ *   {expression}        - Output escaped value
+ *   {@html expr}        - Output raw HTML
+ *   {@json expr}        - Output formatted JSON
+ *   {#if cond}...{/if}  - Conditional
+ *   {#each arr as item} - Loop
+ *   {#for item in arr}  - Loop (alt syntax)
+ */
+
 import createSvelteTemplate from './svelte-template.js'
 
-// Template cache to avoid recompiling the same templates
-const templateCache = new Map()
+// Template cache
+const cache = new Map()
+
+// =============================================================================
+// MAIN EXPORT
+// =============================================================================
 
 /**
- * Detect if template uses old-style double-brace syntax
- * Old style: {{ expression }} or [[ expression ]]
- * New style: { expression }
+ * Create a template render function
+ *
+ * @param {string} text - Template HTML
+ * @param {Object} opts - { name: componentName }
+ * @returns {Function} Render function (ctx) => html
  */
-function isOldStyleTemplate(text) {
+export default function createTemplate(text, opts = {}) {
+  // Check cache
+  if (cache.has(text)) {
+    return cache.get(text)
+  }
+
+  // Convert legacy syntax if detected
+  if (hasLegacySyntax(text)) {
+    text = convertLegacySyntax(text, opts.name)
+  }
+
+  // Compile
+  const fn = createSvelteTemplate(text, opts)
+  cache.set(text, fn)
+
+  return fn
+}
+
+/**
+ * Clear template cache (for testing)
+ */
+export function clearTemplateCache() {
+  cache.clear()
+}
+
+// =============================================================================
+// LEGACY SYNTAX SUPPORT
+// =============================================================================
+
+/**
+ * Check if text uses old {{ }} or [[ ]] syntax
+ */
+function hasLegacySyntax(text) {
   return (text.includes('{{') && text.includes('}}')) ||
          (text.includes('[[') && text.includes(']]'))
 }
 
 /**
- * Convert old-style {{ }}/[[ ]] syntax to new Svelte-style { } syntax
- * This allows gradual migration while keeping a single parser
+ * Convert {{ }}/[[ ]] syntax to { } syntax
+ *
+ * Mappings:
+ *   {{ expr }}      -> {expr}
+ *   {{if cond}}     -> {#if cond}
+ *   {{for x in y}}  -> {#for x in y}
+ *   {{each y as x}} -> {#each y as x}
+ *   {{raw x}}       -> {@html x}
+ *   {{json x}}      -> {@json x}
+ *   {{block x}}     -> {@block x}
  */
-function convertOldToNewSyntax(text, componentName) {
-  // First normalize [[ ]] to {{ }}
+function convertLegacySyntax(text, componentName) {
+  // Normalize [[ ]] to {{ }}
   text = text.replaceAll('[[', '{{').replaceAll(']]', '}}')
 
-  // Convert block definitions: {{block name}}...{{/block}} -> {@block name}...{/block}
+  // Blocks
   text = text.replace(/\{\{block\s+(\w+)\s*\}\}/g, '{@block $1}')
   text = text.replace(/\{\{\/block\}\}/g, '{/block}')
   text = text.replace(/\{\{block:([\w\-]+)\s*\}\}/g, '{@block:$1}')
 
-  // Convert control structures - capture full expression including closing }}
-  // {{#if cond}} or {{if cond}} -> {#if cond}
+  // Conditionals
   text = text.replace(/\{\{#?if\s+(.*?)\}\}/g, '{#if $1}')
   text = text.replace(/\{\{\/if\}\}/g, '{/if}')
-
-  // {{#unless cond}} or {{unless cond}} -> {#unless cond}
   text = text.replace(/\{\{#?unless\s+(.*?)\}\}/g, '{#unless $1}')
   text = text.replace(/\{\{\/unless\}\}/g, '{/unless}')
-
-  // {{else}} or {{:else}} -> {:else}
   text = text.replace(/\{\{:?else\}\}/g, '{:else}')
 
-  // {{#for x in y}} or {{for x in y}} -> {#for x in y}
+  // Loops
   text = text.replace(/\{\{#?for\s+(.*?)\}\}/g, '{#for $1}')
   text = text.replace(/\{\{\/for\}\}/g, '{/for}')
-
-  // {{#each x as y}} or {{each x as y}} -> {#each x as y}
   text = text.replace(/\{\{#?each\s+(.*?)\}\}/g, '{#each $1}')
   text = text.replace(/\{\{\/each\}\}/g, '{/each}')
 
-  // {{raw x}} or {{#raw x}} or {{html x}} or {{#html x}} -> {@html x}
+  // Special directives
   text = text.replace(/\{\{#?(?:raw|html)\s+(.*?)\}\}/g, '{@html $1}')
-
-  // {{json x}} -> {@json x}
   text = text.replace(/\{\{json\s+(.*?)\}\}/g, '{@json $1}')
 
-  // Convert remaining expressions: {{ expr }} -> {expr}
-  // Handle attribute context: attr={{ expr }} -> attr={expr}
+  // Expressions
   text = text.replace(/\{\{\s*(.*?)\s*\}\}/g, '{$1}')
 
-  // Log warning in development
-  if (typeof console !== 'undefined' && componentName) {
+  // Log warning
+  if (componentName) {
     console.warn(`Fez component "${componentName}" uses old {{ ... }} notation, converting.`)
   }
 
   return text
-}
-
-// let tpl = createTemplate(string)
-// tpl({ ... this state ...})
-export default function createTemplate(text, opts = {}) {
-  // Check cache first
-  const cacheKey = text
-  if (templateCache.has(cacheKey)) {
-    return templateCache.get(cacheKey)
-  }
-
-  // Convert old syntax to new if detected
-  if (isOldStyleTemplate(text)) {
-    text = convertOldToNewSyntax(text, opts.name || opts.componentName)
-  }
-
-  // Always use the svelte-style parser now
-  const templateFunc = createSvelteTemplate(text, opts)
-
-  templateCache.set(cacheKey, templateFunc)
-
-  return templateFunc
-}
-
-// Clear template cache (useful for testing)
-export function clearTemplateCache() {
-  templateCache.clear()
 }
