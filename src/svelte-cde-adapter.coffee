@@ -1,3 +1,6 @@
+# export let props // to get props object
+# export let fast  // to say we so not accept slots
+
 # get node attributes
 getAttributes = (node) ->
   attrs = {}

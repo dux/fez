@@ -712,6 +712,19 @@ export default class FezBase {
   }
 
   /**
+   * Timeout with auto-cleanup
+   */
+  setTimeout(func, delay) {
+    const timeoutID = setTimeout(() => {
+      if (this.isConnected) func()
+    }, delay)
+
+    this.addOnDestroy(() => clearTimeout(timeoutID))
+
+    return timeoutID
+  }
+
+  /**
    * Interval with auto-cleanup
    */
   setInterval(func, tick, name) {

@@ -277,5 +277,14 @@
       "modified": 1769375050,
       "created": 1769072701
     }
+  },
+  {
+    "file": {
+      "base": "ui-typeit",
+      "path": "demo/fez/ui-typeit.fez",
+      "size": 3144,
+      "modified": 1769463541,
+      "created": 1769459903
+    }
   }
 ]

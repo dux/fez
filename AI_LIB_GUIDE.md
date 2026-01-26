@@ -261,6 +261,7 @@ Arrow functions are automatically transformed:
 
 * **IMPORTANT**: Props are passed as parameter to `init(props)` and `onMount(props)`
 * Use `props.name` to access props, NOT `this.prop('name')`
+* **Props are ALWAYS strings** - use `parseInt()` for numbers: `parseInt(props.speed) || 50`
 * **ALWAYS** use lowercase with underscores for prop names (e.g., `fill_color`, `read_only`)
 * **Use colon prefix (`:`) for evaluated attributes** - functions, objects, booleans:
   ```html
@@ -368,6 +369,7 @@ Fez.head({css: 'https://cdn.example.com/styles.css'})
 
 ```javascript
 this.find('.selector')      // Scoped querySelector
+this.setTimeout(fn, 1000)   // Auto-cleaned timeout
 this.setInterval(fn, 1000)  // Auto-cleaned interval
 Fez.fetch('/data')          // Built-in cached fetch
 this.formData()             // Get form values

@@ -121,9 +121,8 @@ const LOG = (() => {
     if (!d) {
       d = document.body.appendChild(document.createElement('div'));
       d.id = 'dump-dialog';
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       d.style.cssText =
-        'position:absolute; top:' + (scrollTop + 20) + 'px; left: 20px; right:20px;' +
+        'position:fixed; top:20px; left:20px; right:20px; max-height:calc(100vh - 40px);' +
         'background:#fff; border:1px solid #333; box-shadow:0 0 10px rgba(0,0,0,0.5);' +
         'padding:20px; overflow:auto; z-index:2147483646; font:13px/1.4 monospace;' +
         'white-space:pre; display:block; opacity:1; visibility:visible';

@@ -212,5 +212,59 @@ describe('Svelte-style template', () => {
       const html = render('<pre>{state.code}</pre>', { state: { code: 'line1\nline2' } })
       expect(html).toBe('<pre>line1\nline2</pre>')
     })
+
+    test('JS template literal with object inside attribute is preserved', () => {
+      const html = render('<span onclick="Dialog.load(`${state.path}/top_menu_dialog`, {d: \'top\'})">click</span>', {
+        state: { path: '/app' }
+      })
+      expect(html).toContain('Dialog.load(`${state.path}/top_menu_dialog`, {d: \'top\'})')
+    })
+
+    test('JS template literal with interpolation is preserved', () => {
+      const html = render('<a href="javascript:alert(`Hello ${state.name}`)">test</a>', {
+        state: { name: 'World' }
+      })
+      expect(html).toContain('`Hello ${state.name}`')
+    })
+
+    test('simple object literal is preserved', () => {
+      const html = render('<div data-opts="{foo: 1}">test</div>', { state: {} })
+      expect(html).toContain('{foo: 1}')
+    })
+
+    test('object literal with multiple keys is preserved', () => {
+      const html = render('<div onclick="fn({a: 1, b: 2, c: 3})">test</div>', { state: {} })
+      expect(html).toContain('{a: 1, b: 2, c: 3}')
+    })
+
+    test('object literal with quoted keys is preserved', () => {
+      const html = render('<div data-x="{\'key\': 1}">test</div>', { state: {} })
+      expect(html).toContain('{\'key\': 1}')
+    })
+
+    test('object literal with double-quoted keys is preserved', () => {
+      const html = render('<div data-x=\'{"key": 1}\'>test</div>', { state: {} })
+      expect(html).toContain('{"key": 1}')
+    })
+
+    test('nested object literals are preserved', () => {
+      const html = render('<div onclick="fn({a: {b: 1}})">test</div>', { state: {} })
+      expect(html).toContain('{a: {b: 1}}')
+    })
+
+    test('object literal does not interfere with Fez expressions', () => {
+      const html = render('<div>{state.name}</div><span data-x="{foo: 1}">test</span>', {
+        state: { name: 'Alice' }
+      })
+      expect(html).toContain('Alice')
+      expect(html).toContain('{foo: 1}')
+    })
+
+    test('object literal in onclick with Fez loop', () => {
+      const html = render('{#each state.items as item}<button onclick="send({id: 1})">{item}</button>{/each}', {
+        state: { items: ['a', 'b'] }
+      })
+      expect(html).toBe('<button onclick="send({id: 1})">a</button><button onclick="send({id: 1})">b</button>')
+    })
   })
 })

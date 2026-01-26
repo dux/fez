@@ -269,6 +269,62 @@ export default function createSvelteTemplate(text, opts = {}) {
     const loopStack = []  // Track loop info for :else support
 
     while (i < text.length) {
+      // Skip JavaScript template literals (backtick strings)
+      // Content inside backticks should not be processed as Fez expressions
+      if (text[i] === '`') {
+        result += '\\`'
+        i++
+        // Copy everything until closing backtick
+        while (i < text.length && text[i] !== '`') {
+          if (text[i] === '\\') {
+            // Handle escaped characters
+            result += '\\\\'
+            i++
+            if (i < text.length) {
+              if (text[i] === '`') {
+                result += '\\`'
+              } else if (text[i] === '$') {
+                result += '\\$'
+              } else {
+                result += text[i]
+              }
+              i++
+            }
+          } else if (text[i] === '$' && text[i + 1] === '{') {
+            // Keep JS template literal interpolation as-is (escape $ for outer template)
+            result += '\\${'
+            i += 2
+            // Copy until matching }
+            let depth = 1
+            while (i < text.length && depth > 0) {
+              if (text[i] === '{') depth++
+              else if (text[i] === '}') depth--
+              if (depth > 0 || text[i] !== '}') {
+                if (text[i] === '`') result += '\\`'
+                else if (text[i] === '\\') result += '\\\\'
+                else result += text[i]
+              } else {
+                result += '}'
+              }
+              i++
+            }
+          } else {
+            // Regular character inside backticks - escape special chars for outer template
+            if (text[i] === '$') {
+              result += '\\$'
+            } else {
+              result += text[i]
+            }
+            i++
+          }
+        }
+        if (i < text.length) {
+          result += '\\`'
+          i++
+        }
+        continue
+      }
+
       // Escaped brace
       if (text[i] === '\\' && text[i + 1] === '{') {
         result += '{'
@@ -280,6 +336,15 @@ export default function createSvelteTemplate(text, opts = {}) {
       if (text[i] === '{') {
         const { expression, endIndex } = extractBracedExpression(text, i)
         const expr = expression.trim()
+
+        // Check if this is a JavaScript object literal (e.g., {d: 'top'}, {foo: 1, bar: 2})
+        // Object literals start with key: where key is identifier or quoted string
+        if (/^(\w+|"\w+"|'\w+')\s*:/.test(expr)) {
+          // Keep object literal as-is in the output
+          result += '{' + expression + '}'
+          i = endIndex + 1
+          continue
+        }
 
         // Block directives
         if (expr.startsWith('#if ')) {
@@ -394,10 +459,8 @@ export default function createSvelteTemplate(text, opts = {}) {
         continue
       }
 
-      // Escape backticks and $ for template literal
-      if (text[i] === '`') {
-        result += '\\`'
-      } else if (text[i] === '$' && text[i + 1] === '{') {
+      // Escape special characters for template literal
+      if (text[i] === '$' && text[i + 1] === '{') {
         result += '\\$'
       } else if (text[i] === '\\') {
         result += '\\\\'

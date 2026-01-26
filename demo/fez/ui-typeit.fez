@@ -1,0 +1,138 @@
+<script>
+  // Find next position to type to (skip over HTML tags)
+  function nextPos(sentence, pos) {
+    if (sentence[pos] === '<') {
+      const closeTag = sentence.indexOf('>', pos)
+      if (closeTag !== -1) {
+        return closeTag + 1
+      }
+    }
+    return pos + 1
+  }
+
+  // Find previous position when deleting (skip over HTML tags)
+  function prevPos(sentence, pos) {
+    if (pos > 0 && sentence[pos - 1] === '>') {
+      const openTag = sentence.lastIndexOf('<', pos - 1)
+      if (openTag !== -1) {
+        return openTag
+      }
+    }
+    return pos - 1
+  }
+
+  // Wrap each visible character in a span for animation
+  function wrapChars(html) {
+    let result = ''
+    let inTag = false
+
+    for (let i = 0; i < html.length; i++) {
+      const char = html[i]
+
+      if (char === '<') {
+        inTag = true
+        result += char
+      } else if (char === '>') {
+        inTag = false
+        result += char
+      } else if (inTag) {
+        result += char
+      } else if (char === ' ') {
+        result += '&nbsp;'
+      } else {
+        result += `<i>${char}</i>`
+      }
+    }
+
+    return result
+  }
+
+  function tick(fez) {
+    const sentence = fez.sentences[fez.currentSentence]
+
+    if (fez.isDeleting) {
+      fez.currentChar = prevPos(sentence, fez.currentChar)
+      fez.state.text = wrapChars(sentence.substring(0, fez.currentChar))
+
+      if (fez.currentChar === 0) {
+        fez.isDeleting = false
+        fez.currentSentence = (fez.currentSentence + 1) % fez.sentences.length
+        fez.setTimeout(() => tick(fez), fez.state.speed)
+      } else {
+        fez.setTimeout(() => tick(fez), fez.state.speed / 2)
+      }
+    } else {
+      fez.currentChar = nextPos(sentence, fez.currentChar)
+      fez.state.text = wrapChars(sentence.substring(0, fez.currentChar))
+
+      if (fez.currentChar >= sentence.length) {
+        fez.isDeleting = true
+        fez.setTimeout(() => tick(fez), fez.state.delay)
+      } else {
+        fez.setTimeout(() => tick(fez), fez.state.speed)
+      }
+    }
+  }
+
+  class {
+    NAME = 'span'
+
+    init(props) {
+      this.copy('style')
+
+      this.state.speed = parseInt(props.speed) || 50
+      this.state.delay = parseInt(props.delay) || 1000
+      this.state.text = ''
+
+      this.sentences = this.childNodes()
+        .filter(node => node.nodeType === 1)
+        .map(node => node.innerHTML.trim())
+        .filter(text => text.length > 0)
+
+      this.currentSentence = 0
+      this.currentChar = 0
+      this.isDeleting = false
+    }
+
+    onMount() {
+      if (this.sentences.length > 0) {
+        tick(this)
+      }
+    }
+  }
+</script>
+
+<style>
+  :fez {
+    display: inline-block;
+
+    &::after {
+      content: '|';
+      animation: blink 0.7s infinite;
+    }
+
+    i {
+      display: inline-block;
+      font-style: normal;
+      animation: bounce-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @keyframes bounce-in {
+    0% {
+      opacity: 0;
+      transform: translateY(0.4em);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+
+{@html state.text}
