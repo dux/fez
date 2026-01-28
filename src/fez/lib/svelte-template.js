@@ -236,13 +236,14 @@ export default function createSvelteTemplate(text, opts = {}) {
     })
     text = text.replace(/\{@block:(\w+)\}/g, (_, name) => blocks[name] || '')
 
-    // Convert :attr="expr" to use Fez.store for passing values through DOM
+    // Convert :attr="expr" to use Fez(UID).fezGlobals for passing values through DOM
     // This allows loop variables to be passed as props to child components
-    // :file="el.file" -> :file={`Fez.store.delete(${Fez.store.set(el.file)})`}
+    // :file="el.file" -> :file={`Fez(${UID}).fezGlobals.delete(${fez.fezGlobals.set(el.file)})`}
+    // Uses Fez(UID) so child component can find parent's fezGlobals
     text = text.replace(/:(\w+)="([^"{}]+)"/g, (match, attr, expr) => {
       // Only convert if expr looks like a variable access (not a string literal)
       if (/^[\w.[\]]+$/.test(expr.trim())) {
-        return `:${attr}={\`Fez.store.delete(\${Fez.store.set(${expr})})\`}`
+        return `:${attr}={\`Fez(\${UID}).fezGlobals.delete(\${fez.fezGlobals.set(${expr})})\`}`
       }
       return match
     })

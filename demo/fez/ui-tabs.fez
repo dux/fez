@@ -39,17 +39,6 @@
 
   init(props) {
     this.tabs = this.childNodes()
-
-    // remove template and enable to demonstrate n( node builder)
-    // const { n, activate } = this;
-    // this.tabs = this.childNodes()
-    // this.render([
-    //   n('div.header', this.tabs.map((tab, index) =>
-    //     n('span', tab.getAttribute('title'), { onclick: ()=> activate(index) })
-    //   )),
-    //   n('.body', this.tabs)
-    // ]);
-    // this.activate(0)
   }
 
   onMount() {

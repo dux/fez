@@ -15,10 +15,27 @@ globalThis.Fez = {
   }[c]))
 }
 
+// Create fezGlobals store for component context
+const createFezGlobals = () => ({
+  _data: new Map(),
+  _counter: 0,
+  set(value) {
+    const key = this._counter++
+    this._data.set(key, value)
+    return key
+  },
+  delete(key) {
+    const value = this._data.get(key)
+    this._data.delete(key)
+    return value
+  }
+})
+
 // Helper to render template and get HTML string
 const render = (template, ctx) => {
   ctx.UID = ctx.UID || 123
   ctx.Fez = Fez
+  ctx.fezGlobals = createFezGlobals()
   const fn = createSvelteTemplate(template)
   return fn(ctx)
 }
@@ -265,6 +282,41 @@ describe('Svelte-style template', () => {
         state: { items: ['a', 'b'] }
       })
       expect(html).toBe('<button onclick="send({id: 1})">a</button><button onclick="send({id: 1})">b</button>')
+    })
+  })
+
+  describe('colon attribute conversion (:attr="expr")', () => {
+    test(':attr="expr" converts to fezGlobals mechanism', () => {
+      const ctx = { state: { items: ['a', 'b', 'c'] }, UID: 123 }
+      const html = render('<child-component :data="state.items"></child-component>', ctx)
+      // Value is stored and attribute contains Fez(UID).fezGlobals.delete(id) for child to retrieve
+      expect(html).toContain(':data=Fez(123).fezGlobals.delete(')
+      expect(ctx.fezGlobals._counter).toBeGreaterThan(0)
+    })
+
+    test(':attr="expr" works with nested object paths', () => {
+      const html = render('<child-component :user="state.user.profile"></child-component>', {
+        state: { user: { profile: { name: 'Alice' } } },
+        UID: 456
+      })
+      expect(html).toContain(':user=Fez(456).fezGlobals.delete(')
+    })
+
+    test(':attr="expr" works in loops', () => {
+      const html = render('{#each state.items as item}<child-component :item="item"></child-component>{/each}', {
+        state: { items: ['x', 'y'] },
+        UID: 789
+      })
+      // Each loop iteration stores a value
+      expect(html).toMatch(/:item=Fez\(789\)\.fezGlobals\.delete\(\d+\).*:item=Fez\(789\)\.fezGlobals\.delete\(\d+\)/)
+    })
+
+    test(':attr="fez.state.x" works because fez is bound to this', () => {
+      const html = render('<child-component :data="fez.state.items"></child-component>', {
+        state: { items: [1, 2, 3] },
+        UID: 999
+      })
+      expect(html).toContain(':data=Fez(999).fezGlobals.delete(')
     })
   })
 })

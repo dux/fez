@@ -104,6 +104,22 @@ export default class FezBase {
   n = parseNode
   fezBlocks = {}
 
+  // Store for passing values to child components (e.g., loop vars)
+  fezGlobals = {
+    _data: new Map(),
+    _counter: 0,
+    set(value) {
+      const key = this._counter++
+      this._data.set(key, value)
+      return key
+    },
+    delete(key) {
+      const value = this._data.get(key)
+      this._data.delete(key)
+      return value
+    }
+  }
+
   /**
    * Report error with component name always included
    */

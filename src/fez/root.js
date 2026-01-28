@@ -260,32 +260,6 @@ Fez.subscribe = subscribe
 Fez.publish = publish
 
 // =============================================================================
-// TEMPORARY STORE
-// =============================================================================
-
-/** Store for passing values through DOM (e.g., loop vars to child components) */
-Fez.store = {
-  _data: new Map(),
-  _counter: 0,
-
-  set(value) {
-    const key = this._counter++
-    this._data.set(key, value)
-    return key
-  },
-
-  get(key) {
-    return this._data.get(key)
-  },
-
-  delete(key) {
-    const value = this._data.get(key)
-    this._data.delete(key)
-    return value
-  }
-}
-
-// =============================================================================
 // LOCAL STORAGE (see lib/localstorage.js)
 // =============================================================================
 

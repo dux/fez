@@ -814,6 +814,17 @@ Fez.state.set('count', 10)
 // Get global state value
 const count = Fez.state.get('count')
 
+// Subscribe to specific key changes (returns unsubscribe function)
+const unsubscribe = Fez.state.subscribe('language', (value, oldValue, key) => {
+  console.log(`Language changed from ${oldValue} to ${value}`)
+})
+unsubscribe() // stop listening
+
+// Subscribe to ALL state changes
+Fez.state.subscribe((key, value, oldValue) => {
+  console.log(`${key} changed to ${value}`)
+})
+
 // Iterate over all components listening to a key
 Fez.state.forEach('count', (component) => {
   console.log(`${component.fezName} is listening to count`)
@@ -839,6 +850,34 @@ class MyComponent extends FezBase {
     return `<div class="${this.globalState.theme || 'light'}">...</div>`
   }
 }
+```
+
+### Real Example: Language Switching
+
+Control global state from outside Fez components:
+
+```js
+// From anywhere in your app (vanilla JS, other frameworks, etc.)
+Fez.state.set('language', 'en')
+
+// All components using this.globalState.language will automatically re-render
+document.getElementById('lang-select').addEventListener('change', (e) => {
+  Fez.state.set('language', e.target.value)
+})
+```
+
+```html
+<!-- Component automatically reacts to language changes -->
+<script>
+  class {
+    get greeting() {
+      const greetings = { en: 'Hello', de: 'Hallo', hr: 'Bok' }
+      return greetings[this.globalState.language] || greetings.en
+    }
+  }
+</script>
+
+<div>{greeting}, {props.name}!</div>
 ```
 
 ### Real Example: Shared Counter State

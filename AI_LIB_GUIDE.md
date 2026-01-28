@@ -339,7 +339,23 @@ Fez.publish('theme-changed', 'dark')
 Fez.subscribe('event', callback)                  // always fires
 Fez.subscribe(node, 'event', callback)            // fires only if node.isConnected
 Fez.subscribe('#modal', 'event', callback)        // fires only if #modal exists at publish time
+
+// Global state subscriptions
+Fez.state.subscribe('key', (value, oldValue) => {}) // subscribe to specific key
+Fez.state.subscribe((key, value, oldValue) => {})   // subscribe to ALL changes
 ```
+
+### Component Isolation in Loops
+
+Child components in loops are automatically preserved during parent re-renders. They only re-render when their props actually change:
+
+```html
+{#each state.users as user}
+  <user-card :user="user" />
+{/each}
+```
+
+This makes loops with many child components very efficient.
 
 ## Common Mistakes to Avoid
 
@@ -353,6 +369,18 @@ Fez.subscribe('#modal', 'event', callback)        // fires only if #modal exists
 - Using `this.prop('name')` instead of `props.name` in `init()` and `onMount()`
 - Forgetting to use `{index}` or arrow functions for loop variables in event handlers
 - **Not using `Fez.getFunction()` for handler props** - props like `onclick`, `ping`, `onselect` can be strings or functions, always normalize them
+- **Using `this.` in template expressions** - templates render in a deferred context where `this` is not bound. Use `fez.` prefix or curly brace syntax instead:
+  ```html
+  <!-- WRONG - this is not available in template context -->
+  <child-component :name="this.name">
+
+  <!-- CORRECT - use curly braces to capture values at render time -->
+  <child-component name={name} data={state.items}>
+
+  <!-- CORRECT - fez. prefix works (fez is bound to this in templates) -->
+  <child-component :data="fez.state.items">
+  ```
+  Note: `:attr="expr"` syntax uses component's `fezGlobals` to pass values to child components - automatically cleaned up when component destroys.
 
 ## External Libraries & Modules
 
