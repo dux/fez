@@ -8,11 +8,16 @@ globalThis.document = window.document
 globalThis.DocumentFragment = window.DocumentFragment
 globalThis.Node = window.Node
 
-// Mock Fez.htmlEscape
+// Mock Fez
 globalThis.Fez = {
   htmlEscape: (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]))
+  }[c])),
+  toPairs: (c) => {
+    if (Array.isArray(c)) return c.map((v, i) => [v, i])
+    if (c && typeof c === 'object') return Object.entries(c)
+    return []
+  }
 }
 
 // Create fezGlobals store for component context
@@ -150,6 +155,111 @@ describe('Svelte-style template', () => {
         state: { obj: { x: 10, y: 20 } }
       })
       expect(html).toBe('<li>0:x=10</li><li>1:y=20</li>')
+    })
+
+    test('#for object without brackets (2 params)', () => {
+      const html = render('{#for key, val in state.obj}<li>{key}={val}</li>{/for}', {
+        state: { obj: { a: 1, b: 2 } }
+      })
+      expect(html).toBe('<li>a=1</li><li>b=2</li>')
+    })
+
+    test('#each object without brackets (2 params)', () => {
+      const html = render('{#each state.obj as key, val}<li>{key}:{val}</li>{/each}', {
+        state: { obj: { x: 10, y: 20 } }
+      })
+      expect(html).toBe('<li>x:10</li><li>y:20</li>')
+    })
+
+    test('#for array with 2 params gives value and index', () => {
+      const html = render('{#for val, idx in state.items}<li>{idx}:{val}</li>{/for}', {
+        state: { items: ['a', 'b'] }
+      })
+      expect(html).toBe('<li>0:a</li><li>1:b</li>')
+    })
+
+    test('#for simple list (single param)', () => {
+      const html = render('{#for item in state.items}<span>{item}</span>{/for}', {
+        state: { items: ['x', 'y', 'z'] }
+      })
+      expect(html).toBe('<span>x</span><span>y</span><span>z</span>')
+    })
+
+    test('#for list of lists - inner list not deconstructed', () => {
+      const html = render('{#for item in state.items}<span>{item[0]}</span>{/for}', {
+        state: { items: [['foo'], ['bar']] }
+      })
+      expect(html).toBe('<span>foo</span><span>bar</span>')
+    })
+
+    test('#for list of lists with index - inner list not deconstructed', () => {
+      const html = render('{#for item, idx in state.items}<span>{idx}:{item[0]}</span>{/for}', {
+        state: { items: [['foo'], ['bar']] }
+      })
+      expect(html).toBe('<span>0:foo</span><span>1:bar</span>')
+    })
+
+    test('#for object with nested object values - value not deconstructed', () => {
+      const html = render('{#for k, v in state.obj}<span>{k}:{v.bar}</span>{/for}', {
+        state: { obj: { foo: { bar: 'baz' }, x: { bar: 'y' } } }
+      })
+      expect(html).toBe('<span>foo:baz</span><span>x:y</span>')
+    })
+
+    test('#each object with nested object values - value not deconstructed', () => {
+      const html = render('{#each state.obj as k, v}<span>{k}={v.name}</span>{/each}', {
+        state: { obj: { a: { name: 'Alice' }, b: { name: 'Bob' } } }
+      })
+      expect(html).toBe('<span>a=Alice</span><span>b=Bob</span>')
+    })
+
+    test('#for empty array returns empty string', () => {
+      const html = render('{#for item in state.items}<span>{item}</span>{/for}', {
+        state: { items: [] }
+      })
+      expect(html).toBe('')
+    })
+
+    test('#for null/undefined returns empty string', () => {
+      const html = render('{#for item in state.items}<span>{item}</span>{/for}', {
+        state: { items: null }
+      })
+      expect(html).toBe('')
+    })
+
+    test('#for with 2 params on empty array returns empty string', () => {
+      const html = render('{#for k, v in state.obj}<span>{k}={v}</span>{/for}', {
+        state: { obj: {} }
+      })
+      expect(html).toBe('')
+    })
+
+    test('#for with :else shows else content on empty array', () => {
+      const html = render('{#for item in state.items}<span>{item}</span>{:else}<p>No items</p>{/for}', {
+        state: { items: [] }
+      })
+      expect(html).toBe('<p>No items</p>')
+    })
+
+    test('#for with :else shows loop content when array has items', () => {
+      const html = render('{#for item in state.items}<span>{item}</span>{:else}<p>No items</p>{/for}', {
+        state: { items: ['a', 'b'] }
+      })
+      expect(html).toBe('<span>a</span><span>b</span>')
+    })
+
+    test('#each with :else shows else content on empty object', () => {
+      const html = render('{#each state.obj as k, v}<span>{k}</span>{:else}<p>Empty</p>{/each}', {
+        state: { obj: {} }
+      })
+      expect(html).toBe('<p>Empty</p>')
+    })
+
+    test('#for with :else on null shows else content', () => {
+      const html = render('{#for item in state.items}<span>{item}</span>{:else}<p>Nothing</p>{/for}', {
+        state: { items: null }
+      })
+      expect(html).toBe('<p>Nothing</p>')
     })
 
     test('#if inside #each', () => {

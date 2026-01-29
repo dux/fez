@@ -5,7 +5,7 @@ import createSvelteTemplate from '../src/fez/lib/svelte-template.js'
 // Setup happy-dom globals (scoped to this test file)
 let window, document
 
-// Mock Fez.htmlEscape for template tests
+// Mock Fez for template tests
 const MockFez = {
   htmlEscape: (str) => {
     if (str == null) return ''
@@ -14,6 +14,29 @@ const MockFez = {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
+  },
+  toPairs: (c) => {
+    if (Array.isArray(c)) return c.map((v, i) => [v, i])
+    if (c && typeof c === 'object') return Object.entries(c)
+    return []
+  }
+}
+
+// Mock fezGlobals for arrow function tests
+function createMockFezGlobals() {
+  return {
+    _data: new Map(),
+    _counter: 0,
+    set(value) {
+      const key = this._counter++
+      this._data.set(key, value)
+      return key
+    },
+    delete(key) {
+      const value = this._data.get(key)
+      this._data.delete(key)
+      return value
+    }
   }
 }
 
@@ -42,7 +65,8 @@ afterAll(() => {
 // Helper to render template and get HTML
 function render(template, ctx) {
   const tpl = createSvelteTemplate(template)
-  return tpl({ ...ctx, Fez: MockFez })
+  const fezGlobals = createMockFezGlobals()
+  return tpl({ ...ctx, Fez: MockFez, UID: 999, fezGlobals })
 }
 
 describe('svelte template', () => {
@@ -273,12 +297,36 @@ describe('svelte template', () => {
       expect(html).toBe('<button onclick="fez.remove(0)">X</button><button onclick="fez.remove(1)">X</button>')
     })
 
-    test('transforms arrow function with multiple loop variables', () => {
+    test('transforms arrow function with multiple loop variables using fezGlobals', () => {
       const html = render(
         '{#each state.items as item, idx}<button onclick={() => edit(item, idx)}>Edit</button>{/each}',
         { state: { items: ['foo', 'bar'] }, props: {} }
       )
-      expect(html).toBe('<button onclick="fez.edit(foo, 0)">Edit</button><button onclick="fez.edit(bar, 1)">Edit</button>')
+      // When arrow uses item vars (not just indices), it stores handler in fezGlobals
+      // This ensures the item reference is captured at render time
+      expect(html).toBe('<button onclick="Fez(999).fezGlobals.delete(0)()">Edit</button><button onclick="Fez(999).fezGlobals.delete(1)()">Edit</button>')
+    })
+
+    test('stores object loop item in fezGlobals for onclick handler', () => {
+      // This is the key fix: when removeTag(tag) is called, tag is an object from the loop
+      // It must be stored in fezGlobals so the correct object reference is used at click time
+      const tags = [{ id: 1, name: 'js' }, { id: 2, name: 'css' }]
+      const html = render(
+        '{#each state.tags as tag}<span onclick={() => removeTag(tag)}>{tag.name}</span>{/each}',
+        { state: { tags }, props: {} }
+      )
+      // Each button should reference fezGlobals with a unique key
+      expect(html).toBe('<span onclick="Fez(999).fezGlobals.delete(0)()">js</span><span onclick="Fez(999).fezGlobals.delete(1)()">css</span>')
+    })
+
+    test('index-only handlers do not use fezGlobals', () => {
+      // When only using index (primitive), we can inline it directly
+      const html = render(
+        '{#each state.items as item, i}<button onclick={() => remove(i)}>X</button>{/each}',
+        { state: { items: ['a', 'b', 'c'] }, props: {} }
+      )
+      // Index is inlined directly, no fezGlobals needed
+      expect(html).toBe('<button onclick="fez.remove(0)">X</button><button onclick="fez.remove(1)">X</button><button onclick="fez.remove(2)">X</button>')
     })
 
     test('does not prefix global functions', () => {

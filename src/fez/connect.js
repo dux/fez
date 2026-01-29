@@ -227,6 +227,11 @@ function connectNode(name, node) {
   // Setup reactive state
   fez.fezRegister()
 
+  // Capture children if no slot consumed them
+  if (fez.root.children.length) {
+    fez._fezChildNodes = Array.from(fez.root.children)
+  }
+
   // Init (supports multiple naming conventions)
   const initMethod = fez.onInit || fez.init || fez.created || fez.connect
   initMethod.call(fez, fez.props)

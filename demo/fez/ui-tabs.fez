@@ -1,43 +1,18 @@
 <script>
   // add active class to node and remove it from siblings
   activateNode(node) {
-    if (!node || !node.parentElement) return
-    Array.from(node.parentElement.children).forEach(child => {
-      child.classList.remove('active')
-    })
-    node.classList.add('active')
+    Fez.activateNode(node, 'active')
   }
 
-  // activate header tab and active tab
+  // activate header tab and body tab
   activate(num) {
-    // Get fresh reference to tabs from the slot - only direct child slot
-    let slot = null
-    for (const child of this.root.children) {
-      if (child.classList.contains('fez-slot-ui-tabs')) {
-        slot = child
-        break
-      }
-    }
-    if (!slot) return
+    if (this.tabs[num]?.getAttribute('disabled')) return
 
-    const tabs = Array.from(slot.children)
-
-    if (tabs[num]?.getAttribute('disabled')) {
-      return
-    }
-
-    // Use :scope > to only select direct child header, not nested ones
-    const header = this.root.querySelector(':scope > div.header')
-    if (!header) return
-
-    const target = header.children[num]
-
-    this.active = parseInt(num)
-    this.activateNode(target)
-    this.activateNode(tabs[num])
+    this.activateNode(this.find(':scope > .header').children[num])
+    this.activateNode(this.tabs[num])
   }
 
-  init(props) {
+  onInit() {
     this.tabs = this.childNodes()
   }
 

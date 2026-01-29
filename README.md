@@ -149,10 +149,20 @@ Fez uses a Svelte-inspired template syntax with single braces `{ }` for expressi
   <li>{idx}: {item}</li>
 {/for}
 
-<!-- Object iteration -->
+<!-- Object iteration (2-param = key/value pairs) -->
+{#for key, val in state.config}
+  <div>{key} = {val}</div>
+{/for}
+
+<!-- Object iteration with index (3 params) -->
 {#each state.config as key, value, index}
   <div>{index}. {key} = {value}</div>
 {/each}
+
+<!-- Nested values stay intact (not deconstructed) -->
+{#for key, user in state.users}
+  <div>{key}: {user.name}</div>
+{/for}
 
 <!-- Empty list fallback with :else -->
 {#each state.items as item}
@@ -161,12 +171,26 @@ Fez uses a Svelte-inspired template syntax with single braces `{ }` for expressi
   <li>No items found</li>
 {/each}
 
+<!-- :else also works with #for -->
+{#for item in state.items}
+  <span>{item}</span>
+{:else}
+  <p>List is empty</p>
+{/for}
+
 <!-- Child components in loops - automatically optimized -->
 <!-- Use :prop="expr" to pass objects/functions (not just strings) -->
 {#each state.users as user}
   <user-card :user="user" />
 {/each}
 ```
+
+**Loop behavior:**
+- **null/undefined = empty list** - no errors, renders nothing (or `:else` block if present)
+- **2-param syntax** (`key, val` or `item, idx`) works for both arrays and objects:
+  - Arrays: first = value, second = index
+  - Objects: first = key, second = value
+- **Brackets optional** - `{#for key, val in obj}` same as `{#for [key, val] in obj}`
 
 **Note on passing props:** Use `:prop="expr"` syntax to pass JavaScript objects, arrays, or functions as props. Regular `prop={expr}` will stringify the value.
 

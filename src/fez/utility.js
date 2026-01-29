@@ -435,4 +435,26 @@ export default (Fez) => {
     };
   }
 
+  // Convert any collection to pairs for loop destructuring
+  // Array: ['a', 'b'] → [['a', 0], ['b', 1]] (value, index)
+  // Object: {x: 1} → [['x', 1]] (key, value)
+  Fez.toPairs = (c) => {
+    if (Array.isArray(c)) return c.map((v, i) => [v, i])
+    if (c && typeof c === 'object') return Object.entries(c)
+    return []
+  }
+
+  // Returns short type identifier for data:
+  //   'o' - object, 'f' - function, 's' - string, 'a' - array, 'i' - integer, 'n' - float/number, 'u' - undefined/null
+  Fez.typeof = (data) => {
+    if (data === null || data === undefined) return 'u'
+    if (Array.isArray(data)) return 'a'
+    const t = typeof data
+    if (t === 'function') return 'f'
+    if (t === 'string') return 's'
+    if (t === 'number') return Number.isInteger(data) ? 'i' : 'n'
+    if (t === 'object') return 'o'
+    return t[0]
+  }
+
 }

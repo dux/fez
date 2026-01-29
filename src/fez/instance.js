@@ -573,20 +573,11 @@ export default class FezBase {
 
   /**
    * Get root children as array, optionally transform
+   * Returns captured children if no slot in template
    */
   childNodes(func) {
-    let children = Array.from(this.root.children)
-
-    if (func) {
-      const tmpContainer = document.createElement('div')
-      tmpContainer.style.display = 'none'
-      document.body.appendChild(tmpContainer)
-      children.forEach(child => tmpContainer.appendChild(child))
-
-      children = Array.from(tmpContainer.children).map(func)
-      document.body.removeChild(tmpContainer)
-    }
-
+    let children = this._fezChildNodes || Array.from(this.root.children)
+    if (func) children = children.map(func)
     return children
   }
 

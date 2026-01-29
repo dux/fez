@@ -183,10 +183,30 @@ bunx fez-compile path/to/component.fez
   <li>{idx}: {item}</li>
 {/for}
 
-<!-- Object iteration -->
+<!-- Object iteration (2-param = key/value pairs) -->
+{#for key, val in state.config}
+  <div>{key} = {val}</div>
+{/for}
+
+<!-- Same with #each -->
+{#each state.config as key, val}
+  <div>{key} = {val}</div>
+{/each}
+
+<!-- Object iteration with index (3 params) -->
 {#each state.config as key, value, index}
   <div>{index}. {key} = {value}</div>
 {/each}
+
+<!-- Nested values are NOT deconstructed -->
+{#for key, val in state.users}
+  <div>{key}: {val.name}</div>  <!-- val is the full object -->
+{/for}
+
+<!-- List of lists - inner list stays intact -->
+{#for item in state.matrix}
+  <div>{item[0]}, {item[1]}</div>  <!-- item is the inner array -->
+{/for}
 
 <!-- Empty list fallback with :else -->
 {#each state.items as item}
@@ -194,7 +214,21 @@ bunx fez-compile path/to/component.fez
 {:else}
   <li>No items found</li>
 {/each}
+
+<!-- :else also works with #for -->
+{#for item in state.items}
+  <span>{item}</span>
+{:else}
+  <p>Empty list</p>
+{/for}
 ```
+
+**Loop behavior:**
+- **null/undefined treated as empty list** - no errors, just renders nothing (or `:else` block)
+- **2-param syntax** (`key, val` or `item, idx`) works for both arrays and objects:
+  - Arrays: first param = value, second param = index
+  - Objects: first param = key, second param = value
+- **Brackets optional** - `{#for key, val in obj}` same as `{#for [key, val] in obj}`
 
 ### Event Handlers
 
@@ -261,6 +295,21 @@ Arrow functions are automatically transformed:
 
 * **IMPORTANT**: Props are passed as parameter to `init(props)` and `onMount(props)`
 * Use `props.name` to access props, NOT `this.prop('name')`
+* **Use `props` directly** - do NOT copy props to `this` or `state`:
+  ```javascript
+  // WRONG - copying props to this is unnecessary and won't update
+  init(props) {
+    this.style = props.style  // Don't do this!
+    this.state.label = props.label  // Don't do this!
+  }
+
+  // CORRECT - use props directly
+  // In template: <div style={props.style}>{props.label}</div>
+  // In JS methods: this.props.style, this.props.label
+  ```
+  Props copied to `this` or `state` won't update when parent re-renders with new values.
+  - In templates: use `props.name`
+  - In JS methods: use `this.props.name`
 * **Props are ALWAYS strings** - use `parseInt()` for numbers: `parseInt(props.speed) || 50`
 * **ALWAYS** use lowercase with underscores for prop names (e.g., `fill_color`, `read_only`)
 * **Use colon prefix (`:`) for evaluated attributes** - functions, objects, booleans:
@@ -369,6 +418,7 @@ This makes loops with many child components very efficient.
 - Using `this.prop('name')` instead of `props.name` in `init()` and `onMount()`
 - Forgetting to use `{index}` or arrow functions for loop variables in event handlers
 - **Not using `Fez.getFunction()` for handler props** - props like `onclick`, `ping`, `onselect` can be strings or functions, always normalize them
+- **Copying props to `this` or `state`** - use `props.style` directly in templates, not `this.style = props.style` which won't update
 - **Using `this.` in template expressions** - templates render in a deferred context where `this` is not bound. Use `fez.` prefix or curly brace syntax instead:
   ```html
   <!-- WRONG - this is not available in template context -->
@@ -413,6 +463,15 @@ Fez.getFunction('alert("Hi")', window)
 
 // to check if value is true, that comes from props
 Fez.isTrue(value)
+
+// Short type identifier
+Fez.typeof(data)  // Returns: 'o' object, 'f' function, 's' string,
+                  //          'a' array, 'i' integer, 'n' float, 'u' undefined/null
+
+// Convert collection to pairs (used internally by loops)
+Fez.toPairs([1, 2])        // [[1, 0], [2, 1]] - [value, index]
+Fez.toPairs({a: 1, b: 2})  // [['a', 1], ['b', 2]] - [key, value]
+Fez.toPairs(null)          // [] - safe for null/undefined
 ```
 
 ## Debugging Helpers
