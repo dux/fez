@@ -28,26 +28,41 @@ const loadDefaults = () => {
     }
   })
 
-  // Render inline template with full component features (state, globalState, props)
-  // <fez-inline :state="{count: 0}">
-  //   <button onclick="fez.state.count++">+</button>
-  //   Count: {state.count}
-  // </fez-inline>
-  Fez('fez-inline', class {
+  // Repeat template for each item in list or object
+  // <fez-for list="a, b, c">
+  //   <li>KEY (INDEX)</li>
+  // </fez-for>
+  // <fez-for object="name: John; age: 30">
+  //   <li>KEY = VALUE</li>
+  // </fez-for>
+  Fez('fez-for', class {
+    FAST = true
+
     init(props) {
-      // Capture slot content as template (moved to root by fezSlot before init)
       const template = this.root?.innerHTML?.trim()
+      if (!template) return
 
-      if (template) {
-        // Clear the literal template content (will be replaced by rendered output)
-        this.root.innerHTML = ''
-        // Compile and store on instance (not class) for reactivity
-        this.fezHtmlFunc = Fez.createTemplate(template, { name: 'fez-inline' })
-      }
+      const divider = props.divider || ','
 
-      // Copy initial state from props
-      if (props.state) {
-        Object.assign(this.state, props.state)
+      if (props.list) {
+        // Parse list: "a, b, c" -> replaces KEY and INDEX
+        const html = props.list.split(divider).map((item, index) => {
+          return template
+            .replace(/KEY/g, item.trim())
+            .replace(/INDEX/g, index)
+        }).join('')
+        this.root.innerHTML = html
+      } else if (props.object) {
+        // Parse object: "name: John; age: 30" -> replaces KEY and VALUE
+        const html = props.object.split(';').map(pair => {
+          const [key, ...valueParts] = pair.split(':')
+          const keyTrimmed = key.trim()
+          if (!keyTrimmed) return ''
+          return template
+            .replace(/KEY/g, keyTrimmed)
+            .replace(/VALUE/g, valueParts.join(':').trim())
+        }).join('')
+        this.root.innerHTML = html
       }
     }
   })

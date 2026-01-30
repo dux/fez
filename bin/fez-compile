@@ -3,6 +3,7 @@
 import { parseArgs } from 'util'
 import fs from 'fs'
 import path from 'path'
+import prettier from 'prettier'
 
 const INFO = 'Compile Fez components and report errors'
 
@@ -10,7 +11,6 @@ const { values, positionals } = parseArgs({
   args: Bun.argv.slice(2),
   options: {
     help: { type: 'boolean', short: 'h' },
-    verbose: { type: 'boolean', short: 'v' },
     output: { type: 'boolean', short: 'o' },
     info: { type: 'boolean' },
   },
@@ -28,9 +28,8 @@ if (values.help || positionals.length === 0) {
 ${INFO}
 
 Options:
-  -h, --help     Show this help message
-  -v, --verbose  Show detailed output
-  -o, --output   Output compiled JavaScript to stdout (on success)
+  -h, --help    Show this help message
+  -o, --output  Output compiled JavaScript
 
 Examples:
   fez compile demo/fez/ui-counter.fez
@@ -122,7 +121,7 @@ function validateScript(script, filePath) {
         } catch (e) {
           if (!hasImports || !e.message.includes('import')) {
             const lineMatch = e.stack?.match(/<anonymous>:(\d+):(\d+)/)
-            let errorInfo = { message: e.message, file: filePath }
+            let errorInfo = { message: e.message, file: filePath, kind: 'JavaScript' }
             if (lineMatch) {
               errorInfo.line = parseInt(lineMatch[1])
               errorInfo.column = parseInt(lineMatch[2])
@@ -140,7 +139,7 @@ function validateScript(script, filePath) {
         new Function(code)
       } catch (e) {
         const lineMatch = e.stack?.match(/<anonymous>:(\d+):(\d+)/)
-        let errorInfo = { message: e.message, file: filePath }
+        let errorInfo = { message: e.message, file: filePath, kind: 'JavaScript' }
         if (lineMatch) {
           // Adjust for preamble lines
           const preambleLines = preamble.split('\n').length
@@ -158,7 +157,7 @@ function validateScript(script, filePath) {
       new Function(code)
     } catch (e) {
       const lineMatch = e.stack?.match(/<anonymous>:(\d+):(\d+)/)
-      let errorInfo = { message: e.message, file: filePath }
+      let errorInfo = { message: e.message, file: filePath, kind: 'JavaScript' }
       if (lineMatch) {
         errorInfo.line = parseInt(lineMatch[1]) - 2
         errorInfo.column = parseInt(lineMatch[2])
@@ -180,7 +179,8 @@ function validateTemplate(html, filePath) {
   if (ifOpens !== ifCloses) {
     errors.push({
       message: `Unmatched {{if}} blocks: ${ifOpens} opens, ${ifCloses} closes`,
-      file: filePath
+      file: filePath,
+      kind: 'Template'
     })
   }
 
@@ -190,7 +190,8 @@ function validateTemplate(html, filePath) {
   if (forOpens !== forCloses) {
     errors.push({
       message: `Unmatched {{for}} blocks: ${forOpens} opens, ${forCloses} closes`,
-      file: filePath
+      file: filePath,
+      kind: 'Template'
     })
   }
 
@@ -199,7 +200,8 @@ function validateTemplate(html, filePath) {
   if (attrIfMatch) {
     errors.push({
       message: `{{if}} block found inside attribute - use ternary operator instead`,
-      file: filePath
+      file: filePath,
+      kind: 'Template'
     })
   }
 
@@ -249,13 +251,30 @@ function generateCompiledJS(parsed, componentName) {
   return output
 }
 
+async function formatCompiledJS(code, filePath) {
+  try {
+    return { code: await prettier.format(code, { parser: 'babel' }) }
+  } catch (error) {
+    return {
+      error: {
+        message: error?.message || 'Failed to format compiled JavaScript',
+        file: filePath,
+        kind: 'Format',
+      },
+    }
+  }
+}
+
 // Process a single file
-function compileFile(filePath) {
+async function compileFile(filePath) {
   const errors = []
   const absolutePath = path.resolve(filePath)
   
   if (!fs.existsSync(absolutePath)) {
-    return { errors: [{ message: `File not found: ${filePath}`, file: filePath }], compiled: null }
+    return {
+      errors: [{ message: `File not found: ${filePath}`, file: filePath, kind: 'File' }],
+      compiled: null,
+    }
   }
 
   const content = fs.readFileSync(absolutePath, 'utf-8')
@@ -265,7 +284,8 @@ function compileFile(filePath) {
   if (!componentName.includes('-')) {
     errors.push({
       message: `Invalid component name "${componentName}". Custom element names must contain a dash (e.g., 'my-element', 'ui-button').`,
-      file: filePath
+      file: filePath,
+      kind: 'Naming'
     })
   }
 
@@ -278,29 +298,37 @@ function compileFile(filePath) {
   errors.push(...validateTemplate(parsed.html, filePath))
 
   // Generate compiled output only if no errors
-  const compiled = errors.length === 0 ? generateCompiledJS(parsed, componentName) : null
+  let compiled = errors.length === 0 ? generateCompiledJS(parsed, componentName) : null
+  if (compiled) {
+    const formatted = await formatCompiledJS(compiled, filePath)
+    if (formatted.error) {
+      errors.push(formatted.error)
+      compiled = null
+    } else {
+      compiled = formatted.code
+    }
+  }
 
   return { errors, compiled }
 }
 
 // Main execution
 const filePath = positionals[0]
-const { errors, compiled } = compileFile(filePath)
+const { errors, compiled } = await compileFile(filePath)
 
 if (errors.length > 0) {
   for (const error of errors) {
     const location = error.line ? `:${error.line}${error.column ? ':' + error.column : ''}` : ''
-    console.error(`${error.file}${location}: ${error.message}`)
+    const kind = error.kind ? `${error.kind} error: ` : ''
+    console.error(`${error.file}${location}: ${kind}${error.message}`)
   }
   process.exit(1)
 }
 
-if (values.verbose) {
-  console.error(`${filePath}: OK`)
-}
-
 if (values.output && compiled) {
   console.log(compiled)
+} else {
+  console.log('Compiled without errors, add -o to show output')
 }
 
 process.exit(0)

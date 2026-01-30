@@ -63,6 +63,7 @@
     "index": "ruby ./bin/fez-index 'demo/fez/*.fez' > demo/fez/index.json"
   },
   "dependencies": {
-    "glob": "^13.0.0"
+    "glob": "^13.0.0",
+    "prettier": "^3.8.1"
   }
 }

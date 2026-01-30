@@ -9,6 +9,7 @@
 //   {#for item in items}...{/for}          - implicit index `i` available
 //   {#for item, index in items}...{/for}   - explicit index name
 //   {#each obj as key, value, index}       - object iteration (3 params)
+//   {#await promise}...{:then value}...{:catch error}...{/await}
 //   {@html rawContent}                     - unescaped HTML
 //   {@json obj}                            - debug JSON output
 //   {expression}                           - escaped expression
@@ -84,6 +85,8 @@ export default function createSvelteTemplate(text, opts = {}) {
     const loopVarStack = []  // Track all loop variables for arrow function transformation
     const loopItemVarStack = []  // Track item vars (non-index) that could be objects
     const loopStack = []  // Track loop info for :else support
+    const awaitStack = []  // Track await blocks for :then/:catch
+    let awaitCounter = 0  // Unique ID for each await block
 
     while (i < text.length) {
       // Skip JavaScript template literals (backtick strings)
@@ -236,6 +239,59 @@ export default function createSvelteTemplate(text, opts = {}) {
           } else {
             // No else - just close the ternary with empty string
             result += '`).join("") : "")(' + loopInfo.collectionExpr + ')}'
+          }
+        }
+        // {#await promise}...{:then value}...{:catch error}...{/await}
+        else if (expr.startsWith('#await ')) {
+          const promiseExpr = expr.slice(7).trim()
+          const awaitId = awaitCounter++
+          awaitStack.push({ awaitId, promiseExpr, hasThen: false, hasCatch: false, thenVar: '_value', catchVar: '_error' })
+          // Start with pending block - Fez.await returns { status, value, error }
+          result += '${((_aw) => _aw.status === "pending" ? `'
+        }
+        else if (expr.startsWith(':then')) {
+          const awaitInfo = awaitStack[awaitStack.length - 1]
+          if (awaitInfo) {
+            awaitInfo.hasThen = true
+            // Extract optional value binding: {:then value} or just {:then}
+            awaitInfo.thenVar = expr.slice(5).trim() || '_value'
+            result += '` : _aw.status === "resolved" ? ((' + awaitInfo.thenVar + ') => `'
+          }
+        }
+        else if (expr.startsWith(':catch')) {
+          const awaitInfo = awaitStack[awaitStack.length - 1]
+          if (awaitInfo) {
+            awaitInfo.hasCatch = true
+            // Extract optional error binding: {:catch error} or just {:catch}
+            awaitInfo.catchVar = expr.slice(6).trim() || '_error'
+            if (awaitInfo.hasThen) {
+              // Close the :then block, open :catch
+              result += '`)(_aw.value) : _aw.status === "rejected" ? ((' + awaitInfo.catchVar + ') => `'
+            } else {
+              // No :then block, go directly from pending to catch (skip resolved state)
+              result += '` : _aw.status === "rejected" ? ((' + awaitInfo.catchVar + ') => `'
+            }
+          }
+        }
+        else if (expr === '/await') {
+          const awaitInfo = awaitStack.pop()
+          if (awaitInfo) {
+            // Close the await expression
+            // The structure depends on which blocks were present:
+            // - pending + then + catch: pending ? ... : resolved ? ...then... : ...catch...
+            // - pending + then: pending ? ... : resolved ? ...then... : ``
+            // - pending + catch: pending ? ... : rejected ? ...catch... : ``
+            // - pending only: pending ? ... : ``
+            if (awaitInfo.hasThen && awaitInfo.hasCatch) {
+              result += '`)(_aw.error) : ``)(Fez.fezAwait(fez, ' + awaitInfo.awaitId + ', ' + awaitInfo.promiseExpr + '))}'
+            } else if (awaitInfo.hasThen) {
+              result += '`)(_aw.value) : ``)(Fez.fezAwait(fez, ' + awaitInfo.awaitId + ', ' + awaitInfo.promiseExpr + '))}'
+            } else if (awaitInfo.hasCatch) {
+              result += '`)(_aw.error) : ``)(Fez.fezAwait(fez, ' + awaitInfo.awaitId + ', ' + awaitInfo.promiseExpr + '))}'
+            } else {
+              // Only pending block (no :then or :catch)
+              result += '` : ``)(Fez.fezAwait(fez, ' + awaitInfo.awaitId + ', ' + awaitInfo.promiseExpr + '))}'
+            }
           }
         }
         else if (expr.startsWith('@html ')) {

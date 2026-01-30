@@ -196,6 +196,59 @@ Fez uses a Svelte-inspired template syntax with single braces `{ }` for expressi
 
 **Component Isolation:** Child components in loops are automatically preserved during parent re-renders. They only re-render when their props actually change - making loops with many items very efficient.
 
+### Async/Await Blocks
+
+Handle promises directly in templates with automatic loading/error states:
+
+```html
+<!-- Full syntax with all three states -->
+{#await state.userData}
+  <p>Loading user...</p>
+{:then user}
+  <div class="profile">
+    <h1>{user.name}</h1>
+    <p>{user.email}</p>
+  </div>
+{:catch error}
+  <p class="error">Failed to load: {error.message}</p>
+{/await}
+
+<!-- Skip pending state (shows nothing while loading) -->
+{#await state.data}{:then result}
+  <p>Result: {result}</p>
+{/await}
+
+<!-- With error handling but no pending state -->
+{#await state.data}{:then result}
+  <p>{result}</p>
+{:catch err}
+  <p>Error: {err.message}</p>
+{/await}
+```
+
+```js
+class {
+  init() {
+    // CORRECT - assign promise directly, template handles loading/resolved/rejected states
+    this.state.userData = fetch('/api/user').then(r => r.json())
+
+    // WRONG - using await loses the loading state (value is already resolved)
+    // this.state.userData = await fetch('/api/user').then(r => r.json())
+  }
+
+  refresh() {
+    // Re-assigning a new promise triggers new loading state
+    this.state.userData = fetch('/api/user').then(r => r.json())
+  }
+}
+```
+
+**Key points:**
+- **Assign promises directly** - don't use `await` keyword when assigning to state
+- Template automatically shows pending/resolved/rejected content
+- Re-renders happen automatically when promise settles
+- Non-promise values show `:then` content immediately (no loading state)
+
 ### Arrow Function Event Handlers
 
 Use arrow functions for clean event handling with automatic loop variable interpolation:
@@ -330,7 +383,7 @@ This example showcases:
 
 ### Advanced Templating & Styling
 
-* **Svelte-like Template Engine** - Single brace syntax (`{ }`), control flow (`{#if}`, `{#unless}`, `{#for}`, `{#each}`), and block templates
+* **Svelte-like Template Engine** - Single brace syntax (`{ }`), control flow (`{#if}`, `{#unless}`, `{#for}`, `{#each}`, `{#await}`), and block templates
 * **Arrow Function Handlers** - Clean event syntax with automatic loop variable interpolation
 * **Reactive State Management** - Built-in reactive `state` object automatically triggers re-renders on property changes
 * **DOM Morphing** - Uses [Idiomorph](https://github.com/bigskysoftware/idiomorph) for intelligent DOM updates that preserve element state and animations
@@ -481,8 +534,10 @@ Fez('foo-bar', class {
   unsub() // manually remove subscription
 
   // gets root childNodes
-  this.childNodes()
-  this.childNodes(func)  // pass function to loop forEach on selection, mask nodes out of position
+  this.childNodes()           // returns array of child elements
+  this.childNodes(func)       // map children with function
+  this.childNodes(true)       // convert to objects: { html, ROOT, ...attrs }
+                              // html = innerHTML, ROOT = original node, attrs become keys
 
   // check if the this.root node is attached to dom
   this.isConnected
@@ -791,13 +846,23 @@ Loads remote HTML content via URL:
 <fez-include src="./demo/fez/ui-slider.html"></fez-include>
 ```
 
-### fez-inline
-Creates inline components with reactive state:
+### fez-for
+Repeats template content for each item in a list or object:
 ```html
-<fez-inline :state="{count: 0}">
-  <button onclick="fez.state.count += 1">+</button>
-  {state.count} * {state.count} = {state.count * state.count}
-</fez-inline>
+<!-- List: replaces KEY and INDEX -->
+<fez-for list="apple, banana, cherry">
+  <li>INDEX: KEY</li>
+</fez-for>
+
+<!-- Object: replaces KEY and VALUE -->
+<fez-for object="name: John; age: 30">
+  <div>KEY = VALUE</div>
+</fez-for>
+
+<!-- Custom divider -->
+<fez-for list="one|two|three" divider="|">
+  <span>KEY</span>
+</fez-for>
 ```
 
 ## Global State Management

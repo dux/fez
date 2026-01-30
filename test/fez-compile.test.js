@@ -90,7 +90,7 @@ describe('fez compile', () => {
       const result = await $`bin/fez-compile -o test/fixtures/valid/test-basic.fez`.quiet().nothrow()
       expect(result.exitCode).toBe(0)
       const stdout = result.stdout.toString()
-      expect(stdout).toContain("Fez('test-basic'")
+      expect(stdout).toMatch(/Fez\(\s*(["'])test-basic\1,/)
       expect(stdout).toContain('class {')
     })
 

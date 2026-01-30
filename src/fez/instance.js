@@ -294,7 +294,30 @@ export default class FezBase {
 
     this.fezKeepNode(newNode)
 
+    // Save input values for fez-this/fez-bind bound elements before morph
+    const savedInputValues = new Map()
+    this.root.querySelectorAll('input, textarea, select').forEach(el => {
+      if (el._fezThisName) {
+        savedInputValues.set(el._fezThisName, {
+          value: el.value,
+          checked: el.checked
+        })
+      }
+    })
+
     Fez.morphdom(this.root, newNode)
+
+    // Restore input values after morph - find element by _fezThisName property
+    savedInputValues.forEach((saved, name) => {
+      let el = null
+      this.root.querySelectorAll('input, textarea, select').forEach(input => {
+        if (input._fezThisName === name) el = input
+      })
+      if (el) {
+        el.value = saved.value
+        if (saved.checked !== undefined) el.checked = saved.checked
+      }
+    })
 
     this.fezRenderPostProcess()
     this.afterRender()
@@ -319,6 +342,8 @@ export default class FezBase {
     // fez-this="button" -> this.button = node
     fetchAttr('fez-this', (value, n) => {
       (new Function('n', `this.${value} = n`)).bind(this)(n)
+      // Mark element for value preservation on re-render
+      n._fezThisName = value
     })
 
     // fez-use="animate" -> this.animate(node)
@@ -361,6 +386,8 @@ export default class FezBase {
         const eventName = ['SELECT'].includes(n.nodeName) || isCb ? 'onchange' : 'onkeyup'
         n.setAttribute(eventName, `${this.fezHtmlRoot}${text} = this.${isCb ? 'checked' : 'value'}`)
         this.val(n, value)
+        // Mark element for value preservation on re-render
+        n._fezThisName = text
       } else {
         this.fezError('fez-bind', `Can't bind "${text}" to ${n.nodeName} (needs INPUT, SELECT or TEXTAREA)`)
       }
@@ -574,10 +601,21 @@ export default class FezBase {
   /**
    * Get root children as array, optionally transform
    * Returns captured children if no slot in template
+   * Pass true to convert children to objects with attrs as keys, innerHTML as .html, original node as .ROOT
    */
   childNodes(func) {
     let children = this._fezChildNodes || Array.from(this.root.children)
-    if (func) children = children.map(func)
+    if (func === true) {
+      children = children.map(node => {
+        const obj = { html: node.innerHTML, ROOT: node }
+        for (const attr of node.attributes) {
+          obj[attr.name] = attr.value
+        }
+        return obj
+      })
+    } else if (func) {
+      children = children.map(func)
+    }
     return children
   }
 

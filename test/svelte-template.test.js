@@ -17,6 +17,44 @@ globalThis.Fez = {
     if (Array.isArray(c)) return c.map((v, i) => [v, i])
     if (c && typeof c === 'object') return Object.entries(c)
     return []
+  },
+  // Mock Fez.fezAwait for template tests
+  fezAwait: (component, awaitId, promiseOrValue) => {
+    component._awaitStates ||= new Map()
+
+    // If not a promise, return resolved immediately
+    if (!promiseOrValue || typeof promiseOrValue.then !== 'function') {
+      return { status: 'resolved', value: promiseOrValue, error: null }
+    }
+
+    // Check existing state
+    const existing = component._awaitStates.get(awaitId)
+    if (existing && existing.promise === promiseOrValue) {
+      return existing
+    }
+
+    // New promise - set pending state
+    const state = { status: 'pending', value: null, error: null, promise: promiseOrValue }
+    component._awaitStates.set(awaitId, state)
+
+    // Track promise for testing
+    promiseOrValue
+      .then(value => {
+        const current = component._awaitStates.get(awaitId)
+        if (current && current.promise === promiseOrValue) {
+          current.status = 'resolved'
+          current.value = value
+        }
+      })
+      .catch(error => {
+        const current = component._awaitStates.get(awaitId)
+        if (current && current.promise === promiseOrValue) {
+          current.status = 'rejected'
+          current.error = error
+        }
+      })
+
+    return state
   }
 }
 
@@ -40,7 +78,7 @@ const createFezGlobals = () => ({
 const render = (template, ctx) => {
   ctx.UID = ctx.UID || 123
   ctx.Fez = Fez
-  ctx.fezGlobals = createFezGlobals()
+  ctx.fezGlobals = ctx.fezGlobals || createFezGlobals()
   const fn = createSvelteTemplate(template)
   return fn(ctx)
 }
@@ -392,6 +430,113 @@ describe('Svelte-style template', () => {
         state: { items: ['a', 'b'] }
       })
       expect(html).toBe('<button onclick="send({id: 1})">a</button><button onclick="send({id: 1})">b</button>')
+    })
+  })
+
+  describe('#await blocks', () => {
+    test('non-promise value shows :then content immediately', () => {
+      const html = render('{#await state.data}{:then value}<p>{value}</p>{/await}', {
+        state: { data: 'hello' }
+      })
+      expect(html).toBe('<p>hello</p>')
+    })
+
+    test('pending promise shows pending content', () => {
+      const promise = new Promise(() => {}) // Never resolves
+      const html = render('{#await state.data}<p>Loading...</p>{:then value}<p>{value}</p>{/await}', {
+        state: { data: promise }
+      })
+      expect(html).toBe('<p>Loading...</p>')
+    })
+
+    test('resolved promise shows :then content', async () => {
+      const promise = Promise.resolve('result')
+      const ctx = { state: { data: promise }, UID: 100, fezGlobals: createFezGlobals() }
+
+      // First render - pending
+      let html = render('{#await state.data}<p>Loading...</p>{:then value}<p>{value}</p>{/await}', ctx)
+      expect(html).toBe('<p>Loading...</p>')
+
+      // Wait for promise to resolve
+      await promise
+
+      // Second render - resolved
+      html = render('{#await state.data}<p>Loading...</p>{:then value}<p>{value}</p>{/await}', ctx)
+      expect(html).toBe('<p>result</p>')
+    })
+
+    test('rejected promise shows :catch content', async () => {
+      const error = new Error('failed')
+      const promise = Promise.reject(error)
+      const ctx = { state: { data: promise }, UID: 101, fezGlobals: createFezGlobals() }
+
+      // First render - pending
+      let html = render('{#await state.data}<p>Loading...</p>{:then value}<p>{value}</p>{:catch err}<p>Error: {err.message}</p>{/await}', ctx)
+      expect(html).toBe('<p>Loading...</p>')
+
+      // Wait for promise to reject and internal handler to update state
+      try { await promise } catch (e) {}
+      await new Promise(r => setTimeout(r, 0))
+
+      // Second render - rejected
+      html = render('{#await state.data}<p>Loading...</p>{:then value}<p>{value}</p>{:catch err}<p>Error: {err.message}</p>{/await}', ctx)
+      expect(html).toBe('<p>Error: failed</p>')
+    })
+
+    test('await without :then shows only pending content', () => {
+      const promise = new Promise(() => {})
+      const html = render('{#await state.data}<p>Loading...</p>{/await}', {
+        state: { data: promise }
+      })
+      expect(html).toBe('<p>Loading...</p>')
+    })
+
+    test('await with only :then (no pending content)', () => {
+      const html = render('{#await state.data}{:then value}<p>{value}</p>{/await}', {
+        state: { data: 'immediate' }
+      })
+      expect(html).toBe('<p>immediate</p>')
+    })
+
+    test('await skips pending for non-promise', () => {
+      const html = render('{#await state.data}<p>Loading...</p>{:then value}<p>Got: {value}</p>{/await}', {
+        state: { data: 42 }
+      })
+      expect(html).toBe('<p>Got: 42</p>')
+    })
+
+    test('await with :catch but no :then', async () => {
+      const error = new Error('oops')
+      const promise = Promise.reject(error)
+      const ctx = { state: { data: promise }, UID: 102, fezGlobals: createFezGlobals() }
+
+      // First render - pending
+      let html = render('{#await state.data}<p>Loading...</p>{:catch err}<p>{err.message}</p>{/await}', ctx)
+      expect(html).toBe('<p>Loading...</p>')
+
+      // Wait for rejection and internal handler to update state
+      try { await promise } catch (e) {}
+      await new Promise(r => setTimeout(r, 0))
+
+      // Second render - shows catch
+      html = render('{#await state.data}<p>Loading...</p>{:catch err}<p>{err.message}</p>{/await}', ctx)
+      expect(html).toBe('<p>oops</p>')
+    })
+
+    test('multiple await blocks work independently', () => {
+      const html = render(
+        '{#await state.a}{:then v}<span>A:{v}</span>{/await}' +
+        '{#await state.b}{:then v}<span>B:{v}</span>{/await}',
+        { state: { a: 1, b: 2 } }
+      )
+      expect(html).toBe('<span>A:1</span><span>B:2</span>')
+    })
+
+    test('await with nested HTML', () => {
+      const html = render('{#await state.user}{:then u}<div class="card"><h1>{u.name}</h1><p>{u.email}</p></div>{/await}', {
+        state: { user: { name: 'Alice', email: 'alice@example.com' } }
+      })
+      expect(html).toBe('<div class="card"><h1>Alice</h1><p>alice@example.com</p></div>')
     })
   })
 

@@ -149,6 +149,59 @@ bunx fez-compile path/to/component.fez
 {/unless}
 ```
 
+### Async/Await Blocks
+
+Handle promises directly in templates with automatic loading/error states:
+
+```html
+<!-- Full syntax with all three states -->
+{#await state.userData}
+  <p>Loading user...</p>
+{:then user}
+  <div class="profile">
+    <h1>{user.name}</h1>
+    <p>{user.email}</p>
+  </div>
+{:catch error}
+  <p class="error">Failed to load: {error.message}</p>
+{/await}
+
+<!-- Skip pending state (shows nothing while loading) -->
+{#await state.data}{:then result}
+  <p>Result: {result}</p>
+{/await}
+
+<!-- With error handling but no pending state -->
+{#await state.data}{:then result}
+  <p>{result}</p>
+{:catch err}
+  <p>Error: {err.message}</p>
+{/await}
+```
+
+```javascript
+class {
+  init() {
+    // CORRECT - assign promise directly, template handles loading/resolved/rejected states
+    this.state.userData = fetch('/api/user').then(r => r.json())
+
+    // WRONG - using await loses the loading state (value is already resolved)
+    // this.state.userData = await fetch('/api/user').then(r => r.json())
+  }
+
+  refresh() {
+    // Re-assigning a new promise triggers new loading state
+    this.state.userData = fetch('/api/user').then(r => r.json())
+  }
+}
+```
+
+**Key points:**
+- **Assign promises directly** - don't use `await` keyword when assigning to state
+- Template automatically shows pending/resolved/rejected content
+- Re-renders happen automatically when promise settles
+- Non-promise values show `:then` content immediately (no loading state)
+
 **IMPORTANT: NEVER use `{#if}` inside attributes! Use ternary operator instead:**
 
 ```html
@@ -348,6 +401,28 @@ Arrow functions are automatically transformed:
 * Initialize ALL properties in `init()`
 * Modify arrays/objects directly (they're deeply reactive)
 * Use `onMount()` for updates that need mounted template
+* **NEVER bind state to form input values** - state changes trigger full component re-render, which is slow and causes focus/cursor issues. Use `fez-this` to get element references and read values directly:
+  ```html
+  <!-- WRONG - binding state to input value -->
+  <input value={state.name} />
+
+  <!-- CORRECT - use fez-this and read value when needed -->
+  <input fez-this="nameInput" />
+  <input fez-this="emailInput" />
+  ```
+  ```javascript
+  submit() {
+    const name = this.nameInput.value
+    const email = this.emailInput.value
+    // process form...
+  }
+
+  // if you need to react to input changes, read from the element
+  onNameKeyup() {
+    const value = this.nameInput.value
+    // do something with value...
+  }
+  ```
 * **NEVER assign props to state if they are not used in state itself** - keep them as `props.name`:
   ```javascript
   // WRONG - don't copy props to state if not needed
@@ -451,6 +526,9 @@ this.setTimeout(fn, 1000)   // Auto-cleaned timeout
 this.setInterval(fn, 1000)  // Auto-cleaned interval
 Fez.fetch('/data')          // Built-in cached fetch
 this.formData()             // Get form values
+this.childNodes()           // Get child elements as array
+this.childNodes(fn)         // Get children mapped with function
+this.childNodes(true)       // Get children as objects: { html, ROOT, ...attrs }
 
 // localStorage with JSON serialization (preserves types)
 Fez.localStorage.set('count', 42)

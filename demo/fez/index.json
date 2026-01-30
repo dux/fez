@@ -10,6 +10,15 @@
   },
   {
     "file": {
+      "base": "demo-await",
+      "path": "demo/fez/demo-await.fez",
+      "size": 2339,
+      "modified": 1769700832,
+      "created": 1769700832
+    }
+  },
+  {
+    "file": {
       "base": "input-checkbox-toggle",
       "path": "demo/fez/input-checkbox-toggle.fez",
       "size": 2997,

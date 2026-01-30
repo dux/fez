@@ -27,6 +27,7 @@ import state from './lib/global-state.js'
 import createTemplate from './lib/template.js'
 import { subscribe, publish } from './lib/pubsub.js'
 import fezLocalStorage from './lib/localstorage.js'
+import fezAwait from './lib/await-helper.js'
 
 // =============================================================================
 // MAIN FEZ FUNCTION
@@ -206,6 +207,7 @@ Fez.morphdom = (target, newNode) => {
 
   Idiomorph.morph(target, newNode, {
     morphStyle: 'outerHTML',
+    ignoreActiveValue: true,
     callbacks: {
       // Skip morphing child fez components - preserve them entirely
       beforeNodeMorphed: (oldNode, newNode) => {
@@ -264,6 +266,12 @@ Fez.publish = publish
 // =============================================================================
 
 Fez.localStorage = fezLocalStorage
+
+// =============================================================================
+// ASYNC AWAIT HELPER (see lib/await-helper.js)
+// =============================================================================
+
+Fez.fezAwait = fezAwait
 
 // =============================================================================
 // ERROR HANDLING & LOGGING
