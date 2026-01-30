@@ -30,9 +30,9 @@
     "file": {
       "base": "input-color",
       "path": "demo/fez/input-color.fez",
-      "size": 5339,
-      "modified": 1769366023,
-      "created": 1769072701
+      "size": 5317,
+      "modified": 1769797817,
+      "created": 1769797817
     }
   },
   {
@@ -247,8 +247,8 @@
       "base": "ui-tabs",
       "path": "demo/fez/ui-tabs.fez",
       "size": 1402,
-      "modified": 1769695411,
-      "created": 1769695411
+      "modified": 1769797152,
+      "created": 1769797152
     }
   },
   {

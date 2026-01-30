@@ -242,11 +242,11 @@ function connectNode(name, node) {
   // Render
   fez.fezRender()
 
+  // Done initializing - state changes in onMount will now trigger renders
+  fez._isInitializing = false
+
   // Mount
   fez.onMount(fez.props)
-
-  // Done initializing - state changes will now trigger renders
-  fez._isInitializing = false
 
   // Form submit handling
   if (fez.onSubmit) {

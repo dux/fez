@@ -508,7 +508,7 @@ export default class FezBase {
     handler.bind(this)
 
     function createReactive(obj, handler) {
-      if (typeof obj !== 'object' || obj === null) {
+      if (typeof obj !== 'object' || obj === null || obj instanceof Promise) {
         return obj;
       }
 
@@ -517,7 +517,7 @@ export default class FezBase {
           const currentValue = Reflect.get(target, property, receiver);
 
           if (currentValue !== value) {
-            if (typeof value === 'object' && value !== null) {
+            if (typeof value === 'object' && value !== null && !(value instanceof Promise)) {
               value = createReactive(value, handler);
             }
 
@@ -530,7 +530,7 @@ export default class FezBase {
         },
         get(target, property, receiver) {
           const value = Reflect.get(target, property, receiver);
-          if (typeof value === 'object' && value !== null) {
+          if (typeof value === 'object' && value !== null && !(value instanceof Promise)) {
             return createReactive(value, handler);
           }
           return value;
