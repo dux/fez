@@ -45,7 +45,7 @@ if (positionals.length > 1) {
 
 // Parse a .fez file into its components
 function parseFezFile(content) {
-  const result = { script: '', style: '', html: '', head: '' }
+  const result = { script: '', style: '', html: '', head: '', demo: '', info: '' }
   const lines = content.split('\n')
 
   let currentBlock = []
@@ -53,27 +53,40 @@ function parseFezFile(content) {
 
   for (let line of lines) {
     const trimmedLine = line.trim()
-    
-    if (trimmedLine.startsWith('<script') && !result.script && currentType !== 'head') {
+
+    // Start blocks - demo/info can contain other tags, so skip nested detection
+    if (trimmedLine.startsWith('<demo') && !result.demo && !currentType) {
+      currentType = 'demo'
+    } else if (trimmedLine.startsWith('<info') && !result.info && !currentType) {
+      currentType = 'info'
+    } else if (trimmedLine.startsWith('<script') && !result.script && currentType !== 'head' && currentType !== 'demo' && currentType !== 'info') {
       currentType = 'script'
-    } else if (trimmedLine.startsWith('<head') && !result.script) {
+    } else if (trimmedLine.startsWith('<head') && !result.script && currentType !== 'demo' && currentType !== 'info') {
       currentType = 'head'
-    } else if (trimmedLine.startsWith('<style')) {
+    } else if (trimmedLine.startsWith('<style') && currentType !== 'demo' && currentType !== 'info') {
       currentType = 'style'
+    } else if (trimmedLine.endsWith('</demo>') && currentType === 'demo') {
+      result.demo = currentBlock.join('\n')
+      currentBlock = []
+      currentType = ''
+    } else if (trimmedLine.endsWith('</info>') && currentType === 'info') {
+      result.info = currentBlock.join('\n')
+      currentBlock = []
+      currentType = ''
     } else if (trimmedLine.endsWith('</script>') && currentType === 'script' && !result.script) {
       result.script = currentBlock.join('\n')
       currentBlock = []
-      currentType = null
+      currentType = ''
     } else if (trimmedLine.endsWith('</style>') && currentType === 'style') {
       result.style = currentBlock.join('\n')
       currentBlock = []
-      currentType = null
+      currentType = ''
     } else if ((trimmedLine.endsWith('</head>') || trimmedLine.endsWith('</header>')) && currentType === 'head') {
       result.head = currentBlock.join('\n')
       currentBlock = []
-      currentType = null
+      currentType = ''
     } else if (currentType) {
-      currentBlock.push(line)
+      currentBlock.push(currentType === 'demo' || currentType === 'info' ? line : trimmedLine)
     } else {
       result.html += line + '\n'
     }

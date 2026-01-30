@@ -1,0 +1,14 @@
+<info>
+  <h2>Test Component</h2>
+  <p>This is a test component with info section.</p>
+</info>
+<demo>
+  <test-with-info></test-with-info>
+</demo>
+<script>
+  init() {
+    this.state.message = 'Hello'
+  }
+</script>
+
+<div>{state.message}</div>

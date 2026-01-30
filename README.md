@@ -8,8 +8,8 @@ FEZ is a small library (49KB minified, ~18KB gzipped) that allows writing of [Cu
 
 It uses
 
-* [Goober](https://goober.js.org/) to enable runtime SCSS (similar to styled components)
-* [Idiomorph](https://github.com/bigskysoftware/idiomorph) to morph DOM from one state to another (as React or Stimulus/Turbo does it)
+- [Goober](https://goober.js.org/) to enable runtime SCSS (similar to styled components)
+- [Idiomorph](https://github.com/bigskysoftware/idiomorph) to morph DOM from one state to another (as React or Stimulus/Turbo does it)
 
 Latest version of libs are baked in Fez distro.
 
@@ -37,33 +37,35 @@ fez compile my-component.fez
 
 ## Why Fez is Simpler
 
-| Concept | React | Svelte 5 | Vue 3 | **Fez** |
-|---------|-------|----------|-------|---------|
-| State | `useState`, `useReducer` | `$state` rune | `ref`, `reactive` | `this.state.x = y` |
-| Computed | `useMemo` | `$derived` rune | `computed` | Just use a method |
-| Side effects | `useEffect` | `$effect` rune | `watch`, `watchEffect` | `afterRender()` |
-| Global state | Context, Redux, Zustand | stores | Pinia | `this.globalState` |
-| Re-render control | `memo`, `useMemo`, keys | `{#key}` | `v-memo` | Automatic |
+| Concept           | React                    | Svelte 5        | Vue 3                  | **Fez**            |
+| ----------------- | ------------------------ | --------------- | ---------------------- | ------------------ |
+| State             | `useState`, `useReducer` | `$state` rune   | `ref`, `reactive`      | `this.state.x = y` |
+| Computed          | `useMemo`                | `$derived` rune | `computed`             | Just use a method  |
+| Side effects      | `useEffect`              | `$effect` rune  | `watch`, `watchEffect` | `afterRender()`    |
+| Global state      | Context, Redux, Zustand  | stores          | Pinia                  | `this.globalState` |
+| Re-render control | `memo`, `useMemo`, keys  | `{#key}`        | `v-memo`               | Automatic          |
 
 **No special syntax. No runes. No hooks. No compiler magic.** Just plain JavaScript:
 
 ```js
 class MyComponent extends FezBase {
   init() {
-    this.state.count = 0      // reactive - nested changes tracked too
+    this.state.count = 0; // reactive - nested changes tracked too
   }
 
   increment() {
-    this.state.count++        // triggers re-render automatically
+    this.state.count++; // triggers re-render automatically
   }
 
-  get doubled() {             // computed value - just a getter
-    return this.state.count * 2
+  get doubled() {
+    // computed value - just a getter
+    return this.state.count * 2;
   }
 }
 ```
 
 The whole mental model:
+
 1. Change `this.state` → component re-renders
 2. Idiomorph diffs the DOM efficiently
 3. Child components preserved unless props change
@@ -82,10 +84,10 @@ There is no some "internal state" that is by some magic reflected to DOM. No! Al
 
 ## How it works
 
-* define your custom component - `Fez('ui-foo', class UiFoo extends FezBase)`
-* add HTML - `<ui-foo bar="baz" id="node1"></ui-foo>`
-  * lib will call `node1.fez.init()` when node is added to DOM and connect your component to dom.
-  * use `Fez` helper methods, or do all by yourself, all good.
+- define your custom component - `Fez('ui-foo', class UiFoo extends FezBase)`
+- add HTML - `<ui-foo bar="baz" id="node1"></ui-foo>`
+  - lib will call `node1.fez.init()` when node is added to DOM and connect your component to dom.
+  - use `Fez` helper methods, or do all by yourself, all good.
 
 That is all.
 
@@ -113,16 +115,16 @@ Fez uses a Svelte-inspired template syntax with single braces `{ }` for expressi
 
 ```html
 {#if state.isLoggedIn}
-  <p>Welcome, {state.username}!</p>
+<p>Welcome, {state.username}!</p>
 {:else if state.isGuest}
-  <p>Hello, Guest!</p>
+<p>Hello, Guest!</p>
 {:else}
-  <p>Please log in</p>
+<p>Please log in</p>
 {/if}
 
 <!-- Unless (opposite of if) -->
 {#unless state.items.length}
-  <p>No items found</p>
+<p>No items found</p>
 {/unless}
 ```
 
@@ -131,61 +133,62 @@ Fez uses a Svelte-inspired template syntax with single braces `{ }` for expressi
 ```html
 <!-- Each loop with implicit index 'i' -->
 {#each state.items as item}
-  <li>{item.name} (index: {i})</li>
+<li>{item.name} (index: {i})</li>
 {/each}
 
 <!-- Each loop with explicit index -->
 {#each state.items as item, index}
-  <li>{index}: {item.name}</li>
+<li>{index}: {item.name}</li>
 {/each}
 
 <!-- For loop syntax -->
 {#for item in state.items}
-  <li>{item}</li>
+<li>{item}</li>
 {/for}
 
 <!-- For loop with index -->
 {#for item, idx in state.items}
-  <li>{idx}: {item}</li>
+<li>{idx}: {item}</li>
 {/for}
 
 <!-- Object iteration (2-param = key/value pairs) -->
 {#for key, val in state.config}
-  <div>{key} = {val}</div>
+<div>{key} = {val}</div>
 {/for}
 
 <!-- Object iteration with index (3 params) -->
 {#each state.config as key, value, index}
-  <div>{index}. {key} = {value}</div>
+<div>{index}. {key} = {value}</div>
 {/each}
 
 <!-- Nested values stay intact (not deconstructed) -->
 {#for key, user in state.users}
-  <div>{key}: {user.name}</div>
+<div>{key}: {user.name}</div>
 {/for}
 
 <!-- Empty list fallback with :else -->
 {#each state.items as item}
-  <li>{item}</li>
+<li>{item}</li>
 {:else}
-  <li>No items found</li>
+<li>No items found</li>
 {/each}
 
 <!-- :else also works with #for -->
 {#for item in state.items}
-  <span>{item}</span>
+<span>{item}</span>
 {:else}
-  <p>List is empty</p>
+<p>List is empty</p>
 {/for}
 
 <!-- Child components in loops - automatically optimized -->
 <!-- Use :prop="expr" to pass objects/functions (not just strings) -->
 {#each state.users as user}
-  <user-card :user="user" />
+<user-card :user="user" />
 {/each}
 ```
 
 **Loop behavior:**
+
 - **null/undefined = empty list** - no errors, renders nothing (or `:else` block if present)
 - **2-param syntax** (`key, val` or `item, idx`) works for both arrays and objects:
   - Arrays: first = value, second = index
@@ -203,26 +206,26 @@ Handle promises directly in templates with automatic loading/error states:
 ```html
 <!-- Full syntax with all three states -->
 {#await state.userData}
-  <p>Loading user...</p>
+<p>Loading user...</p>
 {:then user}
-  <div class="profile">
-    <h1>{user.name}</h1>
-    <p>{user.email}</p>
-  </div>
+<div class="profile">
+  <h1>{user.name}</h1>
+  <p>{user.email}</p>
+</div>
 {:catch error}
-  <p class="error">Failed to load: {error.message}</p>
+<p class="error">Failed to load: {error.message}</p>
 {/await}
 
 <!-- Skip pending state (shows nothing while loading) -->
 {#await state.data}{:then result}
-  <p>Result: {result}</p>
+<p>Result: {result}</p>
 {/await}
 
 <!-- With error handling but no pending state -->
 {#await state.data}{:then result}
-  <p>{result}</p>
+<p>{result}</p>
 {:catch err}
-  <p>Error: {err.message}</p>
+<p>Error: {err.message}</p>
 {/await}
 ```
 
@@ -244,6 +247,7 @@ class {
 ```
 
 **Key points:**
+
 - **Assign promises directly** - don't use `await` keyword when assigning to state
 - Template automatically shows pending/resolved/rejected content
 - Re-renders happen automatically when promise settles
@@ -255,19 +259,20 @@ Use arrow functions for clean event handling with automatic loop variable interp
 
 ```html
 <!-- Simple handler -->
-<button onclick={() => handleClick()}>Click me</button>
+<button onclick="{()" ="">handleClick()}>Click me</button>
 
 <!-- With event parameter -->
-<button onclick={(e) => handleClick(e)}>Click me</button>
+<button onclick="{(e)" ="">handleClick(e)}>Click me</button>
 
 <!-- Inside loops - index is automatically interpolated -->
 {#each state.tasks as task, index}
-  <button onclick={() => removeTask(index)}>Remove #{index}</button>
-  <button onclick={(e) => editTask(index, e)}>Edit</button>
+<button onclick="{()" ="">removeTask(index)}>Remove #{index}</button>
+<button onclick="{(e)" ="">editTask(index, e)}>Edit</button>
 {/each}
 ```
 
 Arrow functions in event attributes are automatically transformed:
+
 - `{() => foo()}` becomes `onclick="fez.foo()"`
 - `{(e) => foo(e)}` becomes `onclick="fez.foo(event)"`
 - Loop variables like `index` are evaluated at render time
@@ -327,25 +332,17 @@ Here's a simple counter component that demonstrates Fez's core features:
   }
 </style>
 
-<button onclick={() => state.count -= 1} disabled={state.count == 1}>-</button>
+<button onclick="{()" ="">
+  state.count -= 1} disabled={state.count == 1}>-
+</button>
 
-<span>
-  {state.count}
-</span>
+<span> {state.count} </span>
 
-<button onclick={() => more()} disabled={isMax()}>+</button>
+<button onclick="{()" ="">more()} disabled={isMax()}>+</button>
 {#if state.count > 0}
-  <span>&mdash;</span>
-  {#if state.count == MAX}
-    MAX
-  {:else}
-    {#if state.count % 2}
-      odd
-    {:else}
-      even
-    {/if}
-  {/if}
-{/if}
+<span>&mdash;</span>
+{#if state.count == MAX} MAX {:else} {#if state.count % 2} odd {:else} even
+{/if} {/if} {/if}
 ```
 
 To use this component in your HTML:
@@ -362,6 +359,7 @@ To use this component in your HTML:
 ```
 
 This example showcases:
+
 - **Reactive state**: Changes to `this.state` automatically update the DOM
 - **Template syntax**: `{ }` for expressions, `{#if}`, `{#each}` for control flow
 - **Arrow function handlers**: `onclick={() => method()}` for clean event binding
@@ -373,52 +371,52 @@ This example showcases:
 
 ### Core Features
 
-* **Native Custom Elements** - Creates and defines Custom HTML tags using the native browser interface for maximum performance
-* **Server-Side Friendly** - Works seamlessly with server-generated HTML, any routing library, and progressive enhancement strategies
-* **Semantic HTML Output** - Transforms custom elements to standard HTML nodes (e.g., `<ui-button>` → `<button class="fez fez-button">`), making components fully stylable with CSS
-* **Single-File Components** - Define CSS, HTML, and JavaScript in one file, no build step required
-* **No Framework Magic** - Plain vanilla JS classes with clear, documented methods. No hooks, runes, or complex abstractions
-* **Runtime SCSS** - Style components using SCSS syntax via [Goober](https://goober.js.org/), compiled at runtime
-* **Smart Memory Management** - MutationObserver automatically cleans up disconnected components and their resources (intervals, event listeners, subscriptions)
+- **Native Custom Elements** - Creates and defines Custom HTML tags using the native browser interface for maximum performance
+- **Server-Side Friendly** - Works seamlessly with server-generated HTML, any routing library, and progressive enhancement strategies
+- **Semantic HTML Output** - Transforms custom elements to standard HTML nodes (e.g., `<ui-button>` → `<button class="fez fez-button">`), making components fully stylable with CSS
+- **Single-File Components** - Define CSS, HTML, and JavaScript in one file, no build step required
+- **No Framework Magic** - Plain vanilla JS classes with clear, documented methods. No hooks, runes, or complex abstractions
+- **Runtime SCSS** - Style components using SCSS syntax via [Goober](https://goober.js.org/), compiled at runtime
+- **Smart Memory Management** - MutationObserver automatically cleans up disconnected components and their resources (intervals, event listeners, subscriptions)
 
 ### Advanced Templating & Styling
 
-* **Svelte-like Template Engine** - Single brace syntax (`{ }`), control flow (`{#if}`, `{#unless}`, `{#for}`, `{#each}`, `{#await}`), and block templates
-* **Arrow Function Handlers** - Clean event syntax with automatic loop variable interpolation
-* **Reactive State Management** - Built-in reactive `state` object automatically triggers re-renders on property changes
-* **DOM Morphing** - Uses [Idiomorph](https://github.com/bigskysoftware/idiomorph) for intelligent DOM updates that preserve element state and animations
-* **Smart Component Isolation** - Child components are preserved during parent re-renders; only re-render when their props actually change
-* **Preserve DOM Elements** - Use `fez-keep="unique-key"` attribute to preserve DOM elements across re-renders (useful for animations, form inputs, or stateful elements)
-* **Style Macros** - Define custom CSS shortcuts like `Fez.cssMixin('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }`
-* **Scoped & Global Styles** - Components can define both scoped CSS (`:fez { ... }`) and global styles in the same component
+- **Svelte-like Template Engine** - Single brace syntax (`{ }`), control flow (`{#if}`, `{#unless}`, `{#for}`, `{#each}`, `{#await}`), and block templates
+- **Arrow Function Handlers** - Clean event syntax with automatic loop variable interpolation
+- **Reactive State Management** - Built-in reactive `state` object automatically triggers re-renders on property changes
+- **DOM Morphing** - Uses [Idiomorph](https://github.com/bigskysoftware/idiomorph) for intelligent DOM updates that preserve element state and animations
+- **Smart Component Isolation** - Child components are preserved during parent re-renders; only re-render when their props actually change
+- **Preserve DOM Elements** - Use `fez-keep="unique-key"` attribute to preserve DOM elements across re-renders (useful for animations, form inputs, or stateful elements)
+- **Style Macros** - Define custom CSS shortcuts like `Fez.cssMixin('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }`
+- **Scoped & Global Styles** - Components can define both scoped CSS (`:fez { ... }`) and global styles in the same component
 
 ### Developer Experience
 
-* **Built-in Utilities** - Helpful methods like `formData()`, `setInterval()` (auto-cleanup), `onWindowResize()`, and `fezNextTick()`
-* **Two-Way Data Binding** - Use `fez-bind` directive for automatic form synchronization
-* **Advanced Slot System** - Full `<slot />` support with event listener preservation
-* **Publish/Subscribe** - Built-in pub/sub system for component communication
-* **Global State Management** - Automatic subscription-based global state with `this.globalState` proxy
-* **Dynamic Component Loading** - Load components from URLs with `<template fez="path/to/component.fez">`
-* **Auto HTML Correction** - Fixes invalid self-closing tags (`<ui-icon name="gear" />` → `<ui-icon name="gear"></ui-icon>`)
+- **Built-in Utilities** - Helpful methods like `formData()`, `setInterval()` (auto-cleanup), `onWindowResize()`, and `fezNextTick()`
+- **Two-Way Data Binding** - Use `fez-bind` directive for automatic form synchronization
+- **Advanced Slot System** - Full `<slot />` support with event listener preservation
+- **Publish/Subscribe** - Built-in pub/sub system for component communication
+- **Global State Management** - Automatic subscription-based global state with `this.globalState` proxy
+- **Dynamic Component Loading** - Load components from URLs with `<template fez="path/to/component.fez">`
+- **Auto HTML Correction** - Fixes invalid self-closing tags (`<ui-icon name="gear" />` → `<ui-icon name="gear"></ui-icon>`)
 
 ### Performance & Integration
 
-* **Optimized Rendering** - Batched microtask rendering for flicker-free component initialization
-* **Smart DOM Updates** - Efficient DOM manipulation with minimal reflows
-* **Built-in Fetch with Caching** - `Fez.fetch()` includes automatic response caching and JSON/FormData handling
-* **Global Component Access** - Register components globally with `GLOBAL = 'ComponentName'` for easy access
-* **Rich Lifecycle Hooks** - `init`, `onMount`, `beforeRender`, `afterRender`, `onDestroy`, `onPropsChange`, `onStateChange`, `onGlobalStateChange`
-* **Development Mode** - Enable detailed logging with `Fez.DEV = true`
+- **Optimized Rendering** - Batched microtask rendering for flicker-free component initialization
+- **Smart DOM Updates** - Efficient DOM manipulation with minimal reflows
+- **Built-in Fetch with Caching** - `Fez.fetch()` includes automatic response caching and JSON/FormData handling
+- **Global Component Access** - Register components globally with `GLOBAL = 'ComponentName'` for easy access
+- **Rich Lifecycle Hooks** - `init`, `onMount`, `beforeRender`, `afterRender`, `onDestroy`, `onPropsChange`, `onStateChange`, `onGlobalStateChange`
+- **Development Mode** - Enable detailed logging with `Fez.DEV = true`
 
 ### Why It's Great
 
-* **Zero Build Step** - Just include the script and start coding
-* **49KB Minified (~18KB gzipped)** - Tiny footprint with powerful features
-* **Framework Agnostic** - Use alongside React, Vue, or any other framework
-* **Progressive Enhancement** - Perfect for modernizing legacy applications one component at a time
-* **Native Performance** - Leverages browser's native Custom Elements API
-* **Intuitive API** - If you know vanilla JavaScript, you already know Fez
+- **Zero Build Step** - Just include the script and start coding
+- **49KB Minified (~18KB gzipped)** - Tiny footprint with powerful features
+- **Framework Agnostic** - Use alongside React, Vue, or any other framework
+- **Progressive Enhancement** - Perfect for modernizing legacy applications one component at a time
+- **Native Performance** - Leverages browser's native Custom Elements API
+- **Intuitive API** - If you know vanilla JavaScript, you already know Fez
 
 ## Full available interface
 
@@ -660,21 +658,23 @@ Fez.head(config, callback)
 ## Fez script loading and definition
 
 ```html
-  <!-- Remote loading for a component via URL in fez attribute -->
-  <!-- Component name is extracted from filename (ui-button) -->
-  <!-- If remote HTML contains template/xmp tags with fez attributes, they are compiled -->
-  <!-- Otherwise, the entire content is compiled as the component -->
-  <script fez="path/to/ui-button.fez"></script>
+<!-- Remote loading for a component via URL in fez attribute -->
+<!-- Component name is extracted from filename (ui-button) -->
+<!-- If remote HTML contains template/xmp tags with fez attributes, they are compiled -->
+<!-- Otherwise, the entire content is compiled as the component -->
+<script fez="path/to/ui-button.fez"></script>
 
-  <!-- prefix with : to calc before node mount -->
-  <foo-bar :size="document.getElementById('icon-range').value"></foo-bar>
+<!-- prefix with : to calc before node mount -->
+<foo-bar :size="document.getElementById('icon-range').value"></foo-bar>
 
-  <!-- pass JSON props via data-props -->
-  <foo-bar data-props='{"name": "John", "age": 30}'></foo-bar>
+<!-- pass JSON props via data-props -->
+<foo-bar data-props='{"name": "John", "age": 30}'></foo-bar>
 
-  <!-- pass JSON template via data-json-template -->
-  <script type="text/template">{...}</script>
-  <foo-bar data-json-template="true"></foo-bar>
+<!-- pass JSON template via data-json-template -->
+<script type="text/template">
+  {...}
+</script>
+<foo-bar data-json-template="true"></foo-bar>
 ```
 
 ## Component structure
@@ -799,15 +799,17 @@ Fez includes a built-in fetch wrapper with automatic JSON parsing and session-ba
 
 ```js
 // GET request with promise
-const data = await Fez.fetch('https://api.example.com/data')
+const data = await Fez.fetch("https://api.example.com/data");
 
 // GET request with callback, does not create promise
-Fez.fetch('https://api.example.com/data', (data) => {
-  console.log(data)
-})
+Fez.fetch("https://api.example.com/data", (data) => {
+  console.log(data);
+});
 
 // POST request
-const result = await Fez.fetch('POST', 'https://api.example.com/data', { key: 'value' })
+const result = await Fez.fetch("POST", "https://api.example.com/data", {
+  key: "value",
+});
 ```
 
 ### Features
@@ -823,11 +825,11 @@ const result = await Fez.fetch('POST', 'https://api.example.com/data', { key: 'v
 ```js
 // Override default error handler
 Fez.onError = (kind, error) => {
-  if (kind === 'fetch') {
-    console.error('Fetch failed:', error)
+  if (kind === "fetch") {
+    console.error("Fetch failed:", error);
     // Show user-friendly error message
   }
-}
+};
 ```
 
 ## Default Components
@@ -835,34 +837,19 @@ Fez.onError = (kind, error) => {
 Fez includes several built-in components available when you include `defaults.js`:
 
 ### fez-component
+
 Dynamically includes a Fez component by name:
+
 ```html
 <fez-component name="some-node" :props="fez.props"></fez-component>
 ```
 
 ### fez-include
+
 Loads remote HTML content via URL:
+
 ```html
 <fez-include src="./demo/fez/ui-slider.html"></fez-include>
-```
-
-### fez-for
-Repeats template content for each item in a list or object:
-```html
-<!-- List: replaces KEY and INDEX -->
-<fez-for list="apple, banana, cherry">
-  <li>INDEX: KEY</li>
-</fez-for>
-
-<!-- Object: replaces KEY and VALUE -->
-<fez-for object="name: John; age: 30">
-  <div>KEY = VALUE</div>
-</fez-for>
-
-<!-- Custom divider -->
-<fez-for list="one|two|three" divider="|">
-  <span>KEY</span>
-</fez-for>
 ```
 
 ## Global State Management
@@ -882,14 +869,14 @@ Fez includes a built-in global state manager that automatically tracks component
 class Counter extends FezBase {
   increment() {
     // Setting global state - all listeners will be notified
-    this.globalState.count = (this.globalState.count || 0) + 1
+    this.globalState.count = (this.globalState.count || 0) + 1;
   }
 
   render() {
     // Reading global state - automatically subscribes this component
     return `<button onclick="fez.increment()">
       Count: ${this.globalState.count || 0}
-    </button>`
+    </button>`;
   }
 }
 ```
@@ -898,26 +885,26 @@ class Counter extends FezBase {
 
 ```js
 // Set global state from outside components
-Fez.state.set('count', 10)
+Fez.state.set("count", 10);
 
 // Get global state value
-const count = Fez.state.get('count')
+const count = Fez.state.get("count");
 
 // Subscribe to specific key changes (returns unsubscribe function)
-const unsubscribe = Fez.state.subscribe('language', (value, oldValue, key) => {
-  console.log(`Language changed from ${oldValue} to ${value}`)
-})
-unsubscribe() // stop listening
+const unsubscribe = Fez.state.subscribe("language", (value, oldValue, key) => {
+  console.log(`Language changed from ${oldValue} to ${value}`);
+});
+unsubscribe(); // stop listening
 
 // Subscribe to ALL state changes
 Fez.state.subscribe((key, value, oldValue) => {
-  console.log(`${key} changed to ${value}`)
-})
+  console.log(`${key} changed to ${value}`);
+});
 
 // Iterate over all components listening to a key
-Fez.state.forEach('count', (component) => {
-  console.log(`${component.fezName} is listening to count`)
-})
+Fez.state.forEach("count", (component) => {
+  console.log(`${component.fezName} is listening to count`);
+});
 ```
 
 ### Optional Change Handler
@@ -927,16 +914,16 @@ Components can define an `onGlobalStateChange` method for custom handling:
 ```js
 class MyComponent extends FezBase {
   onGlobalStateChange(key, value) {
-    console.log(`Global state "${key}" changed to:`, value)
+    console.log(`Global state "${key}" changed to:`, value);
     // Custom logic instead of automatic render
-    if (key === 'theme') {
-      this.updateTheme(value)
+    if (key === "theme") {
+      this.updateTheme(value);
     }
   }
 
   render() {
     // Still subscribes by reading the value
-    return `<div class="${this.globalState.theme || 'light'}">...</div>`
+    return `<div class="${this.globalState.theme || "light"}">...</div>`;
   }
 }
 ```
@@ -947,12 +934,12 @@ Control global state from outside Fez components:
 
 ```js
 // From anywhere in your app (vanilla JS, other frameworks, etc.)
-Fez.state.set('language', 'en')
+Fez.state.set("language", "en");
 
 // All components using this.globalState.language will automatically re-render
-document.getElementById('lang-select').addEventListener('change', (e) => {
-  Fez.state.set('language', e.target.value)
-})
+document.getElementById("lang-select").addEventListener("change", (e) => {
+  Fez.state.set("language", e.target.value);
+});
 ```
 
 ```html
@@ -975,22 +962,22 @@ document.getElementById('lang-select').addEventListener('change', (e) => {
 // Multiple counter components sharing max count
 class Counter extends FezBase {
   init(props) {
-    this.state.count = parseInt(props.start || 0)
+    this.state.count = parseInt(props.start || 0);
   }
 
   beforeRender() {
     // All counters share and update the global max
-    this.globalState.maxCount ||= 0
+    this.globalState.maxCount ||= 0;
 
     // Find max across all counter instances
-    let max = 0
-    Fez.state.forEach('maxCount', fez => {
+    let max = 0;
+    Fez.state.forEach("maxCount", (fez) => {
       if (fez.state?.count > max) {
-        max = fez.state.count
+        max = fez.state.count;
       }
-    })
+    });
 
-    this.globalState.maxCount = max
+    this.globalState.maxCount = max;
   }
 
   render() {
@@ -998,7 +985,7 @@ class Counter extends FezBase {
       <button onclick="fez.state.count++">+</button>
       <span>Count: ${this.state.count}</span>
       <span>(Global max: ${this.globalState.maxCount})</span>
-    `
+    `;
   }
 }
 ```
@@ -1013,21 +1000,18 @@ The original double-brace syntax `{{ }}` is still fully supported for backward c
 
 ```html
 <!-- Expressions -->
-{{ state.name }}
-{{ state.active ? 'yes' : 'no' }}
+{{ state.name }} {{ state.active ? 'yes' : 'no' }}
 
 <!-- Conditionals -->
-{{if state.show}}...{{/if}}
-{{if state.show}}...{{else}}...{{/if}}
-{{unless state.hidden}}...{{/unless}}
+{{if state.show}}...{{/if}} {{if state.show}}...{{else}}...{{/if}} {{unless
+state.hidden}}...{{/unless}}
 
 <!-- Loops -->
-{{for item in state.items}}...{{/for}}
-{{each state.items as item, index}}...{{/each}}
+{{for item in state.items}}...{{/for}} {{each state.items as item,
+index}}...{{/each}}
 
 <!-- Raw HTML and JSON -->
-{{raw state.htmlContent}}
-{{json state.data}}
+{{raw state.htmlContent}} {{json state.data}}
 
 <!-- Event handlers (string interpolation) -->
 <button onclick="fez.remove({{index}})">Remove</button>
@@ -1039,13 +1023,13 @@ The legacy syntax uses `[[ ]]` as an alternative to `{{ }}` for compatibility wi
 
 To migrate from legacy to Svelte-like syntax:
 
-| Legacy | Svelte-like |
-|--------|-------------|
-| `{{ expr }}` | `{expr}` |
-| `{{if cond}}` | `{#if cond}` |
-| `{{else}}` | `{:else}` |
-| `{{/if}}` | `{/if}` |
-| `{{for x in list}}` | `{#for x in list}` |
-| `{{each list as x}}` | `{#each list as x}` |
-| `{{raw html}}` | `{@html html}` |
+| Legacy                     | Svelte-like              |
+| -------------------------- | ------------------------ |
+| `{{ expr }}`               | `{expr}`                 |
+| `{{if cond}}`              | `{#if cond}`             |
+| `{{else}}`                 | `{:else}`                |
+| `{{/if}}`                  | `{/if}`                  |
+| `{{for x in list}}`        | `{#for x in list}`       |
+| `{{each list as x}}`       | `{#each list as x}`      |
+| `{{raw html}}`             | `{@html html}`           |
 | `onclick="fez.foo({{i}})"` | `onclick={() => foo(i)}` |

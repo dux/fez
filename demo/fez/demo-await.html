@@ -10,12 +10,3 @@
 
 <h4>Async User Profile</h4>
 <demo-await></demo-await>
-
-<h4>Syntax</h4>
-<pre><code>{#await state.userData}
-  &lt;div class="loading"&gt;Loading...&lt;/div&gt;
-{:then user}
-  &lt;div&gt;{user.name}&lt;/div&gt;
-{:catch error}
-  &lt;div&gt;Error: {error.message}&lt;/div&gt;
-{/await}</code></pre>

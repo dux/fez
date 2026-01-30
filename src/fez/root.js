@@ -17,17 +17,18 @@
 // IMPORTS
 // =============================================================================
 
-import Gobber from './vendor/gobber.js'
-import { Idiomorph } from './vendor/idiomorph.js'
-import objectDump from './utils/dump.js'
-import highlightAll from './utils/highlight_all.js'
-import connect from './connect.js'
-import compile from './compile.js'
-import state from './lib/global-state.js'
-import createTemplate from './lib/template.js'
-import { subscribe, publish } from './lib/pubsub.js'
-import fezLocalStorage from './lib/localstorage.js'
-import fezAwait from './lib/await-helper.js'
+import Gobber from "./vendor/gobber.js";
+import { Idiomorph } from "./vendor/idiomorph.js";
+import objectDump from "./utils/dump.js";
+import highlightAll from "./utils/highlight_all.js";
+import connect from "./connect.js";
+import compile from "./compile.js";
+import state from "./lib/global-state.js";
+import createTemplate from "./lib/template.js";
+import { subscribe, publish } from "./lib/pubsub.js";
+import fezLocalStorage from "./lib/localstorage.js";
+import fezAwait from "./lib/await-helper.js";
+import demo from "./lib/demo.js";
 
 // =============================================================================
 // MAIN FEZ FUNCTION
@@ -49,72 +50,76 @@ import fezAwait from './lib/await-helper.js'
  */
 const Fez = (name, klass) => {
   // Find by UID
-  if (typeof name === 'number') {
-    const fez = Fez.instances.get(name)
-    if (fez) return fez
-    Fez.consoleError(`Instance with UID "${name}" not found.`)
-    return
+  if (typeof name === "number") {
+    const fez = Fez.instances.get(name);
+    if (fez) return fez;
+    Fez.consoleError(`Instance with UID "${name}" not found.`);
+    return;
   }
 
   if (!name) {
-    Fez.consoleError('Fez() ?')
-    return
+    Fez.consoleError("Fez() ?");
+    return;
   }
 
   // With second argument
   if (klass) {
-    const isPureFn = typeof klass === 'function' &&
+    const isPureFn =
+      typeof klass === "function" &&
       !/^\s*class/.test(klass.toString()) &&
-      !/\b(this|new)\b/.test(klass.toString())
+      !/\b(this|new)\b/.test(klass.toString());
 
     // Fez('name', callback) - find all & execute
     if (isPureFn) {
-      const list = Array
-        .from(document.querySelectorAll(`.fez.fez-${name}`))
-        .filter(n => n.fez)
-      list.forEach(el => klass(el.fez))
-      return list
+      const list = Array.from(
+        document.querySelectorAll(`.fez.fez-${name}`),
+      ).filter((n) => n.fez);
+      list.forEach((el) => klass(el.fez));
+      return list;
     }
 
     // Fez('name', selector) - find with context
-    if (typeof klass !== 'function') {
-      return Fez.find(name, klass)
+    if (typeof klass !== "function") {
+      return Fez.find(name, klass);
     }
 
     // Fez('name', class) - register component
-    return connect(name, klass)
+    return connect(name, klass);
   }
 
   // Find instance by name or node
   const node = name.nodeName
-    ? name.closest('.fez')
-    : document.querySelector(name.includes('#') ? name : `.fez.fez-${name}`)
+    ? name.closest(".fez")
+    : document.querySelector(name.includes("#") ? name : `.fez.fez-${name}`);
 
   if (!node) {
-    Fez.consoleError(`node "${name}" not found.`)
-    return
+    Fez.consoleError(`node "${name}" not found.`);
+    return;
   }
 
   if (!node.fez) {
-    Fez.consoleError(`node "${name}" has no Fez attached.`)
-    return
+    Fez.consoleError(`node "${name}" has no Fez attached.`);
+    return;
   }
 
-  return node.fez
-}
+  return node.fez;
+};
 
 // =============================================================================
 // COMPONENT REGISTRY
 // =============================================================================
 
 /** Registered component classes by name */
-Fez.classes = {}
+Fez.classes = {};
 
 /** Counter for unique instance IDs */
-Fez.instanceCount = 0
+Fez.instanceCount = 0;
 
 /** Active component instances by UID */
-Fez.instances = new Map()
+Fez.instances = new Map();
+
+/** Demo namespace - Fez.demo.get(name), Fez.demo.all(), Fez.demo.list */
+Fez.demo = demo;
 
 /**
  * Find a component instance from a DOM node
@@ -123,21 +128,25 @@ Fez.instances = new Map()
  * @returns {FezBase|undefined}
  */
 Fez.find = (onode, name) => {
-  let node = typeof onode === 'string' ? document.body.querySelector(onode) : onode
+  let node =
+    typeof onode === "string" ? document.body.querySelector(onode) : onode;
 
   // jQuery compatibility
-  if (typeof node.val === 'function') node = node[0]
+  if (typeof node.val === "function") node = node[0];
 
-  const selector = name ? `.fez.fez-${name}` : '.fez'
-  const closestNode = node.closest(selector)
+  const selector = name ? `.fez.fez-${name}` : ".fez";
+  const closestNode = node.closest(selector);
 
-  if (closestNode?.fez) return closestNode.fez
+  if (closestNode?.fez) return closestNode.fez;
 
-  Fez.onError('find', 'Node connector not found', { original: onode, resolved: node })
-}
+  Fez.onError("find", "Node connector not found", {
+    original: onode,
+    resolved: node,
+  });
+};
 
 /** Print registered components */
-Fez.info = () => console.log('Fez components:', Object.keys(Fez.classes || {}))
+Fez.info = () => console.log("Fez components:", Object.keys(Fez.classes || {}));
 
 // =============================================================================
 // CSS UTILITIES
@@ -148,7 +157,7 @@ Fez.info = () => console.log('Fez components:', Object.keys(Fez.classes || {}))
  * @param {string} text - CSS rules
  * @returns {string} Generated class name
  */
-Fez.cssClass = (text) => Gobber.css(text)
+Fez.cssClass = (text) => Gobber.css(text);
 
 /**
  * Register global CSS styles
@@ -157,22 +166,22 @@ Fez.cssClass = (text) => Gobber.css(text)
  * @returns {string} Generated class name
  */
 Fez.globalCss = (cssClass, opts = {}) => {
-  if (typeof cssClass === 'function') cssClass = cssClass()
+  if (typeof cssClass === "function") cssClass = cssClass();
 
-  if (cssClass.includes(':')) {
+  if (cssClass.includes(":")) {
     let text = cssClass
       .split("\n")
-      .filter(line => !(/^\s*\/\//.test(line)))
-      .join("\n")
+      .filter((line) => !/^\s*\/\//.test(line))
+      .join("\n");
 
-    if (opts.wrap) text = `:fez { ${text} }`
-    text = text.replace(/\:fez|\:host/, `.fez.fez-${opts.name}`)
-    cssClass = Fez.cssClass(text)
+    if (opts.wrap) text = `:fez { ${text} }`;
+    text = text.replace(/\:fez|\:host/, `.fez.fez-${opts.name}`);
+    cssClass = Fez.cssClass(text);
   }
 
-  Fez.onReady(() => document.body.parentElement.classList.add(cssClass))
-  return cssClass
-}
+  Fez.onReady(() => document.body.parentElement.classList.add(cssClass));
+  return cssClass;
+};
 
 // =============================================================================
 // DOM MORPHING
@@ -182,15 +191,15 @@ Fez.globalCss = (cssClass, opts = {}) => {
  * Shallow equality check for props
  */
 function shallowEqual(obj1, obj2) {
-  if (obj1 === obj2) return true
-  if (!obj1 || !obj2) return false
-  const keys1 = Object.keys(obj1)
-  const keys2 = Object.keys(obj2)
-  if (keys1.length !== keys2.length) return false
+  if (obj1 === obj2) return true;
+  if (!obj1 || !obj2) return false;
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+  if (keys1.length !== keys2.length) return false;
   for (const key of keys1) {
-    if (obj1[key] !== obj2[key]) return false
+    if (obj1[key] !== obj2[key]) return false;
   }
-  return true
+  return true;
 }
 
 /**
@@ -201,119 +210,124 @@ function shallowEqual(obj1, obj2) {
  */
 Fez.morphdom = (target, newNode) => {
   // Preserve attributes
-  Array.from(target.attributes).forEach(attr => {
-    newNode.setAttribute(attr.name, attr.value)
-  })
+  Array.from(target.attributes).forEach((attr) => {
+    newNode.setAttribute(attr.name, attr.value);
+  });
 
   Idiomorph.morph(target, newNode, {
-    morphStyle: 'outerHTML',
+    morphStyle: "outerHTML",
     ignoreActiveValue: true,
     callbacks: {
       // Skip morphing child fez components - preserve them entirely
       beforeNodeMorphed: (oldNode, newNode) => {
         // Check if this is a child fez component (not the root being morphed)
-        if (oldNode !== target &&
-            oldNode.classList?.contains('fez') &&
-            oldNode.fez &&
-            !oldNode.fez._destroyed) {
-
-          Fez.consoleLog(`Preserving child component ${oldNode.fez.fezName} (UID ${oldNode.fez.UID})`)
+        if (
+          oldNode !== target &&
+          oldNode.classList?.contains("fez") &&
+          oldNode.fez &&
+          !oldNode.fez._destroyed
+        ) {
+          Fez.consoleLog(
+            `Preserving child component ${oldNode.fez.fezName} (UID ${oldNode.fez.UID})`,
+          );
 
           // Get new props from the newNode
-          const newProps = Fez.classes[oldNode.fez.fezName]?.getProps?.(newNode, oldNode) || {}
-          const oldProps = oldNode.fez.props || {}
+          const newProps =
+            Fez.classes[oldNode.fez.fezName]?.getProps?.(newNode, oldNode) ||
+            {};
+          const oldProps = oldNode.fez.props || {};
 
           // Only trigger update if props actually changed
           if (!shallowEqual(oldProps, newProps)) {
-            oldNode.fez.props = newProps
-            oldNode.fez.onPropsChange?.(newProps, oldProps)
+            oldNode.fez.props = newProps;
+            oldNode.fez.onPropsChange?.(newProps, oldProps);
             // Schedule re-render of child with new props
-            oldNode.fez.fezNextTick(oldNode.fez.fezRender, 'fezRender')
+            oldNode.fez.fezNextTick(oldNode.fez.fezRender, "fezRender");
           }
 
           // Return false to skip morphing this element - preserve it as is
-          return false
+          return false;
         }
-        return true
+        return true;
       },
 
       // When removing a node, check if it's a fez component and cleanup
       beforeNodeRemoved: (node) => {
-        if (node.classList?.contains('fez') && node.fez) {
-          node.fez.fezOnDestroy()
+        if (node.classList?.contains("fez") && node.fez) {
+          node.fez.fezOnDestroy();
         }
-        return true
-      }
-    }
-  })
+        return true;
+      },
+    },
+  });
 
   // Clean up whitespace
-  const next = target.nextSibling
+  const next = target.nextSibling;
   if (next?.nodeType === Node.TEXT_NODE && !next.textContent.trim()) {
-    next.remove()
+    next.remove();
   }
-}
+};
 
 // =============================================================================
 // PUB/SUB SYSTEM (see lib/pubsub.js)
 // =============================================================================
 
-Fez.subscribe = subscribe
-Fez.publish = publish
+Fez.subscribe = subscribe;
+Fez.publish = publish;
 
 // =============================================================================
 // LOCAL STORAGE (see lib/localstorage.js)
 // =============================================================================
 
-Fez.localStorage = fezLocalStorage
+Fez.localStorage = fezLocalStorage;
 
 // =============================================================================
 // ASYNC AWAIT HELPER (see lib/await-helper.js)
 // =============================================================================
 
-Fez.fezAwait = fezAwait
+Fez.fezAwait = fezAwait;
 
 // =============================================================================
 // ERROR HANDLING & LOGGING
 // =============================================================================
 
 Fez.consoleError = (text, show) => {
-  text = `Fez: ${text}`
-  console.error(text)
+  text = `Fez: ${text}`;
+  console.error(text);
   if (show) {
-    return `<span style="border: 1px solid red; font-size: 14px; padding: 3px 7px; background: #fee; border-radius: 4px;">${text}</span>`
+    return `<span style="border: 1px solid red; font-size: 14px; padding: 3px 7px; background: #fee; border-radius: 4px;">${text}</span>`;
   }
-}
+};
 
 Fez.consoleLog = (text) => {
   if (Fez.LOG) {
-    console.log(`Fez: ${String(text).substring(0, 180)}`)
+    console.log(`Fez: ${String(text).substring(0, 180)}`);
   }
-}
+};
 
 /** Error handler - can be overridden */
 Fez.onError = (kind, message, context) => {
-  const errorMsg = `Fez ${kind}: ${message?.toString?.() || message}`
-  console.error(errorMsg, context || '')
-  return errorMsg
-}
+  const errorMsg = `Fez ${kind}: ${message?.toString?.() || message}`;
+  console.error(errorMsg, context || "");
+  return errorMsg;
+};
 
 // =============================================================================
 // LOAD UTILITIES & EXPORTS
 // =============================================================================
 
-import addUtilities from './utility.js'
-import cssMixin from './utils/css_mixin.js'
+import addUtilities from "./utility.js";
+import cssMixin from "./utils/css_mixin.js";
 
-addUtilities(Fez)
-cssMixin(Fez)
+addUtilities(Fez);
+cssMixin(Fez);
 
-Fez.compile = compile
-Fez.createTemplate = createTemplate
-Fez.state = state
-Fez.log = objectDump
-Fez.highlightAll = highlightAll
+Fez.compile = compile;
+Fez.createTemplate = createTemplate;
+Fez.state = state;
+Fez.log = objectDump;
+Fez.highlightAll = highlightAll;
 
-Fez.onReady(() => Fez.consoleLog('Fez.LOG === true, logging enabled.'))
+Fez.onReady(() => Fez.consoleLog("Fez.LOG === true, logging enabled."));
 
-export default Fez
+export default Fez;

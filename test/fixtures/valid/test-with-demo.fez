@@ -1,0 +1,20 @@
+<demo>
+  <test-with-demo></test-with-demo>
+  <script>
+    // Demo script to show usage
+    console.log('Demo loaded')
+  </script>
+</demo>
+<script>
+  init() {
+    this.state.message = 'Hello'
+  }
+</script>
+
+<style>
+  :fez {
+    padding: 10px;
+  }
+</style>
+
+<div>{state.message}</div>
