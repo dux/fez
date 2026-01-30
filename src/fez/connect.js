@@ -232,6 +232,9 @@ function connectNode(name, node) {
     fez._fezChildNodes = Array.from(fez.root.children)
   }
 
+  // Prevent state changes during init/mount from scheduling extra renders
+  fez._isInitializing = true
+
   // Init (supports multiple naming conventions)
   const initMethod = fez.onInit || fez.init || fez.created || fez.connect
   initMethod.call(fez, fez.props)
@@ -241,6 +244,9 @@ function connectNode(name, node) {
 
   // Mount
   fez.onMount(fez.props)
+
+  // Done initializing - state changes will now trigger renders
+  fez._isInitializing = false
 
   // Form submit handling
   if (fez.onSubmit) {

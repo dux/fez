@@ -498,8 +498,8 @@ export default class FezBase {
     handler ||= (o, k, v, oldValue) => {
       if (v != oldValue) {
         this.onStateChange(k, v, oldValue)
-        // Don't schedule re-render if we're already rendering (e.g., state change in beforeRender)
-        if (!this._isRendering) {
+        // Don't schedule re-render during init/mount or if already rendering
+        if (!this._isRendering && !this._isInitializing) {
           this.fezNextTick(this.fezRender, 'fezRender')
         }
       }
