@@ -68,9 +68,7 @@
   // if you define onSubmit, you will get submited form data object
   // and event.preventDefault will allready be applied
   onSubmit(data) {
-    if (typeof this.props.ping === "function") {
-      this.props.ping(data)
-    }
+    Fez.getFunction(this.props.ping)(data)
   }
 </script>
 

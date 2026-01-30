@@ -48,6 +48,7 @@ const demo = {
 
   /**
    * Render demo content into a DOM element and execute scripts
+   * Scripts are executed first to define data/variables, then DOM is injected
    * @param {string} name - Component name (e.g., 'ui-color')
    * @param {HTMLElement} target - Target element to render into
    * @returns {boolean} - True if demo was found and applied
@@ -56,8 +57,27 @@ const demo = {
     const demoHtml = this.list[name];
     if (!demoHtml || !target) return false;
 
-    target.innerHTML = demoHtml;
-    this._executeScripts(target);
+    // Extract and execute top-level scripts first (before any DOM parsing that could trigger components)
+    // This ensures window.* variables are defined before components evaluate :attr expressions
+    // Skip scripts inside <xmp>, <template>, or other fez component definitions
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = demoHtml;
+
+    // Only execute direct child scripts (not inside xmp/template which are component definitions)
+    tempDiv.querySelectorAll(":scope > script").forEach((script) => {
+      const scriptContent = script.textContent;
+      if (scriptContent.trim()) {
+        try {
+          new Function(scriptContent)();
+        } catch (e) {
+          console.error(`Fez.demo.apply("${name}") script error:`, e.message);
+        }
+      }
+      script.remove();
+    });
+
+    // Inject remaining content into target
+    target.innerHTML = tempDiv.innerHTML;
     return true;
   },
 
