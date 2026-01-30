@@ -1,3 +1,31 @@
+<info>
+  <ul>
+    <li>Features: Nothing!. Blank compoenent, only adds to head on load.</li>
+  </ul>
+</info>
+
+<demo>
+  <p>
+    To enable, add add <code>tooltip="..."</code> to any node.
+  </p>
+
+  <h4>Basic Examples</h4>
+
+  <button tooltip="Hi from tippy.js">Hover me</button>
+  <button tooltip="Another tooltip!">Another button</button>
+  <a href="#" tooltip="Works on links too">Hover this link</a>
+
+  <h4>Dynamic Content</h4>
+  <button onclick="this.setAttribute('tooltip', 'Updated at ' + new Date().toLocaleTimeString())">
+    Click me then hover (dynamic tooltip)
+  </button>
+
+  <h4>Icons and Images</h4>
+  <span tooltip="Settings" style="font-size: 24px; cursor: pointer;">&#9881;</span>
+  <span tooltip="Information" style="font-size: 24px; cursor: pointer;">&#8505;</span>
+  <span tooltip="Warning!" style="font-size: 24px; cursor: pointer;">&#9888;</span>
+</demo>
+
 <head>
   <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/tippy.css">
   <script type="module">

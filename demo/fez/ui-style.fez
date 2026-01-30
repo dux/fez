@@ -1,3 +1,15 @@
+<info>
+  <ul>
+    <li>Features: <code>Fez.cssMixin</code> - define style shortcuts.</li>
+  </ul>
+</info>
+
+<demo>
+  <ui-style>
+    This text will be smaller on mobile. Using <code>:mobile { ...</code> shortcut.
+  </ui-style>
+</demo>
+
 <head>
   <script>
     // globally available

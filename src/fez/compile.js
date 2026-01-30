@@ -16,8 +16,44 @@
 import demo from "./lib/demo.js";
 
 // =============================================================================
+// HELPERS
+// =============================================================================
+
+/**
+ * Remove common leading whitespace from all lines
+ */
+function dedent(text) {
+  const lines = text.split("\n");
+  // Find minimum indentation (ignoring empty lines)
+  const nonEmptyLines = lines.filter((l) => l.trim());
+  if (!nonEmptyLines.length) return text;
+
+  const minIndent = Math.min(
+    ...nonEmptyLines.map((l) => l.match(/^(\s*)/)[1].length),
+  );
+  if (minIndent === 0) return text;
+
+  // Remove common indentation
+  return lines.map((l) => l.slice(minIndent)).join("\n");
+}
+
+// =============================================================================
 // MAIN COMPILE FUNCTION
 // =============================================================================
+
+/**
+ * Check if HTML has top-level <xmp fez> or <template fez> elements
+ * (not ones inside <demo> blocks)
+ */
+function hasTopLevelFezElements(html) {
+  if (!html) return false;
+
+  // Remove content inside <demo>...</demo> to avoid false positives
+  const withoutDemo = html.replace(/<demo>[\s\S]*?<\/demo>/gi, "");
+
+  // Check for <xmp fez= or <template fez= at top level
+  return /<(xmp|template)\s+fez\s*=/i.test(withoutDemo);
+}
 
 /**
  * Compile a Fez component
@@ -36,8 +72,19 @@ export default function compile(tagName, html) {
     return compileBulk(tagName);
   }
 
-  // Multiple xmp tags in html? Process them
-  if (html?.includes("</xmp>")) {
+  // Multiple xmp/template tags in html? Process them
+  // Check for top-level fez definitions (not ones inside <demo> blocks)
+  if (hasTopLevelFezElements(html)) {
+    // Extract top-level demo/info before processing inner components
+    if (tagName) {
+      const parts = compileToClass(html);
+      if (parts.info?.trim()) {
+        demo.infoList[tagName] = parts.info;
+      }
+      if (parts.demo?.trim()) {
+        demo.list[tagName] = parts.demo;
+      }
+    }
     return compileBulk(html);
   }
 
@@ -53,6 +100,9 @@ export default function compile(tagName, html) {
     );
     return;
   }
+
+  // Store original source
+  demo.sourceList[tagName] = html;
 
   // Extract and compile
   const classCode = generateClassCode(tagName, compileToClass(html));
@@ -102,9 +152,16 @@ function compileBulk(data) {
 
 /**
  * Compile component(s) from remote URL
+ * Supports .fez files and .txt files (component lists)
  */
 function compileFromUrl(url) {
   Fez.consoleLog(`Loading from ${url}`);
+
+  // Handle .txt files as component lists
+  if (url.endsWith(".txt")) {
+    Fez.head({ fez: url });
+    return;
+  }
 
   Fez.fetch(url)
     .then((content) => {
@@ -112,6 +169,16 @@ function compileFromUrl(url) {
       const fezElements = doc.querySelectorAll("template[fez], xmp[fez]");
 
       if (fezElements.length > 0) {
+        // Extract top-level info/demo before the xmp elements (for multi-component files)
+        const fileName = url.split("/").pop().split(".")[0];
+        const parts = compileToClass(content);
+        if (parts.info?.trim()) {
+          demo.infoList[fileName] = parts.info;
+        }
+        if (parts.demo?.trim()) {
+          demo.list[fileName] = parts.demo;
+        }
+
         // Multiple components in file
         fezElements.forEach((el) => {
           const name = el.getAttribute("fez");
@@ -192,11 +259,11 @@ function compileToClass(html) {
 
       // End blocks
     } else if (trimmedLine.endsWith("</demo>") && type === "demo") {
-      result.demo = block.join("\n");
+      result.demo = dedent(block.join("\n"));
       block = [];
       type = "";
     } else if (trimmedLine.endsWith("</info>") && type === "info") {
-      result.info = block.join("\n");
+      result.info = dedent(block.join("\n"));
       block = [];
       type = "";
     } else if (

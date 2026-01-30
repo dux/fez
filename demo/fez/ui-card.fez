@@ -1,3 +1,78 @@
+<info>
+  <ul>
+    <li>Simple UI component</li>
+    <li>Pub/sub for card flip</li>
+    <li>Direct component access (node.fez)</li>
+    <li>Slot - pass child nodes</li>
+  </ul>
+</info>
+
+<demo>
+  <script>
+    window.randomFlip = () => {
+      let timeout = 150
+      let current = 0
+      document.querySelectorAll('.fez-ui-card').forEach(n => {
+        setTimeout(() => n.fez.flip(), current += timeout)
+        setTimeout(() => n.fez.flip(), current + 1300)
+      })
+    }
+
+    window.flipAllCards = () => {
+      document.querySelectorAll('.fez-ui-card').forEach(n => n.fez.flip())
+    }
+  </script>
+
+  <button onclick="randomFlip()">Random flip</button>
+  <button onclick="flipAllCards()">Flip via direct access</button>
+  <button onclick="Fez.publish('flip-card')">Flip via pub/sub</button>
+
+  <br />
+  <br />
+
+  <ui-card>
+    <div class="front">
+      <h2>The magician</h2>
+      <p>Click to flip!</p>
+    </div>
+    <div class="back"  style="background: url('./demo/img/m1.webp') no-repeat center/cover;">
+    </div>
+  </ui-card>
+
+  <ui-card>
+    <div class="front">
+      <h2>The high<br />priestess</h2>
+      <p>Click to flip!</p>
+    </div>
+    <div class="back"  style="background: url('./demo/img/m2.webp') no-repeat center/cover;">
+    </div>
+  </ui-card>
+
+  <ui-card>
+    <div class="front">
+      <h2>The empress</h2>
+      <p>Click to flip!</p>
+    </div>
+    <div class="back"  style="background: url('./demo/img/m3.webp') no-repeat center/cover;">
+    </div>
+  </ui-card>
+
+  <ui-card>
+    <div class="front">
+      <h2>Another clock?</h2>
+      <p>Click to see</p>
+    </div>
+    <div class="back" style="background-color: #aba;">
+      <div style="width: 150px;">
+        <ui-clock></ui-clock>
+      </div>
+      <div style="padding: 30px;">
+        Any HTML or Fez component inside.
+      </div>
+    </div>
+  </ui-card>
+</demo>
+
 <script>
   flip() {
     this.find('.card').classList.toggle('flipped')

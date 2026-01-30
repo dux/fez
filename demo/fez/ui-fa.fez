@@ -1,3 +1,46 @@
+<info>
+  <ul>
+    <li>Font Awesome icon component with name parameter</li>
+    <li>Supports dynamic size and color props, via <code>onPropsChange</code></li>
+    <li>evaluate value of a attribute if prefixed with column <code>:</code> (in this example <code>:size=</code></li>
+    <li>Accepts full Font Awesome class names (e.g., "fab fa-github") or shorthand (e.g., "home")</li>
+    <li>Supports regular attribute for regular icons (e.g., regular="user" = "far fa-user")</li>
+    <li>Supports brand attribute for brand icons (e.g., brand="github" = "fab fa-github")</li>
+    <li>Dynamic size control via range input</li>
+  </ul>
+</info>
+
+<demo>
+  <input
+    type="range" min="16" max="64" class="slider" id="fa_range" value="24"
+    oninput="s = this.value; Fez('ui-fa', (el) => el.root.setAttribute('size', s) )"
+  />
+
+  <br />
+
+  <style>
+    .fez-ui-fa { margin-right: 10px; }
+  </style>
+
+  <ui-fa name="home" :size="document.getElementById('fa_range').value"></ui-fa>
+  <ui-fa name="heart" color="red"></ui-fa>
+  <ui-fa name="star" color="gold"></ui-fa>
+  <ui-fa name="cog"  color="blue"></ui-fa>
+
+  <h4>Brand Icons</h4>
+  <ui-fa name="fab fa-github" size="32"></ui-fa>
+  <ui-fa brand="twitter" color="#1DA1F2" size="32"></ui-fa>
+  <ui-fa brand="facebook" color="#1877F2" size="32"></ui-fa>
+  <ui-fa brand="instagram" color="#E4405F" size="32"></ui-fa>
+
+  <h4>Regular Icons</h4>
+  <ui-fa name="far fa-user" size="24"></ui-fa>
+  <ui-fa regular="heart" color="red" size="24"></ui-fa>
+  <ui-fa regular="star" color="gold" size="24"></ui-fa>
+
+  <script>setTimeout(() => Fez('ui-fa', (el) => el.setSize(fa_range.value)), 500)</script>
+</demo>
+
 <script>
   Fez.head({css: 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css'})
 

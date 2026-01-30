@@ -1,3 +1,40 @@
+<info>
+  <ul>
+    <li>Features: internal method <code>this.dissolve()</code> will remove fez node from dom, and set <code>this.root</code> to first parent node and return initial child nodes.</li>
+    <li>useful if you need to transform children, but you can't have parent node in place. Think jQuery plugin.</li>
+  </ul>
+</info>
+
+<demo>
+  <div class="should-be-first-parent-with-3-child-nodes">
+    <div>Hi first</div>
+
+    <ui-border style="
+      border: 3px solid violet;
+      background: #fff;
+      padding: 10px;
+      max-width: 400px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      margin: 15px 0;
+    ">
+      <div>
+        Block 1: this will get border from fez component.
+      </div>
+
+      <div>
+        Block 2:  Also check the DOM, fez parent is removed from DOM.
+      </div>
+
+      <div>
+        Block 3: last
+      </div>
+    </ui-border>
+
+    <div>Hi last  </div>
+  </div>
+</demo>
+
 <script>
   onMount(props) {
     const childNodes = this.dissolve()

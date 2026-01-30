@@ -200,11 +200,11 @@
 
     {#if state.show}
       <div class="list">
-        {#for el in (globalState.fezComponents || [])}
+        {#for name in (globalState.fezComponents || [])}
           <button
-            class="btn btn-sm {state.activeJump === el.file.base ? 'active' : ''}"
-            onclick="fez.jump('{el.file.base}')"
-          >{el.file.base}</button>
+            class="btn btn-sm {state.activeJump === name ? 'active' : ''}"
+            onclick="fez.jump('{name}')"
+          >{name}</button>
         {/for}
       </div>
     {/if}

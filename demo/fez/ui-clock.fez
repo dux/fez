@@ -1,3 +1,23 @@
+<info>
+  <ul>
+    <li>SVG generation</li>
+    <li>Features: reactive store - any update to <code>this.state</code> object triggers re-render.</li>
+    <li>Features:  <code>this.setStyle(key, value)</code> - set style to base node</li>
+    <li>Features: DOM morph updates - update only changed nodes and attributes</li>
+    <li>Features: <code>onDestroy() { ... }</code> - execute code when component is removed from DOM</li>
+    <li>Features: <code>setInterval() { ... }</code> to set interval on a instance. No need to clear it, it will be auto cleared on component destroy.</li>
+  </ul>
+</info>
+
+<demo>
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 200px)); gap: 20px;">
+    <ui-clock city="Zagreb" utc="1"></ui-clock>
+    <ui-clock city="Moscow" utc="4"></ui-clock>
+    <ui-clock city="NYC" utc="-5"></ui-clock>
+    <ui-clock city="Sydney" utc="10"></ui-clock>
+  </div>
+</demo>
+
 <script>
   randomColor() {
     const colors = ['red', 'green', 'blue', 'magenta', 'teal', 'orange', 'violet']

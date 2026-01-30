@@ -1,3 +1,29 @@
+<info>
+  <ul>
+    <li>Features: class header that gets executed on component initializer.</li>
+  </ul>
+</info>
+
+<demo>
+  <form onsubmit="showToast(this); return false">
+    <input type="text" name="toast" style="margin-right: 10px;" />
+    <button class="btn">Show info</button>
+  </form>
+
+  <br />
+
+  <button class="btn btn-sm" onclick="Toast.info('Hi')">Trigger info</button>
+  <button class="btn btn-sm" onclick="Toast.error('Graaa')">Trigger error</button>
+
+  <script>
+    window.showToast = (form) => {
+      let input = form.querySelector('input')
+      Toast.info(input.value)
+      input.value = ''
+    }
+  </script>
+</demo>
+
 <script>
   window.Alert = (data) => window.Toast ? Toast.info(data) : alert(data)
 

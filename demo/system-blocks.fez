@@ -1,18 +1,19 @@
-<xmp fez="dev-block">
-  <template fez="./demo/fez/{props.name}.fez"></template>
-  <fez-include src="./demo/fez/{props.name}.html"></fez-include>
-</xmp>
-
 <xmp fez="promo-blocks">
   <script>
     init() {
-      const me = this
-      me.state.data = []
+      const src = './demo/fez.txt'
 
-      Fez.fetch('./demo/fez/index.json', (data)=>{
-        me.state.data = data
-        me.globalState.fezComponents = data
+      // Get component names for rendering
+      Fez.fetch(src, (text) => {
+        const paths = text.trim().split('\n').filter(n => n.trim() && !n.startsWith('#'))
+        // Extract component names (last part of path, without extension)
+        const names = paths.map(p => p.split('/').pop().replace('.fez', ''))
+        this.state.names = names
+        this.globalState.fezComponents = names
+      })
 
+      // Load all components using txt list feature
+      Fez.head({ fez: src }, () => {
         // Restore scroll position after content loads
         setTimeout(() => {
           const scrollY = sessionStorage.getItem('scrollY')
@@ -32,20 +33,20 @@
     }
   </script>
 
-  {#for el in state.data}
-     <block-promo :file="el.file" />
+  {#for name in state.names}
+     <block-promo name={name} />
   {/for}
 </xmp>
 
 <xmp fez="block-promo">
   <script>
     openCodePen(name) {
-      let html = Fez(`#html-${name}`).getSource()
+      let demo = Fez.demo.list[name] || ''
       let code = Fez(`#code-${name}`).getSource()
       const body = [
         '<link rel="stylesheet" href="//cdn.simplecss.org/simple.css" />\n<scr'+'ipt src="//dux.github.io/fez/dist/fez.js"></scr'+'ipt>',
         `<!-- FEZ code start -->\n<x`+`mp fez="${name}">\n${code}\n</xm`+`p>\n<!-- FEZ code end -->`,
-        `<!-- HTML code start -->\n${html}\n<!-- HTML code end -->`
+        `<!-- HTML code start -->\n${demo}\n<!-- HTML code end -->`
       ]
 
       const css = `body { padding-top: 50px; }`
@@ -77,74 +78,98 @@
     applyChanges(name) {
       let htmlString = Fez(`#code-${name}`).getSource()
       Fez.compile(name, htmlString)
-      document.querySelector(`#body-${name}`).innerHTML = Fez(`#html-${name}`).getSource()
-      Toast.info('HTML content updated.')
+
+      // Re-render demo from updated component
+      const target = document.querySelector(`#body-${name}`)
+      if (target) {
+        Fez.demo.apply(name, target)
+      }
+      Toast.info('Component updated.')
+    }
+
+    openDemo() {
+      window.open(`./demo/raw.html?fez=${this.name}`, '_blank')
     }
 
     init(props) {
-      this.file = props.file
-      Fez.fetch('./' + props.file.path, (res) => {
-        Fez.compile(props.file.base, res)
+      this.name = props.name
+      Fez.fetch(`./demo/fez/${props.name}.fez`, (res) => {
+        Fez.compile(props.name, res)
         this.state.code = res
           .replaceAll('fez.', 'fez․') // hack to hide dot
-      })
-      Fez.fetch('./' + props.file.path.replace('.fez', '.html'), (r) =>{
-        const dom = document.createElement('div')
-        dom.innerHTML = r
-        const info = dom.querySelector('.info')
-        if (info) {
-          this.state.info = info.outerHTML
-          info.remove()
+
+        // Get info from Fez.demo after component is compiled
+        const demoData = Fez.demo.get(props.name)
+        if (demoData.info) {
+          this.state.info = demoData.info.innerHTML
         }
-        Fez.head(dom)
-        this.state.html = dom.innerHTML
+        this.state.demoHtml = Fez.demo.list[props.name] || ''
+        this.state.ready = true
       })
+    }
+
+    appendDemo(container) {
+      // Render demo and execute scripts using Fez.demo.apply
+      Fez.demo.apply(this.name, container)
     }
   </script>
 
-  {#if state.code && state.html}
-    <a name="c-{file.base}"></a>
-    <div class="flex even top" style="border-top: 1px solid #ccc; margin-bottom: 50px;">
-      <div style="margin-top: 10px; flex: 0 0 600px;">
-        <div class="flex even">
-          <h3>
-            Demo: {file.base}
-          </h3>
-          <div style="text-align: right;">
-            <small onclick="fez.openCodePen('{file.base}')">open in CodePen</small>
+  <style>
+    .promo-title {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0 0 25px 0;
+      &::before, &::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #ddd;
+      }
+    }
+  </style>
+
+  {#if state.ready}
+    <a name="c-{name}"></a>
+    <div style="margin-bottom: 50px;">
+      <h2 class="promo-title"><a onclick="fez.openDemo()" style="cursor: pointer;">{name}</a></h2>
+      <div class="flex even top">
+        <div style="flex: 1; min-width: 0; overflow: hidden;">
+          <div id="body-{name}" style="padding-bottom: 20px;" fez-use="appendDemo">
           </div>
         </div>
-        <div id="body-{file.base}" style="padding-bottom: 20px;">
-          {@html state.html}
+        <div style="flex: 1; min-width: 0; overflow: hidden;">
+          <ui-tabs>
+            <div title="Info" active="true">
+              {@html state.info}
+            </div>
+            <div title="Demo HTML">
+              <ui-editor
+                name="{name}"
+                id="html-{name}"
+                file="./demo/fez/{name}.fez"
+                language="html"
+              >
+                {state.demoHtml}
+              </ui-editor>
+            </div>
+            <div title="Fez component">
+              <ui-editor
+                id="code-{name}"
+                file="./demo/fez/{name}.fez"
+                name="{name}"
+                :action="fez.applyChanges"
+              >
+                {state.code}
+              </ui-editor>
+            </div>
+          </ui-tabs>
+          <div style="margin-top: 10px; text-align: right;">
+            <small onclick="fez.openCodePen('{name}')" style="cursor: pointer;">open in CodePen</small>
+          </div>
         </div>
-      </div>
-      <div style="margin-top: 20px;">
-        <ui-tabs>
-          <div title="Info" active="true">
-            {@html state.info}
-          </div>
-          <div title="HTML">
-            <ui-editor
-              name="{file.base}"
-              id="html-{file.base}"
-              file="./demo/fez/{file.base}.html"
-              language="html"
-              :action="fez.applyChanges"
-            >
-              {state.html}
-            </ui-editor>
-          </div>
-          <div title="Fez component">
-            <ui-editor
-              id="code-{file.base}"
-              file="./demo/fez/{file.base}.fez"
-              name="{file.base}"
-              :action="fez.applyChanges"
-            >
-              {state.code}
-            </ui-editor>
-          </div>
-        </ui-tabs>
       </div>
     </div>
   {/if}

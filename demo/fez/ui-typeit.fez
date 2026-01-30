@@ -1,3 +1,32 @@
+<info>
+  <ul>
+    <li>Typewriter effect component</li>
+    <li>Props: <code>speed</code> (ms per char), <code>delay</code> (ms between sentences)</li>
+    <li>Sentences in <code>&lt;p&gt;</code> tags inside slot are typed one after another</li>
+    <li>HTML tags inside sentences are typed in one go</li>
+  </ul>
+</info>
+
+<demo>
+  <h4>Multiple sentences from slot</h4>
+  <div style="border: 1px solid #ccc; padding: 20px; border-radius: 8px; background: #f9f9f9;">
+    <ui-typeit speed="50" delay="1000" style="font-size: 1.3em; font-weight: 500;">
+      <p>The most versatile typing utility on the planet.</p>
+      <p>It types, deletes, and repeats.</p>
+      <p>Simple, flexible, and powerful.</p>
+    </ui-typeit>
+  </div>
+
+  <h4>With colored text</h4>
+  <div style="border: 1px solid #ccc; padding: 20px; border-radius: 8px; background: #f9f9f9;">
+    <ui-typeit speed="50" delay="1500" style="font-size: 1.1em;">
+      <p>Build <b style="color: #e74c3c;">beautiful</b> interfaces</p>
+      <p>Write <b style="color: #3498db;">clean</b> and <b style="color: #2ecc71;">simple</b> code</p>
+      <p>Ship <b style="color: #9b59b6;">faster</b> than ever</p>
+    </ui-typeit>
+  </div>
+</demo>
+
 <script>
   // Find next position to type to (skip over HTML tags)
   function nextPos(sentence, pos) {

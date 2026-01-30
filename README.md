@@ -638,6 +638,13 @@ Fez.tag(tag, opts, html)
 // execute function until it returns true
 Fez.untilTrue(func, pingRate)
 
+// Demo/Info content registry (populated from <info> and <demo> blocks)
+Fez.demo.get('component-name')    // { info: HTMLDivElement|null, demo: HTMLDivElement|null }
+Fez.demo.apply('component', el)   // Render demo into element and execute scripts
+Fez.demo.all()                    // { 'name': { info, demo }, ... }
+Fez.demo.list                     // Raw demo HTML strings by component name
+Fez.demo.infoList                 // Raw info HTML strings by component name
+
 // resolve and execute a function from string or function reference
 // useful for event handlers that can be either functions or strings
 // Fez.resolveFunction('alert("hi")', element) - creates function and calls with element as this
@@ -652,7 +659,46 @@ Fez.resolveFunction(pointer, context)
 // Load CSS: Fez.head({ css: 'path/to/styles.css' })
 // Load CSS with attributes: Fez.head({ css: 'path/to/styles.css', media: 'print' })
 // Execute inline script: Fez.head({ script: 'console.log("Hello world")' })
+// Load single Fez component: Fez.head({ fez: 'path/to/component.fez' })
+// Load multiple components from txt list: Fez.head({ fez: 'path/to/components.txt' })
 Fez.head(config, callback)
+```
+
+## Loading Multiple Components
+
+For loading many components at once, use a `.txt` file listing component paths:
+
+```bash
+# components.txt - one component per line
+# Lines starting with # are comments
+ui-button
+ui-dialog
+forms/input-text
+forms/input-select
+```
+
+Load all components with a single call:
+
+```js
+// Load all components listed in components.txt
+// Paths are relative to the txt file location
+Fez.head({ fez: "./demo/components.txt" }, () => {
+  console.log("All components loaded!");
+});
+```
+
+**Path resolution:**
+
+- Paths without `/` prefix are relative to the txt file location
+- `.fez` extension is added automatically if not present
+- Paths starting with `/` are absolute from root
+
+Example with `./demo/fez.txt`:
+
+```
+ui-button          # loads ./demo/ui-button.fez
+forms/input        # loads ./demo/forms/input.fez
+/lib/shared-comp   # loads /lib/shared-comp.fez (absolute)
 ```
 
 ## Fez script loading and definition
@@ -684,6 +730,20 @@ All parts are optional
 ```html
 <!-- Head elements support (inline only in XML tags) -->
 <xmp tag="some-tag">
+  <info>
+    <!-- Documentation block - rendered in demo pages -->
+    <ul>
+      <li>Component description</li>
+      <li>Props: <code>name</code>, <code>value</code></li>
+    </ul>
+  </info>
+
+  <demo>
+    <!-- Example usage - rendered in demo pages -->
+    <my-component name="basic"></my-component>
+    <my-component name="advanced" value="123"></my-component>
+  </demo>
+
   <head>
     <!-- everything in head will be copied to document head-->
     <script>console.log('Added to document head, first script to execute.')</script>
@@ -851,6 +911,26 @@ Loads remote HTML content via URL:
 ```html
 <fez-include src="./demo/fez/ui-slider.html"></fez-include>
 ```
+
+### fez-demo
+
+Renders all components with their demos. Perfect for component documentation pages:
+
+```html
+<!-- Default: loads from ./demo/fez.txt -->
+<fez-demo></fez-demo>
+
+<!-- Custom component list -->
+<fez-demo src="./my-components.txt"></fez-demo>
+```
+
+The component loads all components listed in the txt file and displays:
+
+- Component name and live demo (left side)
+- Info/documentation block (right side)
+- Buttons to log demo HTML and component source to console
+
+See `demo/raw.html` for a minimal example.
 
 ## Global State Management
 

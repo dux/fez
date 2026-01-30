@@ -1,3 +1,26 @@
+<info>
+  <ul>
+    <li>Features: Module imports</li>
+  </ul>
+</info>
+
+<demo>
+  <ui-markdown>
+### Hi
+
+I am **markdown** from Fez custom component called `<ui-markdown>`, created inline in HTML.
+
+* Fez is **too simple** to be true!
+* `index.html` SPA
+* New way to write web apps, without the bloat.
+* See this example on [JSbin](https://jsbin.com/dopuram/edit?html,output)
+  </ui-markdown>
+
+  <h3>I am regular HTML</h3>
+
+  <ui-markdown>`Fez` md **again!** :)</ui-markdown>
+</demo>
+
 <script>
   import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
 

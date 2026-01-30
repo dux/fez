@@ -1,3 +1,18 @@
+<info>
+  <ul>
+    <li>Automatic JSON parsing for responses</li>
+    <li>Session-based caching (cache is cleared on page refresh)</li>
+    <li>Support for both promise-based and callback-based usage</li>
+    <li>HTTP method support (GET, POST, etc.)</li>
+    <li>Integrated error handling via Fez.onError</li>
+    <li>Optional logging via Fez.LOG</li>
+  </ul>
+</info>
+
+<demo>
+  <ui-fetch></ui-fetch>
+</demo>
+
 <script>
   init() {
     this.state.results = {

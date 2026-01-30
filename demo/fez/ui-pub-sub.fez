@@ -1,1 +1,65 @@
-<--! defined in HTML block -->
+<info>
+  <ul>
+  <li>Features: publish &lt;> subscribe mechanism. Auto disconnect on node destroy.</li>
+  <li>Direct Fez component creation via <code>Fez(tagName, class { ... })</code></li>
+  </ul>
+</info>
+
+<demo>
+  <style>
+    .fez-ui-pubsub { margin-top: 10px; }
+  </style>
+
+  <button onclick="Fez.publish('ping', Math.random())">ping from anywhere</button>
+  &sdot;
+  Fast ping:
+  <button onclick="
+    clearInterval(window.fastPing);
+    window.fastPing = setInterval(()=>Fez.publish('ping', Math.random()), 10);"
+  >START</button>
+  &sdot;
+  <button onclick="clearInterval(window.fastPing)">END</button>
+
+  <ui-pubsub>
+    <h4>listener 1</h4>
+    <p class="target"></p>
+  </ui-pubsub>
+
+  <ui-pubsub>
+    <h4>listener 2</h4>
+    <b class="target"></b>
+  </ui-pubsub>
+
+  <ui-pubsub>
+    <h4>listener 3</h4>
+    Foo: <span class="target"></span>
+  </ui-pubsub>
+
+  <template id="pubsub-t">
+    <ui-pubsub>
+      Dynamic listener:
+      <button onclick="Fez(this).root.remove()">&times;</button>
+      &sdot;
+      <span class="target"></span>
+    </ui-pubsub>
+  </template>
+
+  <br />
+  <button onclick="this.insertAdjacentHTML('afterend', document.getElementById('pubsub-t').innerHTML)">add listener</button>
+
+  <script>
+    Fez('ui-pubsub', class {
+      update (info) {
+        this.target.innerHTML = info
+      }
+
+      init() {
+        this.target = this.find('.target')
+        this.subscribe('ping', this.update)
+        this.update('waiting for a ping...')
+      }
+    })
+
+    setInterval(()=>Fez.publish('ping', Math.random()), 1000)
+  </script>
+</demo>

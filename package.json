@@ -60,7 +60,7 @@
     "test": "bun test test/*.test.js && bun test test/browser/*.test.js",
     "prepublishOnly": "bun run build && bun run test",
     "publish": "npm publish --access public",
-    "index": "ruby ./bin/fez-index 'demo/fez/*.fez' > demo/fez/index.json"
+    "index": "ls demo/fez/*.fez | xargs -n1 basename | sed 's/\\.fez$//' | sort | sed 's/^/fez\\//' > demo/fez.txt"
   },
   "dependencies": {
     "glob": "^13.0.0",

@@ -1,3 +1,20 @@
+<info>
+  <ul>
+    <li>this is viewer / editor you see on the right</li>
+    <li>Features: <code>Fez.head(...)</code> that will safely insert script tags in the page header</li>
+    <li>Features: <code>Fez.untilTrue(...)</code> that will execute code every 100 milliseconds until it returns true</li>
+  </ul>
+</info>
+
+<demo>
+  <ui-editor file="demo.html">
+Hi, I am UI-EDITOR component.
+
+To define me, just add &lt;ui-editor>&lt;/ui-editor>
+anywhere in HTML code
+  </ui-editor>
+</demo>
+
 <head>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs2015.min.css" />
 </head>

@@ -157,7 +157,20 @@ Fez.info = () => console.log("Fez components:", Object.keys(Fez.classes || {}));
  * @param {string} text - CSS rules
  * @returns {string} Generated class name
  */
-Fez.cssClass = (text) => Gobber.css(text);
+Fez.cssClass = (text) => {
+  // In test environments without proper DOM, goober may fail
+  // Return a placeholder class name based on hash
+  try {
+    return Gobber.css(text);
+  } catch {
+    // Fallback: generate simple hash-based class name
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+    }
+    return "fez-" + Math.abs(hash).toString(36);
+  }
+};
 
 /**
  * Register global CSS styles
