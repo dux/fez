@@ -1,5 +1,14 @@
 # Fez JS lib Quick Reference for AI Assistants
 
+## CDN
+
+```html
+<script src="https://dux.github.io/fez/dist/fez.js"></script>
+
+<!-- Load components with fez attribute (NOT type="fez" src="...") -->
+<script fez="path/to/component.fez"></script>
+```
+
 ## CLI Tools
 
 ```bash

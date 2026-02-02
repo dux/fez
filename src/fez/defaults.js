@@ -219,7 +219,7 @@ const loadDefaults = () => {
       .fez-demo-left, .fez-demo-right {
         flex: 1;
         min-width: 0;
-        overflow: hidden;
+        overflow: visible;
       }
       .fez-demo-content {
         min-height: 50px;
