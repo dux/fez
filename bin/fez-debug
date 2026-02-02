@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+
+if ARGV[0] == '--info'
+  puts "Debug URL with Playwright (for LLM agents)"
+  exit 0
+end
+
+url = ARGV[0]
+
+if url.nil? || url == '--help' || url == '-h'
+  puts "Usage: fez debug <url>"
+  puts ""
+  puts "Opens a Playwright browser session for LLM agents to debug web pages."
+  puts "The page object is exposed globally for programmatic inspection."
+  puts ""
+  puts "Example:"
+  puts "  fez debug http://localhost:3333"
+  exit 0
+end
+
+bin_dir = File.dirname(File.realpath(__FILE__))
+project_dir = File.dirname(bin_dir)
+script_path = File.join(project_dir, 'bun', 'playwright-debug.js')
+
+exec('bun', script_path, url)

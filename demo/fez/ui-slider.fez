@@ -124,45 +124,45 @@
           }
         }
       }
-    }
 
-    .arrow {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 15px;
-      height: 15px;
-      background: rgba(255, 255, 255, 0.9);
-      border: 1px solid rgba(0, 0, 0, 0.3);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      z-index: 10;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      .arrow {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 15px;
+        height: 15px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(0, 0, 0, 0.3);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 
-      &:hover {
-        background: rgba(255, 255, 255, 1);
-        border-color: rgba(0, 0, 0, 0.5);
-        transform: translateY(-50%) scale(1.1);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      }
+        &:hover {
+          background: rgba(255, 255, 255, 1);
+          border-color: rgba(0, 0, 0, 0.5);
+          transform: translateY(-50%) scale(1.1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
 
-      span {
-        color: #333;
-        font-size: 24px;
-        font-weight: bold;
-        line-height: 1;
-      }
+        span {
+          color: #333;
+          font-size: 24px;
+          font-weight: bold;
+          line-height: 1;
+        }
 
-      &.prev {
-        left: -20px;
-      }
+        &.prev {
+          left: 10px;
+        }
 
-      &.next {
-        right: -20px;
+        &.next {
+          right: 10px;
+        }
       }
     }
 
@@ -207,22 +207,22 @@
   <div class="slot-parent">
     <slot />
   </div>
+
+  {#if props.arrows}
+    <div class="arrow prev" onclick="fez.changeSlide(-1)">
+      <span>&#8249;</span>
+    </div>
+
+    <div class="arrow next" onclick="fez.changeSlide(1)">
+      <span>&#8250;</span>
+    </div>
+  {/if}
 </div>
-
-{#if props.arrows}
-  <div class="arrow prev" onclick="fez.changeSlide(-1)">
-    <span>&#8249;</span>
-  </div>
-
-  <div class="arrow next" onclick="fez.changeSlide(1)">
-    <span>&#8250;</span>
-  </div>
-{/if}
 
 {#if props.dots}
   <div class="dots">
     {#each Array(slidesCount).fill(0) as dot, index}
-      <div class="dot {state.slide === index ? 'active' : ''}" onclick="fez.setSlide(index)"></div>
+      <div class="dot {state.slide === index ? 'active' : ''}" onclick="fez.setSlide({index})"></div>
     {/each}
   </div>
 {/if}
