@@ -80,7 +80,7 @@ const loadDefaults = () => {
         const checkReady = () => {
           // If name provided, render only that component
           if (name) {
-            if (Fez.demo.list[name]) {
+            if (Fez.index[name]?.demo) {
               this.state.components = [name];
               this.state.ready = true;
             } else {
@@ -88,7 +88,7 @@ const loadDefaults = () => {
             }
           } else {
             // Render all components that have demos
-            const names = Object.keys(Fez.demo.list).sort();
+            const names = Fez.index.withDemo().sort();
             if (names.length > 0) {
               this.state.components = names;
               this.state.ready = true;
@@ -101,7 +101,7 @@ const loadDefaults = () => {
       }
 
       showHtml(name) {
-        const html = Fez.demo.list[name] || "No demo HTML";
+        const html = Fez.index[name]?.demo || "No demo HTML";
         Fez.log("Demo HTML: " + name + "\n\n" + html);
       }
 
@@ -110,7 +110,7 @@ const loadDefaults = () => {
           "Fez source: " +
             name +
             "\n\n" +
-            (Fez.demo.sourceList[name] || "Source not available"),
+            (Fez.index[name]?.source || "Source not available"),
         );
       }
 
@@ -121,8 +121,8 @@ const loadDefaults = () => {
       }
 
       openCodePen(name) {
-        const demo = Fez.demo.list[name] || "";
-        const code = Fez.demo.sourceList[name] || "";
+        const demo = Fez.index[name]?.demo || "";
+        const code = Fez.index[name]?.source || "";
         const body = [
           '<link rel="stylesheet" href="//cdn.simplecss.org/simple.css" />\n<scr' +
             'ipt src="//dux.github.io/fez/dist/fez.js"></scr' +
@@ -159,12 +159,12 @@ const loadDefaults = () => {
 
       renderDemo(el) {
         const name = el.dataset.name;
-        Fez.demo.apply(name, el);
+        Fez.index.apply(name, el);
       }
 
       renderInfo(el) {
         const name = el.dataset.name;
-        const data = Fez.demo.get(name);
+        const data = Fez.index.get(name);
         if (data.info) {
           el.innerHTML = data.info.innerHTML;
         } else {

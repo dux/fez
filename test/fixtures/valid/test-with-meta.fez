@@ -1,0 +1,32 @@
+<info>
+  <ul>
+    <li>Test component with META</li>
+    <li>Version: 1.0.0</li>
+  </ul>
+</info>
+
+<demo>
+  <test-with-meta></test-with-meta>
+</demo>
+
+<script>
+  META = {
+    version: '1.0.0',
+    author: 'Test Author',
+    tags: ['ui', 'test'],
+    description: 'A test component with metadata'
+  }
+
+  init() {
+    this.state.message = 'Hello from META component'
+  }
+</script>
+
+<style>
+  :fez {
+    padding: 10px;
+    border: 1px solid #ccc;
+  }
+</style>
+
+<div>{state.message}</div>

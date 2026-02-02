@@ -41,7 +41,7 @@
 <xmp fez="block-promo">
   <script>
     openCodePen(name) {
-      let demo = Fez.demo.list[name] || ''
+      let demo = Fez.index[name]?.demo || ''
       let code = Fez(`#code-${name}`).getSource()
       const body = [
         '<link rel="stylesheet" href="//cdn.simplecss.org/simple.css" />\n<scr'+'ipt src="//dux.github.io/fez/dist/fez.js"></scr'+'ipt>',
@@ -82,7 +82,7 @@
       // Re-render demo from updated component
       const target = document.querySelector(`#body-${name}`)
       if (target) {
-        Fez.demo.apply(name, target)
+        Fez.index.apply(name, target)
       }
       Toast.info('Component updated.')
     }
@@ -98,19 +98,19 @@
         this.state.code = res
           .replaceAll('fez.', 'fez․') // hack to hide dot
 
-        // Get info from Fez.demo after component is compiled
-        const demoData = Fez.demo.get(props.name)
+        // Get info from Fez.index after component is compiled
+        const demoData = Fez.index.get(props.name)
         if (demoData.info) {
           this.state.info = demoData.info.innerHTML
         }
-        this.state.demoHtml = Fez.demo.list[props.name] || ''
+        this.state.demoHtml = Fez.index[props.name]?.demo || ''
         this.state.ready = true
       })
     }
 
     appendDemo(container) {
-      // Render demo and execute scripts using Fez.demo.apply
-      Fez.demo.apply(this.name, container)
+      // Render demo and execute scripts using Fez.index.apply
+      Fez.index.apply(this.name, container)
     }
   </script>
 

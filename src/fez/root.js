@@ -28,7 +28,7 @@ import createTemplate from "./lib/template.js";
 import { subscribe, publish } from "./lib/pubsub.js";
 import fezLocalStorage from "./lib/localstorage.js";
 import fezAwait from "./lib/await-helper.js";
-import demo from "./lib/demo.js";
+import index from "./lib/index.js";
 
 // =============================================================================
 // MAIN FEZ FUNCTION
@@ -109,17 +109,14 @@ const Fez = (name, klass) => {
 // COMPONENT REGISTRY
 // =============================================================================
 
-/** Registered component classes by name */
-Fez.classes = {};
+/** Unified component index - Fez.index['name'] = { class, meta, demo, info, source } */
+Fez.index = index;
 
 /** Counter for unique instance IDs */
 Fez.instanceCount = 0;
 
 /** Active component instances by UID */
 Fez.instances = new Map();
-
-/** Demo namespace - Fez.demo.get(name), Fez.demo.all(), Fez.demo.list */
-Fez.demo = demo;
 
 /**
  * Find a component instance from a DOM node
@@ -144,9 +141,6 @@ Fez.find = (onode, name) => {
     resolved: node,
   });
 };
-
-/** Print registered components */
-Fez.info = () => console.log("Fez components:", Object.keys(Fez.classes || {}));
 
 // =============================================================================
 // CSS UTILITIES
@@ -246,8 +240,10 @@ Fez.morphdom = (target, newNode) => {
 
           // Get new props from the newNode
           const newProps =
-            Fez.classes[oldNode.fez.fezName]?.getProps?.(newNode, oldNode) ||
-            {};
+            Fez.index[oldNode.fez.fezName]?.class?.getProps?.(
+              newNode,
+              oldNode,
+            ) || {};
           const oldProps = oldNode.fez.props || {};
 
           // Only trigger update if props actually changed

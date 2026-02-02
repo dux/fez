@@ -638,12 +638,18 @@ Fez.tag(tag, opts, html)
 // execute function until it returns true
 Fez.untilTrue(func, pingRate)
 
-// Demo/Info content registry (populated from <info> and <demo> blocks)
-Fez.demo.get('component-name')    // { info: HTMLDivElement|null, demo: HTMLDivElement|null }
-Fez.demo.apply('component', el)   // Render demo into element and execute scripts
-Fez.demo.all()                    // { 'name': { info, demo }, ... }
-Fez.demo.list                     // Raw demo HTML strings by component name
-Fez.demo.infoList                 // Raw info HTML strings by component name
+// Component Index (unified registry for all component data)
+Fez.index['ui-btn'].class         // Component class
+Fez.index['ui-btn'].meta          // Metadata from META = {...}
+Fez.index['ui-btn'].demo          // Demo HTML string
+Fez.index['ui-btn'].info          // Info HTML string
+Fez.index['ui-btn'].source        // Raw .fez source code
+Fez.index.get('name')             // { class, meta, demo: DOMNode, info: DOMNode, source }
+Fez.index.apply('name', el)       // Render demo into element and execute scripts
+Fez.index.names()                 // ['ui-btn', 'ui-card', ...] all component names
+Fez.index.withDemo()              // Component names that have demos
+Fez.index.all()                   // All components as object
+Fez.index.info()                  // Log all component names to console
 
 // resolve and execute a function from string or function reference
 // useful for event handlers that can be either functions or strings

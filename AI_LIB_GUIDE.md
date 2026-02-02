@@ -56,6 +56,14 @@ bunx fez-compile path/to/component.fez
   class {
     FAST = true  // Renders immediately (no flicker, only if does not have slot data)
 
+    // Component metadata (available via Fez.index['name'].meta)
+    META = {
+      version: '1.0.0',
+      author: 'Author Name',
+      tags: ['ui', 'form'],
+      description: 'Component description'
+    }
+
     init(props) {
       // Props are passed as parameter - use props.name, NOT this.prop('name')
       // do not rewrite state, just add to it
@@ -566,11 +574,19 @@ Fez.toPairs([1, 2]); // [[1, 0], [2, 1]] - [value, index]
 Fez.toPairs({ a: 1, b: 2 }); // [['a', 1], ['b', 2]] - [key, value]
 Fez.toPairs(null); // [] - safe for null/undefined
 
-// Demo/Info registry (from <info> and <demo> blocks)
-Fez.demo.get("name"); // { info: HTMLDivElement|null, demo: HTMLDivElement|null }
-Fez.demo.apply("name", el); // Render demo into element and execute scripts
-Fez.demo.list; // { 'name': '<demo html>' }
-Fez.demo.infoList; // { 'name': '<info html>' }
+// Component Index (unified registry for all component data)
+Fez.index["ui-btn"].class; // Component class
+Fez.index["ui-btn"].meta; // Metadata from META = {...}
+Fez.index["ui-btn"].demo; // Demo HTML string
+Fez.index["ui-btn"].info; // Info HTML string
+Fez.index["ui-btn"].source; // Raw .fez source code
+
+Fez.index.get("name"); // { class, meta, demo: DOMNode, info: DOMNode, source }
+Fez.index.apply("name", el); // Render demo into element and execute scripts
+Fez.index.names(); // ['ui-btn', 'ui-card', ...] all component names
+Fez.index.withDemo(); // Component names that have demos
+Fez.index.all(); // All components as { name: { class, meta, demo, info, source } }
+Fez.index.info(); // Log all component names to console
 ```
 
 ## Debugging Helpers

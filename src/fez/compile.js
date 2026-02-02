@@ -13,7 +13,7 @@
  * 3. Generate class string -> Fez('name', class { ... })
  */
 
-import demo from "./lib/demo.js";
+// Note: Uses Fez.index directly (set up in root.js)
 
 // =============================================================================
 // HELPERS
@@ -79,10 +79,10 @@ export default function compile(tagName, html) {
     if (tagName) {
       const parts = compileToClass(html);
       if (parts.info?.trim()) {
-        demo.infoList[tagName] = parts.info;
+        Fez.index.ensure(tagName).info = parts.info;
       }
       if (parts.demo?.trim()) {
-        demo.list[tagName] = parts.demo;
+        Fez.index.ensure(tagName).demo = parts.demo;
       }
     }
     return compileBulk(html);
@@ -102,7 +102,7 @@ export default function compile(tagName, html) {
   }
 
   // Store original source
-  demo.sourceList[tagName] = html;
+  Fez.index.ensure(tagName).source = html;
 
   // Extract and compile
   const classCode = generateClassCode(tagName, compileToClass(html));
@@ -173,10 +173,10 @@ function compileFromUrl(url) {
         const fileName = url.split("/").pop().split(".")[0];
         const parts = compileToClass(content);
         if (parts.info?.trim()) {
-          demo.infoList[fileName] = parts.info;
+          Fez.index.ensure(fileName).info = parts.info;
         }
         if (parts.demo?.trim()) {
-          demo.list[fileName] = parts.demo;
+          Fez.index.ensure(fileName).demo = parts.demo;
         }
 
         // Multiple components in file
@@ -362,14 +362,14 @@ function generateClassCode(tagName, parts) {
     klass = klass.replace(/\}\s*$/, `\n  HTML = \`${html}\`\n}`);
   }
 
-  // Store demo content in demo.list registry
+  // Store demo content in index
   if (parts.demo?.trim()) {
-    demo.list[tagName] = parts.demo;
+    Fez.index.ensure(tagName).demo = parts.demo;
   }
 
-  // Store info content in demo.infoList registry
+  // Store info content in index
   if (parts.info?.trim()) {
-    demo.infoList[tagName] = parts.info;
+    Fez.index.ensure(tagName).info = parts.info;
   }
 
   // Wrap in Fez call
@@ -387,7 +387,7 @@ function executeClassCode(tagName, code) {
 
     // Check for compile errors after delay
     setTimeout(() => {
-      if (!Fez.classes[tagName]) {
+      if (!Fez.index[tagName]?.class) {
         Fez.consoleError(`Template "${tagName}" possible compile error.`);
       }
     }, 2000);
@@ -414,6 +414,6 @@ function hideCustomElement(tagName) {
     document.head.appendChild(styleEl);
   }
 
-  const allTags = [...Object.keys(Fez.classes), tagName].sort().join(", ");
+  const allTags = [...Fez.index.names(), tagName].sort().join(", ");
   styleEl.textContent = `${allTags} { display: none; }\n`;
 }

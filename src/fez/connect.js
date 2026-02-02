@@ -97,8 +97,8 @@ export default function connect(name, klass) {
     klass.css = Fez.globalCss(klass.css, { name });
   }
 
-  // Store class
-  Fez.classes[name] = klass;
+  // Store class in index
+  Fez.index.ensure(name).class = klass;
 
   // Register custom element
   if (!customElements.get(name)) {
@@ -169,6 +169,12 @@ function ensureFezBase(Fez, name, klass) {
     newKlass.html = closeCustomTags(html);
   }
 
+  // Handle META (generic metadata object)
+  if (instance.META) {
+    newKlass.META = instance.META;
+    Fez.index.ensure(name).meta = instance.META;
+  }
+
   // Auto-mount global components
   if (instance.GLOBAL) {
     Fez.onReady(() => document.body.appendChild(document.createElement(name)));
@@ -211,7 +217,7 @@ function connectNode(name, node) {
   if (!node.isConnected) return;
   if (node.classList?.contains("fez")) return;
 
-  const klass = Fez.classes[name];
+  const klass = Fez.index[name]?.class;
   const nodeName =
     typeof klass.nodeName === "function"
       ? klass.nodeName(node)
