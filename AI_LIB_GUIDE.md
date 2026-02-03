@@ -26,7 +26,7 @@ bunx fez-compile path/to/component.fez
 6. **NEVER** use `{#if}` blocks inside HTML attributes - use ternary operators `{condition ? 'value' : ''}` instead
 7. **Attribute expressions** are automatically quoted - write `attr={value}` (quotes added automatically)
 8. **ALWAYS** use lowercase with underscores for props (e.g., `fill_color`, `read_only`, `stroke_width`)
-9. **PREFER simple `fez.` prefix** for event handlers: `onclick="fez.toggle()"` - use arrow functions only when passing complex data from loops
+9. **PREFER `onclick="fez.func({value})"`** for event handlers with inline template values - use function pointers only when passing complex data (objects, arrays)
 
 ## Component Structure
 
@@ -45,49 +45,43 @@ bunx fez-compile path/to/component.fez
 </demo>
 
 <script>
-  // ES Module imports (optional)
-  import library from 'https://cdn.jsdelivr.net/npm/library/+esm'
-
-  // Import map for bare specifiers (rewrites to full URLs at compile time)
-  Fez.head({importmap: {
-    "three": "https://esm.sh/three@0.160.0",
-    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/"
+  // Import map: declare once, use bare specifiers in imports below
+  Fez.head({ importmap: {
+    'tiptap': 'https://esm.sh/@tiptap/core@2',
+    'tiptap/': 'https://esm.sh/@tiptap/',
   }})
-  import * as THREE from 'three'
-  import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+
+  import { Editor } from 'tiptap'
+  import StarterKit from 'tiptap/starter-kit@2'
 
   // Or load scripts/styles dynamically
-  Fez.head({js: 'https://cdn.example.com/script.js'})
   Fez.head({css: 'https://cdn.example.com/styles.css'})
 
-  // component logic
   class {
-    FAST = true  // Renders immediately (no flicker, only if does not have slot data)
-
-    // Component metadata (available via Fez.index['name'].meta)
-    META = {
-      version: '1.0.0',
-      author: 'Author Name',
-      tags: ['ui', 'form'],
-      description: 'Component description'
-    }
+    // FAST = true — sync render, prevents flicker.
+    // Do NOT use if component reads innerHTML or slot content in init().
+    FAST = true
 
     init(props) {
-      // Props are passed as parameter - use props.name, NOT this.prop('name')
+      // runs BEFORE template render — props available, DOM refs are not
       // do not rewrite state, just add to it
       this.state.count = props.count || 0
       this.state.title = props.title || 'Default'
     }
 
     onMount(props) {
-      // Props also available in onMount - use props.name
-      // called after fezRender() method
-      if (props.autoFocus) {
-        this.find('input').focus()
-      }
+      // runs AFTER template render — DOM is ready, fez:this refs work
+      this.editor = new Editor({
+        element: this.editorNode,
+        extensions: [StarterKit],
+      })
     }
 
-    onDestroy() {} // Cleanup resources
+    onDestroy() {
+      // cleanup external resources
+      this.editor?.destroy()
+    }
+
     onWindowResize() {} // on Window resize
     onWindowScroll() {} // on window scroll
 
@@ -99,22 +93,16 @@ bunx fez-compile path/to/component.fez
 </script>
 
 <style>
-  /* Global styles (affects entire page) */
-  body {
-    background: #f5f5f5;
-  }
-
-  /* Component-scoped styles - ALWAYS use nested SCSS syntax */
+  /* ALWAYS put ALL styles inside :fez — never write global/body styles */
   :fez {
-    /* Direct styles on component root */
+    /* styles on component root element */
     padding: 20px;
 
-    /* Nested elements - this is the PREFERRED pattern */
+    /* nested SCSS syntax */
     button {
       background: gold;
       cursor: pointer;
 
-      /* Deep nesting is encouraged */
       span {
         color: black;
         font-weight: bold;
@@ -293,27 +281,26 @@ class {
 
 ### Event Handlers
 
-**PREFER simple `fez.` prefix syntax for event handlers:**
+**PREFER `onclick="fez.method()"` with inline values from templates:**
 
 ```html
-<!-- PREFERRED - simple fez. prefix -->
+<!-- PREFERRED - pass simple/scalar values inline -->
 <button onclick="fez.handleClick()">Click me</button>
-<button onclick="fez.toggle()">Toggle</button>
 <input onchange="fez.setValue(this.value)" />
+
+<!-- Pass template values directly - evaluated at render time -->
+{#each state.items as item}
+<button onclick="fez.remove('{item.id}')">Remove</button>
+<button onclick="fez.select('{item.id}', '{item.name}')">Select</button>
+{/each}
 ```
 
-**Use arrow functions ONLY when passing complex data from loops:**
+**Use function pointers ONLY when passing complex data (objects, arrays):**
 
 ```html
-<!-- Arrow functions - use only in loops with complex data -->
+<!-- Function pointers - only when passing objects/arrays from loops -->
 {#each state.tasks as task, index}
-<button onclick="{()" ="">removeTask(index)}>Remove #{index}</button>
-<button onclick="{()" ="">editTask(task, index)}>Edit</button>
-{/each}
-
-<!-- Or when you need the event object in loops -->
-{#each state.items as item}
-<button onclick="{(e)" ="">handleItem(item, e)}>Process</button>
+<button onclick="{()" ="">editTask(task)}>Edit</button>
 {/each}
 ```
 
@@ -474,7 +461,10 @@ All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is con
 ### Performance
 
 - Use throttled events: `this.on('scroll', callback, 100)`
-- Use `FAST = true` for components that don't work with slots to prevent render flicker
+- `FAST = true` — synchronous render, prevents flash of unstyled content
+  - Place as a **class property** (first line inside `class { }`), never as a standalone statement
+  - Do **NOT** use when component reads innerHTML, slot content, or `this.root.textContent` in `init()`
+  - Use for self-contained components that generate their own content (icons, badges, viewers)
 
 ### External DOM Libraries (Three.js, Charts, Video players, etc.)
 

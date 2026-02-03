@@ -269,9 +269,9 @@ function connectNode(name, node) {
   // Setup reactive state
   fez.fezRegister();
 
-  // Capture children if no slot consumed them
-  if (fez.root.children.length) {
-    fez._fezChildNodes = Array.from(fez.root.children);
+  // Capture children (including text nodes) for slot insertion
+  if (fez.root.childNodes.length) {
+    fez._fezChildNodes = Array.from(fez.root.childNodes);
   }
 
   // Prevent state changes during init/mount from scheduling extra renders

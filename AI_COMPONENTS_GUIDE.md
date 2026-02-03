@@ -25,19 +25,18 @@ Example structure:
   ...
 </script>
 <style>
-  ...
+  :fez {
+    /* all styles go inside :fez — never write global/body styles */
+  }
 </style>
 <!-- template markup here -->
 ```
 
-## FAST Rendering Guidelines
+## FAST Rendering
 
-When creating Fez components, consider using the FAST property to control rendering timing:
-
-- Set `FAST = true` for components that don't work with **slots**:
-  - Components that generate their own content entirely
-  - Components that don't need to preserve original child elements
-  - Any component where slot content would be ignored anyway
+- `FAST = true` — synchronous render, prevents flash of unstyled content
+- Place as a **class property** (first line inside `class { }`), never as a standalone statement
+- Do **NOT** use when component reads innerHTML, slot content, or `this.root.textContent` in `init()`
 
 ## External Libraries (Three.js, Charts, etc.)
 

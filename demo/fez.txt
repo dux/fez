@@ -3,6 +3,7 @@ fez/demo-await
 fez/input-checkbox-toggle
 fez/input-color
 fez/input-date
+fez/input-html
 fez/ui-3d-viewer
 fez/ui-auto-height
 fez/ui-avatar

@@ -1,0 +1,347 @@
+<info>
+  <ul>
+    <li>Rich text HTML editor, textarea replacement</li>
+    <li>Powered by <code>Tiptap</code> (ProseMirror wrapper) loaded via ESM</li>
+    <li>Toggle between WYSIWYG and raw Markdown editing</li>
+    <li>Data is always stored as Markdown in a hidden input</li>
+  </ul>
+</info>
+
+<demo>
+  <h4>Basic editor</h4>
+  <input-html name="body">
+## Hello world
+
+This is **bold** and *italic* text.
+
+* list item 1
+* list item 2
+
+> a nice blockquote
+  </input-html>
+</demo>
+
+<script>
+  import { Editor } from 'https://esm.sh/@tiptap/core@2'
+  import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2'
+  import Link from 'https://esm.sh/@tiptap/extension-link@2'
+  import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder@2'
+  import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
+  import TurndownService from 'https://esm.sh/turndown@7'
+
+  class {
+    init() {
+      // capture initial content before template renders over it
+      this._initialMd = (this.props.value || this.root.textContent || '').trim()
+    }
+
+    onMount() {
+      this.turndown = new TurndownService({
+        headingStyle: 'atx',
+        bulletListMarker: '*',
+        codeBlockStyle: 'fenced',
+        emDelimiter: '*',
+      })
+
+      this.turndown.addRule('strikethrough', {
+        filter: ['del', 's', 'strike'],
+        replacement: (content) => `~~${content}~~`
+      })
+
+      // Tiptap wraps li content in <p> tags, strip them for clean markdown
+      this.turndown.addRule('listItemParagraph', {
+        filter: (node) => node.nodeName === 'P' && node.parentNode?.nodeName === 'LI',
+        replacement: (content) => content
+      })
+
+      const initialHtml = this._initialMd ? marked.parse(this._initialMd) : ''
+
+      this.editor = new Editor({
+        element: this.editorNode,
+        extensions: [
+          StarterKit,
+          Link.configure({ openOnClick: false }),
+          Placeholder.configure({ placeholder: this.props.placeholder || '' }),
+        ],
+        content: initialHtml,
+        onUpdate: () => {
+          if (!this._mdMode) this.syncMarkdown()
+        },
+      })
+
+      this.updateHiddenInput()
+      this._ready = true
+    }
+
+    updateHiddenInput() {
+      const html = this.editor.getHTML()
+      let md = this.turndown.turndown(html)
+      md = md.replace(/\n{3,}/g, '\n\n').trim()
+      this.hiddenInput.value = md
+      return md
+    }
+
+    syncMarkdown() {
+      const md = this.updateHiddenInput()
+
+      if (this._ready && this.props.onchange) {
+        Fez.getFunction(this.props.onchange)(md)
+      }
+    }
+
+    toggleMode() {
+      this._mdMode = !this._mdMode
+
+      if (this._mdMode) {
+        // WYSIWYG -> Markdown
+        this.syncMarkdown()
+        this.mdTextarea.value = this.hiddenInput.value
+        this.editorNode.style.display = 'none'
+        this.mdTextarea.style.display = ''
+        this.toolbarBtns.style.display = 'none'
+        this.modeBtn.textContent = 'Rich'
+        this.modeBtn.classList.add('active')
+      } else {
+        // Markdown -> WYSIWYG
+        const md = this.mdTextarea.value
+        this.hiddenInput.value = md
+        const html = md ? marked.parse(md) : '<p></p>'
+        this.editor.commands.setContent(html)
+        this.mdTextarea.style.display = 'none'
+        this.editorNode.style.display = ''
+        this.toolbarBtns.style.display = ''
+        this.modeBtn.textContent = 'MD'
+        this.modeBtn.classList.remove('active')
+      }
+    }
+
+    // toolbar actions
+    tbBold()       { this.editor.chain().focus().toggleBold().run() }
+    tbItalic()     { this.editor.chain().focus().toggleItalic().run() }
+    tbStrike()     { this.editor.chain().focus().toggleStrike().run() }
+    tbCode()       { this.editor.chain().focus().toggleCode().run() }
+    tbH1()         { this.editor.chain().focus().toggleHeading({ level: 1 }).run() }
+    tbH2()         { this.editor.chain().focus().toggleHeading({ level: 2 }).run() }
+    tbH3()         { this.editor.chain().focus().toggleHeading({ level: 3 }).run() }
+    tbBulletList() { this.editor.chain().focus().toggleBulletList().run() }
+    tbOrderedList(){ this.editor.chain().focus().toggleOrderedList().run() }
+    tbBlockquote() { this.editor.chain().focus().toggleBlockquote().run() }
+    tbHr()         { this.editor.chain().focus().setHorizontalRule().run() }
+    tbCodeBlock()  { this.editor.chain().focus().toggleCodeBlock().run() }
+
+    tbLink() {
+      const prev = this.editor.getAttributes('link').href
+      const url = prompt('URL', prev || 'https://')
+      if (url === null) return
+      if (url === '') {
+        this.editor.chain().focus().unsetLink().run()
+      } else {
+        this.editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+      }
+    }
+
+    onDestroy() {
+      if (this.editor) this.editor.destroy()
+    }
+  }
+</script>
+
+<style>
+  :fez {
+    display: block;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    overflow: hidden;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #fff;
+
+    .ih-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1px;
+      padding: 4px 6px;
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+
+      button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        height: 28px;
+        padding: 0 5px;
+        border: none;
+        border-radius: 4px;
+        background: transparent;
+        color: #444;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        line-height: 1;
+
+        &:hover {
+          background: #e0e0e0;
+        }
+
+        &.active {
+          background: #d0d0d0;
+          color: #111;
+        }
+
+        &.sep {
+          width: 1px;
+          min-width: 1px;
+          height: 18px;
+          padding: 0;
+          margin: 0 3px;
+          background: #d0d0d0;
+          cursor: default;
+
+          &:hover {
+            background: #d0d0d0;
+          }
+        }
+      }
+
+      .ih-spacer {
+        flex: 1;
+      }
+
+      .ih-mode-btn {
+        font-size: 11px;
+        font-family: monospace;
+        color: #888;
+        padding: 0 8px;
+
+        &:hover {
+          color: #333;
+        }
+
+        &.active {
+          color: #333;
+          background: #d0d0d0;
+        }
+      }
+    }
+
+    .ih-editor {
+      min-height: 150px;
+      padding: 10px 14px;
+
+      .tiptap {
+        outline: none;
+        min-height: 130px;
+
+        > * + * {
+          margin-top: 0.5em;
+        }
+
+        h1 { font-size: 1.6em; font-weight: 700; margin: 0.5em 0 0.3em; }
+        h2 { font-size: 1.3em; font-weight: 600; margin: 0.5em 0 0.3em; }
+        h3 { font-size: 1.1em; font-weight: 600; margin: 0.5em 0 0.3em; }
+
+        p { margin: 0.3em 0; }
+
+        ul, ol {
+          padding-left: 1.4em;
+          margin: 0.3em 0;
+        }
+
+        ul { list-style: disc; }
+        ol { list-style: decimal; }
+
+        li { margin: 0.1em 0; }
+        li > p { margin: 0; }
+
+        blockquote {
+          border-left: 3px solid #d0d0d0;
+          padding-left: 12px;
+          margin: 0.5em 0;
+          color: #666;
+        }
+
+        code {
+          background: #f0f0f0;
+          padding: 1px 4px;
+          border-radius: 3px;
+          font-size: 0.9em;
+        }
+
+        pre {
+          background: #f5f5f5;
+          padding: 10px 14px;
+          border-radius: 4px;
+          overflow-x: auto;
+
+          code {
+            background: none;
+            padding: 0;
+          }
+        }
+
+        hr {
+          border: none;
+          border-top: 1px solid #d0d0d0;
+          margin: 0.8em 0;
+        }
+
+        a {
+          color: #2563eb;
+          text-decoration: underline;
+        }
+
+        p.is-editor-empty:first-child::before {
+          content: attr(data-placeholder);
+          float: left;
+          color: #aaa;
+          pointer-events: none;
+          height: 0;
+        }
+      }
+    }
+
+    .ih-md-textarea {
+      width: 100%;
+      min-height: 150px;
+      padding: 10px 14px;
+      border: none;
+      outline: none;
+      resize: vertical;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #333;
+      background: #fafafa;
+      box-sizing: border-box;
+    }
+  }
+</style>
+
+<input fez:this="hiddenInput" type="hidden" name={props.name} />
+
+<div class="ih-toolbar">
+  <span fez:this="toolbarBtns">
+    <button onclick="fez.tbBold()" title="Bold (Ctrl+B)"><b>B</b></button>
+    <button onclick="fez.tbItalic()" title="Italic (Ctrl+I)"><i>I</i></button>
+    <button onclick="fez.tbStrike()" title="Strikethrough"><s>S</s></button>
+    <button onclick="fez.tbCode()" title="Inline code"><span style="font-family:monospace;font-size:11px">cd</span></button>
+    <button class="sep"></button>
+    <button onclick="fez.tbH1()" title="Heading 1">H1</button>
+    <button onclick="fez.tbH2()" title="Heading 2">H2</button>
+    <button onclick="fez.tbH3()" title="Heading 3">H3</button>
+    <button class="sep"></button>
+    <button onclick="fez.tbBulletList()" title="Bullet list">&#8226;</button>
+    <button onclick="fez.tbOrderedList()" title="Ordered list">1.</button>
+    <button onclick="fez.tbBlockquote()" title="Blockquote">&ldquo;</button>
+    <button onclick="fez.tbHr()" title="Horizontal rule">&mdash;</button>
+    <button onclick="fez.tbCodeBlock()" title="Code block">&#123;&#125;</button>
+    <button class="sep"></button>
+    <button onclick="fez.tbLink()" title="Link">&#128279;</button>
+  </span>
+  <span class="ih-spacer"></span>
+  <button fez:this="modeBtn" class="ih-mode-btn" onclick="fez.toggleMode()" title="Toggle markdown source">MD</button>
+</div>
+
+<div fez:this="editorNode" class="ih-editor"></div>
+<textarea fez:this="mdTextarea" class="ih-md-textarea" style="display:none" oninput="fez.hiddenInput.value = this.value"></textarea>
