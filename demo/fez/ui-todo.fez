@@ -1,9 +1,8 @@
 <info>
   <ul>
-    <li>fully <b>reactive state</b></li>
-    <li>template for loop</li>
-    <li>Features: <code>fez-bind</code> - two way binding of input element</li>
-    <li>Features: <code>fez-use</code> - when node is added to dom, call described function and pass node as reference (inspired by Svelte)</li>
+    <li>Classic Todo app demo - add, complete, clear tasks</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Showcases reactive state, <code>fez-bind</code>, and template loops</li>
   </ul>
 </info>
 

@@ -1,7 +1,8 @@
 <info>
   <ul>
-    <li>Simple label component</li>
-    <li>Features: size variants, color themes</li>
+    <li>Label/badge component with color themes</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Supports small, default, large sizes and semantic colors</li>
   </ul>
 </info>
 

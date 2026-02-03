@@ -1,9 +1,8 @@
 <info>
   <ul>
-    <li>Simple UI component</li>
-    <li>Pub/sub for card flip</li>
-    <li>Direct component access (node.fez)</li>
-    <li>Slot - pass child nodes</li>
+    <li>Flippable card component with 3D CSS animation</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Uses pub/sub for flip control, supports slot content</li>
   </ul>
 </info>
 

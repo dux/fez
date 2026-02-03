@@ -1,11 +1,8 @@
 <info>
   <ul>
-    <li>Fires <code>change</code> events and supports <code>onchange</code> callbacks</li>
-    <li>
-      Features: <code>onPropsChange()</code> value monitor.
-      <button onclick="Fez('input-color', (el)=>el.root.setAttribute('value', '#abcdef'))">test?</button>
-    </li>
-    <li>Supports <code>value</code> attribute for initial color and <code>disabled</code> attribute</li>
+    <li>Color picker input with preview swatch</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Fires <code>change</code> events, supports <code>onPropsChange()</code> monitoring</li>
   </ul>
 </info>
 

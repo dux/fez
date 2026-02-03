@@ -1,7 +1,8 @@
 <info>
   <ul>
-  <li>Features: publish &lt;> subscribe mechanism. Auto disconnect on node destroy.</li>
-  <li>Direct Fez component creation via <code>Fez(tagName, class { ... })</code></li>
+    <li>Publish/Subscribe messaging between components</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Use <code>Fez.publish()</code> and <code>Fez.subscribe()</code> - auto-disconnects on destroy</li>
   </ul>
 </info>
 

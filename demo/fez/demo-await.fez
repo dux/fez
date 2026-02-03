@@ -1,10 +1,8 @@
 <info>
   <ul>
-    <li>Uses <code>{#await}</code> block to handle async data fetching</li>
-    <li>Shows loading spinner while promise is pending</li>
-    <li>Displays user card when promise resolves</li>
-    <li>Shows error message with retry button if promise rejects</li>
-    <li>30% chance of simulated error to demonstrate error handling</li>
+    <li>Async data loading demo with loading/error states</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Uses <code>{#await}</code> block for declarative promise handling</li>
   </ul>
 </info>
 

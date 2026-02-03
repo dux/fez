@@ -1,6 +1,8 @@
 <info>
   <ul>
-    <li>Features: class header that gets executed on component initializer.</li>
+    <li>Toast notifications - info, success, warning, error</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Call <code>Toast.info()</code>, <code>Toast.error()</code> etc. from anywhere</li>
   </ul>
 </info>
 

@@ -1,9 +1,8 @@
 <info>
   <ul>
-    <li>sweet component with css animations :)</li>
-    <li>Features: <code>this.find()</code> to find node in template, shortcut for <code>this.root.querySelector()</code></li>
-    <li>Features: <code>this.beforeRender()</code> to prepare vars before render (clean alternative to svelte <code>$: {...}</code></li>
-    <li>Features: <code>this.onWindowResize()</code> to execute code on window resized. Auto cleared when node is removed.</li>
+    <li>Image/content slider with smooth CSS animations</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Touch-friendly, responsive, auto-advances</li>
   </ul>
 </info>
 

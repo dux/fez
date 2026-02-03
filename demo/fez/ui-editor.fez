@@ -1,8 +1,8 @@
 <info>
   <ul>
-    <li>this is viewer / editor you see on the right</li>
-    <li>Features: <code>Fez.head(...)</code> that will safely insert script tags in the page header</li>
-    <li>Features: <code>Fez.untilTrue(...)</code> that will execute code every 100 milliseconds until it returns true</li>
+    <li>Live code editor with syntax highlighting - this is what you see on the right!</li>
+    <li>Powered by <code>CodeMirror 6</code></li>
+    <li>Uses <code>Fez.head()</code> to safely load external scripts</li>
   </ul>
 </info>
 

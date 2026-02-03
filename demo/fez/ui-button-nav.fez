@@ -1,6 +1,8 @@
 <info>
   <ul>
-    <li>Simple button nav component</li>
+    <li>Button group navigation with active state</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Click to select, supports any child elements</li>
   </ul>
 </info>
 

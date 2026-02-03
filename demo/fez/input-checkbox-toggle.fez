@@ -1,10 +1,8 @@
 <info>
   <ul>
-    <li>Toggle switch with sliding circle animation or classic checkbox</li>
-    <li>Hidden input field with <code>value</code> of "1" or "0"</li>
-    <li>Props: <code>checked</code>, <code>name</code>, <code>disabled</code>, <code>onchange</code>, <code>kind</code>, <code>label</code></li>
-    <li>Kind options: <code>toggle</code> (default) or <code>classic</code></li>
-    <li>Onchange handler receives <code>(value, checked)</code> parameters</li>
+    <li>Toggle switch with smooth sliding animation</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Supports toggle or classic checkbox styles with labels</li>
   </ul>
 </info>
 

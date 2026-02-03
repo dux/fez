@@ -1,6 +1,8 @@
 <info>
   <ul>
-    <li>Features: <code>Fez.cssMixin</code> - define style shortcuts.</li>
+    <li>CSS mixin demo - create reusable style shortcuts</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Use <code>Fez.cssMixin</code> for custom CSS patterns like <code>:mobile</code></li>
   </ul>
 </info>
 

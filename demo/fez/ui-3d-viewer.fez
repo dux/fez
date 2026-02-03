@@ -1,0 +1,504 @@
+<info>
+  <ul>
+    <li>3D model viewer for GLB/GLTF files with customizable text overlay</li>
+    <li>Powered by <code>three.js</code> - lazy loads when scrolled into view</li>
+    <li>Drag to rotate, scroll to zoom, add custom text with color picker</li>
+  </ul>
+</info>
+
+<demo>
+  <h4>Sneaker with custom text (type to change)</h4>
+  <ui-3d-viewer
+    model="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/MaterialsVariantsShoe/glTF-Binary/MaterialsVariantsShoe.glb"
+    height="450"
+    auto_rotate
+    background="#1a1a2e"
+    editable
+  ></ui-3d-viewer>
+
+  <h4>Damaged Helmet</h4>
+  <ui-3d-viewer
+    model="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb"
+    height="350"
+    auto_rotate
+    model_offset_y="-0.2"
+    background="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+  ></ui-3d-viewer>
+</demo>
+
+<script>
+  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js/+esm'
+  import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js/+esm'
+  import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js/+esm'
+  import { FontLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/FontLoader.js/+esm'
+  import { TextGeometry } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/geometries/TextGeometry.js/+esm'
+
+  class {
+    FAST = true
+
+    colors = [
+      { name: 'White', hex: '#FFFFFF' },
+      { name: 'Red', hex: '#FF3B30' },
+      { name: 'Orange', hex: '#FF9500' },
+      { name: 'Yellow', hex: '#FFCC00' },
+      { name: 'Green', hex: '#34C759' },
+      { name: 'Blue', hex: '#007AFF' },
+      { name: 'Purple', hex: '#AF52DE' },
+      { name: 'Black', hex: '#1C1C1E' },
+    ]
+
+    init(props) {
+      this.height = parseInt(props.height) || 400
+      this.background = props.background || 'transparent'
+      this.autoRotate = props.auto_rotate !== undefined
+      this.editable = props.editable !== undefined
+      this.modelUrl = props.model
+      this.modelOffsetY = parseFloat(props.model_offset_y) || 0
+      this.selectedColor = '#34C759'
+      this.currentText = 'Fez rulez'
+    }
+
+    onMount() {
+      this.container = this.find('.canvas-container')
+      this.loadingOverlay = this.find('.loading-overlay')
+      this.loadButton = this.find('.load-button')
+      this.isLoaded = false
+
+      // Auto-load when visible on screen
+      this.observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && !this.isLoaded) {
+            this.startLoading()
+            this.observer.disconnect()
+          }
+        })
+      }, { threshold: 0.2 })
+
+      this.observer.observe(this.root)
+
+      // Also allow manual click
+      this.loadButton.addEventListener('click', () => this.startLoading())
+    }
+
+    startLoading() {
+      if (this.isLoaded) return
+      this.isLoaded = true
+
+      // Hide button, show spinner
+      this.loadButton.style.display = 'none'
+      this.loadingOverlay.querySelector('.spinner').style.display = 'block'
+
+      if (this.editable) {
+        this.textInput = this.find('.text-input')
+        this.swatchContainer = this.find('.color-swatches')
+
+        // Set initial value
+        this.textInput.value = this.currentText
+
+        // Bind events
+        this.textInput.addEventListener('input', () => {
+          this.currentText = this.textInput.value
+          this.updateText()
+        })
+
+        this.swatchContainer.addEventListener('click', (e) => {
+          const swatch = e.target.closest('.color-swatch')
+          if (swatch && swatch.dataset.color) {
+            this.selectedColor = swatch.dataset.color
+            // Update selected state
+            this.swatchContainer.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'))
+            swatch.classList.add('selected')
+            this.updateText()
+          }
+        })
+      }
+
+      this.initThree()
+      this.loadFont()
+      this.loadModel()
+      this.animate()
+    }
+
+    initThree() {
+      const width = this.container.offsetWidth
+      const height = this.height
+
+      this.scene = new THREE.Scene()
+
+      this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+      this.camera.position.set(0, 0.3, 3.0)  // Lower and further back to see shoe + text
+
+      this.renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true
+      })
+      this.renderer.setSize(width, height)
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      this.renderer.outputColorSpace = THREE.SRGBColorSpace
+      this.renderer.toneMapping = THREE.ACESFilmicToneMapping
+      this.renderer.toneMappingExposure = 1.2
+      this.container.appendChild(this.renderer.domElement)
+
+      this.controls = new OrbitControls(this.camera, this.renderer.domElement)
+      this.controls.enableDamping = true
+      this.controls.dampingFactor = 0.05
+      this.controls.autoRotate = this.autoRotate
+      this.controls.autoRotateSpeed = 2
+      this.controls.minDistance = 1
+      this.controls.maxDistance = 10
+      this.controls.target.set(0, -0.1, 0)  // Look slightly below center to see both shoe and text
+
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
+      this.scene.add(ambientLight)
+
+      const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.2)
+      directionalLight1.position.set(5, 10, 7)
+      this.scene.add(directionalLight1)
+
+      const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.8)
+      directionalLight2.position.set(-5, 5, -5)
+      this.scene.add(directionalLight2)
+
+      const pointLight = new THREE.PointLight(0xffffff, 0.5)
+      pointLight.position.set(0, 5, 0)
+      this.scene.add(pointLight)
+    }
+
+    loadFont() {
+      const fontLoader = new FontLoader()
+      fontLoader.load(
+        'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json',
+        (font) => {
+          this.font = font
+          this.tryCreateText()
+        }
+      )
+    }
+
+    loadModel() {
+      const loader = new GLTFLoader()
+
+      loader.load(
+        this.modelUrl,
+        (gltf) => {
+          this.model = gltf.scene
+
+          const box = new THREE.Box3().setFromObject(this.model)
+          const center = box.getCenter(new THREE.Vector3())
+          const size = box.getSize(new THREE.Vector3())
+
+          const maxDim = Math.max(size.x, size.y, size.z)
+          const scale = 2 / maxDim
+          this.model.scale.setScalar(scale)
+          this.model.position.sub(center.multiplyScalar(scale))
+          this.model.position.y += 0.15 + this.modelOffsetY  // Move model (+ custom offset)
+
+          this.scene.add(this.model)
+          this.loadingOverlay.style.display = 'none'
+
+          this.tryCreateText()
+        },
+        (progress) => {},
+        (error) => {
+          console.error('Error loading model:', error)
+          this.loadingOverlay.innerHTML = '<div class="error-message">Failed to load 3D model</div>'
+        }
+      )
+    }
+
+    tryCreateText() {
+      // Only create text if both font and model are loaded, and editable
+      if (this.font && this.model && this.editable) {
+        this.updateText()
+      }
+    }
+
+    createTextMesh(text, color, size) {
+      const geometry = new TextGeometry(text, {
+        font: this.font,
+        size: size,
+        height: size * 0.2,  // raised
+        curveSegments: 8,
+        bevelEnabled: true,
+        bevelThickness: size * 0.06,
+        bevelSize: size * 0.04,
+        bevelSegments: 2
+      })
+
+      // Center the geometry
+      geometry.computeBoundingBox()
+      const bbox = geometry.boundingBox
+      const centerX = (bbox.max.x - bbox.min.x) / 2
+      const centerY = (bbox.max.y - bbox.min.y) / 2
+      geometry.translate(-centerX - bbox.min.x, -centerY - bbox.min.y, 0)
+
+      const material = new THREE.MeshStandardMaterial({
+        color: color,
+        metalness: 0.5,
+        roughness: 0.2
+      })
+
+      return new THREE.Mesh(geometry, material)
+    }
+
+    updateText() {
+      if (!this.font || !this.model) return
+
+      // Remove old text mesh
+      if (this.textMesh) {
+        this.scene.remove(this.textMesh)
+        this.textMesh.geometry.dispose()
+        this.textMesh.material.dispose()
+        this.textMesh = null
+      }
+
+      const text = this.currentText.trim()
+      if (!text) return
+
+      // Text size - smaller for longer text (50% larger base)
+      const baseSize = 0.27
+      const textSize = Math.max(0.12, baseSize - (text.length * 0.015))
+
+      // Fixed Y position - doesn't change with text size
+      const fixedY = -0.65 + (2.3 * 0.27) - 0.30  // Use base size for consistent position, 30cm down
+
+      // Single centered text below shoe, horizontal (lying flat)
+      this.textMesh = this.createTextMesh(text, this.selectedColor, textSize)
+      this.textMesh.position.set(0, fixedY, 0)  // Fixed position
+      this.textMesh.rotation.set(Math.PI / 2, 0, 0)  // Rotate 90 deg to lay flat, facing up
+      this.scene.add(this.textMesh)
+    }
+
+    animate() {
+      if (!this.renderer) return
+
+      this.animationId = requestAnimationFrame(() => this.animate())
+      this.controls.update()
+      this.renderer.render(this.scene, this.camera)
+    }
+
+    onWindowResize() {
+      if (!this.container || !this.camera || !this.renderer) return
+
+      const width = this.container.offsetWidth
+      const height = this.height
+
+      this.camera.aspect = width / height
+      this.camera.updateProjectionMatrix()
+      this.renderer.setSize(width, height)
+    }
+
+    onDestroy() {
+      if (this.observer) {
+        this.observer.disconnect()
+      }
+      if (this.animationId) {
+        cancelAnimationFrame(this.animationId)
+      }
+      if (this.renderer) {
+        this.renderer.dispose()
+      }
+      if (this.controls) {
+        this.controls.dispose()
+      }
+    }
+  }
+</script>
+
+<style>
+  :fez {
+    display: block;
+
+    .viewer-container {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .controls {
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.95);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .text-input {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 16px;
+      font-weight: 500;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+
+      &:focus {
+        outline: none;
+        border-color: #007AFF;
+      }
+
+      &::placeholder {
+        color: #999;
+      }
+    }
+
+    .color-swatches {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .color-swatch {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid rgba(0, 0, 0, 0.1);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: transform 0.15s, box-shadow 0.15s;
+
+      &:hover {
+        transform: scale(1.1);
+      }
+
+      &.selected {
+        border-color: #333;
+        box-shadow: 0 0 0 2px white, 0 0 0 4px #333;
+      }
+    }
+
+    .viewer-wrapper {
+      position: relative;
+    }
+
+    .canvas-container {
+      width: 100%;
+      cursor: grab;
+
+      &:active {
+        cursor: grabbing;
+      }
+
+      canvas {
+        display: block;
+        width: 100% !important;
+        height: auto !important;
+      }
+    }
+
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(4px);
+    }
+
+    .load-button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: 600;
+      color: white;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+
+      &:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+      }
+
+      &:active {
+        transform: scale(0.98);
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-message {
+      color: #ff6b6b;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .controls-hint {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 12px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 6px 12px;
+      border-radius: 20px;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 0.3s;
+    }
+
+    &:hover .controls-hint {
+      opacity: 0;
+    }
+  }
+</style>
+
+<div class="viewer-container">
+  {#if this.editable}
+  <div class="controls">
+    <input type="text" class="text-input" placeholder="Text to write" />
+    <div class="color-swatches">
+      {#each this.colors as color, i}
+      <div
+        class="color-swatch {color.hex === '#34C759' ? 'selected' : ''}"
+        style="background-color: {color.hex};"
+        data-color="{color.hex}"
+        title="{color.name}"
+      ></div>
+      {/each}
+    </div>
+  </div>
+  {/if}
+  <div class="viewer-wrapper" style="background: {this.background};">
+    <div class="canvas-container" style="height: {this.height}px;"></div>
+    <div class="loading-overlay">
+      <button class="load-button">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        Load 3D Model
+      </button>
+      <div class="spinner" style="display: none;"></div>
+    </div>
+    <div class="controls-hint">Drag to rotate • Scroll to zoom</div>
+  </div>
+</div>

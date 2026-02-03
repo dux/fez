@@ -1,9 +1,8 @@
 <info>
   <ul>
-    <li>Typewriter effect component</li>
-    <li>Props: <code>speed</code> (ms per char), <code>delay</code> (ms between sentences)</li>
-    <li>Sentences in <code>&lt;p&gt;</code> tags inside slot are typed one after another</li>
-    <li>HTML tags inside sentences are typed in one go</li>
+    <li>Typewriter animation - types text character by character</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Multiple sentences cycle automatically with customizable speed</li>
   </ul>
 </info>
 

@@ -1,6 +1,8 @@
 <info>
   <ul>
-    <li>Date picker component using flatpickr</li>
+    <li>Beautiful date picker with calendar popup</li>
+    <li>Powered by <code>flatpickr</code> library</li>
+    <li>Supports date ranges, time selection, and custom formats</li>
   </ul>
 </info>
 

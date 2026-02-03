@@ -3,6 +3,7 @@ fez/demo-await
 fez/input-checkbox-toggle
 fez/input-color
 fez/input-date
+fez/ui-3d-viewer
 fez/ui-auto-height
 fez/ui-avatar
 fez/ui-border
@@ -20,6 +21,7 @@ fez/ui-fetch
 fez/ui-ficon
 fez/ui-form
 fez/ui-label
+fez/ui-map-route
 fez/ui-markdown
 fez/ui-pub-sub
 fez/ui-slider

@@ -1,0 +1,664 @@
+<info>
+  <ul>
+    <li>Animated flight-tracker style map with curved routes and moving plane</li>
+    <li>Powered by <code>leaflet</code> + <code>OpenStreetMap</code> - free, no API key</li>
+    <li>Lazy loads when visible, supports area polygons, rich popups with images</li>
+  </ul>
+</info>
+
+<demo>
+  <h4>Around the World (looping animation)</h4>
+  <ui-map-route
+    height="450"
+    animate
+    loop
+    animate_duration="16000"
+    theme="dark"
+    points='[
+      {"lat": 35.6762, "lng": 139.6503, "label": "Tokyo", "color": "#FF6B6B"},
+      {"lat": -33.8688, "lng": 151.2093, "label": "Sydney", "color": "#FFA500"},
+      {"lat": -33.9249, "lng": 18.4241, "label": "Cape Town", "color": "#FFE66D"},
+      {"lat": -23.5505, "lng": -46.6333, "label": "São Paulo", "color": "#4ECDC4"},
+      {"lat": 40.7128, "lng": -74.006, "label": "New York", "color": "#667eea"},
+      {"lat": 51.5074, "lng": -0.1278, "label": "London", "color": "#764ba2"},
+      {"lat": 25.2048, "lng": 55.2708, "label": "Dubai", "color": "#FF006E"}
+    ]'
+  ></ui-map-route>
+
+  <h4>Yosemite National Park Trail</h4>
+  <ui-map-route
+    height="400"
+    path_color="#4ECDC4"
+    path_width="4"
+    theme="color"
+    area='[
+      [37.7456, -119.5936],
+      [37.7456, -119.5800],
+      [37.7350, -119.5800],
+      [37.7350, -119.5936]
+    ]'
+    area_color="#4ECDC4"
+    points='[
+      {"lat": 37.7410, "lng": -119.5865, "label": "Park Entrance", "icon": "entrance", "image": "https://images.unsplash.com/photo-1562310503-a918c4c61e38?w=200&h=120&fit=crop", "description": "Main entrance to Yosemite Valley"},
+      {"lat": 37.7386, "lng": -119.5869, "label": "Visitor Center", "icon": "info"},
+      {"lat": 37.7456, "lng": -119.5936, "label": "Tunnel View", "icon": "viewpoint", "image": "https://images.unsplash.com/photo-1472396961693-142e6e269027?w=200&h=120&fit=crop", "description": "Iconic panoramic viewpoint"}
+    ]'
+  ></ui-map-route>
+</demo>
+
+<script>
+  class {
+    FAST = true
+
+    init(props) {
+      this.height = parseInt(props.height) || 400
+      this.pathColor = props.path_color || '#667eea'
+      this.pathWidth = parseInt(props.path_width) || 3
+      this.animate = props.animate !== undefined
+      this.animateDuration = parseInt(props.animate_duration) || 5000
+      this.loop = props.loop !== undefined
+      this.theme = props.theme || 'color'
+      this.areaColor = props.area_color || '#667eea'
+      this.points = []
+      this.area = null
+
+      try {
+        if (props.points) {
+          this.points = JSON.parse(props.points)
+        }
+      } catch (e) {
+        console.warn('Invalid points JSON')
+      }
+
+      try {
+        if (props.area) {
+          this.area = JSON.parse(props.area)
+        }
+      } catch (e) {
+        console.warn('Invalid area JSON')
+      }
+    }
+
+    onMount() {
+      this.container = this.find('.map-container')
+      this.loadButton = this.find('.load-button')
+      this.loadingOverlay = this.find('.loading-overlay')
+      this.isLoaded = false
+
+      // Auto-load when visible on screen
+      this.observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && !this.isLoaded) {
+            this.startLoading()
+            this.observer.disconnect()
+          }
+        })
+      }, { threshold: 0.2 })
+
+      this.observer.observe(this.root)
+
+      // Also allow manual click
+      this.loadButton.addEventListener('click', () => this.startLoading())
+    }
+
+    async startLoading() {
+      if (this.isLoaded) return
+      this.isLoaded = true
+
+      this.loadButton.style.display = 'none'
+      this.loadingOverlay.querySelector('.spinner').style.display = 'block'
+
+      // Load Leaflet CSS
+      if (!document.querySelector('link[href*="leaflet"]')) {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css'
+        document.head.appendChild(link)
+      }
+
+      // Load Leaflet JS
+      const L = await import('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/+esm')
+      this.L = L.default
+
+      // Small delay for CSS to load
+      await new Promise(r => setTimeout(r, 200))
+
+      this.initMap()
+      this.loadingOverlay.style.display = 'none'
+    }
+
+    getTileLayer() {
+      const tiles = {
+        color: {
+          url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          attribution: '&copy; OpenStreetMap contributors'
+        },
+        light: {
+          url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+          attribution: '&copy; OpenStreetMap &copy; CARTO'
+        },
+        dark: {
+          url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+          attribution: '&copy; OpenStreetMap &copy; CARTO'
+        }
+      }
+      return tiles[this.theme] || tiles.color
+    }
+
+    initMap() {
+      const L = this.L
+      const tile = this.getTileLayer()
+
+      this.map = L.map(this.container, {
+        zoomControl: true,
+        scrollWheelZoom: true
+      })
+
+      L.tileLayer(tile.url, {
+        attribution: tile.attribution,
+        maxZoom: 18
+      }).addTo(this.map)
+
+      // Draw area if defined
+      if (this.area && this.area.length > 0) {
+        this.drawArea()
+      }
+
+      // Add markers
+      this.addMarkers()
+
+      // Calculate bounds and fit
+      const allCoords = this.points.map(p => [p.lat, p.lng])
+      if (this.area) {
+        allCoords.push(...this.area)
+      }
+      if (allCoords.length > 0) {
+        const bounds = L.latLngBounds(allCoords)
+        this.map.fitBounds(bounds, { padding: [50, 50] })
+      }
+
+      // Generate curved paths
+      this.allPathPoints = this.generateAllPaths()
+
+      if (this.animate) {
+        // Start animation after a short delay
+        setTimeout(() => this.animatePath(), 500)
+      } else if (this.points.length > 1) {
+        // Draw full path immediately (only if we have route points)
+        this.drawFullPath()
+      }
+    }
+
+    drawArea() {
+      const L = this.L
+
+      L.polygon(this.area, {
+        color: this.areaColor,
+        weight: 2,
+        opacity: 0.8,
+        fillColor: this.areaColor,
+        fillOpacity: 0.15,
+        dashArray: '5, 10'
+      }).addTo(this.map)
+    }
+
+    getMarkerIcon(iconType) {
+      const icons = {
+        entrance: `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`,
+        info: `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>`,
+        viewpoint: `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>`,
+        default: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>`
+      }
+      return icons[iconType] || icons.default
+    }
+
+    addMarkers() {
+      const L = this.L
+
+      this.points.forEach((point, index) => {
+        const isFirst = index === 0
+        const isLast = index === this.points.length - 1
+
+        // Determine color and icon
+        const color = point.color || (isFirst ? '#4ECDC4' : isLast ? '#FF6B6B' : '#667eea')
+        const hasIcon = point.icon && point.icon !== 'default'
+        const size = hasIcon ? 36 : (isFirst || isLast ? 14 : 10)
+
+        let iconHtml
+        if (hasIcon) {
+          iconHtml = `<div class="marker-icon" style="
+            width: ${size}px;
+            height: ${size}px;
+            background: ${color};
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+          ">${this.getMarkerIcon(point.icon)}</div>`
+        } else {
+          iconHtml = `<div class="marker-dot" style="
+            width: ${size}px;
+            height: ${size}px;
+            background: ${color};
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          "></div>`
+        }
+
+        const icon = L.divIcon({
+          className: 'custom-marker',
+          html: iconHtml,
+          iconSize: [size, size],
+          iconAnchor: [size/2, size/2]
+        })
+
+        const marker = L.marker([point.lat, point.lng], { icon }).addTo(this.map)
+
+        // Rich popup with image
+        if (point.image || point.description) {
+          const popupContent = `
+            <div class="rich-popup">
+              ${point.image ? `<img src="${point.image}" alt="${point.label}" class="popup-image" />` : ''}
+              <div class="popup-content">
+                <strong class="popup-title">${point.label || ''}</strong>
+                ${point.description ? `<p class="popup-desc">${point.description}</p>` : ''}
+              </div>
+            </div>
+          `
+          marker.bindPopup(popupContent, {
+            maxWidth: 250,
+            className: 'custom-popup'
+          })
+        } else if (point.label) {
+          // Simple tooltip for points without rich content
+          marker.bindTooltip(point.label, {
+            permanent: false,
+            direction: 'top',
+            offset: [0, -10]
+          })
+        }
+      })
+    }
+
+    // Generate curved path points between two coordinates
+    generateCurvedPath(start, end, segments = 50) {
+      const points = []
+
+      // Calculate distance for arc height
+      const latDiff = end.lat - start.lat
+      const lngDiff = end.lng - start.lng
+      const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff)
+
+      // Arc height based on distance (more distance = higher arc)
+      const arcHeight = distance * 0.2
+
+      for (let i = 0; i <= segments; i++) {
+        const t = i / segments
+
+        // Linear interpolation
+        const lat = start.lat + (end.lat - start.lat) * t
+        const lng = start.lng + (end.lng - start.lng) * t
+
+        // Add curve using sine wave for smooth arc
+        // This simulates a great circle arc visually
+        const arc = Math.sin(t * Math.PI) * arcHeight
+
+        // Apply arc perpendicular to the path direction
+        const angle = Math.atan2(end.lat - start.lat, end.lng - start.lng)
+        const arcLat = lat + arc * Math.cos(angle + Math.PI/2) * 0.5
+        const arcLng = lng + arc * Math.sin(angle + Math.PI/2) * 0.5
+
+        points.push([arcLat, arcLng])
+      }
+
+      return points
+    }
+
+    generateAllPaths() {
+      const allPoints = []
+      const pointsToConnect = this.loop
+        ? [...this.points, this.points[0]]  // Close the loop
+        : this.points
+
+      for (let i = 0; i < pointsToConnect.length - 1; i++) {
+        const start = pointsToConnect[i]
+        const end = pointsToConnect[i + 1]
+        const segmentPoints = this.generateCurvedPath(start, end, 50)
+
+        // Add segment info for coloring
+        segmentPoints.forEach((p, idx) => {
+          allPoints.push({
+            latlng: p,
+            color: start.color || this.pathColor,
+            segmentIndex: i,
+            isFirst: idx === 0
+          })
+        })
+      }
+
+      return allPoints
+    }
+
+    drawFullPath() {
+      const L = this.L
+
+      // Draw each segment with its color
+      let currentSegment = -1
+      let currentPoints = []
+
+      this.allPathPoints.forEach((point, idx) => {
+        if (point.segmentIndex !== currentSegment) {
+          // Draw previous segment
+          if (currentPoints.length > 0) {
+            const prevColor = this.allPathPoints[idx - 1]?.color || this.pathColor
+            L.polyline(currentPoints, {
+              color: prevColor,
+              weight: this.pathWidth,
+              opacity: 0.8,
+              lineCap: 'round',
+              lineJoin: 'round'
+            }).addTo(this.map)
+          }
+          currentSegment = point.segmentIndex
+          currentPoints = []
+        }
+        currentPoints.push(point.latlng)
+      })
+
+      // Draw last segment
+      if (currentPoints.length > 0) {
+        const lastColor = this.allPathPoints[this.allPathPoints.length - 1]?.color || this.pathColor
+        L.polyline(currentPoints, {
+          color: lastColor,
+          weight: this.pathWidth,
+          opacity: 0.8,
+          lineCap: 'round',
+          lineJoin: 'round'
+        }).addTo(this.map)
+      }
+    }
+
+    animatePath() {
+      const L = this.L
+      const totalPoints = this.allPathPoints.length
+      const msPerPoint = this.animateDuration / totalPoints
+
+      // Create plane marker
+      const planeIcon = L.divIcon({
+        className: 'plane-marker',
+        html: `<div class="plane-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+          </svg>
+        </div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      })
+
+      const firstPoint = this.allPathPoints[0].latlng
+      this.planeMarker = L.marker(firstPoint, { icon: planeIcon }).addTo(this.map)
+
+      // Trail line
+      this.trailLine = L.polyline([], {
+        color: this.allPathPoints[0].color || this.pathColor,
+        weight: this.pathWidth,
+        opacity: 0.8,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(this.map)
+
+      // Glow line (behind main line)
+      this.glowLine = L.polyline([], {
+        color: this.allPathPoints[0].color || this.pathColor,
+        weight: this.pathWidth + 6,
+        opacity: 0.2,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(this.map)
+
+      let currentIndex = 0
+      let lastSegment = -1
+      const trailPoints = []
+
+      const animate = () => {
+        if (currentIndex >= totalPoints) {
+          if (this.loop) {
+            // Reset and restart
+            currentIndex = 0
+            trailPoints.length = 0
+            this.trailLine.setLatLngs([])
+            this.glowLine.setLatLngs([])
+            lastSegment = -1
+            setTimeout(animate, 1000) // Pause before loop
+          }
+          return
+        }
+
+        const point = this.allPathPoints[currentIndex]
+
+        // Update plane position
+        this.planeMarker.setLatLng(point.latlng)
+
+        // Rotate plane to face direction
+        if (currentIndex < totalPoints - 1) {
+          const next = this.allPathPoints[currentIndex + 1].latlng
+          const angle = Math.atan2(next[0] - point.latlng[0], next[1] - point.latlng[1])
+          const degrees = (angle * 180 / Math.PI) - 90
+          const planeEl = this.planeMarker.getElement()
+          if (planeEl) {
+            planeEl.style.transform = planeEl.style.transform.replace(/rotate\([^)]*\)/, '') + ` rotate(${-degrees}deg)`
+          }
+        }
+
+        // Check if segment changed - update line color
+        if (point.segmentIndex !== lastSegment && point.segmentIndex !== undefined) {
+          lastSegment = point.segmentIndex
+          const color = point.color || this.pathColor
+          this.trailLine.setStyle({ color })
+          this.glowLine.setStyle({ color })
+        }
+
+        // Add to trail
+        trailPoints.push(point.latlng)
+        this.trailLine.setLatLngs(trailPoints)
+        this.glowLine.setLatLngs(trailPoints)
+
+        currentIndex++
+        this.animationTimeout = setTimeout(animate, msPerPoint)
+      }
+
+      animate()
+    }
+
+    onDestroy() {
+      if (this.observer) {
+        this.observer.disconnect()
+      }
+      if (this.animationTimeout) {
+        clearTimeout(this.animationTimeout)
+      }
+      if (this.map) {
+        this.map.remove()
+      }
+    }
+  }
+</script>
+
+<style>
+  :fez {
+    display: block;
+
+    .map-wrapper {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .map-container {
+      width: 100%;
+      z-index: 1;
+    }
+
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      z-index: 10;
+    }
+
+    .load-button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: 600;
+      color: white;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+
+      &:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+      }
+
+      &:active {
+        transform: scale(0.98);
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Leaflet overrides */
+    :global(.custom-marker) {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    :global(.plane-marker) {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    :global(.plane-icon) {
+      color: white;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+      transition: transform 0.1s ease-out;
+    }
+
+    :global(.leaflet-tooltip) {
+      background: rgba(0, 0, 0, 0.8);
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-weight: 500;
+      padding: 6px 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    :global(.leaflet-tooltip-top:before) {
+      border-top-color: rgba(0, 0, 0, 0.8);
+    }
+
+    /* Rich popup styles */
+    :global(.custom-popup .leaflet-popup-content-wrapper) {
+      padding: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    :global(.custom-popup .leaflet-popup-content) {
+      margin: 0;
+      min-width: 200px;
+    }
+
+    :global(.custom-popup .leaflet-popup-tip) {
+      background: white;
+    }
+
+    :global(.rich-popup) {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    :global(.rich-popup .popup-image) {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      display: block;
+    }
+
+    :global(.rich-popup .popup-content) {
+      padding: 12px 14px;
+    }
+
+    :global(.rich-popup .popup-title) {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a2e;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    :global(.rich-popup .popup-desc) {
+      font-size: 12px;
+      color: #666;
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    /* Marker icon hover effect */
+    :global(.marker-icon) {
+      transition: transform 0.2s ease;
+    }
+
+    :global(.marker-icon:hover) {
+      transform: scale(1.15);
+    }
+  }
+</style>
+
+<div class="map-wrapper">
+  <div class="map-container" style="height: {this.height}px;"></div>
+  <div class="loading-overlay">
+    <button class="load-button">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+      </svg>
+      Load Map
+    </button>
+    <div class="spinner"></div>
+  </div>
+</div>

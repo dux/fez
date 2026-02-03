@@ -1,7 +1,8 @@
 <info>
   <ul>
-    <li>Simmple button class</li>
-    <li>Features: pub/sub</li>
+    <li>Styled button component with size variants</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Supports small, default, large sizes and pub/sub events</li>
   </ul>
 </info>
 

@@ -461,6 +461,41 @@ Arrow functions are automatically transformed:
 - Use throttled events: `this.on('scroll', callback, 100)`
 - Use `FAST = true` for components that don't work with slots to prevent render flicker
 
+### External DOM Libraries (Three.js, Charts, Video players, etc.)
+
+When integrating libraries that create/manage their own DOM elements:
+
+- **Use template markup normally** - define your container structure in the template
+- **Get references with `this.find()`** - store element references in `onMount()`
+- **NEVER use `this.state` for UI updates** - state changes trigger Idiomorph diffing which doesn't handle external DOM well
+- **Use direct DOM manipulation** to update UI elements:
+
+```javascript
+// Template is fine:
+// <div class="container"></div>
+// <div class="loading-overlay">Loading...</div>
+
+onMount() {
+  this.container = this.find('.container')
+  this.overlay = this.find('.loading-overlay')
+
+  // External library creates canvas inside container
+  this.chart = new Chart(this.container)
+}
+
+hideLoading() {
+  // CORRECT - direct DOM manipulation
+  this.overlay.style.display = 'none'
+
+  // WRONG - state triggers Idiomorph diff, breaks external DOM
+  // this.state.loading = false
+}
+```
+
+- Clean up external resources in `onDestroy()`
+
+See `ui-3d-viewer.fez` for a complete Three.js example.
+
 ### Component Communication (Pub/Sub)
 
 ```javascript
@@ -506,7 +541,7 @@ This makes loops with many child components very efficient.
 - Using React hooks (useState, useEffect)
 - Forgetting `:fez` in scoped styles
 - Using string interpolation in onclick instead of arrow functions
-- Direct DOM manipulation (use state instead)
+- Direct DOM manipulation for simple reactive UI (use state instead) - BUT use direct DOM for external libraries (Three.js, charts, etc.) since Idiomorph diffing doesn't handle them well
 - Missing `init()` for state initialization
 - Using `{#if}` blocks inside attributes (use ternary operators instead)
 - Writing flat CSS instead of nested SCSS syntax

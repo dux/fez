@@ -1,9 +1,8 @@
 <info>
   <ul>
-    <li>content box height changes when content changes</li>
-    <li>Uses ResizeObserver to detect content size changes</li>
-    <li>No flicker - properly manages transition states</li>
-    <li>Works with any type of content changes</li>
+    <li>Auto-animating height container - smooth transitions when content changes</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Uses <code>ResizeObserver</code> for flicker-free animations</li>
   </ul>
 </info>
 

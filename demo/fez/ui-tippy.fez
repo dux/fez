@@ -1,6 +1,8 @@
 <info>
   <ul>
-    <li>Features: Nothing!. Blank compoenent, only adds to head on load.</li>
+    <li>Beautiful tooltips for any element</li>
+    <li>Powered by <code>tippy.js</code> + <code>popper.js</code></li>
+    <li>Just add <code>tooltip="..."</code> attribute - no JavaScript needed</li>
   </ul>
 </info>
 

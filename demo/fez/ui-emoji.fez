@@ -1,8 +1,8 @@
 <info>
   <ul>
-    <li>Searchable emoji picker with categorized tabs <code>fez-bind</code></li>
-    <li>Click outside to close, responsive design <code>:fez</code></li>
-    <li>Event emission on selection <code>Fez.publish</code></li>
+    <li>Searchable emoji picker with categorized tabs</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Click outside to close, emits selection via <code>Fez.publish</code></li>
   </ul>
 </info>
 

@@ -1,12 +1,8 @@
 <info>
   <ul>
-    <li>File extension icon component with <code>ext</code> parameter</li>
-    <li>Accepts extension, full filename, or URL - automatically extracts extension</li>
-    <li>Shows Phosphor duotone SVG icons (36x36) for common file types</li>
-    <li>Default colors by file type: images (blue), videos (purple), PDF (red), docs (blue), Excel (green), etc.</li>
-    <li>Default titles for each file type (e.g., "PDF Document", "JPEG Image", "Excel Spreadsheet")</li>
-    <li>Override defaults with <code>color</code> and <code>title</code> props</li>
-    <li>Falls back to text-based icon with uppercase extension for unknown types</li>
+    <li>File type icons by extension - auto-detects from filename or URL</li>
+    <li>Uses <code>Phosphor</code> duotone SVG icons</li>
+    <li>Color-coded: images (blue), videos (purple), PDFs (red), etc.</li>
   </ul>
 </info>
 

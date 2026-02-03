@@ -1,6 +1,8 @@
 <info>
   <ul>
-    <li>features template blocks <code>{{block ...}}</code></li>
+    <li>Avatar component with image or initials fallback</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Uses template blocks <code>{{block ...}}</code> for conditional rendering</li>
   </ul>
 </info>
 

@@ -1,8 +1,8 @@
 <info>
   <ul>
-  <li>Features: Component-level publish that bubbles up to parent components</li>
-  <li>Events bubble from child to parent until a subscriber is found</li>
-  <li>If no parent handles the event, it falls back to global publish</li>
+    <li>Event bubbling demo - child events bubble up to parent components</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Falls back to global publish if no parent handles the event</li>
   </ul>
 </info>
 

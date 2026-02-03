@@ -1,10 +1,8 @@
 <info>
   <ul>
-    <li>access current Fez component instance via <code>fez.</code> pointer</li>
-    <li>global and local CSS</li>
-    <li><b>Global state:</b> All counters share and update <code>globalState.maxCount</code></li>
-    <li>Components auto-subscribe when accessing <code>this.globalState.key</code></li>
-    <li>Optional <code>onGlobalStateChange(key, value)</code> callback (check console)</li>
+    <li>Counter demo with shared global state across instances</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Uses <code>this.globalState</code> for cross-component reactivity</li>
   </ul>
 </info>
 

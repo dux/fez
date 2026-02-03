@@ -1,6 +1,8 @@
 <info>
   <ul>
-    <li>Features: Module imports</li>
+    <li>Render Markdown as HTML instantly</li>
+    <li>Powered by <code>marked.js</code> loaded via ESM import</li>
+    <li>Just wrap your markdown content in the tag - no build step needed</li>
   </ul>
 </info>
 

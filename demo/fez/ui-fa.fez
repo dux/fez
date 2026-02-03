@@ -1,12 +1,8 @@
 <info>
   <ul>
-    <li>Font Awesome icon component with name parameter</li>
-    <li>Supports dynamic size and color props, via <code>onPropsChange</code></li>
-    <li>evaluate value of a attribute if prefixed with column <code>:</code> (in this example <code>:size=</code></li>
-    <li>Accepts full Font Awesome class names (e.g., "fab fa-github") or shorthand (e.g., "home")</li>
-    <li>Supports regular attribute for regular icons (e.g., regular="user" = "far fa-user")</li>
-    <li>Supports brand attribute for brand icons (e.g., brand="github" = "fab fa-github")</li>
-    <li>Dynamic size control via range input</li>
+    <li>Font Awesome icons made easy</li>
+    <li>Powered by <code>Font Awesome 6</code> CDN</li>
+    <li>Use shorthand like <code>home</code> or full class <code>fab fa-github</code></li>
   </ul>
 </info>
 

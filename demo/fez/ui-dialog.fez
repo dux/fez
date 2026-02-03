@@ -1,7 +1,8 @@
 <info>
   <ul>
-    <li>Features: global handler</li>
-    <li>Features: Publish subscribe. Check code to see how easy it to enable / disable action buttons in Dialog.</li>
+    <li>Modal dialogs and drawers - center, top, bottom, side positions</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Call <code>Dialog.show()</code>, <code>Dialog.drawer()</code> with template ID</li>
   </ul>
 </info>
 

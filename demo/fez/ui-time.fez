@@ -1,10 +1,8 @@
 <info>
   <ul>
-    <li>Features: slots - preserves original slot (fez tag innerHTML) on re-render</li>
-    <li>
-      global and local css. If <code>:fez { ... }</code> is present, anything inside is local, anything outside is global.
-      If no class <code>:fez</code> is present, style is considered local.
-      </li>
+    <li>Digital time display with timezone support</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Demonstrates slots and scoped CSS with <code>:fez</code> selector</li>
   </ul>
 </info>
 

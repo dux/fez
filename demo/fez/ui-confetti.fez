@@ -1,6 +1,8 @@
 <info>
   <ul>
-    <li>Features: module imoorts</li>
+    <li>Celebration confetti burst on click!</li>
+    <li>Powered by <code>canvas-confetti</code></li>
+    <li>Wrap any clickable element - confetti fires automatically</li>
   </ul>
 </info>
 

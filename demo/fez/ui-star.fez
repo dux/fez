@@ -1,12 +1,8 @@
 <info>
   <ul>
-    <li>Star rating component with customizable fill percentage</li>
-    <li>Dynamic size control via size attribute</li>
-    <li>Customizable colors for filled, unfilled, and stroke states</li>
-    <li>Star rating system: use <code>stars="5"</code> to render multiple stars</li>
-    <li>Rating support: use <code>rating="3.5"</code> for star ratings (e.g., 3.5 out of 5)</li>
-    <li>Recursive rendering: star ratings use individual star components</li>
-    <li>Dynamic methods: <code>setFill()</code> for single stars, <code>setRating()</code> for star ratings</li>
+    <li>Star rating with partial fills (e.g., 3.5 stars)</li>
+    <li>Pure Fez SVG rendering, no external dependencies</li>
+    <li>Customizable colors, supports display and interactive modes</li>
   </ul>
 </info>
 
