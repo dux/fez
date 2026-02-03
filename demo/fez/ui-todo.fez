@@ -2,7 +2,7 @@
   <ul>
     <li>Classic Todo app demo - add, complete, clear tasks</li>
     <li>Pure Fez, no external dependencies</li>
-    <li>Showcases reactive state, <code>fez-bind</code>, and template loops</li>
+    <li>Showcases reactive state, <code>fez:bind</code>, and template loops</li>
   </ul>
 </info>
 
@@ -30,7 +30,7 @@
   }
 
   animate(node) {
-    // same as in Svelte, uf you define fez-use="methodName", method will be called when node is added to dom.
+    // same as in Svelte, if you define fez:use="methodName", method will be called when node is added to dom.
     // in this case, we animate show new node
 
     node.style.display = 'block'
@@ -61,19 +61,19 @@
 
 {#for task, index in state.tasks}
   {#if task.animate}
-    <p fez-use="animate" style="display: none; height: 0px; opacity: 0;">
+    <p fez:use="animate" style="display: none; height: 0px; opacity: 0;">
   {:else}
     <p>
   {/if}
     <input
       type="text"
-      fez-bind="state.tasks[{index}].name"
+      fez:bind="state.tasks[{index}].name"
       style="{task.done ? 'background-color: #ccc;' : ''}"
     />
     &sdot;
     <input
       type="checkbox"
-      fez-bind="state.tasks[{index}].done"
+      fez:bind="state.tasks[{index}].done"
     />
     &sdot;
     <button onclick="fez.removeTask({index})">&times;</button>
@@ -85,8 +85,11 @@
   <button onclick="fez.clearCompleted()">clear completed</button>
 </p>
 <pre class="code">{JSON.stringify(state.tasks, null, 2)}</pre>
-<p>If you want to preserve state in templates, use "fez-keep" attribute</p>
+<p>If you want to preserve state in templates, use "fez:keep" attribute</p>
 <p>Refresh: {Math.random()}</p>
-<p fez-keep="rand">
+<p fez:keep="rand">
   Do not refresh: {Math.random()}.
+  <br />
+  <ui-star color="#FF6B6B" fill="50" size="24"></ui-star>
+  Star is rendered only once
 </p>

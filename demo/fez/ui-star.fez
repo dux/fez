@@ -145,11 +145,13 @@
 {#if state.stars}
   <div class="star-rating">
     {#for i in [...Array(state.stars).keys()]}
-      <ui-star
-        fill={getStarFill(i, state.rating)}
-        color={state.color}
-        size={state.size}
-      ></ui-star>
+      <span fez:keep="star-{i}-{state.rating}-{state.color}-{state.size}">
+        <ui-star
+          fill={getStarFill(i, state.rating)}
+          color={state.color}
+          size={state.size}
+        ></ui-star>
+      </span>
     {/for}
   </div>
 {:else}

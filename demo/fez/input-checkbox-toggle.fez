@@ -136,7 +136,7 @@
 </style>
 
 <input
-  fez-this="inputNode"
+  fez:this="inputNode"
   type="hidden"
   class="hidden-input"
   name={state.name}

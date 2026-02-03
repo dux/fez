@@ -27,11 +27,16 @@
 </demo>
 
 <script>
-  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js/+esm'
-  import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js/+esm'
-  import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js/+esm'
-  import { FontLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/FontLoader.js/+esm'
-  import { TextGeometry } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/geometries/TextGeometry.js/+esm'
+  Fez.head({importmap: {
+    "three": "https://esm.sh/three@0.160.0",
+    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/"
+  }})
+
+  import * as THREE from 'three'
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+  import { FontLoader } from 'three/addons/loaders/FontLoader.js'
+  import { TextGeometry } from 'three/addons/geometries/TextGeometry.js'
 
   class {
     FAST = true

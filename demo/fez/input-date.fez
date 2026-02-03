@@ -159,7 +159,7 @@
 </style>
 
 <div class="date-picker-wrapper">
-  <input fez-this="inputElement" type="text" name={props.name} data-input value={state.selectedDate} />
+  <input fez:this="inputElement" type="text" name={props.name} data-input value={state.selectedDate} />
   <span data-toggle class="btn {props.class || ''} {state.selectedDate ? 'has-date' : 'no-date'}">
     {state.selectedDate || state.buttonText}
   </span>

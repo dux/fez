@@ -48,6 +48,14 @@ bunx fez-compile path/to/component.fez
   // ES Module imports (optional)
   import library from 'https://cdn.jsdelivr.net/npm/library/+esm'
 
+  // Import map for bare specifiers (rewrites to full URLs at compile time)
+  Fez.head({importmap: {
+    "three": "https://esm.sh/three@0.160.0",
+    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/"
+  }})
+  import * as THREE from 'three'
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+
   // Or load scripts/styles dynamically
   Fez.head({js: 'https://cdn.example.com/script.js'})
   Fez.head({css: 'https://cdn.example.com/styles.css'})
@@ -328,12 +336,19 @@ Arrow functions are automatically transformed:
 
 ## Special Attributes
 
+All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is converted to `fez-` at compile time).
+
 ```html
-<input fez-bind="state.username" />
 <!-- Two-way binding -->
-<div fez-this="myElement">
-  <!-- Element reference via this.myElement -->
-  <input fez-use="el => el.focus()" />
+<input fez:bind="state.username" />
+
+<!-- Element reference via this.myElement (auto-generates stable ID for Idiomorph) -->
+<div fez:this="myElement">
+  <!-- Preserve element across re-renders (wrap component in plain HTML element) -->
+  <span fez:keep="child-{state.id}-{state.value}">
+    <child-component />
+  </span>
+  <input fez:use="el => el.focus()" />
   <!-- DOM hook -->
 
   <!-- IMPORTANT: Use colon prefix for evaluated attributes (functions, objects, etc.) -->
@@ -427,13 +442,13 @@ Arrow functions are automatically transformed:
 - Initialize ALL properties in `init()`
 - Modify arrays/objects directly (they're deeply reactive)
 - Use `onMount()` for updates that need mounted template
-- **NEVER bind state to form input values** - state changes trigger full re-render. Use `fez-this` instead:
+- **NEVER bind state to form input values** - state changes trigger full re-render. Use `fez:this` instead:
 
   ```html
   <!-- WRONG -->
   <input value="{state.name}" />
   <!-- CORRECT -->
-  <input fez-this="nameInput" />
+  <input fez:this="nameInput" />
   ```
 
   ```javascript
@@ -536,6 +551,65 @@ Child components in loops are automatically preserved during parent re-renders. 
 
 This makes loops with many child components very efficient.
 
+### Preserving Elements with `fez:keep`
+
+Use `fez:keep` to preserve plain HTML elements across parent re-renders. The element is only recreated when its `fez:keep` value changes.
+
+**Important:** `fez:keep` must only be used on plain HTML elements (`div`, `span`, `input`, etc.), **never on fez components**. To preserve a fez component, wrap it in a plain HTML element with `fez:keep`:
+
+```html
+<!-- Wrap child components in a plain element with fez:keep -->
+{#each state.users as user}
+<span fez:keep="user-{user.id}">
+  <user-card :user="user" />
+</span>
+{/each}
+
+<!-- Wrap components in loops -->
+{#for i in [0,1,2,3,4]}
+<span fez:keep="star-{i}-{state.rating}-{state.color}">
+  <ui-star fill="{getStarFill(i)}" />
+</span>
+{/for}
+
+<!-- Preserve form inputs -->
+<input fez:keep="search-input" type="text" />
+```
+
+**Rules:**
+
+- Same `fez:keep` value → Element preserved (all internal state intact)
+- Different `fez:keep` value → Element recreated
+- No `fez:keep` → Element may be recreated on parent re-render
+- `fez:keep` on a fez component will throw a compile error
+
+**Best practice:** Include ALL state that affects the element in `fez:keep`:
+
+```html
+<!-- CORRECT: wrapper recreates when fill changes -->
+<span fez:keep="star-{i}-{fill}">
+  <ui-star fill="{fill}" />
+</span>
+
+<!-- WRONG: wrapper never recreates even when fill changes -->
+<span fez:keep="star-{i}">
+  <ui-star fill="{fill}" />
+</span>
+```
+
+### Auto-ID for `fez:this` Elements
+
+Elements with static `fez:this` attributes automatically get stable IDs (`id="fez-{UID}-{name}"`). This helps Idiomorph preserve form inputs across re-renders:
+
+```html
+<!-- Auto-generates id="fez-42-nameInput" -->
+<input fez:this="nameInput" type="text" />
+
+<!-- User-typed value survives parent re-renders because Idiomorph matches by ID -->
+```
+
+This is automatic - no extra configuration needed.
+
 ## Common Mistakes to Avoid
 
 - Using React hooks (useState, useEffect)
@@ -570,6 +644,17 @@ This makes loops with many child components very efficient.
 ```javascript
 // ES Module imports (use /+esm for CDN modules)
 import library from "https://cdn.jsdelivr.net/npm/library/+esm";
+
+// Import map for bare specifiers (avoids duplicate library instances)
+// Rewrites bare specifiers to full URLs at compile time
+Fez.head({
+  importmap: {
+    three: "https://esm.sh/three@0.160.0",
+    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/",
+  },
+});
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 // Dynamic script/style loading
 Fez.head({ js: "https://cdn.example.com/script.js" });
@@ -636,7 +721,7 @@ Fez.state.get("key"); // Check global state
 
 - Prefer Fez utilities over vanilla JS
 - Use `this.globalState` for cross-component data
-- Access elements via `fez-this` instead of querySelector
+- Access elements via `fez:this` instead of querySelector
 - Put DOM-dependent logic in `onMount()` not `init()`
 - Prefer simple `fez.` prefix for handlers: `onclick="fez.method()"`
 

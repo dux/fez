@@ -383,6 +383,31 @@ function generateClassCode(tagName, parts) {
 function executeClassCode(tagName, code) {
   // Module imports require script tag
   if (code.includes("import ")) {
+    // Extract importmap and rewrite bare import specifiers to full URLs
+    const importmapRe =
+      /Fez\.head\(\s*\{\s*importmap\s*:\s*(\{[\s\S]*?\})\s*\}\s*\)\s*;?/g;
+    let match;
+    while ((match = importmapRe.exec(code)) !== null) {
+      try {
+        const imports = new Function(`return ${match[1]}`)();
+        // Sort by length descending so "three/addons/" matches before "three"
+        const sorted = Object.entries(imports).sort(
+          (a, b) => b[0].length - a[0].length,
+        );
+        for (const [specifier, url] of sorted) {
+          const escaped = specifier.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&");
+          code = code.replace(
+            new RegExp(`(from\\s+['"])${escaped}`, "g"),
+            `$1${url}`,
+          );
+        }
+      } catch (e) {
+        Fez.consoleError(`importmap parse error: ${e.message}`);
+      }
+    }
+    // Remove the Fez.head({importmap:...}) calls
+    code = code.replace(importmapRe, "");
+
     Fez.head({ script: code });
 
     // Check for compile errors after delay

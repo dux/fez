@@ -360,8 +360,8 @@
         <input
           type="text"
           placeholder="Search emojis..."
-          fez-bind="state.searchTerm"
-          fez-use="this.focus()"
+          fez:bind="state.searchTerm"
+          fez:use="this.focus()"
         />
       </div>
       {#if !state.searchTerm}

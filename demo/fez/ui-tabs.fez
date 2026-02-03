@@ -97,7 +97,7 @@
     }
   }
 
-  .fez-slot-ui-tabs {
+  .fez-slot {
     border: var(--tabs-border);
     padding: 8px 15px;
     background: #fff;

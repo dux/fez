@@ -199,6 +199,61 @@ Fez uses a Svelte-inspired template syntax with single braces `{ }` for expressi
 
 **Component Isolation:** Child components in loops are automatically preserved during parent re-renders. They only re-render when their props actually change - making loops with many items very efficient.
 
+### Preserving Elements with `fez:keep`
+
+Use `fez:keep` to preserve plain HTML elements across parent re-renders. The element is only recreated when its `fez:keep` value changes.
+
+**Important:** `fez:keep` must only be used on plain HTML elements (`div`, `span`, `input`, etc.), **never on fez components**. To preserve a fez component, wrap it in a plain HTML element with `fez:keep`:
+
+```html
+<!-- Wrap child components in a plain element with fez:keep -->
+{#each state.users as user}
+<span fez:keep="user-{user.id}">
+  <user-card :user="user" />
+</span>
+{/each}
+
+<!-- Wrap components in loops -->
+{#for i in [0,1,2,3,4]}
+<span fez:keep="star-{i}-{state.rating}-{state.color}">
+  <ui-star fill="{getStarFill(i)}" color="{state.color}" />
+</span>
+{/for}
+
+<!-- Preserve form inputs to keep user-entered values -->
+<input fez:keep="search-input" type="text" />
+
+<!-- Preserve animation state -->
+<div fez:keep="animated-element" class="slide-in">...</div>
+```
+
+**How it works:**
+
+- Same `fez:keep` value → Element is fully preserved (no re-render, all state intact)
+- Different `fez:keep` value → Element is recreated from scratch
+- No `fez:keep` → Element may be recreated on every parent re-render
+
+**When to use:**
+
+- Wrapping child components in loops that have internal state
+- Form inputs where you want to preserve user-entered values
+- Elements with CSS animations you don't want to restart
+- Any element where preserving DOM state is important
+
+**Best practice:** Include all relevant state variables in the `fez:keep` value. This way the element is recreated exactly when it needs to be:
+
+```html
+<!-- Good: wrapper recreates when fill changes, so star is recreated too -->
+<span fez:keep="star-{i}-{getStarFill(i)}">
+  <ui-star fill="{getStarFill(i)}" />
+</span>
+
+<!-- Bad: wrapper never recreates even when fill changes -->
+<span fez:keep="star-{i}">
+  <ui-star fill="{getStarFill(i)}" />
+</span>
+```
+
 ### Async/Await Blocks
 
 Handle promises directly in templates with automatic loading/error states:
@@ -386,14 +441,16 @@ This example showcases:
 - **Reactive State Management** - Built-in reactive `state` object automatically triggers re-renders on property changes
 - **DOM Morphing** - Uses [Idiomorph](https://github.com/bigskysoftware/idiomorph) for intelligent DOM updates that preserve element state and animations
 - **Smart Component Isolation** - Child components are preserved during parent re-renders; only re-render when their props actually change
-- **Preserve DOM Elements** - Use `fez-keep="unique-key"` attribute to preserve DOM elements across re-renders (useful for animations, form inputs, or stateful elements)
+- **Preserve DOM Elements** - Use `fez:keep="unique-key"` attribute to preserve DOM elements across re-renders (useful for child components, animations, form inputs, or stateful elements)
+- **Auto-ID for Form Inputs** - Elements with `fez:this` automatically get stable IDs, helping Idiomorph preserve input state across re-renders
+- **Import Maps** - Use `Fez.head({importmap: {...}})` to map bare import specifiers to full URLs, avoiding duplicate library instances
 - **Style Macros** - Define custom CSS shortcuts like `Fez.cssMixin('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }`
 - **Scoped & Global Styles** - Components can define both scoped CSS (`:fez { ... }`) and global styles in the same component
 
 ### Developer Experience
 
 - **Built-in Utilities** - Helpful methods like `formData()`, `setInterval()` (auto-cleanup), `onWindowResize()`, and `fezNextTick()`
-- **Two-Way Data Binding** - Use `fez-bind` directive for automatic form synchronization
+- **Two-Way Data Binding** - Use `fez:bind` directive for automatic form synchronization
 - **Advanced Slot System** - Full `<slot />` support with event listener preservation
 - **Publish/Subscribe** - Built-in pub/sub system for component communication
 - **Global State Management** - Automatic subscription-based global state with `this.globalState` proxy
@@ -667,6 +724,8 @@ Fez.resolveFunction(pointer, context)
 // Execute inline script: Fez.head({ script: 'console.log("Hello world")' })
 // Load single Fez component: Fez.head({ fez: 'path/to/component.fez' })
 // Load multiple components from txt list: Fez.head({ fez: 'path/to/components.txt' })
+// Import map - rewrites bare specifiers to full URLs at compile time:
+// Fez.head({ importmap: { "three": "https://esm.sh/three@0.160.0", "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/" } })
 Fez.head(config, callback)
 ```
 
@@ -706,6 +765,28 @@ ui-button          # loads ./demo/ui-button.fez
 forms/input        # loads ./demo/forms/input.fez
 /lib/shared-comp   # loads /lib/shared-comp.fez (absolute)
 ```
+
+## Import Maps
+
+Use `Fez.head({importmap})` to map bare import specifiers to full URLs. This avoids duplicate library instances when multiple sub-modules import the same dependency:
+
+```html
+<script>
+  Fez.head({importmap: {
+    "three": "https://esm.sh/three@0.160.0",
+    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/"
+  }})
+
+  import * as THREE from 'three'
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+
+  class {
+    // ...
+  }
+</script>
+```
+
+At compile time, Fez rewrites bare specifiers to full URLs (e.g. `from 'three'` becomes `from 'https://esm.sh/three@0.160.0'`). Prefix mappings like `"three/addons/"` expand paths that start with that prefix. The `Fez.head({importmap})` call is removed from the final output.
 
 ## Fez script loading and definition
 
@@ -779,6 +860,9 @@ All parts are optional
   </style>
 
   <div> ... <!-- any other html after head, script or style is considered template-->
+    <!-- All fez: attributes use namespace syntax (fez:keep, fez:this, fez:bind, fez:use, fez:class) -->
+    <!-- fez-keep also works (fez: is converted to fez- at compile time) -->
+
     <!-- Conditionals -->
     {#if foo}...{/if}
     {#if foo}...{:else}...{/if}
@@ -802,25 +886,31 @@ All parts are optional
     {@html data} <!-- unescaped HTML -->
     {@json data} <!-- JSON dump in PRE.json tag -->
 
-    <!-- fez-this will link DOM node to object property (inspired by Svelte) -->
+    <!-- fez:this will link DOM node to object property (inspired by Svelte) -->
     <!-- links to -> this.listRoot -->
-    <ul fez-this="listRoot">
+    <!-- also auto-generates stable id="fez-{UID}-listRoot" for Idiomorph preservation -->
+    <ul fez:this="listRoot">
 
-    <!-- when node is added to dom fez-use will call object function by name, and pass current node -->
+    <!-- when node is added to dom fez:use will call object function by name, and pass current node -->
     <!-- this.animate(node) -->
-    <li fez-use="animate">
+    <li fez:use="animate">
 
-    <!-- fez-bind for two-way data binding on form elements -->
-    <input type="text" fez-bind="state.username" />
+    <!-- fez:bind for two-way data binding on form elements -->
+    <input type="text" fez:bind="state.username" />
 
     <!--
-      fez-class for adding classes with optional delay.
+      fez:class for adding classes with optional delay.
       class will be added to SPAN element, 100ms after dom mount (to trigger animations)
     -->
-    <span fez-class="active:100">Delayed class</span>
+    <span fez:class="active:100">Delayed class</span>
 
-    <!-- preserve state by key, not affected by state changes-->
-    <p fez-keep="key">...</p>
+    <!-- preserve element across re-renders (recreates only when key changes) -->
+    <p fez:keep="unique-key">...</p>
+
+    <!-- child components in loops - wrap in plain HTML element with fez:keep -->
+    <span fez:keep="star-{i}-{rating}">
+      <ui-star fill={fill} />
+    </span>
 
     <!-- :attribute for evaluated attributes (converts to JSON) -->
     <div :data-config="state.config"></div>

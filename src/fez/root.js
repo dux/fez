@@ -195,23 +195,9 @@ Fez.globalCss = (cssClass, opts = {}) => {
 // =============================================================================
 
 /**
- * Shallow equality check for props
- */
-function shallowEqual(obj1, obj2) {
-  if (obj1 === obj2) return true;
-  if (!obj1 || !obj2) return false;
-  const keys1 = Object.keys(obj1);
-  const keys2 = Object.keys(obj2);
-  if (keys1.length !== keys2.length) return false;
-  for (const key of keys1) {
-    if (obj1[key] !== obj2[key]) return false;
-  }
-  return true;
-}
-
-/**
  * Morph DOM node to new state (via Idiomorph)
- * Preserves child Fez components and only updates their props if changed
+ * Child fez components are automatically preserved (skipped from morphing)
+ * Use fez-keep attribute for explicit element preservation
  * @param {Element} target - Element to morph
  * @param {Element} newNode - New state
  */
@@ -225,7 +211,7 @@ Fez.morphdom = (target, newNode) => {
     morphStyle: "outerHTML",
     ignoreActiveValue: true,
     callbacks: {
-      // Skip morphing child fez components - preserve them entirely
+      // Preserve child fez components - skip morphing them entirely
       beforeNodeMorphed: (oldNode, newNode) => {
         // Check if this is a child fez component (not the root being morphed)
         if (
@@ -234,33 +220,18 @@ Fez.morphdom = (target, newNode) => {
           oldNode.fez &&
           !oldNode.fez._destroyed
         ) {
-          Fez.consoleLog(
-            `Preserving child component ${oldNode.fez.fezName} (UID ${oldNode.fez.UID})`,
-          );
-
-          // Get new props from the newNode
-          const newProps =
-            Fez.index[oldNode.fez.fezName]?.class?.getProps?.(
-              newNode,
-              oldNode,
-            ) || {};
-          const oldProps = oldNode.fez.props || {};
-
-          // Only trigger update if props actually changed
-          if (!shallowEqual(oldProps, newProps)) {
-            oldNode.fez.props = newProps;
-            oldNode.fez.onPropsChange?.(newProps, oldProps);
-            // Schedule re-render of child with new props
-            oldNode.fez.fezNextTick(oldNode.fez.fezRender, "fezRender");
+          if (Fez.LOG) {
+            console.log(
+              `Fez: preserved child component ${oldNode.fez.fezName} (UID ${oldNode.fez.UID})`,
+            );
           }
-
-          // Return false to skip morphing this element - preserve it as is
+          // Return false to skip morphing - preserve the component as is
           return false;
         }
         return true;
       },
 
-      // When removing a node, check if it's a fez component and cleanup
+      // Cleanup destroyed fez components
       beforeNodeRemoved: (node) => {
         if (node.classList?.contains("fez") && node.fez) {
           node.fez.fezOnDestroy();

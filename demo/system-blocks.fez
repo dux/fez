@@ -136,11 +136,11 @@
     <div style="margin-bottom: 50px;">
       <h2 class="promo-title"><a onclick="fez.openDemo()" style="cursor: pointer;">{name}</a></h2>
       <div class="flex even top">
-        <div style="flex: 1; min-width: 0; overflow: hidden;">
+        <div style="flex: 1; min-width: 0;">
           <div id="body-{name}" style="padding-bottom: 20px;" fez-use="appendDemo">
           </div>
         </div>
-        <div style="flex: 1; min-width: 0; overflow: hidden;">
+        <div style="flex: 1; min-width: 0;">
           <ui-tabs>
             <div title="Info" active="true">
               {@html state.info}

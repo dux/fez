@@ -81,13 +81,12 @@ export default function connect(name, klass) {
 
   // Process HTML template
   if (klass.html) {
-    const slotTag = klass.SLOT || "div";
     klass.html = klass.html
       .replace(
         /<slot(\s[^>]*)?>/,
-        `<${slotTag} class="fez-slot fez-slot-${name}" fez-keep="slot-${name}"$1>`,
+        `<div class="fez-slot" fez-keep="default-slot"$1>`,
       )
-      .replace("</slot>", `</${slotTag}>`);
+      .replace("</slot>", `</div>`);
 
     klass.fezHtmlFunc = createTemplate(klass.html, { name });
   }
@@ -260,6 +259,10 @@ function connectNode(name, node) {
 
   // Copy ID
   if (fez.props.id) newNode.setAttribute("id", fez.props.id);
+
+  // Copy fez-keep for Idiomorph preservation
+  const fezKeep = node.getAttribute("fez-keep");
+  if (fezKeep) newNode.setAttribute("fez-keep", fezKeep);
 
   // === LIFECYCLE ===
 
