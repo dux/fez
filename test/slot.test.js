@@ -68,15 +68,15 @@ function directChildren(parent, selector) {
 
 /**
  * Simulates fezKeepNode behavior (mirrors src/fez/instance.js):
- *  - First render: move _fezChildNodes (or root.childNodes) into .fez-slot
+ *  - First render: move _fezSlotNodes (all nodes including text) into .fez-slot
  *  - fez-keep: swap matching direct-child elements from old DOM into new DOM
  *  - Uses direct-child matching to avoid nested component slots/keeps
  */
-function fezKeepNode(root, newNode, _fezChildNodes) {
+function fezKeepNode(root, newNode, _fezSlotNodes) {
   // First render: move captured children into slot container
   const newSlot = directChild(newNode, ".fez-slot");
   if (newSlot && !directChild(root, ".fez-slot")) {
-    const children = _fezChildNodes || Array.from(root.childNodes);
+    const children = _fezSlotNodes || Array.from(root.childNodes);
     children.forEach((child) => {
       newSlot.appendChild(child);
     });
@@ -94,8 +94,9 @@ function fezKeepNode(root, newNode, _fezChildNodes) {
 
 /**
  * Simulates childNodes() behavior (mirrors src/fez/instance.js):
- * If a direct-child .fez-slot exists, return its children.
- * Otherwise return _fezChildNodes or root.children.
+ * If a direct-child .fez-slot exists, return its element children.
+ * Otherwise return _fezChildNodes (already filtered to elements) or root.children.
+ * _fezChildNodes only contains element nodes (filtered at capture time in connect.js).
  */
 function childNodes(root, _fezChildNodes) {
   const slot = directChild(root, ".fez-slot");
@@ -201,6 +202,57 @@ describe("slot behavior", () => {
       const slot = root.querySelector(".fez-slot");
       expect(slot).not.toBeNull();
       expect(slot.children.length).toBe(0);
+
+      root.remove();
+    });
+
+    test("text nodes are moved into slot container", () => {
+      const root = document.createElement("div");
+      root.id = "comp-text";
+      root.classList.add("fez");
+      root.appendChild(document.createTextNode("Plain text content"));
+      document.body.appendChild(root);
+
+      const captured = Array.from(root.childNodes);
+
+      fezRender(
+        root,
+        '<div class="fez-slot" fez-keep="default-slot"></div>',
+        captured,
+      );
+
+      const slot = root.querySelector(".fez-slot");
+      expect(slot).not.toBeNull();
+      expect(slot.childNodes.length).toBe(1);
+      expect(slot.childNodes[0].nodeType).toBe(3); // Text node
+      expect(slot.textContent).toBe("Plain text content");
+
+      root.remove();
+    });
+
+    test("mixed text and element nodes are moved into slot", () => {
+      const root = document.createElement("div");
+      root.id = "comp-mixed";
+      root.classList.add("fez");
+      root.innerHTML = "Text before <strong>bold text</strong> and after";
+      document.body.appendChild(root);
+
+      const captured = Array.from(root.childNodes);
+
+      fezRender(
+        root,
+        '<div class="fez-slot" fez-keep="default-slot"></div>',
+        captured,
+      );
+
+      const slot = root.querySelector(".fez-slot");
+      expect(slot).not.toBeNull();
+      expect(slot.childNodes.length).toBe(3); // text, element, text
+      expect(slot.childNodes[0].nodeType).toBe(3);
+      expect(slot.childNodes[1].nodeType).toBe(1);
+      expect(slot.childNodes[1].tagName).toBe("STRONG");
+      expect(slot.childNodes[2].nodeType).toBe(3);
+      expect(slot.textContent).toBe("Text before bold text and after");
 
       root.remove();
     });
@@ -616,6 +668,33 @@ describe("slot behavior", () => {
       expect(nodes.length).toBe(2);
       expect(nodes[0].getAttribute("title")).toBe("A");
       expect(nodes[1].getAttribute("title")).toBe("B");
+
+      root.remove();
+    });
+
+    test("childNodes excludes text nodes", () => {
+      const root = document.createElement("div");
+      root.id = "cn-text";
+      root.classList.add("fez");
+      document.body.appendChild(root);
+
+      // Mix of text nodes and element nodes
+      root.innerHTML =
+        "some text " +
+        '<div title="Tab1">First</div>' +
+        " more text " +
+        '<div title="Tab2">Second</div>' +
+        " trailing text";
+
+      // _fezChildNodes is pre-filtered to elements at capture time (connect.js)
+      const captured = Array.from(root.childNodes).filter(
+        (n) => n.nodeType === 1,
+      );
+
+      const nodes = childNodes(root, captured);
+      expect(nodes.length).toBe(2);
+      expect(nodes[0].getAttribute("title")).toBe("Tab1");
+      expect(nodes[1].getAttribute("title")).toBe("Tab2");
 
       root.remove();
     });

@@ -123,10 +123,18 @@ Fez uses a Svelte-inspired template syntax with single braces `{ }` for expressi
 {/if}
 
 <!-- Unless (opposite of if) -->
-{#unless state.items.length}
+<!-- renders if state.items is null, undefined, empty array, or empty object -->
+{#unless state.items}
 <p>No items found</p>
 {/unless}
 ```
+
+**Truthiness rules** for `#if`, `#unless`, and `:else if`:
+
+- `null`, `undefined`, `false`, `0`, `""` → **falsy**
+- `[]` (empty array) → **falsy**
+- `{}` (empty object) → **falsy**
+- Non-empty arrays, non-empty objects, and other truthy values → **truthy**
 
 ### Loops
 

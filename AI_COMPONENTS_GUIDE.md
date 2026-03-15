@@ -25,9 +25,8 @@ Example structure:
   ...
 </script>
 <style>
-  :fez {
-    /* all styles go inside :fez — never write global/body styles */
-  }
+  /* NEVER use :fez or body selectors — styles here are auto-scoped to the component */
+  /* just write styles directly */
 </style>
 <!-- template markup here -->
 ```

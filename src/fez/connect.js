@@ -186,11 +186,17 @@ function ensureFezBase(Fez, name, klass) {
 /**
  * Convert self-closing custom tags to full format
  * <my-comp /> -> <my-comp></my-comp>
+ * Uses (?:[^>]|=>) to skip => (arrow functions) inside attributes
  */
 function closeCustomTags(html) {
-  return html.replace(/<([a-z-]+)\b([^>]*)\/>/g, (match, tag, attrs) => {
-    return SELF_CLOSING_TAGS.has(tag) ? match : `<${tag}${attrs}></${tag}>`;
-  });
+  return html.replace(
+    /<([a-z][a-z-]*)\b((?:=>|[^>])*)>/g,
+    (match, tag, attrs) => {
+      if (!attrs.trimEnd().endsWith("/")) return match;
+      if (SELF_CLOSING_TAGS.has(tag)) return match;
+      return `<${tag}${attrs.replace(/\s*\/$/, "")}></${tag}>`;
+    },
+  );
 }
 
 /**
@@ -269,9 +275,10 @@ function connectNode(name, node) {
   // Setup reactive state
   fez.fezRegister();
 
-  // Capture children (including text nodes) for slot insertion
+  // Capture children before rendering replaces them
   if (fez.root.childNodes.length) {
-    fez._fezChildNodes = Array.from(fez.root.childNodes);
+    fez._fezSlotNodes = Array.from(fez.root.childNodes);
+    fez._fezChildNodes = fez._fezSlotNodes.filter((n) => n.nodeType === 1);
   }
 
   // Prevent state changes during init/mount from scheduling extra renders

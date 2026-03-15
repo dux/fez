@@ -410,15 +410,18 @@ export default class FezBase {
       }
     });
 
-    // Normalize disabled attribute
-    this.root.querySelectorAll(`*[disabled]`).forEach((n) => {
-      let value = n.getAttribute("disabled");
-      if (["false"].includes(value)) {
-        n.removeAttribute("disabled");
-      } else {
-        n.setAttribute("disabled", "true");
-      }
-    });
+    // Normalize boolean attributes (checked, disabled, selected)
+    for (const attr of ["checked", "disabled", "selected"]) {
+      this.root.querySelectorAll(`*[${attr}]`).forEach((n) => {
+        let value = n.getAttribute(attr);
+        if (["false", "null", "undefined"].includes(value)) {
+          n.removeAttribute(attr);
+          n[attr] = false;
+        } else {
+          n.setAttribute(attr, attr);
+        }
+      });
+    }
   }
 
   /**
@@ -432,8 +435,8 @@ export default class FezBase {
     // First render: move captured children into slot container
     // Safe to use .querySelector - newNode is a fresh template with no nested components yet
     const newSlot = newNode.querySelector(".fez-slot");
-    if (newSlot && this._fezChildNodes) {
-      this._fezChildNodes.forEach((child) => {
+    if (newSlot && this._fezSlotNodes) {
+      this._fezSlotNodes.forEach((child) => {
         newSlot.appendChild(child);
       });
     }
@@ -506,8 +509,17 @@ export default class FezBase {
 
     handler.bind(this);
 
+    function shouldProxy(obj) {
+      return (
+        typeof obj === "object" &&
+        obj !== null &&
+        !(obj instanceof Promise) &&
+        !obj.nodeType
+      );
+    }
+
     function createReactive(obj, handler) {
-      if (typeof obj !== "object" || obj === null || obj instanceof Promise) {
+      if (!shouldProxy(obj)) {
         return obj;
       }
 
@@ -516,11 +528,7 @@ export default class FezBase {
           const currentValue = Reflect.get(target, property, receiver);
 
           if (currentValue !== value) {
-            if (
-              typeof value === "object" &&
-              value !== null &&
-              !(value instanceof Promise)
-            ) {
+            if (shouldProxy(value)) {
               value = createReactive(value, handler);
             }
 
@@ -533,11 +541,7 @@ export default class FezBase {
         },
         get(target, property, receiver) {
           const value = Reflect.get(target, property, receiver);
-          if (
-            typeof value === "object" &&
-            value !== null &&
-            !(value instanceof Promise)
-          ) {
+          if (shouldProxy(value)) {
             return createReactive(value, handler);
           }
           return value;
@@ -559,6 +563,20 @@ export default class FezBase {
     return typeof selector == "string"
       ? this.root.querySelector(selector)
       : selector;
+  }
+
+  /**
+   * Add one or more classes (space-separated) to root or given node
+   */
+  addClass(names, node) {
+    (node || this.root).classList.add(...names.split(/\s+/).filter(Boolean));
+  }
+
+  /**
+   * Toggle a class on root or given node, with optional force boolean
+   */
+  toggleClass(name, force, node) {
+    (node || this.root).classList.toggle(name, force);
   }
 
   /**
@@ -608,8 +626,8 @@ export default class FezBase {
   }
 
   /**
-   * Get root children as array, optionally transform
-   * If slot exists, returns slot children. Otherwise captured children or root children.
+   * Get root element children as array, optionally transform
+   * Returns only element nodes (nodeType === 1), text nodes are excluded.
    * Pass true to convert children to objects with attrs as keys, innerHTML as .html, original node as .ROOT
    */
   childNodes(func) {

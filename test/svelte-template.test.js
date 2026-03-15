@@ -27,6 +27,11 @@ globalThis.Fez = {
     if (c && typeof c === "object") return Object.entries(c);
     return [];
   },
+  isTruthy: (v) => {
+    if (Array.isArray(v)) return v.length > 0;
+    if (v && typeof v === "object") return Object.keys(v).length > 0;
+    return !!v;
+  },
   // Mock Fez.fezAwait for template tests
   fezAwait: (component, awaitId, promiseOrValue) => {
     component._awaitStates ||= new Map();
@@ -178,6 +183,97 @@ describe("Svelte-style template", () => {
       ).toBe("other");
     });
 
+    test("#if with else if (without colon)", () => {
+      expect(
+        render(
+          "{#if state.x === 1}one{else if state.x === 2}two{else}other{/if}",
+          { state: { x: 1 } },
+        ),
+      ).toBe("one");
+      expect(
+        render(
+          "{#if state.x === 1}one{else if state.x === 2}two{else}other{/if}",
+          { state: { x: 2 } },
+        ),
+      ).toBe("two");
+      expect(
+        render(
+          "{#if state.x === 1}one{else if state.x === 2}two{else}other{/if}",
+          { state: { x: 3 } },
+        ),
+      ).toBe("other");
+    });
+
+    test("#if with elsif", () => {
+      expect(
+        render(
+          "{#if state.x === 1}one{elsif state.x === 2}two{else}other{/if}",
+          { state: { x: 1 } },
+        ),
+      ).toBe("one");
+      expect(
+        render(
+          "{#if state.x === 1}one{elsif state.x === 2}two{else}other{/if}",
+          { state: { x: 2 } },
+        ),
+      ).toBe("two");
+      expect(
+        render(
+          "{#if state.x === 1}one{elsif state.x === 2}two{else}other{/if}",
+          { state: { x: 3 } },
+        ),
+      ).toBe("other");
+    });
+
+    test("#if with elseif", () => {
+      expect(
+        render(
+          "{#if state.x === 1}one{elseif state.x === 2}two{else}other{/if}",
+          { state: { x: 1 } },
+        ),
+      ).toBe("one");
+      expect(
+        render(
+          "{#if state.x === 1}one{elseif state.x === 2}two{else}other{/if}",
+          { state: { x: 2 } },
+        ),
+      ).toBe("two");
+      expect(
+        render(
+          "{#if state.x === 1}one{elseif state.x === 2}two{else}other{/if}",
+          { state: { x: 3 } },
+        ),
+      ).toBe("other");
+    });
+
+    test("#if with multiple else if chains", () => {
+      const tpl =
+        "{#if state.x === 1}one{elsif state.x === 2}two{else if state.x === 3}three{:else if state.x === 4}four{else}other{/if}";
+      expect(render(tpl, { state: { x: 1 } })).toBe("one");
+      expect(render(tpl, { state: { x: 2 } })).toBe("two");
+      expect(render(tpl, { state: { x: 3 } })).toBe("three");
+      expect(render(tpl, { state: { x: 4 } })).toBe("four");
+      expect(render(tpl, { state: { x: 5 } })).toBe("other");
+    });
+
+    test("#if with else if and no final else", () => {
+      expect(
+        render("{#if state.x === 1}one{elsif state.x === 2}two{/if}", {
+          state: { x: 1 },
+        }),
+      ).toBe("one");
+      expect(
+        render("{#if state.x === 1}one{elsif state.x === 2}two{/if}", {
+          state: { x: 2 },
+        }),
+      ).toBe("two");
+      expect(
+        render("{#if state.x === 1}one{elsif state.x === 2}two{/if}", {
+          state: { x: 3 },
+        }),
+      ).toBe("");
+    });
+
     test("#unless", () => {
       expect(
         render("{#unless state.hidden}visible{/unless}", {
@@ -187,6 +283,66 @@ describe("Svelte-style template", () => {
       expect(
         render("{#unless state.hidden}visible{/unless}", {
           state: { hidden: true },
+        }),
+      ).toBe("");
+    });
+
+    test("#if empty array is falsy", () => {
+      expect(
+        render("{#if state.items}has items{/if}", { state: { items: [] } }),
+      ).toBe("");
+    });
+
+    test("#if empty object is falsy", () => {
+      expect(
+        render("{#if state.data}has data{/if}", { state: { data: {} } }),
+      ).toBe("");
+    });
+
+    test("#if non-empty array is truthy", () => {
+      expect(
+        render("{#if state.items}has items{/if}", {
+          state: { items: ["a"] },
+        }),
+      ).toBe("has items");
+    });
+
+    test("#if non-empty object is truthy", () => {
+      expect(
+        render("{#if state.data}has data{/if}", {
+          state: { data: { a: 1 } },
+        }),
+      ).toBe("has data");
+    });
+
+    test("#unless empty array renders body", () => {
+      expect(
+        render("{#unless state.items}no items{/unless}", {
+          state: { items: [] },
+        }),
+      ).toBe("no items");
+    });
+
+    test("#unless empty object renders body", () => {
+      expect(
+        render("{#unless state.data}no data{/unless}", {
+          state: { data: {} },
+        }),
+      ).toBe("no data");
+    });
+
+    test("#unless null renders body", () => {
+      expect(
+        render("{#unless state.items}no items{/unless}", {
+          state: { items: null },
+        }),
+      ).toBe("no items");
+    });
+
+    test("#unless non-empty array hides body", () => {
+      expect(
+        render("{#unless state.items}no items{/unless}", {
+          state: { items: [1, 2] },
         }),
       ).toBe("");
     });
@@ -458,6 +614,22 @@ describe("Svelte-style template", () => {
         { state: { prefix: "a", suffix: "b" } },
       );
       expect(html).toBe('<div id="a-b">test</div>');
+    });
+
+    test("expression in URL query param inside attribute is not parsed as attribute", () => {
+      const html = render(
+        '<a href="{state.path}/log?usr={state.ref}">link</a>',
+        { state: { path: "/app/space", ref: "abc123" } },
+      );
+      expect(html).toBe('<a href="/app/space/log?usr=abc123">link</a>');
+    });
+
+    test("multiple query params with expressions inside attribute", () => {
+      const html = render(
+        '<a href="{state.base}?foo={state.x}&bar={state.y}">link</a>',
+        { state: { base: "/api", x: "1", y: "2" } },
+      );
+      expect(html).toBe('<a href="/api?foo=1&bar=2">link</a>');
     });
 
     test("conditional class expression", () => {

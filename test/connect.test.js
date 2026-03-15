@@ -19,11 +19,11 @@ const SELF_CLOSING_TAGS = new Set([
 
 function closeCustomTags(html) {
   return html.replace(
-    /<([a-z-]+)\b([^>]*)\/>/g,
-    (match, tagName, attributes) => {
-      return SELF_CLOSING_TAGS.has(tagName)
-        ? match
-        : `<${tagName}${attributes}></${tagName}>`;
+    /<([a-z][a-z-]*)\b((?:=>|[^>])*)>/g,
+    (match, tag, attrs) => {
+      if (!attrs.trimEnd().endsWith("/")) return match;
+      if (SELF_CLOSING_TAGS.has(tag)) return match;
+      return `<${tag}${attrs.replace(/\s*\/$/, "")}></${tag}>`;
     },
   );
 }
@@ -43,7 +43,7 @@ describe("connect slot handling", () => {
     html = closeCustomTags(html);
     html = processSlot(html);
     expect(html).toBe(
-      '<div>Header</div><div class="fez-slot" fez-keep="default-slot" ></div>',
+      '<div>Header</div><div class="fez-slot" fez-keep="default-slot"></div>',
     );
   });
 
@@ -78,11 +78,30 @@ describe("connect slot handling", () => {
 
   test("closeCustomTags converts custom elements", () => {
     const html = '<ui-icon name="star" />';
-    expect(closeCustomTags(html)).toBe('<ui-icon name="star" ></ui-icon>');
+    expect(closeCustomTags(html)).toBe('<ui-icon name="star"></ui-icon>');
   });
 
   test("closeCustomTags preserves self-closing HTML tags", () => {
     const html = '<input type="text" /><br />';
     expect(closeCustomTags(html)).toBe('<input type="text" /><br />');
+  });
+
+  test("closeCustomTags handles => in attributes", () => {
+    const html = '<ui-icon onclick="()=>doStuff()" />';
+    expect(closeCustomTags(html)).toBe(
+      '<ui-icon onclick="()=>doStuff()"></ui-icon>',
+    );
+  });
+
+  test("closeCustomTags does not affect regular opening tags", () => {
+    const html = '<my-app class="main">content</my-app>';
+    expect(closeCustomTags(html)).toBe('<my-app class="main">content</my-app>');
+  });
+
+  test("closeCustomTags handles multiple self-closing tags with =>", () => {
+    const html = '<ui-icon onclick="()=>go()" /><ui-badge name="x" />';
+    expect(closeCustomTags(html)).toBe(
+      '<ui-icon onclick="()=>go()"></ui-icon><ui-badge name="x"></ui-badge>',
+    );
   });
 });

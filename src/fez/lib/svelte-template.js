@@ -89,9 +89,15 @@ export default function createSvelteTemplate(text, opts = {}) {
     // Convert self-closing custom elements to paired tags
     // <ui-icon name="foo" /> -> <ui-icon name="foo"></ui-icon>
     // Custom elements contain a hyphen in the tag name
+    // Uses (?:[^>]|=>) to skip => (arrow functions) inside attributes
     text = text.replace(
-      /<([a-z][a-z0-9]*-[a-z0-9-]*)([^>]*?)\s*\/>/gi,
-      "<$1$2></$1>",
+      /<([a-z][a-z0-9]*-[a-z0-9-]*)((?:=>|[^>])*)>/gi,
+      (match, tag, attrs) => {
+        if (attrs.trimEnd().endsWith("/")) {
+          return `<${tag}${attrs.replace(/\s*\/$/, "")}></${tag}>`;
+        }
+        return match;
+      },
     );
 
     // Convert self-closing <slot /> to <slot></slot>
@@ -188,13 +194,13 @@ export default function createSvelteTemplate(text, opts = {}) {
         // Block directives
         if (expr.startsWith("#if ")) {
           const cond = expr.slice(4);
-          result += "${(" + cond + ") ? `";
+          result += "${Fez.isTruthy(" + cond + ") ? `";
           ifStack.push(false); // No else yet
         } else if (expr.startsWith("#unless ")) {
           const cond = expr.slice(8);
-          result += "${!(" + cond + ") ? `";
+          result += "${!Fez.isTruthy(" + cond + ") ? `";
           ifStack.push(false); // No else yet
-        } else if (expr === ":else") {
+        } else if (expr === ":else" || expr === "else") {
           // Check if we're inside a loop (for empty list handling)
           if (loopStack.length > 0 && !ifStack.length) {
             // :else inside a loop - for empty array case
@@ -206,9 +212,20 @@ export default function createSvelteTemplate(text, opts = {}) {
             result += "` : `";
             ifStack[ifStack.length - 1] = true; // Has else
           }
-        } else if (expr.startsWith(":else if ")) {
-          const cond = expr.slice(9);
-          result += "` : (" + cond + ") ? `";
+        } else if (
+          expr.startsWith(":else if ") ||
+          expr.startsWith("else if ") ||
+          expr.startsWith("elsif ") ||
+          expr.startsWith("elseif ")
+        ) {
+          const cond = expr.startsWith(":else if ")
+            ? expr.slice(9)
+            : expr.startsWith("else if ")
+              ? expr.slice(8)
+              : expr.startsWith("elseif ")
+                ? expr.slice(7)
+                : expr.slice(6);
+          result += "` : Fez.isTruthy(" + cond + ") ? `";
           // Keep hasElse as false - still need final else
         } else if (expr === "/if" || expr === "/unless") {
           const hasElse = ifStack.pop();

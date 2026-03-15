@@ -536,6 +536,14 @@ export default (Fez) => {
     };
   };
 
+  // Enhanced truthiness check for template conditionals (#if, #unless)
+  // Empty arrays and empty objects are falsy, everything else uses standard JS truthiness
+  Fez.isTruthy = (v) => {
+    if (Array.isArray(v)) return v.length > 0;
+    if (v && typeof v === "object") return Object.keys(v).length > 0;
+    return !!v;
+  };
+
   // Convert any collection to pairs for loop destructuring
   // Array: ['a', 'b'] → [['a', 0], ['b', 1]] (value, index)
   // Object: {x: 1} → [['x', 1]] (key, value)

@@ -1,4 +1,8 @@
-# Fez JS lib Quick Reference for AI Assistants
+if you are instructed to write fez js dom components
+
+---
+
+# Fez JS lib Quick Reference for AI Assistants (files ending in .fez or .html.fez)
 
 ## CDN
 
@@ -20,8 +24,8 @@ bunx fez-compile path/to/component.fez
 
 1. **ALWAYS** use Fez-specific Svelte-like syntax (NO React/Vue conventions)
 2. **NEVER** use hooks - `this.state` replaces useState/useEffect
-3. **ALWAYS** scope styles with `:fez` selector and use nested SCSS-style syntax
-4. **ALWAYS** initialize state in `init()`
+3. **NEVER** use `:fez` or `body` selectors in `<style>` — just write styles directly, they are auto-scoped to the component
+4. **ALWAYS** initialize state in `init()`, put reactive/derived state in `beforeRender()`
 5. **ALWAYS** use kebab-case component names (e.g., `user-profile`)
 6. **NEVER** use `{#if}` blocks inside HTML attributes - use ternary operators `{condition ? 'value' : ''}` instead
 7. **Attribute expressions** are automatically quoted - write `attr={value}` (quotes added automatically)
@@ -69,6 +73,13 @@ bunx fez-compile path/to/component.fez
       this.state.title = props.title || 'Default'
     }
 
+    beforeRender() {
+      // runs BEFORE every re-render — use for reactive computed state
+      // (replacement for Svelte's $: reactive statements)
+      this.state.fullName = `${this.state.first} ${this.state.last}`
+      this.state.isValid = this.state.items.length > 0
+    }
+
     onMount(props) {
       // runs AFTER template render — DOM is ready, fez:this refs work
       this.editor = new Editor({
@@ -93,35 +104,33 @@ bunx fez-compile path/to/component.fez
 </script>
 
 <style>
-  /* ALWAYS put ALL styles inside :fez — never write global/body styles */
-  :fez {
-    /* styles on component root element */
-    padding: 20px;
+  /* NEVER use :fez or body selectors — all styles here are auto-scoped to the component */
+  /* styles on component root element */
+  padding: 20px;
 
-    /* nested SCSS syntax */
-    button {
-      background: gold;
-      cursor: pointer;
+  /* nested SCSS syntax */
+  button {
+    background: gold;
+    cursor: pointer;
 
-      span {
-        color: black;
-        font-weight: bold;
-      }
-
-      &:hover {
-        background: orange;
-      }
+    span {
+      color: black;
+      font-weight: bold;
     }
 
-    .card {
-      border: 1px solid #ddd;
+    &:hover {
+      background: orange;
+    }
+  }
 
-      .header {
-        font-size: 18px;
+  .card {
+    border: 1px solid #ddd;
 
-        h3 {
-          margin: 0;
-        }
+    .header {
+      font-size: 18px;
+
+      h3 {
+        margin: 0;
       }
     }
   }
@@ -170,10 +179,18 @@ bunx fez-compile path/to/component.fez
 {/if}
 
 <!-- Unless (opposite of if) -->
-{#unless state.items.length}
+<!-- renders if state.items is null, undefined, empty array, or empty object -->
+{#unless state.items}
 <p>No items found</p>
 {/unless}
 ```
+
+**Truthiness rules** for `#if`, `#unless`, and `:else if`:
+
+- `null`, `undefined`, `false`, `0`, `""` → **falsy**
+- `[]` (empty array) → **falsy**
+- `{}` (empty object) → **falsy**
+- Non-empty arrays, non-empty objects, and other truthy values → **truthy**
 
 ### Async/Await Blocks
 
@@ -428,6 +445,7 @@ All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is con
 
 - Initialize ALL properties in `init()`
 - Modify arrays/objects directly (they're deeply reactive)
+- Use `beforeRender()` for reactive computed/derived state (replacement for Svelte's `$:` reactive statements) — runs before every re-render
 - Use `onMount()` for updates that need mounted template
 - **NEVER bind state to form input values** - state changes trigger full re-render. Use `fez:this` instead:
 
@@ -603,7 +621,8 @@ This is automatic - no extra configuration needed.
 ## Common Mistakes to Avoid
 
 - Using React hooks (useState, useEffect)
-- Forgetting `:fez` in scoped styles
+- **Using `:fez` or `body` selectors in styles** — never use them; all styles in `<style>` are auto-scoped to the component. Using `:fez` risks styles leaking globally if selectors are placed outside the block
+- **Putting computed/derived state in `init()` instead of `beforeRender()`** — derived values that depend on state should go in `beforeRender()` so they update on every re-render (like Svelte's `$:`)
 - Using string interpolation in onclick instead of arrow functions
 - Direct DOM manipulation for simple reactive UI (use state instead) - BUT use direct DOM for external libraries (Three.js, charts, etc.) since Idiomorph diffing doesn't handle them well
 - Missing `init()` for state initialization
