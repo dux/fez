@@ -3,13 +3,14 @@
     <li>Rich text HTML editor, textarea replacement</li>
     <li>Powered by <code>Tiptap</code> (ProseMirror wrapper) loaded via ESM</li>
     <li>Toggle between WYSIWYG and raw Markdown editing</li>
+    <li>Optional formatting toolbar via <code>toolbar</code> attribute</li>
     <li>Data is always stored as Markdown in a hidden input</li>
   </ul>
 </info>
 
 <demo>
-  <h4>Basic editor</h4>
-  <input-html name="body">
+  <h4>Editor with toolbar</h4>
+  <input-html name="body" toolbar="true">
 ## Hello world
 
 This is **bold** and *italic* text.
@@ -18,6 +19,11 @@ This is **bold** and *italic* text.
 * list item 2
 
 > a nice blockquote
+  </input-html>
+
+  <h4>Editor without toolbar - textarea replacement</h4>
+  <input-html name="body_plain">
+Just a simple text area with **markdown** support.
   </input-html>
 </demo>
 
@@ -98,9 +104,11 @@ This is **bold** and *italic* text.
         this.mdTextarea.value = this.hiddenInput.value
         this.editorNode.style.display = 'none'
         this.mdTextarea.style.display = ''
-        this.toolbarBtns.style.display = 'none'
-        this.modeBtn.textContent = 'Rich'
-        this.modeBtn.classList.add('active')
+        if (this.toolbarBtns) this.toolbarBtns.style.display = 'none'
+        if (this.modeBtn) {
+          this.modeBtn.textContent = 'Rich'
+          this.modeBtn.classList.add('active')
+        }
       } else {
         // Markdown -> WYSIWYG
         const md = this.mdTextarea.value
@@ -109,9 +117,11 @@ This is **bold** and *italic* text.
         this.editor.commands.setContent(html)
         this.mdTextarea.style.display = 'none'
         this.editorNode.style.display = ''
-        this.toolbarBtns.style.display = ''
-        this.modeBtn.textContent = 'MD'
-        this.modeBtn.classList.remove('active')
+        if (this.toolbarBtns) this.toolbarBtns.style.display = ''
+        if (this.modeBtn) {
+          this.modeBtn.textContent = 'MD'
+          this.modeBtn.classList.remove('active')
+        }
       }
     }
 
@@ -159,48 +169,59 @@ This is **bold** and *italic* text.
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 1px;
+      gap: 2px;
       padding: 4px 6px;
-      background: #fff;
+      background: #fafafa;
       border-bottom: 1px solid #e0e0e0;
 
       button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 28px;
-        height: 28px;
-        padding: 0 5px;
-        border: none;
-        border-radius: 4px;
+        min-width: 30px;
+        height: 30px;
+        padding: 0 6px;
+        border: 1px solid transparent;
+        border-radius: 6px;
         background: transparent;
-        color: #444;
+        color: #555;
         font-size: 13px;
         font-weight: 500;
         cursor: pointer;
         line-height: 1;
+        transition: all 0.15s ease;
 
         &:hover {
-          background: #e0e0e0;
+          background: #fff;
+          border-color: #d0d0d0;
+          color: #222;
+        }
+
+        &:active {
+          background: #eee;
         }
 
         &.active {
-          background: #d0d0d0;
+          background: #e8e8e8;
+          border-color: #ccc;
           color: #111;
         }
+      }
 
-        &.sep {
-          width: 1px;
-          min-width: 1px;
-          height: 18px;
-          padding: 0;
-          margin: 0 3px;
-          background: #d0d0d0;
-          cursor: default;
+      .sep {
+        width: 1px;
+        height: 18px;
+        padding: 0;
+        margin: 0 4px;
+        background: #ddd;
+        border: none;
+        min-width: 1px;
+        cursor: default;
+        border-radius: 0;
 
-          &:hover {
-            background: #d0d0d0;
-          }
+        &:hover {
+          background: #ddd;
+          border-color: transparent;
         }
       }
 
@@ -220,7 +241,8 @@ This is **bold** and *italic* text.
 
         &.active {
           color: #333;
-          background: #d0d0d0;
+          background: #e8e8e8;
+          border-color: #ccc;
         }
       }
     }
@@ -320,28 +342,30 @@ This is **bold** and *italic* text.
 
 <input fez:this="hiddenInput" type="hidden" name={props.name} />
 
+{#if props.toolbar}
 <div class="ih-toolbar">
   <span fez:this="toolbarBtns">
     <button onclick="fez.tbBold()" title="Bold (Ctrl+B)"><b>B</b></button>
     <button onclick="fez.tbItalic()" title="Italic (Ctrl+I)"><i>I</i></button>
     <button onclick="fez.tbStrike()" title="Strikethrough"><s>S</s></button>
     <button onclick="fez.tbCode()" title="Inline code"><span style="font-family:monospace;font-size:11px">cd</span></button>
-    <button class="sep"></button>
+    <span class="sep"></span>
     <button onclick="fez.tbH1()" title="Heading 1">H1</button>
     <button onclick="fez.tbH2()" title="Heading 2">H2</button>
     <button onclick="fez.tbH3()" title="Heading 3">H3</button>
-    <button class="sep"></button>
+    <span class="sep"></span>
     <button onclick="fez.tbBulletList()" title="Bullet list">&#8226;</button>
     <button onclick="fez.tbOrderedList()" title="Ordered list">1.</button>
     <button onclick="fez.tbBlockquote()" title="Blockquote">&ldquo;</button>
     <button onclick="fez.tbHr()" title="Horizontal rule">&mdash;</button>
     <button onclick="fez.tbCodeBlock()" title="Code block">&#123;&#125;</button>
-    <button class="sep"></button>
+    <span class="sep"></span>
     <button onclick="fez.tbLink()" title="Link">&#128279;</button>
   </span>
   <span class="ih-spacer"></span>
   <button fez:this="modeBtn" class="ih-mode-btn" onclick="fez.toggleMode()" title="Toggle markdown source">MD</button>
 </div>
+{/if}
 
 <div fez:this="editorNode" class="ih-editor"></div>
 <textarea fez:this="mdTextarea" class="ih-md-textarea" style="display:none" oninput="fez.hiddenInput.value = this.value"></textarea>
