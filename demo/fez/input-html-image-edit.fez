@@ -1,0 +1,100 @@
+<script>
+  class {
+    FAST = true
+
+    init() {
+      this._width = this.props.width || 'normal'
+    }
+
+    onMount() {
+      this.srcInput.value = this.props.src || ''
+      this.capInput.value = this.props.caption || ''
+      this.srcInput.focus()
+    }
+
+    selectWidth(w) {
+      this._width = w
+      this.root.querySelectorAll('.width-picker button').forEach((b) => {
+        b.classList.toggle('active', b.textContent === w)
+      })
+    }
+
+    done() {
+      const cb = window[this.props.cb]
+      if (cb) {
+        cb.done({
+          src: this.srcInput.value.trim(),
+          caption: this.capInput.value.trim(),
+          width: this._width,
+        })
+      }
+    }
+
+    onKey(e) {
+      if (e.key === 'Enter') { e.preventDefault(); this.done() }
+    }
+  }
+</script>
+
+<style>
+  display: block;
+  padding: 16px;
+  text-align: left;
+
+  input {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+    outline: none;
+
+    &:focus { border-color: #2563eb; }
+  }
+
+  .width-picker {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+
+    button {
+      padding: 4px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+      font-size: 12px;
+      cursor: pointer;
+      text-transform: capitalize;
+
+      &:hover { background: #f0f0f0; }
+      &.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+    }
+  }
+
+  .done-btn {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 4px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+
+    &:hover { background: #1d4ed8; }
+  }
+</style>
+
+<input fez:this="srcInput" class="src-input" type="text" placeholder="Image URL" onkeydown="fez.onKey(event)" />
+
+<div class="width-picker">
+  {#each ['small', 'normal', 'full'] as w}
+    <button type="button" class={props.width === w || (!props.width && w === 'normal') ? 'active' : ''} onclick="fez.selectWidth('{w}')">{w}</button>
+  {/each}
+</div>
+
+<input fez:this="capInput" class="cap-input" type="text" placeholder="Caption (optional)" onkeydown="fez.onKey(event)" />
+
+<button type="button" class="done-btn" onclick="fez.done()">Done</button>

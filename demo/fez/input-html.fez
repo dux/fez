@@ -4,21 +4,31 @@
     <li>Powered by <code>Tiptap</code> (ProseMirror wrapper) loaded via ESM</li>
     <li>Toggle between WYSIWYG and raw Markdown editing</li>
     <li>Optional formatting toolbar via <code>toolbar</code> attribute</li>
+    <li>Image block module with width modes (small/normal/full) and optional caption</li>
+    <li>Callout block module with types (info/warning/success/error)</li>
     <li>Data is always stored as Markdown in a hidden input</li>
   </ul>
 </info>
 
 <demo>
-  <h4>Editor with toolbar</h4>
-  <input-html name="body" toolbar="true">
+  <h4>Editor with toolbar and image</h4>
+  <input-html name="body_img" toolbar="true">
 ## Hello world
 
-This is **bold** and *italic* text.
+Some text above the image.
 
 * list item 1
 * list item 2
 
+{{block:image {"src":"https://picsum.photos/800/400","caption":"A random photo"}}}
+
+And text below it.
+
+{{block:callout {"type":"info","text":"This is an info callout with important notes."}}}
+
 > a nice blockquote
+
+And more text.
   </input-html>
 
   <h4>Editor without toolbar - textarea replacement</h4>
@@ -28,12 +38,359 @@ Just a simple text area with **markdown** support.
 </demo>
 
 <script>
-  import { Editor } from 'https://esm.sh/@tiptap/core@2'
+  import { Editor, Node, Extension, mergeAttributes } from 'https://esm.sh/@tiptap/core@2'
+  import { Plugin, PluginKey } from 'https://esm.sh/@tiptap/pm@2/state'
   import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2'
   import Link from 'https://esm.sh/@tiptap/extension-link@2'
   import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder@2'
   import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
   import TurndownService from 'https://esm.sh/turndown@7'
+
+  // Generic block extension factory
+  // For block type "foo", renders input-html-foo-view and input-html-foo-edit components
+  // Stores all attributes as a flat JSON object in data-attrs
+  function createBlockExtension(type) {
+    const nodeName = type + 'Block'
+    const viewTag = 'input-html-' + type + '-view'
+    const editTag = 'input-html-' + type + '-edit'
+
+    return Node.create({
+      name: nodeName,
+      group: 'block',
+      atom: true,
+      draggable: true,
+
+      addAttributes() {
+        return {
+          blockData: { default: '{}' }
+        }
+      },
+
+      parseHTML() {
+        return [{
+          tag: `div[data-block="${type}"]`,
+          getAttrs: (el) => {
+            // collect all data-* attrs except data-block into blockData
+            const data = {}
+            for (const attr of el.attributes) {
+              if (attr.name.startsWith('data-') && attr.name !== 'data-block') {
+                data[attr.name.slice(5)] = attr.value
+              }
+            }
+            return { blockData: JSON.stringify(data) }
+          }
+        }]
+      },
+
+      renderHTML({ node }) {
+        const htmlAttrs = { 'data-block': type }
+        try {
+          const data = JSON.parse(node.attrs.blockData)
+          for (const [k, v] of Object.entries(data)) {
+            htmlAttrs['data-' + k] = v
+          }
+        } catch (e) {}
+        return ['div', htmlAttrs, '\u200B']
+      },
+
+      addCommands() {
+        return {
+          ['set' + type.charAt(0).toUpperCase() + type.slice(1) + 'Block']: (data = {}) => ({ commands }) =>
+            commands.insertContent({ type: nodeName, attrs: { blockData: JSON.stringify(data) } })
+        }
+      },
+
+      addNodeView() {
+        return ({ node, editor, getPos }) => {
+          const dom = document.createElement('div')
+          let data = {}
+          try { data = JSON.parse(node.attrs.blockData) } catch (e) {}
+          dom.className = 'ib-wrap' + (data.width ? ' ib-' + data.width : '')
+          let editing = !Object.keys(data).length
+          let overlay = null
+
+          const cbId = '_ib_' + Math.random().toString(36).slice(2, 8)
+          window[cbId] = {
+            edit: () => { editing = true; showEditor() },
+            del: () => {
+              if (typeof getPos !== 'function') return
+              const pos = getPos()
+              editor.view.dispatch(editor.view.state.tr.delete(pos, pos + node.nodeSize))
+            },
+            done: (newData) => {
+              editing = false
+              hideEditor()
+              if (typeof getPos !== 'function') return
+              const pos = getPos()
+              const tr = editor.view.state.tr.setNodeMarkup(pos, undefined, {
+                blockData: JSON.stringify(newData)
+              })
+              editor.view.dispatch(tr)
+              renderPreview()
+            }
+          }
+
+          function setAttrs(el, attrs) {
+            for (const [k, v] of Object.entries(attrs)) {
+              if (v != null && v !== '') el.setAttribute(k, v)
+            }
+          }
+
+          const blockMeta = BLOCK_META[type] || {}
+
+          function renderPreview() {
+            dom.innerHTML = ''
+            try { data = JSON.parse(node.attrs.blockData) } catch (e) {}
+            const isEmpty = !Object.keys(data).length
+
+            if (isEmpty && blockMeta.placeholder) {
+              dom.className = 'ib-wrap'
+              const ph = document.createElement('div')
+              ph.className = 'ib-placeholder'
+              ph.textContent = blockMeta.placeholder
+              ph.onclick = () => window[cbId].edit()
+              dom.appendChild(ph)
+            } else {
+              dom.className = 'ib-wrap' + (data.width ? ' ib-' + data.width : '')
+              const view = document.createElement(viewTag)
+              setAttrs(view, data)
+              dom.appendChild(view)
+            }
+
+            const actions = document.createElement('div')
+            actions.className = 'ib-actions'
+            actions.contentEditable = 'false'
+            actions.innerHTML = '<button type="button">Edit</button><button type="button">Del</button>'
+            actions.children[0].onclick = (e) => { e.stopPropagation(); window[cbId].edit() }
+            actions.children[1].onclick = (e) => { e.stopPropagation(); window[cbId].del() }
+            dom.appendChild(actions)
+          }
+
+          let resizeObs = null
+
+          function showEditor() {
+            hideEditor()
+            try { data = JSON.parse(node.attrs.blockData) } catch (e) {}
+
+            // hide preview content, keep dom as height placeholder
+            dom.innerHTML = ''
+            dom.className = 'ib-wrap ib-editing-placeholder'
+
+            overlay = document.createElement('div')
+            overlay.className = 'ib-editor-overlay'
+            document.body.appendChild(overlay)
+
+            const edit = document.createElement(editTag)
+            setAttrs(edit, data)
+            edit.setAttribute('cb', cbId)
+            overlay.appendChild(edit)
+
+            function positionOverlay() {
+              const rect = dom.getBoundingClientRect()
+              Object.assign(overlay.style, {
+                position: 'absolute',
+                left: rect.left + window.scrollX + 'px',
+                top: rect.top + window.scrollY + 'px',
+                width: rect.width + 'px',
+                zIndex: '9999',
+                background: '#fdfcfa',
+                border: '2px dashed #ccc',
+                borderRadius: '8px',
+              })
+              // sync placeholder height to overlay
+              dom.style.minHeight = overlay.offsetHeight + 'px'
+            }
+
+            // observe overlay size changes
+            resizeObs = new ResizeObserver(positionOverlay)
+            resizeObs.observe(overlay)
+            setTimeout(positionOverlay, 0)
+          }
+
+          function hideEditor() {
+            if (overlay) { overlay.remove(); overlay = null }
+            if (resizeObs) { resizeObs.disconnect(); resizeObs = null }
+            dom.style.minHeight = ''
+          }
+
+          if (editing) {
+            renderPreview()
+            // defer so DOM is in place for positioning
+            setTimeout(() => showEditor(), 0)
+          } else {
+            renderPreview()
+          }
+
+          return {
+            dom,
+            update(updatedNode) {
+              if (updatedNode.type.name !== nodeName) return false
+              node = updatedNode
+              if (!editing) renderPreview()
+              return true
+            },
+            selectNode() { dom.classList.add('ib-selected') },
+            deselectNode() { dom.classList.remove('ib-selected') },
+            stopEvent(event) { return dom.contains(event.target) },
+            ignoreMutation() { return true },
+            destroy() { hideEditor(); delete window[cbId] }
+          }
+        }
+      }
+    })
+  }
+
+  // Auto-discover block types from Fez.index via META.toolbar on view components
+  function discoverBlockTypes() {
+    const types = []
+    for (const name of Fez.index.names()) {
+      const m = name.match(/^input-html-(\w+)-view$/)
+      if (!m) continue
+      const toolbar = Fez.index[name]?.meta?.toolbar
+      if (!toolbar?.label) continue
+      types.push({ type: m[1], ...toolbar })
+    }
+    return types
+  }
+
+  const BLOCK_TYPES = discoverBlockTypes()
+  const BLOCK_META = {}
+  BLOCK_TYPES.forEach((b) => BLOCK_META[b.type] = b)
+
+  const blockExtensions = BLOCK_TYPES.map((b) => createBlockExtension(b.type))
+
+  const SLASH_ITEMS = BLOCK_TYPES.map((b) => ({
+    label: b.label,
+    icon: b.icon,
+    description: b.placeholder || ('Insert ' + b.label.toLowerCase()),
+    command: 'set' + b.type.charAt(0).toUpperCase() + b.type.slice(1) + 'Block',
+  }))
+
+  const SlashCommands = Extension.create({
+    name: 'slashCommands',
+
+    addProseMirrorPlugins() {
+      const editor = this.editor
+      let popup = null
+      let selectedIndex = 0
+      let query = ''
+      let active = false
+      let slashPos = null
+
+      function getFiltered() {
+        if (!query) return SLASH_ITEMS
+        const q = query.toLowerCase()
+        return SLASH_ITEMS.filter((i) => i.label.toLowerCase().includes(q))
+      }
+
+      function destroy() {
+        if (popup) { popup.remove(); popup = null }
+        active = false
+        query = ''
+        selectedIndex = 0
+        slashPos = null
+      }
+
+      function render() {
+        const items = getFiltered()
+        if (!items.length) { destroy(); return }
+        if (!popup) {
+          popup = document.createElement('div')
+          Object.assign(popup.style, {
+            position: 'fixed', zIndex: '9999', background: '#fff',
+            border: '1px solid #ddd', borderRadius: '8px', padding: '4px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)', minWidth: '200px',
+            fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '13px',
+          })
+          document.body.appendChild(popup)
+        }
+        popup.innerHTML = items.map((item, i) => {
+          const bg = i === selectedIndex ? '#f0f0f0' : 'transparent'
+          return `<div data-index="${i}" style="padding:8px 12px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:8px;background:${bg}"><span style="font-size:16px">${item.icon}</span><span>${item.label}<br><small style="color:#888">${item.description}</small></span></div>`
+        }).join('')
+        popup.querySelectorAll('.ih-slash-item').forEach((el) => {
+          el.addEventListener('mousedown', (e) => {
+            e.preventDefault()
+            execute(parseInt(el.dataset.index))
+          })
+        })
+        // position near cursor
+        const coords = editor.view.coordsAtPos(editor.state.selection.from)
+        popup.style.left = coords.left + 'px'
+        popup.style.top = (coords.bottom + 4) + 'px'
+      }
+
+      function execute(index) {
+        const items = getFiltered()
+        const item = items[index]
+        if (!item) return
+        // delete the slash and query text
+        const { tr } = editor.view.state
+        tr.delete(slashPos, editor.state.selection.from)
+        editor.view.dispatch(tr)
+        // run the command
+        editor.commands[item.command]({})
+        destroy()
+      }
+
+      return [
+        new Plugin({
+          key: new PluginKey('slashCommands'),
+          props: {
+            handleKeyDown(view, event) {
+              if (!active) {
+                if (event.key === '/') {
+                  const { $from } = view.state.selection
+                  const textBefore = $from.parent.textContent.slice(0, $from.parentOffset)
+                  if (!textBefore.trim()) {
+                    active = true
+                    slashPos = $from.pos
+                    query = ''
+                    selectedIndex = 0
+                    setTimeout(() => render(), 0)
+                    return false
+                  }
+                }
+                return false
+              }
+
+              if (event.key === 'Escape') { destroy(); return true }
+              if (event.key === 'ArrowDown') {
+                selectedIndex = Math.min(selectedIndex + 1, getFiltered().length - 1)
+                render()
+                return true
+              }
+              if (event.key === 'ArrowUp') {
+                selectedIndex = Math.max(selectedIndex - 1, 0)
+                render()
+                return true
+              }
+              if (event.key === 'Enter') {
+                execute(selectedIndex)
+                return true
+              }
+              if (event.key === 'Backspace') {
+                if (!query) { destroy(); return false }
+                query = query.slice(0, -1)
+                setTimeout(() => render(), 0)
+                return false
+              }
+              if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
+                query += event.key
+                setTimeout(() => render(), 0)
+                return false
+              }
+              return false
+            },
+            handleClick() {
+              if (active) destroy()
+              return false
+            },
+          },
+        })
+      ]
+    }
+  })
 
   class {
     init() {
@@ -60,7 +417,22 @@ Just a simple text area with **markdown** support.
         replacement: (content) => content
       })
 
-      const initialHtml = this._initialMd ? marked.parse(this._initialMd) : ''
+      const initialHtml = this._initialMd ? this.mdToHtml(this._initialMd) : ''
+
+      // serialize any block as {{block:type {json}}} in markdown
+      this.turndown.addRule('fezBlock', {
+        filter: (node) => node.nodeName === 'DIV' && node.getAttribute('data-block'),
+        replacement: (content, node) => {
+          const type = node.getAttribute('data-block')
+          const data = {}
+          for (const attr of node.attributes) {
+            if (attr.name.startsWith('data-') && attr.name !== 'data-block') {
+              data[attr.name.slice(5)] = attr.value
+            }
+          }
+          return `\n\n{{block:${type} ${JSON.stringify(data)}}}\n\n`
+        }
+      })
 
       this.editor = new Editor({
         element: this.editorNode,
@@ -68,6 +440,8 @@ Just a simple text area with **markdown** support.
           StarterKit,
           Link.configure({ openOnClick: false }),
           Placeholder.configure({ placeholder: this.props.placeholder || '' }),
+          ...blockExtensions,
+          SlashCommands,
         ],
         content: initialHtml,
         onUpdate: () => {
@@ -77,6 +451,17 @@ Just a simple text area with **markdown** support.
 
       this.updateHiddenInput()
       this._ready = true
+
+      // populate toolbar block buttons from discovered BLOCK_TYPES
+      if (this.blockButtons) {
+        BLOCK_TYPES.forEach((b) => {
+          const btn = document.createElement('button')
+          btn.title = b.label
+          btn.textContent = b.icon
+          btn.onclick = () => this.tbInsertBlock(b.type)
+          this.blockButtons.appendChild(btn)
+        })
+      }
     }
 
     updateHiddenInput() {
@@ -85,6 +470,24 @@ Just a simple text area with **markdown** support.
       md = md.replace(/\n{3,}/g, '\n\n').trim()
       this.hiddenInput.value = md
       return md
+    }
+
+    mdToHtml(md) {
+      // convert {{block:type {json}}} tokens to HTML divs before marked.parse
+      const processed = md.replace(/\{\{block:(\w+)\s+(\{.*?\})\s*\}\}/g, (match, type, json) => {
+        try {
+          const data = JSON.parse(json)
+          let div = `<div data-block="${type}"`
+          for (const [k, v] of Object.entries(data)) {
+            div += ` data-${k}="${v.toString().replace(/"/g, '&quot;')}"`
+          }
+          div += '></div>'
+          return div
+        } catch (e) {
+          return match
+        }
+      })
+      return marked.parse(processed)
     }
 
     syncMarkdown() {
@@ -113,7 +516,7 @@ Just a simple text area with **markdown** support.
         // Markdown -> WYSIWYG
         const md = this.mdTextarea.value
         this.hiddenInput.value = md
-        const html = md ? marked.parse(md) : '<p></p>'
+        const html = md ? this.mdToHtml(md) : '<p></p>'
         this.editor.commands.setContent(html)
         this.mdTextarea.style.display = 'none'
         this.editorNode.style.display = ''
@@ -150,6 +553,13 @@ Just a simple text area with **markdown** support.
       }
     }
 
+    tbInsertBlock(type) {
+      const cmd = 'set' + type.charAt(0).toUpperCase() + type.slice(1) + 'Block'
+      if (this.editor.commands[cmd]) {
+        this.editor.chain().focus()[cmd]({}).run()
+      }
+    }
+
     onDestroy() {
       if (this.editor) this.editor.destroy()
     }
@@ -157,186 +567,240 @@ Just a simple text area with **markdown** support.
 </script>
 
 <style>
-  :fez {
-    display: block;
-    border: 1px solid #d0d0d0;
-    border-radius: 6px;
-    overflow: hidden;
-    font-family: system-ui, -apple-system, sans-serif;
-    background: #fff;
+  display: block;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #fff;
 
-    .ih-toolbar {
-      display: flex;
-      flex-wrap: wrap;
+  .ih-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 6px;
+    background: #fafafa;
+    border-bottom: 1px solid #e0e0e0;
+
+    button {
+      display: inline-flex;
       align-items: center;
-      gap: 2px;
-      padding: 4px 6px;
-      background: #fafafa;
-      border-bottom: 1px solid #e0e0e0;
+      justify-content: center;
+      min-width: 30px;
+      height: 30px;
+      padding: 0 6px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: #555;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      line-height: 1;
+      transition: all 0.15s ease;
 
-      button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 30px;
-        height: 30px;
-        padding: 0 6px;
-        border: 1px solid transparent;
-        border-radius: 6px;
-        background: transparent;
-        color: #555;
-        font-size: 13px;
-        font-weight: 500;
-        cursor: pointer;
-        line-height: 1;
-        transition: all 0.15s ease;
-
-        &:hover {
-          background: #fff;
-          border-color: #d0d0d0;
-          color: #222;
-        }
-
-        &:active {
-          background: #eee;
-        }
-
-        &.active {
-          background: #e8e8e8;
-          border-color: #ccc;
-          color: #111;
-        }
+      &:hover {
+        background: #fff;
+        border-color: #d0d0d0;
+        color: #222;
       }
 
-      .sep {
-        width: 1px;
-        height: 18px;
-        padding: 0;
-        margin: 0 4px;
-        background: #ddd;
-        border: none;
-        min-width: 1px;
-        cursor: default;
-        border-radius: 0;
-
-        &:hover {
-          background: #ddd;
-          border-color: transparent;
-        }
+      &:active {
+        background: #eee;
       }
 
-      .ih-spacer {
-        flex: 1;
-      }
-
-      .ih-mode-btn {
-        font-size: 11px;
-        font-family: monospace;
-        color: #888;
-        padding: 0 8px;
-
-        &:hover {
-          color: #333;
-        }
-
-        &.active {
-          color: #333;
-          background: #e8e8e8;
-          border-color: #ccc;
-        }
+      &.active {
+        background: #e8e8e8;
+        border-color: #ccc;
+        color: #111;
       }
     }
 
-    .ih-editor {
-      min-height: 150px;
-      padding: 10px 14px;
+    .sep {
+      width: 1px;
+      height: 18px;
+      padding: 0;
+      margin: 0 4px;
+      background: #ddd;
+      border: none;
+      min-width: 1px;
+      cursor: default;
+      border-radius: 0;
 
-      .tiptap {
-        outline: none;
-        min-height: 130px;
+      &:hover {
+        background: #ddd;
+        border-color: transparent;
+      }
+    }
 
-        > * + * {
-          margin-top: 0.5em;
-        }
+    .ih-spacer {
+      flex: 1;
+    }
 
-        h1 { font-size: 1.6em; font-weight: 700; margin: 0.5em 0 0.3em; }
-        h2 { font-size: 1.3em; font-weight: 600; margin: 0.5em 0 0.3em; }
-        h3 { font-size: 1.1em; font-weight: 600; margin: 0.5em 0 0.3em; }
+    .ih-mode-btn {
+      font-size: 11px;
+      font-family: monospace;
+      color: #888;
+      padding: 0 8px;
 
-        p { margin: 0.3em 0; }
+      &:hover {
+        color: #333;
+      }
 
-        ul, ol {
-          padding-left: 1.4em;
-          margin: 0.3em 0;
-        }
+      &.active {
+        color: #333;
+        background: #e8e8e8;
+        border-color: #ccc;
+      }
+    }
+  }
 
-        ul { list-style: disc; }
-        ol { list-style: decimal; }
+  .ih-editor {
+    min-height: 150px;
+    padding: 10px 14px;
 
-        li { margin: 0.1em 0; }
-        li > p { margin: 0; }
+    .tiptap {
+      outline: none;
+      min-height: 130px;
 
-        blockquote {
-          border-left: 3px solid #d0d0d0;
-          padding-left: 12px;
-          margin: 0.5em 0;
-          color: #666;
-        }
+      > * + * {
+        margin-top: 0.5em;
+      }
+
+      h1 { font-size: 1.6em; font-weight: 700; margin: 0.5em 0 0.3em; }
+      h2 { font-size: 1.3em; font-weight: 600; margin: 0.5em 0 0.3em; }
+      h3 { font-size: 1.1em; font-weight: 600; margin: 0.5em 0 0.3em; }
+
+      p { margin: 0.3em 0; }
+
+      ul, ol {
+        padding-left: 1.4em;
+        margin: 0.3em 0;
+      }
+
+      ul { list-style: disc; }
+      ol { list-style: decimal; }
+
+      li { margin: 0.1em 0; }
+      li > p { margin: 0; }
+
+      blockquote {
+        border-left: 3px solid #d0d0d0;
+        padding-left: 12px;
+        margin: 0.5em 0;
+        color: #666;
+      }
+
+      code {
+        background: #f0f0f0;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-size: 0.9em;
+      }
+
+      pre {
+        background: #f5f5f5;
+        padding: 10px 14px;
+        border-radius: 4px;
+        overflow-x: auto;
 
         code {
-          background: #f0f0f0;
-          padding: 1px 4px;
-          border-radius: 3px;
-          font-size: 0.9em;
+          background: none;
+          padding: 0;
+        }
+      }
+
+      hr {
+        border: none;
+        border-top: 1px solid #d0d0d0;
+        margin: 0.8em 0;
+      }
+
+      a {
+        color: #2563eb;
+        text-decoration: underline;
+      }
+
+      p.is-editor-empty:first-child::before {
+        content: attr(data-placeholder);
+        float: left;
+        color: #aaa;
+        pointer-events: none;
+        height: 0;
+      }
+
+      .ib-wrap {
+        margin: 15px 0;
+        border-radius: 6px;
+        transition: outline 0.15s ease;
+        position: relative;
+
+        &.ib-small { max-width: 300px; margin-left: auto; margin-right: auto; }
+        &.ib-normal { max-width: 100%; }
+        &.ib-full { margin-left: -14px; margin-right: -14px; }
+
+        &.ib-selected {
+          outline: 2px solid #2563eb;
         }
 
-        pre {
-          background: #f5f5f5;
-          padding: 10px 14px;
-          border-radius: 4px;
-          overflow-x: auto;
+        &.ib-editing-placeholder {
+          /* height placeholder only, border is on overlay */
+        }
 
-          code {
-            background: none;
-            padding: 0;
+        .ib-actions {
+          position: absolute;
+          top: 4px;
+          right: 4px;
+          display: flex;
+          gap: 4px;
+          opacity: 0;
+          transition: opacity 0.15s ease;
+
+          button {
+            padding: 2px 8px;
+            font-size: 11px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.95);
+            color: #555;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+            &:hover { background: #f0f0f0; }
           }
         }
 
-        hr {
-          border: none;
-          border-top: 1px solid #d0d0d0;
-          margin: 0.8em 0;
-        }
+        &:hover .ib-actions { opacity: 1; }
 
-        a {
-          color: #2563eb;
-          text-decoration: underline;
-        }
-
-        p.is-editor-empty:first-child::before {
-          content: attr(data-placeholder);
-          float: left;
+        .ib-placeholder {
+          padding: 32px;
           color: #aaa;
-          pointer-events: none;
-          height: 0;
+          background: #f8f8f8;
+          border-radius: 6px;
+          border: 1px dashed #ddd;
+          cursor: pointer;
+          text-align: center;
+
+          &:hover { background: #f0f0f0; }
         }
       }
     }
+  }
 
-    .ih-md-textarea {
-      width: 100%;
-      min-height: 150px;
-      padding: 10px 14px;
-      border: none;
-      outline: none;
-      resize: vertical;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 13px;
-      line-height: 1.5;
-      color: #333;
-      background: #fafafa;
-      box-sizing: border-box;
-    }
+  .ih-md-textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 10px 14px;
+    border: none;
+    outline: none;
+    resize: vertical;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #333;
+    background: #fafafa;
+    box-sizing: border-box;
   }
 </style>
 
@@ -361,6 +825,8 @@ Just a simple text area with **markdown** support.
     <button onclick="fez.tbCodeBlock()" title="Code block">&#123;&#125;</button>
     <span class="sep"></span>
     <button onclick="fez.tbLink()" title="Link">&#128279;</button>
+    <span class="sep"></span>
+    <span fez:this="blockButtons"></span>
   </span>
   <span class="ih-spacer"></span>
   <button fez:this="modeBtn" class="ih-mode-btn" onclick="fez.toggleMode()" title="Toggle markdown source">MD</button>

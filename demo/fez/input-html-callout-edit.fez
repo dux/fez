@@ -1,0 +1,99 @@
+<script>
+  class {
+    FAST = true
+
+    init() {
+      this._type = this.props.type || 'info'
+    }
+
+    onMount() {
+      this.textInput.value = this.props.text || ''
+      this.textInput.focus()
+    }
+
+    selectType(t) {
+      this._type = t
+      this.root.querySelectorAll('.type-picker button').forEach((b) => {
+        b.classList.toggle('active', b.dataset.type === t)
+      })
+    }
+
+    done() {
+      const cb = window[this.props.cb]
+      if (cb) {
+        cb.done({
+          type: this._type,
+          text: this.textInput.value.trim(),
+        })
+      }
+    }
+  }
+</script>
+
+<style>
+  display: block;
+  padding: 16px;
+  text-align: left;
+
+  .type-picker {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+
+    button {
+      padding: 4px 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+      font-size: 12px;
+      cursor: pointer;
+
+      &:hover { background: #f0f0f0; }
+      &.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+    }
+  }
+
+  textarea {
+    display: block;
+    width: 100%;
+    min-height: 60px;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: inherit;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+    outline: none;
+    resize: vertical;
+
+    &:focus { border-color: #2563eb; }
+  }
+
+  .done-btn {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 4px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+
+    &:hover { background: #1d4ed8; }
+  }
+</style>
+
+<div class="type-picker">
+  {#each ['info', 'warning', 'success', 'error'] as t}
+    <button type="button" data-type={t} class={props.type === t || (!props.type && t === 'info') ? 'active' : ''} onclick="fez.selectType('{t}')">
+      {#if t === 'info'}💡 Info{/if}
+      {#if t === 'warning'}⚠️ Warning{/if}
+      {#if t === 'success'}✅ Success{/if}
+      {#if t === 'error'}❌ Error{/if}
+    </button>
+  {/each}
+</div>
+
+<textarea fez:this="textInput" placeholder="Callout message..."></textarea>
+
+<button type="button" class="done-btn" onclick="fez.done()">Done</button>

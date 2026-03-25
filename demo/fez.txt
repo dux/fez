@@ -4,6 +4,10 @@ fez/input-checkbox-toggle
 fez/input-color
 fez/input-date
 fez/input-html
+fez/input-html-callout-edit
+fez/input-html-callout-view
+fez/input-html-image-edit
+fez/input-html-image-view
 fez/ui-3d-viewer
 fez/ui-auto-height
 fez/ui-avatar

@@ -144,6 +144,7 @@
     init() {
       window.BlockSelect = this
       this.state.activeJump = localStorage.getItem('lastJump');
+      this.state.filter = ''
 
       // Add global keystroke listener for 'j' key, and jump
       document.addEventListener('keydown', (e) => {
@@ -151,6 +152,16 @@
           this.jump(this.state.activeJump)
         }
       })
+    }
+
+    beforeRender() {
+      const all = (this.globalState.fezComponents || []).filter(n => (n.match(/-/g) || []).length < 3)
+      const q = this.state.filter.toLowerCase()
+      this.state.filtered = q ? all.filter(n => n.includes(q)) : all
+    }
+
+    onFilter(val) {
+      this.state.filter = val
     }
 
     jump(name) {
@@ -162,6 +173,7 @@
       localStorage.setItem('lastJump', name)
       this.state.activeJump = name
       this.state.show = false
+      this.state.filter = ''
     }
   </script>
 
@@ -175,6 +187,19 @@
 
       button.title {
         float: right;
+      }
+
+      .filter-input {
+        width: 100%;
+        padding: 6px 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 13px;
+        outline: none;
+        box-sizing: border-box;
+        margin-bottom: 4px;
+
+        &:focus { border-color: #2563eb; }
       }
 
       .list {
@@ -200,7 +225,8 @@
 
     {#if state.show}
       <div class="list">
-        {#for name in (globalState.fezComponents || [])}
+        <input class="filter-input" type="text" placeholder="Filter..." oninput="fez.onFilter(this.value)" autofocus />
+        {#for name in state.filtered}
           <button
             class="btn btn-sm {state.activeJump === name ? 'active' : ''}"
             onclick="fez.jump('{name}')"

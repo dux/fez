@@ -1,0 +1,54 @@
+<script>
+  class {
+    FAST = true
+
+    META = {
+      toolbar: {
+        label: 'Image',
+        icon: '📸',
+        placeholder: 'Click to add image',
+      }
+    }
+  }
+</script>
+
+<style>
+  display: block;
+  text-align: center;
+
+  img {
+    max-width: 100%;
+    border-radius: 4px;
+    display: block;
+    margin: 0 auto;
+  }
+
+  .caption {
+    display: block;
+    margin-top: 6px;
+    color: #666;
+    font-size: 0.9em;
+    font-style: italic;
+  }
+
+  .placeholder {
+    padding: 32px;
+    color: #aaa;
+    background: #f8f8f8;
+    border-radius: 6px;
+    border: 1px dashed #ddd;
+    cursor: pointer;
+
+    &:hover { background: #f0f0f0; }
+  }
+</style>
+
+{#if props.src}
+  <img src={props.src} alt={props.caption} />
+{:else}
+  <div class="placeholder">Click to add image</div>
+{/if}
+
+{#if props.caption}
+  <em class="caption">{props.caption}</em>
+{/if}
