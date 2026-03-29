@@ -18,7 +18,7 @@
 // =============================================================================
 
 import Gobber from "./vendor/gobber.js";
-import { Idiomorph } from "./vendor/idiomorph.js";
+import { fezMorph } from "./morph.js";
 import objectDump from "./utils/dump.js";
 import highlightAll from "./utils/highlight_all.js";
 import connect from "./connect.js";
@@ -195,57 +195,38 @@ Fez.globalCss = (cssClass, opts = {}) => {
 // =============================================================================
 
 /**
- * Morph DOM node to new state (via Idiomorph)
+ * Morph DOM node to new state (via fez-morph)
  * Child fez components are automatically preserved (skipped from morphing)
  * Use fez-keep attribute for explicit element preservation
  * @param {Element} target - Element to morph
  * @param {Element} newNode - New state
  */
 Fez.morphdom = (target, newNode) => {
-  // Preserve attributes
-  Array.from(target.attributes).forEach((attr) => {
-    newNode.setAttribute(attr.name, attr.value);
-  });
-
-  Idiomorph.morph(target, newNode, {
-    morphStyle: "outerHTML",
-    ignoreActiveValue: true,
-    callbacks: {
-      // Preserve child fez components - skip morphing them entirely
-      beforeNodeMorphed: (oldNode, newNode) => {
-        // Check if this is a child fez component (not the root being morphed)
-        if (
-          oldNode !== target &&
-          oldNode.classList?.contains("fez") &&
-          oldNode.fez &&
-          !oldNode.fez._destroyed
-        ) {
-          if (Fez.LOG) {
-            console.log(
-              `Fez: preserved child component ${oldNode.fez.fezName} (UID ${oldNode.fez.UID})`,
-            );
-          }
-          // Return false to skip morphing - preserve the component as is
-          return false;
+  fezMorph(target, newNode, {
+    // Preserve child fez components - skip morphing them entirely
+    skipNode: (oldNode) => {
+      if (
+        oldNode.classList?.contains("fez") &&
+        oldNode.fez &&
+        !oldNode.fez._destroyed
+      ) {
+        if (Fez.LOG) {
+          console.log(
+            `Fez: preserved child component ${oldNode.fez.fezName} (UID ${oldNode.fez.UID})`,
+          );
         }
         return true;
-      },
+      }
+      return false;
+    },
 
-      // Cleanup destroyed fez components
-      beforeNodeRemoved: (node) => {
-        if (node.classList?.contains("fez") && node.fez) {
-          node.fez.fezOnDestroy();
-        }
-        return true;
-      },
+    // Cleanup destroyed fez components
+    beforeRemove: (node) => {
+      if (node.classList?.contains("fez") && node.fez) {
+        node.fez.fezOnDestroy();
+      }
     },
   });
-
-  // Clean up whitespace
-  const next = target.nextSibling;
-  if (next?.nodeType === Node.TEXT_NODE && !next.textContent.trim()) {
-    next.remove();
-  }
 };
 
 // =============================================================================

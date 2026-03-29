@@ -100,9 +100,8 @@
 
         // Get info from Fez.index after component is compiled
         const demoData = Fez.index.get(props.name)
-        if (demoData.info) {
-          this.state.info = demoData.info.innerHTML
-        }
+        if (!demoData.info) return
+        this.state.info = demoData.info.innerHTML
         this.state.demoHtml = Fez.index[props.name]?.demo || ''
         this.state.ready = true
       })

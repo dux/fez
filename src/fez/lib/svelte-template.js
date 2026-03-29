@@ -414,7 +414,7 @@ export default function createSvelteTemplate(text, opts = {}) {
     }
 
     // Auto-generate IDs for fez-this elements (static values only)
-    // This helps Idiomorph match and preserve nodes across re-renders
+    // This helps the DOM differ match and preserve nodes across re-renders
     result = result.replace(
       /(<[a-z][a-z0-9-]*\s+)([^>]*?)(fez-this="([^"{}]+)")([^>]*?)>/gi,
       (match, tagStart, before, fezThisAttr, fezThisValue, after) => {
@@ -433,7 +433,7 @@ export default function createSvelteTemplate(text, opts = {}) {
       const dynamicFezThis = result.match(/fez-this="[^"]*\{[^}]+\}[^"]*"/g);
       if (dynamicFezThis) {
         console.warn(
-          `Fez <${componentName}>: Dynamic fez-this values won't get auto-ID for Idiomorph matching:`,
+          `Fez <${componentName}>: Dynamic fez-this values won't get auto-ID for DOM differ matching:`,
           dynamicFezThis,
         );
       }

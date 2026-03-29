@@ -259,7 +259,7 @@ export default class FezBase {
 
   /**
    * Render the component template to DOM
-   * Uses Idiomorph for efficient DOM diffing
+   * Uses component-aware DOM differ with hash-based skip
    */
   fezRender(template) {
     // Check instance-level template first, then class-level
@@ -300,7 +300,17 @@ export default class FezBase {
         newNode.appendChild(renderedTpl);
       } else {
         renderedTpl = renderedTpl.replace(/\s\w+="undefined"/g, "");
-        newNode.innerHTML = this.fezParseHtml(renderedTpl);
+        const parsedHtml = this.fezParseHtml(renderedTpl);
+
+        // Hash-skip: if template output is identical, skip the morph entirely
+        const newHash = Fez.fnv1(parsedHtml);
+        if (newHash === this._fezHash) {
+          this._isRendering = false;
+          return;
+        }
+        this._fezHash = newHash;
+
+        newNode.innerHTML = parsedHtml;
       }
     }
 
@@ -425,11 +435,9 @@ export default class FezBase {
   }
 
   /**
-   * Handle fez-keep attributes for preserved nodes.
-   * Before Idiomorph morphs, swap matching fez-keep elements from old DOM into new DOM.
-   * Same key = element preserved, different key = element recreated.
-   * Slots use fez-keep="default-slot" so they are preserved automatically.
-   * On first render, children from _fezChildNodes are moved into the slot container.
+   * Handle slot initialization on first render.
+   * Moves captured children from _fezSlotNodes into the .fez-slot container.
+   * fez-keep matching is handled natively by the differ (morph.js).
    */
   fezKeepNode(newNode) {
     // First render: move captured children into slot container
@@ -440,21 +448,6 @@ export default class FezBase {
         newSlot.appendChild(child);
       });
     }
-
-    // Swap matching fez-keep elements (includes slots on re-render)
-    // Use :scope > to avoid matching nested component fez-keep elements
-    newNode.querySelectorAll(":scope > [fez-keep]").forEach((newEl) => {
-      const key = newEl.getAttribute("fez-keep");
-      const oldEl = this.root.querySelector(`:scope > [fez-keep="${key}"]`);
-      if (oldEl) {
-        newEl.parentNode.replaceChild(oldEl, newEl);
-        if (Fez.LOG && key !== "default-slot") {
-          console.log(
-            `Fez: fez-keep="${key}" preserved element, skipped re-render`,
-          );
-        }
-      }
-    });
   }
 
   // ===========================================================================

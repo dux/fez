@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Window } from "happy-dom";
-import { Idiomorph } from "../src/fez/vendor/idiomorph.js";
+import { fezMorph } from "../src/fez/morph.js";
 
 // Setup happy-dom globals, saving originals to restore later
 let window, document;
@@ -53,22 +53,11 @@ afterAll(() => {
 });
 
 /**
- * Simulates fezKeepNode() - swap matching fez-keep elements from old to new DOM
+ * Morph container innerHTML to match newContainer innerHTML using fezMorph.
  */
-function fezKeepNode(oldNode, newNode) {
-  newNode.querySelectorAll("[fez-keep]").forEach((newEl) => {
-    const key = newEl.getAttribute("fez-keep");
-    const oldEl = oldNode.querySelector(`[fez-keep="${key}"]`);
-    if (oldEl) {
-      newEl.parentNode.replaceChild(oldEl, newEl);
-    }
-  });
-}
-
-function fezMorph(container, newContainer) {
+function doMorph(container, newContainer) {
   const newNode = newContainer.cloneNode(true);
-  fezKeepNode(container, newNode);
-  Idiomorph.morph(container, newNode, { morphStyle: "innerHTML" });
+  fezMorph(container, newNode);
 }
 
 describe("fez-keep", () => {
@@ -83,7 +72,7 @@ describe("fez-keep", () => {
     newContainer.innerHTML =
       '<div fez-keep="child-1"><span>Updated</span></div>';
 
-    fezMorph(container, newContainer);
+    doMorph(container, newContainer);
 
     const el = container.querySelector('[fez-keep="child-1"]');
     expect(el._marker).toBe("original");
@@ -102,7 +91,7 @@ describe("fez-keep", () => {
     const newContainer = document.createElement("div");
     newContainer.innerHTML = '<div fez-keep="child-2"><span>New</span></div>';
 
-    fezMorph(container, newContainer);
+    doMorph(container, newContainer);
 
     expect(container.querySelector('[fez-keep="child-1"]')).toBeNull();
     expect(
@@ -130,7 +119,7 @@ describe("fez-keep", () => {
       <div class="new-after">New After</div>
     `;
 
-    fezMorph(container, newContainer);
+    doMorph(container, newContainer);
 
     expect(container.querySelector('[fez-keep="kept"]')._marker).toBe(
       "survived",
@@ -161,7 +150,7 @@ describe("fez-keep", () => {
       <div fez-keep="d">D</div>
     `;
 
-    fezMorph(container, newContainer);
+    doMorph(container, newContainer);
 
     expect(container.querySelector('[fez-keep="a"]')._m).toBe("A");
     expect(container.querySelector('[fez-keep="c"]')._m).toBe("C");
@@ -180,7 +169,7 @@ describe("fez-keep", () => {
 
     const same = document.createElement("div");
     same.innerHTML = '<div fez-keep="child-1" class="child"></div>';
-    fezMorph(container, same);
+    doMorph(container, same);
     expect(container.querySelector(".child")._state.counter).toBe(42);
 
     container.remove();
@@ -195,7 +184,7 @@ describe("fez-keep", () => {
 
     const diff = document.createElement("div");
     diff.innerHTML = '<div fez-keep="child-2" class="child"></div>';
-    fezMorph(container, diff);
+    doMorph(container, diff);
 
     // Old key gone, new element has no state
     expect(container.querySelector('[fez-keep="child-1"]')).toBeNull();
@@ -207,7 +196,7 @@ describe("fez-keep", () => {
   });
 });
 
-describe("fez-this auto-ID (Idiomorph outerHTML)", () => {
+describe("fez-this auto-ID (morph outerHTML)", () => {
   test("node with same ID is preserved across morph", () => {
     const container = document.createElement("div");
     container.id = "fez-c-42";
@@ -223,10 +212,7 @@ describe("fez-this auto-ID (Idiomorph outerHTML)", () => {
     newContainer.innerHTML =
       '<input fez-this="name" id="fez-42-name" /><span>v2</span>';
 
-    Idiomorph.morph(container, newContainer, {
-      morphStyle: "outerHTML",
-      ignoreActiveValue: true,
-    });
+    fezMorph(container, newContainer);
 
     const current = document.querySelector("#fez-42-name");
     expect(current._marker).toBe("original");
@@ -256,10 +242,7 @@ describe("fez-this auto-ID (Idiomorph outerHTML)", () => {
       <input id="fez-42-last" />
     `;
 
-    Idiomorph.morph(container, newContainer, {
-      morphStyle: "outerHTML",
-      ignoreActiveValue: true,
-    });
+    fezMorph(container, newContainer);
 
     expect(document.querySelector("#fez-42-first")._m).toBe("first");
     expect(document.querySelector("#fez-42-last")._m).toBe("last");

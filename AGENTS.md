@@ -35,7 +35,7 @@ bunx fez-compile path/to/component.fez
 
 1. **ALWAYS** use Fez-specific Svelte-like syntax (NO React/Vue conventions)
 2. **NEVER** use hooks - `this.state` replaces useState/useEffect
-3. **NEVER** use `:fez` or `body` selectors in `<style>` - just write styles directly, they are auto-scoped to the component
+3. All `<style>` content is locally scoped to the component. Root-level styles apply to the component root node, nested selectors apply to children. For global styles wrap in `body { ... }`, use `:fez { ... }` inside body block to reference the component root
 4. **ALWAYS** initialize state in `init()`, put reactive/derived state in `beforeRender()`
 5. **ALWAYS** use kebab-case component names (e.g., `user-profile`)
 6. **NEVER** use `{#if}` blocks inside HTML attributes - use ternary operators `{condition ? 'value' : ''}` instead
@@ -46,6 +46,7 @@ bunx fez-compile path/to/component.fez
 ## Component Structure
 
 The `<script>` block has two zones:
+
 1. **Module-level code** (BEFORE `class {}`) - imports, `Fez.head()` calls, shared variables. Like `<script context="module">` in Svelte.
 2. **Component class** (MUST be the LAST thing in `<script>`) - all component logic. **NEVER put code after `class {}`**.
 
@@ -123,8 +124,8 @@ The `<script>` block has two zones:
 </script>
 
 <style>
-  /* NEVER use :fez or body selectors - all styles here are auto-scoped to the component */
-  /* styles on component root element */
+  /* All styles are locally scoped to the component */
+  /* Root-level styles apply to the component root node */
   padding: 20px;
 
   /* nested SCSS syntax */
@@ -365,7 +366,7 @@ All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is con
 <!-- Two-way binding -->
 <input fez:bind="state.username" />
 
-<!-- Element reference via this.myElement (auto-generates stable ID for Idiomorph) -->
+<!-- Element reference via this.myElement (auto-generates stable ID for DOM diffing) -->
 <div fez:this="myElement">
   <!-- Preserve element across re-renders (wrap component in plain HTML element) -->
   <span fez:keep="child-{state.id}-{state.value}">
@@ -509,7 +510,7 @@ When integrating libraries that create/manage their own DOM elements:
 
 - **Use template markup normally** - define your container structure in the template
 - **Get references with `this.find()`** - store element references in `onMount()`
-- **NEVER use `this.state` for UI updates** - state changes trigger Idiomorph diffing which doesn't handle external DOM well
+- **NEVER use `this.state` for UI updates** - state changes trigger DOM diffing which doesn't handle external DOM well
 - **Use direct DOM manipulation** to update UI elements:
 
 ```javascript
@@ -529,7 +530,7 @@ hideLoading() {
   // CORRECT - direct DOM manipulation
   this.overlay.style.display = 'none'
 
-  // WRONG - state triggers Idiomorph diff, breaks external DOM
+  // WRONG - state triggers DOM diff, breaks external DOM
   // this.state.loading = false
 }
 ```
@@ -626,13 +627,13 @@ Use `fez:keep` to preserve plain HTML elements across parent re-renders. The ele
 
 ### Auto-ID for `fez:this` Elements
 
-Elements with static `fez:this` attributes automatically get stable IDs (`id="fez-{UID}-{name}"`). This helps Idiomorph preserve form inputs across re-renders:
+Elements with static `fez:this` attributes automatically get stable IDs (`id="fez-{UID}-{name}"`). This helps the DOM differ preserve form inputs across re-renders:
 
 ```html
 <!-- Auto-generates id="fez-42-nameInput" -->
 <input fez:this="nameInput" type="text" />
 
-<!-- User-typed value survives parent re-renders because Idiomorph matches by ID -->
+<!-- User-typed value survives parent re-renders because the differ matches by ID -->
 ```
 
 This is automatic - no extra configuration needed.
@@ -641,10 +642,10 @@ This is automatic - no extra configuration needed.
 
 - **Putting `FAST`, `META`, or other class properties outside `class {}`** - they MUST be inside the class body. Module-level code (imports, `Fez.head()`) goes before the class, everything else goes inside it.
 - Using React hooks (useState, useEffect)
-- **Using `:fez` or `body` selectors in styles** - never use them; all styles in `<style>` are auto-scoped to the component. Using `:fez` risks styles leaking globally if selectors are placed outside the block
+- **Using `:fez` or `body` selectors in styles** - never use them; all styles in `<style>` are auto-scoped to the component. Root-level styles apply to the component root node. For global styles wrap in `body { ... }`, use `:fez { ... }` inside body block to reference the component root
 - **Putting computed/derived state in `init()` instead of `beforeRender()`** - derived values that depend on state should go in `beforeRender()` so they update on every re-render (like Svelte's `$:`)
 - Using string interpolation in onclick instead of arrow functions
-- Direct DOM manipulation for simple reactive UI (use state instead) - BUT use direct DOM for external libraries (Three.js, charts, etc.) since Idiomorph diffing doesn't handle them well
+- Direct DOM manipulation for simple reactive UI (use state instead) - BUT use direct DOM for external libraries (Three.js, charts, etc.) since DOM diffing doesn't handle them well
 - Missing `init()` for state initialization
 - Using `{#if}` blocks inside attributes (use ternary operators instead)
 - Writing flat CSS instead of nested SCSS syntax

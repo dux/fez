@@ -30,7 +30,7 @@ class {
             avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice'
           })
         } else {
-          reject(new Error('Network error - please try again'))
+          reject(new Error('Network error (FEZ error demo) - please try again'))
         }
       }, 1500)
     })

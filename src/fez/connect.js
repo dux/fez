@@ -266,7 +266,7 @@ function connectNode(name, node) {
   // Copy ID
   if (fez.props.id) newNode.setAttribute("id", fez.props.id);
 
-  // Copy fez-keep for Idiomorph preservation
+  // Copy fez-keep for DOM differ preservation
   const fezKeep = node.getAttribute("fez-keep");
   if (fezKeep) newNode.setAttribute("fez-keep", fezKeep);
 

@@ -86,23 +86,25 @@
 </demo>
 
 <script>
+  FAST = true
+
   init(props) {
     this.setStyle('--speed', `0.${props.speed || 3}s`)
 
     if (props.persist) {
-      const savedHeight = sessionStorage.getItem(`ui-auto-height-${props.persist}`)
-      this.state.currentHeight = savedHeight || 'auto'
+      this.initialHeight = sessionStorage.getItem(`ui-auto-height-${props.persist}`) || 'auto'
     } else {
-      this.state.currentHeight = 'auto'
+      this.initialHeight = 'auto'
     }
   }
 
   onMount() {
-    const container = this.find('.auto-height')
+    this.container = this.find('.auto-height')
     const content = this.find('.content')
 
     const currentContentHeight = content.offsetHeight
-    this.state.currentHeight = currentContentHeight + 'px'
+    this.container.style.height = currentContentHeight + 'px'
+    this.currentHeight = currentContentHeight
 
     if (this.props.persist) {
       this.saveHeight(currentContentHeight)
@@ -114,10 +116,10 @@
   }
 
   animateToHeight(newHeight) {
-    const container = this.find('.auto-height')
-    container.style.height = this.state.currentHeight
-    container.offsetHeight
-    this.state.currentHeight = newHeight + 'px'
+    this.container.style.height = this.currentHeight + 'px'
+    this.container.offsetHeight
+    this.container.style.height = newHeight + 'px'
+    this.currentHeight = newHeight
 
     if (this.props.persist) {
       this.saveHeight(newHeight)
@@ -137,7 +139,7 @@
   }
 </style>
 
-<div class="auto-height" style="height: {state.currentHeight}">
+<div class="auto-height" style="height: {initialHeight}">
   <div class="content">
     <slot />
   </div>

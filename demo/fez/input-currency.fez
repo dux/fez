@@ -1,0 +1,121 @@
+<info>
+  <ul>
+    <li>Currency/number input with thousands separator formatting</li>
+    <li>Displays formatted value, submits raw number (e.g. "1234567.50")</li>
+    <li>Props: <code>name</code>, <code>value</code>, <code>separator</code> (default "."), <code>cents</code> (default "50"), <code>placeholder</code>, <code>ping</code></li>
+    <li>Set <code>cents="no"</code> to disable decimals</li>
+  </ul>
+</info>
+
+<demo>
+  <style>
+    input-currency {
+      display: block;
+      margin-bottom: 10px;
+    }
+  </style>
+
+  <p>Default with cents ,50:</p>
+  <input-currency name="price" value="1234567.50" placeholder="Enter price"></input-currency>
+
+  <p>Comma separator (US style):</p>
+  <input-currency name="amount" value="9500000" separator="," placeholder="Enter amount"></input-currency>
+
+  <p>No cents:</p>
+  <input-currency name="quantity" value="42000" cents="no" placeholder="Enter quantity"></input-currency>
+
+  <p>Empty with placeholder:</p>
+  <input-currency name="budget" placeholder="Enter budget"></input-currency>
+</demo>
+
+<script>
+  FAST = true
+
+  formatNumber(value) {
+    if (!value && value !== 0) return ''
+
+    const parts = String(value).split('.')
+    const clean = parts[0].replace(/[^0-9]/g, '')
+    if (!clean) return ''
+
+    const sep = this.separator
+    const decSep = sep === '.' ? ',' : '.'
+    let result = ''
+    for (let i = clean.length - 1; i >= 0; i--) {
+      const pos = clean.length - 1 - i
+      if (pos > 0 && pos % 3 === 0) {
+        result = sep + result
+      }
+      result = clean[i] + result
+    }
+
+    if (this.useCents) {
+      const cents = (parts[1] || this.defaultCents).replace(/[^0-9]/g, '').substring(0, 2).padEnd(2, '0')
+      result += decSep + cents
+    }
+
+    return result
+  }
+
+  rawValue(displayValue) {
+    const decSep = this.separator === '.' ? ',' : '.'
+    const parts = String(displayValue).split(decSep)
+    const integer = parts[0].replace(/[^0-9]/g, '')
+    if (!integer) return ''
+
+    if (this.useCents) {
+      const cents = (parts[1] || this.defaultCents).replace(/[^0-9]/g, '').substring(0, 2).padEnd(2, '0')
+      return integer + '.' + cents
+    }
+
+    return integer
+  }
+
+  handleKeyup() {
+    const el = this.displayInput
+    const oldVal = el.value
+    const cursorPos = el.selectionStart
+
+    // count digits before cursor in old value
+    let digitsBefore = 0
+    for (let i = 0; i < cursorPos; i++) {
+      if (/[0-9]/.test(oldVal[i])) digitsBefore++
+    }
+
+    const raw = this.rawValue(oldVal)
+    const formatted = this.formatNumber(raw)
+    el.value = formatted
+    this.hiddenInput.value = raw
+
+    // restore cursor: find position after same number of digits
+    let newPos = 0
+    let count = 0
+    for (let i = 0; i < formatted.length; i++) {
+      if (count >= digitsBefore) break
+      if (/[0-9]/.test(formatted[i])) count++
+      newPos = i + 1
+    }
+    el.setSelectionRange(newPos, newPos)
+
+    if (this.pingHandler) {
+      this.pingHandler(raw)
+    }
+  }
+
+  init(props) {
+    this.separator = props.separator || '.'
+    this.useCents = props.cents !== 'no'
+    this.defaultCents = props.cents && props.cents !== 'no' ? props.cents : '50'
+    this.pingHandler = Fez.getFunction(props.ping)
+    this.state.formatted = this.formatNumber(props.value)
+    this.state.value = this.rawValue(props.value || '')
+  }
+
+  onMount() {
+    this.displayInput = this.find('.display')
+    this.hiddenInput = this.find('.raw')
+  }
+</script>
+
+<input class="display" type="text" value={state.formatted} placeholder={props.placeholder} onkeyup="fez.handleKeyup()" style="font-size: 18px; padding: 10px 14px;">
+<input class="raw" type="hidden" name={props.name} value={state.value}>

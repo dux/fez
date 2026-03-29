@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Window } from "happy-dom";
-import { Idiomorph } from "../src/fez/vendor/idiomorph.js";
+import { fezMorph } from "../src/fez/morph.js";
 
 let window, document;
 let savedGlobals = {};
@@ -69,8 +69,7 @@ function directChildren(parent, selector) {
 /**
  * Simulates fezKeepNode behavior (mirrors src/fez/instance.js):
  *  - First render: move _fezSlotNodes (all nodes including text) into .fez-slot
- *  - fez-keep: swap matching direct-child elements from old DOM into new DOM
- *  - Uses direct-child matching to avoid nested component slots/keeps
+ *  - fez-keep matching is now handled natively by the differ (morph.js)
  */
 function fezKeepNode(root, newNode, _fezSlotNodes) {
   // First render: move captured children into slot container
@@ -81,15 +80,6 @@ function fezKeepNode(root, newNode, _fezSlotNodes) {
       newSlot.appendChild(child);
     });
   }
-
-  // Swap matching fez-keep elements (includes slot on re-render)
-  directChildren(newNode, "[fez-keep]").forEach((newEl) => {
-    const key = newEl.getAttribute("fez-keep");
-    const oldEl = directChild(root, `[fez-keep="${key}"]`);
-    if (oldEl) {
-      newEl.parentNode.replaceChild(oldEl, newEl);
-    }
-  });
 }
 
 /**
@@ -106,30 +96,18 @@ function childNodes(root, _fezChildNodes) {
 }
 
 function morphdom(target, newNode) {
-  Array.from(target.attributes).forEach((attr) => {
-    newNode.setAttribute(attr.name, attr.value);
-  });
-  Idiomorph.morph(target, newNode, {
-    morphStyle: "outerHTML",
-    ignoreActiveValue: true,
-    callbacks: {
-      beforeNodeMorphed: (oldNode, newNode) => {
-        if (
-          oldNode !== target &&
-          oldNode.classList?.contains("fez") &&
-          oldNode.fez &&
-          !oldNode.fez._destroyed
-        ) {
-          return false;
-        }
-        return true;
-      },
-      beforeNodeRemoved: (node) => {
-        if (node.classList?.contains("fez") && node.fez) {
-          node.fez._destroyed = true;
-        }
-        return true;
-      },
+  fezMorph(target, newNode, {
+    skipNode: (oldNode) => {
+      return (
+        oldNode.classList?.contains("fez") &&
+        oldNode.fez &&
+        !oldNode.fez._destroyed
+      );
+    },
+    beforeRemove: (node) => {
+      if (node.classList?.contains("fez") && node.fez) {
+        node.fez._destroyed = true;
+      }
     },
   });
 }

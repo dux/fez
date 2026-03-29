@@ -9,9 +9,7 @@ FEZ is a small library (49KB minified, ~18KB gzipped) that allows writing of [Cu
 It uses
 
 - [Goober](https://goober.js.org/) to enable runtime SCSS (similar to styled components)
-- [Idiomorph](https://github.com/bigskysoftware/idiomorph) to morph DOM from one state to another (as React or Stimulus/Turbo does it)
-
-Latest version of libs are baked in Fez distro.
+- Custom component-aware DOM differ to morph DOM from one state to another (as React or Stimulus/Turbo does it), with hash-based render skipping for zero-cost no-op renders
 
 It uses minimal abstraction. You will learn to use it in 15 minutes, just look at examples, it includes all you need to know.
 
@@ -66,9 +64,9 @@ class MyComponent extends FezBase {
 
 The whole mental model:
 
-1. Change `this.state` → component re-renders
-2. Idiomorph diffs the DOM efficiently
-3. Child components preserved unless props change
+1. Change `this.state` -> component re-renders
+2. Component-aware differ updates only what changed (child components preserved automatically)
+3. Hash-based skip avoids DOM work entirely when template output is identical
 
 ## Little more details
 
@@ -80,7 +78,7 @@ It replaces modern JS frameworks by using native Autonomous Custom Elements to c
 
 This article, [Web Components Will Replace Your Frontend Framework](https://www.dannymoerkerke.com/blog/web-components-will-replace-your-frontend-framework/), is from 2019. Join the future, ditch React, Angular and other never defined, always "evolving" monstrosities. Vanilla is the way :)
 
-There is no some "internal state" that is by some magic reflected to DOM. No! All methods Fez use to manipulate DOM are just helpers around native DOM interface. Work on DOM raw, use built in [node builder](https://github.com/dux/fez/blob/main/src/lib/n.js) or full template mapping with [morphing](https://github.com/bigskysoftware/idiomorph).
+There is no some "internal state" that is by some magic reflected to DOM. No! All methods Fez use to manipulate DOM are just helpers around native DOM interface. Work on DOM raw, use built in [node builder](https://github.com/dux/fez/blob/main/src/lib/n.js) or full template mapping with DOM morphing.
 
 ## How it works
 
@@ -375,23 +373,18 @@ Here's a simple counter component that demonstrates Fez's core features:
 </script>
 
 <style>
-  /* compiles from scss to css and injects class in head */
-  /* body style */
-  background-color: #f7f7f7;
+  /* All styles are locally scoped to the component */
+  /* Root-level styles apply to the component root node */
+  zoom: 2;
+  margin: 10px 0;
 
-  /* scoped to this component */
-  :fez {
-    zoom: 2;
-    margin: 10px 0;
+  button {
+    position: relative;
+    top: -3px;
+  }
 
-    button {
-      position: relative;
-      top: -3px;
-    }
-
-    span {
-      padding: 0 5px;
-    }
+  span {
+    padding: 0 5px;
   }
 </style>
 
@@ -427,7 +420,7 @@ This example showcases:
 - **Template syntax**: `{ }` for expressions, `{#if}`, `{#each}` for control flow
 - **Arrow function handlers**: `onclick={() => method()}` for clean event binding
 - **Conditional rendering**: `{#if}`, `{:else}` blocks for dynamic UI
-- **Scoped styling**: SCSS support with styles automatically scoped to component
+- **Scoped styling**: All styles locally scoped to the component, root-level styles apply to root node
 - **Component lifecycle**: `init()` method called when component mounts
 
 ## What can it do and why is it great?
@@ -447,13 +440,13 @@ This example showcases:
 - **Svelte-like Template Engine** - Single brace syntax (`{ }`), control flow (`{#if}`, `{#unless}`, `{#for}`, `{#each}`, `{#await}`), and block templates
 - **Arrow Function Handlers** - Clean event syntax with automatic loop variable interpolation
 - **Reactive State Management** - Built-in reactive `state` object automatically triggers re-renders on property changes
-- **DOM Morphing** - Uses [Idiomorph](https://github.com/bigskysoftware/idiomorph) for intelligent DOM updates that preserve element state and animations
+- **Component-Aware DOM Diffing** - Custom differ that understands Fez component boundaries, preserves element state and CSS animations, with hash-based render skipping for zero-cost no-op renders
 - **Smart Component Isolation** - Child components are preserved during parent re-renders; only re-render when their props actually change
 - **Preserve DOM Elements** - Use `fez:keep="unique-key"` attribute to preserve DOM elements across re-renders (useful for child components, animations, form inputs, or stateful elements)
-- **Auto-ID for Form Inputs** - Elements with `fez:this` automatically get stable IDs, helping Idiomorph preserve input state across re-renders
+- **Auto-ID for Form Inputs** - Elements with `fez:this` automatically get stable IDs, helping the differ preserve input state across re-renders
 - **Import Maps** - Use `Fez.head({importmap: {...}})` to map bare import specifiers to full URLs, avoiding duplicate library instances
 - **Style Macros** - Define custom CSS shortcuts like `Fez.cssMixin('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }`
-- **Scoped & Global Styles** - Components can define both scoped CSS (`:fez { ... }`) and global styles in the same component
+- **Locally Scoped Styles** - All `<style>` content is locally scoped to the component. Root-level styles apply to the component root node. For global styles wrap in `body { ... }`, use `:fez { ... }` inside body block to reference the component root
 
 ### Developer Experience
 
@@ -636,7 +629,7 @@ Fez('foo-bar', class {
   // automatic form submission handling if there is FORM as parent or child node
   this.onSubmit(formData) { ... }
 
-  // render template and attach result dom to root. uses Idiomorph for DOM morph
+  // render template and attach result dom to root. uses component-aware DOM differ
   this.fezRender()
   this.fezRender(this.find('.body'), someHtmlTemplate) // you can render to another root too
 })
@@ -855,16 +848,20 @@ All parts are optional
   </script>
 
   <style>
-    b {
-      color: red; /* will be global style*/
-    }
+    /* All styles are locally scoped to the component */
+    /* Root-level styles apply to the component root node */
+    color: red;
+    padding: 10px;
 
-    :fez {
-      /* component styles */
-    }
+    .child { font-weight: bold; }
   </style>
   <style>
-    color: red; /* if "body {" or ":fez {" is not found, style is considered local component style */
+    /* For global styles, wrap in body { ... } */
+    /* Use :fez { ... } inside body block to reference the component root */
+    body {
+      .some-global-class { color: blue; }
+      :fez { border: 1px solid red; }
+    }
   </style>
 
   <div> ... <!-- any other html after head, script or style is considered template-->
@@ -896,7 +893,7 @@ All parts are optional
 
     <!-- fez:this will link DOM node to object property (inspired by Svelte) -->
     <!-- links to -> this.listRoot -->
-    <!-- also auto-generates stable id="fez-{UID}-listRoot" for Idiomorph preservation -->
+    <!-- also auto-generates stable id="fez-{UID}-listRoot" for stable DOM diffing -->
     <ul fez:this="listRoot">
 
     <!-- when node is added to dom fez:use will call object function by name, and pass current node -->

@@ -191,6 +191,7 @@
 
       .filter-input {
         width: 100%;
+        max-width: 200px;
         padding: 6px 10px;
         border: 1px solid #ddd;
         border-radius: 6px;

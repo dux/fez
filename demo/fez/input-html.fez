@@ -456,6 +456,7 @@ Just a simple text area with **markdown** support.
       if (this.blockButtons) {
         BLOCK_TYPES.forEach((b) => {
           const btn = document.createElement('button')
+          btn.type = 'button'
           btn.title = b.label
           btn.textContent = b.icon
           btn.onclick = () => this.tbInsertBlock(b.type)
@@ -807,7 +808,7 @@ Just a simple text area with **markdown** support.
 <input fez:this="hiddenInput" type="hidden" name={props.name} />
 
 {#if props.toolbar}
-<div class="ih-toolbar">
+<div class="ih-toolbar" onmousedown="event.preventDefault()">
   <span fez:this="toolbarBtns">
     <button onclick="fez.tbBold()" title="Bold (Ctrl+B)"><b>B</b></button>
     <button onclick="fez.tbItalic()" title="Italic (Ctrl+I)"><i>I</i></button>
