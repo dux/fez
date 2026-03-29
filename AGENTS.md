@@ -1,4 +1,4 @@
-# Fez - javascript DOM components framework
+# Fez - javascript DOM components framework (files ending in fez)
 
 # Instructions for this local fez repo
 
