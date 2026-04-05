@@ -34,14 +34,15 @@ bunx fez-compile path/to/component.fez
 ## Core Rules for Claude
 
 1. **ALWAYS** use Fez-specific Svelte-like syntax (NO React/Vue conventions)
-2. **NEVER** use hooks - `this.state` replaces useState/useEffect
-3. All `<style>` content is locally scoped to the component. Root-level styles apply to the component root node, nested selectors apply to children. For global styles wrap in `body { ... }`, use `:fez { ... }` inside body block to reference the component root
-4. **ALWAYS** initialize state in `init()`, put reactive/derived state in `beforeRender()`
-5. **ALWAYS** use kebab-case component names (e.g., `user-profile`)
-6. **NEVER** use `{#if}` blocks inside HTML attributes - use ternary operators `{condition ? 'value' : ''}` instead
-7. **Attribute expressions** are automatically quoted - write `attr={value}` (quotes added automatically)
-8. **ALWAYS** use lowercase with underscores for props (e.g., `fill_color`, `read_only`, `stroke_width`)
-9. **PREFER `onclick="fez.func({value})"`** for event handlers with inline template values - use function pointers only when passing complex data (objects, arrays)
+2. **ALWAYS** use 2-space indentation inside template blocks (`{#if}`, `{#each}`, `{#for}`, `{#await}`, etc.) - content inside blocks must be indented by 2 spaces relative to the block tag
+3. **NEVER** use hooks - `this.state` replaces useState/useEffect
+4. All `<style>` content is locally scoped to the component. Root-level styles apply to the component root node, nested selectors apply to children. For global styles wrap in `body { ... }`, use `:fez { ... }` inside body block to reference the component root
+5. **ALWAYS** initialize state in `init()`, put reactive/derived state in `beforeRender()`
+6. **ALWAYS** use kebab-case component names (e.g., `user-profile`)
+7. **NEVER** use `{#if}` blocks inside HTML attributes - use ternary operators `{condition ? 'value' : ''}` instead
+8. **Attribute expressions** are automatically quoted - write `attr={value}` (quotes added automatically)
+9. **ALWAYS** use lowercase with underscores for props (e.g., `fill_color`, `read_only`, `stroke_width`)
+10. **PREFER `onclick="fez.func({value})"`** for event handlers with inline template values - use function pointers only when passing complex data (objects, arrays)
 
 ## Component Structure
 

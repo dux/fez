@@ -152,6 +152,8 @@
   }
 
   class {
+    FAST = true
+    
     init(props) {
       this.props = props || {}
       this.state.selectedEmoji = props.value || '😀'

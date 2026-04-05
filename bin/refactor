@@ -1,0 +1,699 @@
+#!/usr/bin/env bun
+/**
+ * Fez Refactor Tool
+ * 
+ * Comprehensive code quality and modernization checks for Fez components.
+ * 
+ * Usage:
+ *   bun run refactor              # Report issues only
+ *   bun run refactor --fix        # Auto-fix issues
+ *   bun run refactor --check      # Same as default (report only)
+ *   bun run refactor --help       # Show help
+ * 
+ * Features:
+ *   1. Legacy syntax migration ({{ }} → { })
+ *   2. Code modernization (var → const/let, etc.)
+ *   3. Performance audit (FAST flags, state nesting, etc.)
+ *   4. Import cleanup (unused imports, sorting, etc.)
+ */
+
+import { readFileSync, writeFileSync, statSync } from 'fs'
+import { join, relative } from 'path'
+
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
+
+const ROOT_DIR = process.cwd()
+const FIX_MODE = process.argv.includes('--fix')
+const CHECK_MODE = process.argv.includes('--check') || !FIX_MODE
+const SHOW_HELP = process.argv.includes('--help') || process.argv.includes('-h')
+
+const SCAN_DIRS = [
+  'demo/fez',
+  'src',
+  'test'
+]
+
+const FEZ_GLOB = '**/*.fez'
+const JS_GLOB = '**/*.{js,ts}'
+
+// Legacy syntax patterns
+const LEGACY_PATTERNS = [
+  { regex: /\{\{\s*(.*?)\s*\}\}/g, replacement: '{$1}', name: 'expression' },
+  { regex: /\{\{#?if\s+(.*?)\}\}/g, replacement: '{#if $1}', name: 'conditional' },
+  { regex: /\{\{\/if\}\}/g, replacement: '{/if}', name: 'conditional close' },
+  { regex: /\{\{#?unless\s+(.*?)\}\}/g, replacement: '{#unless $1}', name: 'unless' },
+  { regex: /\{\{\/unless\}\}/g, replacement: '{/unless}', name: 'unless close' },
+  { regex: /\{\{:?else\s+if\s+(.*?)\}\}/g, replacement: '{:else if $1}', name: 'else if' },
+  { regex: /\{\{:?elsif\s+(.*?)\}\}/g, replacement: '{:else if $1}', name: 'elsif' },
+  { regex: /\{\{:?elseif\s+(.*?)\}\}/g, replacement: '{:else if $1}', name: 'elseif' },
+  { regex: /\{\{:?else\}\}/g, replacement: '{:else}', name: 'else' },
+  { regex: /\{\{#?for\s+(.*?)\}\}/g, replacement: '{#for $1}', name: 'for loop' },
+  { regex: /\{\{\/for\}\}/g, replacement: '{/for}', name: 'for close' },
+  { regex: /\{\{#?each\s+(.*?)\}\}/g, replacement: '{#each $1}', name: 'each loop' },
+  { regex: /\{\{\/each\}\}/g, replacement: '{/each}', name: 'each close' },
+  { regex: /\{\{#?(?:raw|html)\s+(.*?)\}\}/g, replacement: '{@html $1}', name: 'raw html' },
+  { regex: /\{\{json\s+(.*?)\}\}/g, replacement: '{@json $1}', name: 'json' },
+  { regex: /\{\{block\s+(\w+)\s*\}\}/g, replacement: '{@block $1}', name: 'block' },
+  { regex: /\{\{\/block\}\}/g, replacement: '{/block}', name: 'block close' },
+]
+
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
+function glob(pattern, dirs) {
+  const { globSync } = require('glob')
+  const files = []
+  for (const dir of dirs) {
+    const fullPattern = join(ROOT_DIR, dir, pattern)
+    try {
+      files.push(...globSync(fullPattern))
+    } catch (e) {
+      // Directory doesn't exist or no matches
+    }
+  }
+  return files
+}
+
+function relativePath(filepath) {
+  return relative(ROOT_DIR, filepath)
+}
+
+function read(filepath) {
+  return readFileSync(filepath, 'utf-8')
+}
+
+function write(filepath, content) {
+  writeFileSync(filepath, content, 'utf-8')
+}
+
+function fileExists(filepath) {
+  try {
+    statSync(filepath)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// =============================================================================
+// REFACTOR 1: LEGACY SYNTAX MIGRATION
+// =============================================================================
+
+function checkLegacySyntax(files) {
+  const issues = []
+  
+  for (const file of files.filter(f => f.endsWith('.fez'))) {
+    const content = read(file)
+    const lines = content.split('\n')
+    
+    for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+      const line = lines[lineNum]
+      
+      for (const pattern of LEGACY_PATTERNS) {
+        pattern.regex.lastIndex = 0 // Reset regex state
+        const match = pattern.regex.exec(line)
+        
+        if (match) {
+          issues.push({
+            file,
+            line: lineNum + 1,
+            type: 'legacy-syntax',
+            category: '1. Legacy Syntax Migration',
+            message: `Old {{ }} syntax for ${pattern.name}`,
+            suggestion: `Use ${pattern.replacement.replace('$1', '...')} instead`,
+            current: match[0],
+            fixable: true,
+          })
+        }
+      }
+    }
+  }
+  
+  return issues
+}
+
+function fixLegacySyntax(content) {
+  let fixed = content
+  let changed = false
+  
+  for (const pattern of LEGACY_PATTERNS) {
+    if (pattern.regex.test(fixed)) {
+      fixed = fixed.replace(pattern.regex, pattern.replacement)
+      changed = true
+    }
+    pattern.regex.lastIndex = 0 // Reset for next iteration
+  }
+  
+  return { content: fixed, changed }
+}
+
+// =============================================================================
+// REFACTOR 2: CODE MODERNIZATION
+// =============================================================================
+
+function checkCodeModernization(files) {
+  const issues = []
+  
+  for (const file of files.filter(f => /\.(js|fez)$/.test(f))) {
+    const content = read(file)
+    const lines = content.split('\n')
+    
+    for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+      const line = lines[lineNum]
+      const trimmed = line.trim()
+      
+      // Skip comments and strings
+      if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')) continue
+      
+      // Check for var usage
+      if (/\bvar\s+\w+/.test(line)) {
+        issues.push({
+          file,
+          line: lineNum + 1,
+          type: 'var-declaration',
+          category: '2. Code Modernization',
+          message: 'Using var instead of const/let',
+          suggestion: 'Replace with const (or let if reassigned)',
+          current: line.match(/\bvar\s+\w+/)?.[0] || 'var',
+          fixable: true,
+        })
+      }
+      
+      // Check for function() {} that could be arrow functions
+      if (/\w+\s*=\s*function\s*\(/.test(line) && !line.includes('this')) {
+        // Only flag if 'this' isn't used in the function body
+        const funcMatch = line.match(/function\s*\(([^)]*)\)\s*\{?/)
+        if (funcMatch && !content.slice(lineNum).slice(0, 50).includes('this.')) {
+          issues.push({
+            file,
+            line: lineNum + 1,
+            type: 'function-expression',
+            category: '2. Code Modernization',
+            message: 'Using function() instead of arrow function',
+            suggestion: 'Convert to arrow function: (params) => {}',
+            current: 'function() {}',
+            fixable: false, // Manual review needed
+          })
+        }
+      }
+      
+      // Check for string concatenation that could be template literals
+      if (/\w+\s*=\s*['"`].*\+\s*\w+/.test(line) && !line.includes('`')) {
+        issues.push({
+          file,
+          line: lineNum + 1,
+          type: 'string-concat',
+          category: '2. Code Modernization',
+          message: 'String concatenation instead of template literal',
+          suggestion: 'Use template literal: `string ${var}`',
+          current: '"..." + var',
+          fixable: false, // Complex to auto-fix safely
+        })
+      }
+      
+      // Check for .then() chains that could be async/await
+      if (/\.then\(/.test(line) && !line.includes('async') && !lines.slice(Math.max(0, lineNum - 3), lineNum).some(l => l.includes('async'))) {
+        // Don't flag if it's a simple one-liner
+        if (line.split('.then(').length > 2) {
+          issues.push({
+            file,
+            line: lineNum + 1,
+            type: 'promise-chain',
+            category: '2. Code Modernization',
+            message: 'Promise chain instead of async/await',
+            suggestion: 'Consider using async/await for readability',
+            current: '.then().then()',
+            fixable: false, // Complex transformation
+          })
+        }
+      }
+    }
+  }
+  
+  return issues
+}
+
+function fixVarToConstLet(content) {
+  const lines = content.split('\n')
+  let changed = false
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    
+    // Skip comments
+    if (line.trim().startsWith('//') || line.trim().startsWith('*')) continue
+    
+    // Replace var with const (conservative - don't try to detect reassignment)
+    if (/\bvar\s+/.test(line)) {
+      lines[i] = line.replace(/\bvar\s+/, 'const ')
+      changed = true
+    }
+  }
+  
+  return { content: lines.join('\n'), changed }
+}
+
+// =============================================================================
+// REFACTOR 3: PERFORMANCE AUDIT
+// =============================================================================
+
+function checkPerformance(files) {
+  const issues = []
+  
+  // Only check .fez files
+  const fezFiles = files.filter(f => f.endsWith('.fez'))
+  
+  for (const file of fezFiles) {
+    const content = read(file)
+    const lines = content.split('\n')
+    
+    // Extract component name from filename
+    const componentName = file.split('/').pop().replace('.fez', '')
+    
+    // Check for missing FAST flag
+    let hasFAST = /^  FAST\s*=\s*(true|false)/m.test(content)
+    let hasSlot = /<slot\s*\/?>/i.test(content) || /this\.root\.childNodes/.test(content)
+    
+    if (!hasFAST && !hasSlot) {
+      // Component has no slots and no FAST flag - could benefit from FAST = true
+      issues.push({
+        file,
+        line: 1,
+        type: 'missing-fast-flag',
+        category: '3. Performance Audit',
+        message: `Component "${componentName}" missing FAST = true flag`,
+        suggestion: 'Add FAST = true to prevent flicker during render',
+        current: 'No FAST flag',
+        fixable: true,
+      })
+    }
+    
+    // Check for deep state nesting (more than 3 levels)
+    const stateMatches = content.match(/this\.state\.\w+\.\w+\.\w+\.\w+/g)
+    if (stateMatches) {
+      for (const match of stateMatches) {
+        const depth = match.split('.').length - 1
+        if (depth > 3) {
+          issues.push({
+            file,
+            line: lines.findIndex(l => l.includes(match)) + 1,
+            type: 'deep-state-nesting',
+            category: '3. Performance Audit',
+            message: `Deep state nesting (${depth} levels): ${match}`,
+            suggestion: 'Flatten state structure for better performance',
+            current: match,
+            fixable: false,
+          })
+        }
+      }
+    }
+    
+    // Check for large inline HTML templates (>100 lines)
+    const htmlMatch = content.match(/HTML\s*=\s*`([\s\S]*?)`/)
+    if (htmlMatch) {
+      const htmlLines = htmlMatch[1].split('\n').length
+      if (htmlLines > 100) {
+        issues.push({
+          file,
+          line: lines.findIndex(l => l.includes('HTML = `')) + 1,
+          type: 'large-template',
+          category: '3. Performance Audit',
+          message: `Large inline HTML template (${htmlLines} lines)`,
+          suggestion: 'Consider splitting into smaller child components',
+          current: `${htmlLines} line template`,
+          fixable: false,
+        })
+      }
+    }
+    
+    // Check for missing onDestroy cleanup for intervals/timeouts
+    const hasSetInterval = /this\.setInterval\(/.test(content)
+    const hasSetTimeout = /this\.setTimeout\(/.test(content)
+    const hasOnDestroy = /onDestroy\s*\(\s*\)/.test(content)
+    
+    if ((hasSetInterval || hasSetTimeout) && !hasOnDestroy) {
+      // Note: FezBase auto-cleans these, but explicit onDestroy is still good practice
+      issues.push({
+        file,
+        line: lines.findIndex(l => l.includes('setInterval') || l.includes('setTimeout')) + 1,
+        type: 'missing-explicit-cleanup',
+        category: '3. Performance Audit',
+        message: 'Using setInterval/setTimeout without explicit onDestroy',
+        suggestion: 'Add onDestroy() for explicit cleanup (though auto-cleanup exists)',
+        current: 'No onDestroy method',
+        fixable: false,
+      })
+    }
+  }
+  
+  return issues
+}
+
+function fixFASTFlag(content) {
+  // Only add FAST = true if no slot usage
+  if (/<slot/i.test(content) || /this\.root\.childNodes/.test(content)) {
+    return { content, changed: false }
+  }
+  
+  // Check if FAST already exists
+  if (/^  FAST\s*=/m.test(content)) {
+    return { content, changed: false }
+  }
+  
+  // Find the right place to insert FAST (after class { or after init)
+  const classMatch = content.match(/^class\s*\{/m)
+  if (classMatch) {
+    const insertPos = classMatch.index + classMatch[0].length
+    const newContent = content.slice(0, insertPos) + '\n  FAST = true' + content.slice(insertPos)
+    return { content: newContent, changed: true }
+  }
+  
+  return { content, changed: false }
+}
+
+// =============================================================================
+// REFACTOR 4: IMPORT CLEANUP
+// =============================================================================
+
+function checkImports(files) {
+  const issues = []
+  
+  for (const file of files.filter(f => /\.(js|fez)$/.test(f))) {
+    const content = read(file)
+    const lines = content.split('\n')
+    
+    let inScript = true // Assume JS file, for .fez we'll detect script block
+    
+    for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+      const line = lines[lineNum]
+      
+      // For .fez files, only check inside <script> blocks
+      if (file.endsWith('.fez')) {
+        if (line.trim() === '<script>') {
+          inScript = true
+          continue
+        } else if (line.trim() === '</script>') {
+          inScript = false
+          continue
+        }
+        if (!inScript) continue
+      }
+      
+      // Check for unused imports
+      const importMatch = line.match(/import\s+(\{[^}]+\}|[\w]+)\s+from\s+['"]([^'"]+)['"]/)
+      if (importMatch) {
+        const imported = importMatch[1]
+        const source = importMatch[2]
+        
+        // Parse imported names
+        const names = imported.startsWith('{')
+          ? imported.replace(/[\{\}]/g, '').split(',').map(n => n.trim().split(/\s+as\s+/)[0].trim())
+          : [imported]
+        
+        // Check if each name is used in the rest of the file
+        const restOfFile = lines.slice(lineNum + 1).join('\n')
+        
+        for (const name of names) {
+          if (name && !new RegExp(`\\b${name}\\b`).test(restOfFile)) {
+            issues.push({
+              file,
+              line: lineNum + 1,
+              type: 'unused-import',
+              category: '4. Import Cleanup',
+              message: `Import "${name}" from "${source}" is unused`,
+              suggestion: `Remove "${name}" from import`,
+              current: name,
+              fixable: true,
+            })
+          }
+        }
+        
+        // Check if imports are sorted
+        if (imported.startsWith('{')) {
+          const namesList = imported.replace(/[\{\}]/g, '').split(',').map(n => n.trim().split(/\s+as\s+/)[0].trim()).filter(Boolean)
+          const sorted = [...namesList].sort()
+          
+          if (JSON.stringify(namesList) !== JSON.stringify(sorted)) {
+            issues.push({
+              file,
+              line: lineNum + 1,
+              type: 'unsorted-imports',
+              category: '4. Import Cleanup',
+              message: `Imports from "${source}" are not sorted`,
+              suggestion: `Sort alphabetically: ${sorted.join(', ')}`,
+              current: namesList.join(', '),
+              fixable: true,
+            })
+          }
+        }
+      }
+      
+      // Check for duplicate imports
+      const allImports = lines.filter(l => /^\s*import\s+/.test(l))
+      const importSources = allImports.map(l => l.match(/from\s+['"]([^'"]+)['"]/)?.[1]).filter(Boolean)
+      
+      const duplicates = importSources.filter((src, idx) => importSources.indexOf(src) !== idx)
+      if (duplicates.length > 0 && lineNum === lines.findIndex(l => l.includes(`from '${duplicates[0]}'`) || l.includes(`from "${duplicates[0]}"`))) {
+        issues.push({
+          file,
+          line: lineNum + 1,
+          type: 'duplicate-imports',
+          category: '4. Import Cleanup',
+          message: `Duplicate imports from "${duplicates[0]}"`,
+          suggestion: 'Consolidate into single import statement',
+          current: `Multiple imports from ${duplicates[0]}`,
+          fixable: false, // Complex to auto-fix
+        })
+      }
+    }
+  }
+  
+  return issues
+}
+
+function fixUnusedImport(content, unusedName) {
+  const lines = content.split('\n')
+  let changed = false
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const importMatch = line.match(/import\s+(\{[^}]+\})\s+from\s+['"]([^'"]+)['"]/)
+    
+    if (importMatch) {
+      const imported = importMatch[1]
+      const names = imported.replace(/[\{\}]/g, '').split(',').map(n => n.trim())
+      
+      if (names.includes(unusedName)) {
+        const newNames = names.filter(n => n !== unusedName)
+        
+        if (newNames.length === 0) {
+          // Remove entire import line
+          lines[i] = ''
+        } else {
+          // Remove unused name
+          lines[i] = line.replace(imported, `{ ${newNames.join(', ')} }`)
+        }
+        changed = true
+      }
+    }
+  }
+  
+  return { content: lines.join('\n'), changed }
+}
+
+function fixUnsortedImports(content) {
+  const lines = content.split('\n')
+  let changed = false
+  
+  for (let i = 0; i < lines.length; i++) {
+    const importMatch = lines[i].match(/import\s+(\{[^}]+\})\s+from\s+['"]([^'"]+)['"]/)
+    
+    if (importMatch) {
+      const imported = importMatch[1]
+      const names = imported.replace(/[\{\}]/g, '').split(',').map(n => n.trim())
+      const sorted = [...names].sort()
+      
+      if (JSON.stringify(names) !== JSON.stringify(sorted)) {
+        lines[i] = lines[i].replace(imported, `{ ${sorted.join(', ')} }`)
+        changed = true
+      }
+    }
+  }
+  
+  return { content: lines.join('\n'), changed }
+}
+
+// =============================================================================
+// MAIN EXECUTION
+// =============================================================================
+
+function main() {
+  if (SHOW_HELP) {
+    console.log(`
+Fez Refactor Tool
+=================
+
+Usage:
+  bun run refactor              # Report issues only
+  bun run refactor --fix        # Auto-fix issues
+  bun run refactor --check      # Same as default (report only)
+  bun run refactor --help       # Show this help
+
+Checks:
+  1. Legacy Syntax Migration    Convert {{ }} to { }
+  2. Code Modernization         var → const/let, modern patterns
+  3. Performance Audit          FAST flags, state depth, template size
+  4. Import Cleanup             Unused imports, sorting, duplicates
+
+Fixable Issues (with --fix):
+  - Legacy {{ }} syntax → { }
+  - var → const
+  - Missing FAST = true flag
+  - Unused imports (removes them)
+  - Unsorted imports (sorts them)
+`)
+    process.exit(0)
+  }
+  
+  console.log('Fez Refactor Tool')
+  console.log('=================')
+  console.log(`Mode: ${FIX_MODE ? 'Auto-fix' : 'Report only'}`)
+  console.log()
+  
+  // Collect all files
+  const allFiles = []
+  for (const dir of SCAN_DIRS) {
+    try {
+      const { globSync } = require('glob')
+      const fezFiles = globSync(join(ROOT_DIR, dir, '**/*.fez'))
+      const jsFiles = globSync(join(ROOT_DIR, dir, '**/*.{js,ts}'))
+      allFiles.push(...fezFiles, ...jsFiles)
+    } catch (e) {
+      // Directory doesn't exist
+    }
+  }
+  
+  // Remove duplicates
+  const uniqueFiles = [...new Set(allFiles)]
+  
+  console.log(`Scanning ${uniqueFiles.length} files...`)
+  console.log()
+  
+  // Run all checks
+  const allIssues = []
+  
+  const checks = [
+    { name: 'Legacy Syntax Migration', fn: checkLegacySyntax },
+    { name: 'Code Modernization', fn: checkCodeModernization },
+    { name: 'Performance Audit', fn: checkPerformance },
+    { name: 'Import Cleanup', fn: checkImports },
+  ]
+  
+  for (const check of checks) {
+    console.log(`Checking: ${check.name}...`)
+    const issues = check.fn(uniqueFiles)
+    allIssues.push(...issues)
+    console.log(`  Found ${issues.length} issues`)
+  }
+  
+  console.log()
+  
+  // Apply fixes if in fix mode
+  if (FIX_MODE) {
+    const fixableIssues = allIssues.filter(i => i.fixable)
+    console.log(`Applying ${fixableIssues.length} auto-fixes...\n`)
+    
+    // Group issues by file
+    const issuesByFile = {}
+    for (const issue of fixableIssues) {
+      if (!issuesByFile[issue.file]) issuesByFile[issue.file] = []
+      issuesByFile[issue.file].push(issue)
+    }
+    
+    let fixedCount = 0
+    for (const [file, issues] of Object.entries(issuesByFile)) {
+      let content = read(file)
+      let changed = false
+      
+      for (const issue of issues) {
+        if (issue.type === 'legacy-syntax') {
+          const result = fixLegacySyntax(content)
+          content = result.content
+          changed = changed || result.changed
+        } else if (issue.type === 'var-declaration') {
+          const result = fixVarToConstLet(content)
+          content = result.content
+          changed = changed || result.changed
+        } else if (issue.type === 'missing-fast-flag') {
+          const result = fixFASTFlag(content)
+          content = result.content
+          changed = changed || result.changed
+        } else if (issue.type === 'unused-import') {
+          const result = fixUnusedImport(content, issue.current)
+          content = result.content
+          changed = changed || result.changed
+        } else if (issue.type === 'unsorted-imports') {
+          const result = fixUnsortedImports(content)
+          content = result.content
+          changed = changed || result.changed
+        }
+        
+        if (changed) fixedCount++
+      }
+      
+      if (changed) {
+        write(file, content)
+        console.log(`  Fixed: ${relativePath(file)}`)
+      }
+    }
+    
+    console.log(`\nApplied ${fixedCount} fixes`)
+  }
+  
+  // Report issues
+  if (allIssues.length > 0) {
+    console.log()
+    console.log('Issues found:')
+    console.log()
+    
+    // Group by category
+    const byCategory = {}
+    for (const issue of allIssues) {
+      if (!byCategory[issue.category]) byCategory[issue.category] = []
+      byCategory[issue.category].push(issue)
+    }
+    
+    for (const [category, issues] of Object.entries(byCategory)) {
+      console.log(`${category}`)
+      console.log('-'.repeat(category.length))
+      
+      for (const issue of issues) {
+        const fixable = issue.fixable ? ' (auto-fixable)' : ''
+        console.log(`  ${relativePath(issue.file)}:${issue.line}`)
+        console.log(`    ${issue.message}${fixable}`)
+        if (!FIX_MODE) {
+          console.log(`    → ${issue.suggestion}`)
+        }
+      }
+      console.log()
+    }
+    
+    console.log(`Total: ${allIssues.length} issues (${allIssues.filter(i => i.fixable).length} auto-fixable)`)
+    
+    if (!FIX_MODE) {
+      console.log()
+      console.log('Run with --fix to auto-fix issues')
+    }
+    
+    process.exit(allIssues.length > 0 ? 1 : 0)
+  } else {
+    console.log('✅ No issues found! Code is clean.')
+    process.exit(0)
+  }
+}
+
+// Run
+main()

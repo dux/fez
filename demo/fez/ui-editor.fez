@@ -23,6 +23,8 @@ anywhere in HTML code
   import hljs from 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/es/highlight.min.js';
 
   class {
+    FAST = true
+    
     reformatIndentation(text) {
       const lines = text.split('\n');
       if (lines.length < 2) return text;

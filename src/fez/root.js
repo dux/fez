@@ -53,12 +53,12 @@ const Fez = (name, klass) => {
   if (typeof name === "number") {
     const fez = Fez.instances.get(name);
     if (fez) return fez;
-    Fez.consoleError(`Instance with UID "${name}" not found.`);
+    Fez.onError("lookup", `Instance with UID "${name}" not found. Component may have been destroyed or never created.`, { uid: name });
     return;
   }
 
   if (!name) {
-    Fez.consoleError("Fez() ?");
+    Fez.onError("lookup", "Fez() called without arguments. Expected component name, UID, or DOM node.");
     return;
   }
 
@@ -93,12 +93,12 @@ const Fez = (name, klass) => {
     : document.querySelector(name.includes("#") ? name : `.fez.fez-${name}`);
 
   if (!node) {
-    Fez.consoleError(`node "${name}" not found.`);
+    Fez.onError("lookup", `Component "${name}" not found in DOM. Ensure the component is defined and rendered.`, { componentName: name });
     return;
   }
 
   if (!node.fez) {
-    Fez.consoleError(`node "${name}" has no Fez attached.`);
+    Fez.onError("lookup", `DOM node "${name}" exists but has no Fez instance attached. Component may not be initialized yet.`, { node, tagName: name });
     return;
   }
 
@@ -136,9 +136,10 @@ Fez.find = (onode, name) => {
 
   if (closestNode?.fez) return closestNode.fez;
 
-  Fez.onError("find", "Node connector not found", {
+  Fez.onError("find", `Node connector not found. Selector: "${selector}", node: ${onode}`, {
     original: onode,
     resolved: node,
+    selector,
   });
 };
 
@@ -266,11 +267,42 @@ Fez.consoleLog = (text) => {
   }
 };
 
-/** Error handler - can be overridden */
+/**
+ * Enhanced error handler with component context
+ * @param {string} kind - Error category (e.g., 'template', 'lifecycle', 'morph')
+ * @param {string|Error} message - Error message or Error object
+ * @param {Object} [context] - Additional context (component name, props, etc.)
+ * @returns {string} Formatted error message
+ */
 Fez.onError = (kind, message, context) => {
-  const errorMsg = `Fez ${kind}: ${message?.toString?.() || message}`;
-  console.error(errorMsg, context || "");
-  return errorMsg;
+  // Extract component name from context or message
+  let componentName = context?.componentName || context?.name;
+
+  // Try to extract component name from message if not in context
+  if (!componentName && typeof message === "string") {
+    const match = message.match(/<([^>]+)>/);
+    if (match) componentName = match[1];
+  }
+
+  // Format the error message with component context
+  const prefix = componentName ? ` [${componentName}]` : "";
+  const errorMsg =
+    typeof message === "string" ? message : message?.message || String(message);
+  const fullMessage = `Fez ${kind}:${prefix} ${errorMsg}`;
+
+  // Log with context if available
+  if (context && Fez.LOG) {
+    console.error(fullMessage, context);
+  } else {
+    console.error(fullMessage);
+  }
+
+  // Include stack trace for Error objects
+  if (message instanceof Error && message.stack && Fez.LOG) {
+    console.error(message.stack);
+  }
+
+  return fullMessage;
 };
 
 // =============================================================================

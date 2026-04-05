@@ -1,0 +1,19 @@
+{
+  "name": "claude-expert",
+  "version": "1.0.0",
+  "description": "Calls Claude Opus via CLI for deep reasoning on complex tasks, refactors, architecture decisions, and hard debugging problems",
+  "usage": "Invoke when encountering complex refactors, architecture decisions, or bugs that require deeper reasoning. Pass a detailed prompt with full context.",
+  "triggers": [
+    "claude expert",
+    "call claude",
+    "ask opus",
+    "deep reasoning",
+    "complex refactor",
+    "architecture decision"
+  ],
+  "script": "run.sh",
+  "requires": {
+    "cli": "claude",
+    "model": "opus"
+  }
+}

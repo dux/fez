@@ -475,15 +475,10 @@ export default (Fez) => {
 
   // get unique id from string
   Fez.fnv1 = (str) => {
-    var FNV_OFFSET_BASIS, FNV_PRIME, hash, i, j, ref;
-    FNV_OFFSET_BASIS = 2166136261;
-    FNV_PRIME = 16777619;
-    hash = FNV_OFFSET_BASIS;
-    for (
-      i = j = 0, ref = str.length - 1;
-      0 <= ref ? j <= ref : j >= ref;
-      i = 0 <= ref ? ++j : --j
-    ) {
+    let FNV_OFFSET_BASIS = 2166136261;
+    let FNV_PRIME = 16777619;
+    let hash = FNV_OFFSET_BASIS;
+    for (let i = 0; i < str.length; i++) {
       hash ^= str.charCodeAt(i);
       hash *= FNV_PRIME;
     }

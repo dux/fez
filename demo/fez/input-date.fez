@@ -31,6 +31,8 @@
   Fez.head({css: 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css'})
 
   class {
+    FAST = true
+    
     init() {
       // Initialize state
       this.state.selectedDate = ''

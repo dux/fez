@@ -1,11 +1,15 @@
 {
   "name": "@dinoreic/fez",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Runtime custom DOM elements lib",
   "main": "dist/fez.js",
   "type": "module",
+  "types": "fez.d.ts",
   "exports": {
-    ".": "./dist/fez.js",
+    ".": {
+      "types": "./fez.d.ts",
+      "import": "./dist/fez.js"
+    },
     "./rollup": "./src/rollup.js",
     "./log": "./src/log.js",
     "./svelte": "./src/svelte-cde-adapter.coffee",
@@ -20,6 +24,7 @@
     "bin",
     "dist",
     "src",
+    "fez.d.ts",
     "README.md",
     "LICENSE"
   ],
@@ -45,6 +50,7 @@
     "concurrently": "^9.1.2",
     "esbuild": "0.23.0",
     "esbuild-coffeescript": "^2.2.0",
+    "eslint": "^8.57.0",
     "glob-cli": "^1.0.0",
     "happy-dom": "^18.0.1",
     "jsdom": "^26.1.0",
@@ -57,7 +63,12 @@
     "watch": "bun build.js w",
     "server": "bun run lib/server.js",
     "dev": "bunx concurrently --kill-others \"bun run server\" \"find src demo lib | entr -cn sh -c 'bun run index && bun run b'\"",
+    "lint": "eslint src/**/*.js",
+    "lint:fix": "eslint src/**/*.js --fix",
+    "format": "prettier --write \"src/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.js\"",
     "test": "bun test test/*.test.js && bun test test/browser/*.test.js",
+    "test:coverage": "bun test --coverage",
     "prepublishOnly": "bun run build && bun run test",
     "publish": "npm publish --access public",
     "index": "ls demo/fez/*.fez | xargs -n1 basename | sed 's/\\.fez$//' | sort | sed 's/^/fez\\//' > demo/fez.txt"

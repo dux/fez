@@ -1,0 +1,63 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "rules": {
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-eval": "warn",
+    "no-implied-eval": "warn",
+    "no-new-func": "warn",
+    "prefer-const": "error",
+    "no-var": "error",
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "curly": ["error", "all"],
+    "no-trailing-spaces": "error",
+    "no-multiple-empty-lines": ["error", { "max": 2 }],
+    "semi": ["error", "always"],
+    "quotes": ["error", "single", { "avoidEscape": true }],
+    "indent": ["error", 2],
+    "comma-dangle": ["error", "always-multiline"],
+    "object-curly-spacing": ["error", "always"],
+    "array-bracket-spacing": ["error", "never"],
+    "space-infix-ops": "error",
+    "keyword-spacing": "error",
+    "no-debugger": "error",
+    "no-alert": "warn",
+    "no-implied-eval": "error"
+  },
+  "globals": {
+    "Fez": "writable",
+    "FezBase": "writable",
+    "customElements": "readonly",
+    "HTMLElement": "readonly",
+    "MutationObserver": "readonly",
+    "ResizeObserver": "readonly",
+    "FormData": "readonly",
+    "DOMParser": "readonly",
+    "requestAnimationFrame": "readonly",
+    "cancelAnimationFrame": "readonly",
+    "queueMicrotask": "readonly",
+    "window": "writable",
+    "document": "readonly",
+    "console": "readonly",
+    "setTimeout": "readonly",
+    "clearTimeout": "readonly",
+    "setInterval": "readonly",
+    "clearInterval": "readonly",
+    "Promise": "readonly",
+    "JSON": "readonly",
+    "Map": "readonly",
+    "Set": "readonly",
+    "Proxy": "readonly",
+    "Reflect": "readonly",
+    "URLSearchParams": "readonly",
+    "URL": "readonly"
+  }
+}

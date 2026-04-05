@@ -20,11 +20,11 @@ Some text above the image.
 * list item 1
 * list item 2
 
-{{block:image {"src":"https://picsum.photos/800/400","caption":"A random photo"}}}
+{@block:image {"src":"https://picsum.photos/800/400","caption":"A random photo"}}
 
 And text below it.
 
-{{block:callout {"type":"info","text":"This is an info callout with important notes."}}}
+{@block:callout {"type":"info","text":"This is an info callout with important notes."}}
 
 > a nice blockquote
 
@@ -419,7 +419,7 @@ Just a simple text area with **markdown** support.
 
       const initialHtml = this._initialMd ? this.mdToHtml(this._initialMd) : ''
 
-      // serialize any block as {{block:type {json}}} in markdown
+      // serialize any block as {@block:type {json}} in markdown
       this.turndown.addRule('fezBlock', {
         filter: (node) => node.nodeName === 'DIV' && node.getAttribute('data-block'),
         replacement: (content, node) => {
@@ -430,7 +430,7 @@ Just a simple text area with **markdown** support.
               data[attr.name.slice(5)] = attr.value
             }
           }
-          return `\n\n{{block:${type} ${JSON.stringify(data)}}}\n\n`
+          return `\n\n{@block:${type} ${JSON.stringify(data)}}\n\n`
         }
       })
 
@@ -474,8 +474,8 @@ Just a simple text area with **markdown** support.
     }
 
     mdToHtml(md) {
-      // convert {{block:type {json}}} tokens to HTML divs before marked.parse
-      const processed = md.replace(/\{\{block:(\w+)\s+(\{.*?\})\s*\}\}/g, (match, type, json) => {
+      // convert {@block:type {json}} tokens to HTML divs before marked.parse
+      const processed = md.replace(/\{@block:(\w+)\s+(\{.*?\})\s*\}/g, (match, type, json) => {
         try {
           const data = JSON.parse(json)
           let div = `<div data-block="${type}"`

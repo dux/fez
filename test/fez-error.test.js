@@ -63,8 +63,12 @@ describe('FezBase.fezError always includes component name', () => {
     const errorContext = { line: 42, file: 'test.js' }
     instance.fezError('debug', 'With context', errorContext)
 
-    expect(capturedErrors[0].context).toBe(errorContext)
-    expect(capturedErrors[0].context.line).toBe(42)
+    // Context is enhanced with componentName, so check the properties exist
+    expect(capturedErrors[0].context).toEqual(expect.objectContaining({
+      line: 42,
+      file: 'test.js',
+      componentName: 'test-comp'
+    }))
   })
 })
 

@@ -130,10 +130,15 @@ export default class FezBase {
 
   /**
    * Report error with component name always included
+   * @param {string} kind - Error category
+   * @param {string} message - Error message
+   * @param {Object} [context] - Additional context
+   * @returns {string} Formatted error message
    */
   fezError(kind, message, context) {
     const name = this.fezName || this.root?.tagName?.toLowerCase() || "unknown";
-    return Fez.onError(kind, `<${name}> ${message}`, context);
+    const enhancedContext = context ? { ...context, componentName: name } : { componentName: name };
+    return Fez.onError(kind, `<${name}> ${message}`, enhancedContext);
   }
 
   /**
@@ -440,10 +445,14 @@ export default class FezBase {
    * fez-keep matching is handled natively by the differ (morph.js).
    */
   fezKeepNode(newNode) {
-    // First render: move captured children into slot container
+    // First render only: move captured children into slot container.
+    // On subsequent renders the differ preserves the live .fez-slot via fez-keep.
+    if (this._fezSlotInitialized) return;
+
     // Safe to use .querySelector - newNode is a fresh template with no nested components yet
     const newSlot = newNode.querySelector(".fez-slot");
     if (newSlot && this._fezSlotNodes) {
+      this._fezSlotInitialized = true;
       this._fezSlotNodes.forEach((child) => {
         newSlot.appendChild(child);
       });

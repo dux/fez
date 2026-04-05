@@ -31,6 +31,7 @@
 
   class {
     GLOBAL = 'Toast'
+    FAST = true
 
     error(text) {
       this.info(text, 'error')
