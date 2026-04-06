@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Window } from "happy-dom";
-import { fezMorph } from "../src/fez/morph.js";
+import { fezMorph } from "../src/fez/lib/morph.js";
 
 // Setup happy-dom globals, saving originals to restore later
 let window, document;

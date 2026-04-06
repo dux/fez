@@ -15,6 +15,8 @@
 
 // Note: Uses Fez.index directly (set up in root.js)
 
+import closeCustomTags from "./lib/close-custom-tags.js";
+
 // =============================================================================
 // HELPERS
 // =============================================================================
@@ -362,14 +364,14 @@ function generateClassCode(tagName, parts) {
     klass = klass.replace(/\}\s*$/, `\n  HTML = \`${html}\`\n}`);
   }
 
-  // Store demo content in index
+  // Store demo content in index (close self-closing custom tags for innerHTML)
   if (parts.demo?.trim()) {
-    Fez.index.ensure(tagName).demo = parts.demo;
+    Fez.index.ensure(tagName).demo = closeCustomTags(parts.demo);
   }
 
   // Store info content in index
   if (parts.info?.trim()) {
-    Fez.index.ensure(tagName).info = parts.info;
+    Fez.index.ensure(tagName).info = closeCustomTags(parts.info);
   }
 
   // Wrap in Fez call

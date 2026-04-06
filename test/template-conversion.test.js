@@ -22,12 +22,12 @@ globalThis.Fez = {
   },
 };
 
-// Helper to render template
+// Helper to render template (strips auto-generated keys)
 const render = (template, ctx, name) => {
   ctx.UID = ctx.UID || 123;
   ctx.Fez = Fez;
   const fn = createTemplate(template, { name });
-  return fn(ctx);
+  return fn(ctx).replace(/ key="[^"]*"/g, "");
 };
 
 describe("Old to new syntax conversion", () => {

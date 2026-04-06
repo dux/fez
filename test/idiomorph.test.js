@@ -5,7 +5,7 @@
  */
 import { describe, test, expect, beforeAll } from "bun:test";
 import { Window } from "happy-dom";
-import { syncClassList, isFormInput, fezMorph } from "../src/fez/morph.js";
+import { syncClassList, isFormInput, fezMorph } from "../src/fez/lib/morph.js";
 
 // Setup happy-dom globals
 let document;

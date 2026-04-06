@@ -52,9 +52,14 @@ function syncAttributes(oldNode, newNode) {
     oldNode === document.activeElement && isFormInput(oldNode);
 
   // Remove attributes not present in new node
+  // Exception: preserve `style` if new node doesn't set it at all,
+  // since style is commonly set by JS (e.g. positioning) and should
+  // only be synced when the template explicitly provides a style attribute.
+  const newHasStyle = newNode.hasAttribute("style");
   for (let i = oldAttrs.length - 1; i >= 0; i--) {
     const name = oldAttrs[i].name;
     if (!newNode.hasAttribute(name)) {
+      if (name === "style" && !newHasStyle) continue;
       oldNode.removeAttribute(name);
     }
   }
@@ -130,6 +135,10 @@ function getNodeKey(node) {
   const keepKey = node.getAttribute?.("fez-keep");
   if (keepKey) return "keep-" + keepKey;
 
+  // key attribute (auto-generated or user-provided)
+  const key = node.getAttribute?.("key");
+  if (key) return "key-" + key;
+
   // id attribute
   const id = node.id;
   if (id) return "id-" + id;
@@ -147,6 +156,10 @@ function getNewNodeKey(node) {
   // fez-keep attribute
   const keepKey = node.getAttribute?.("fez-keep");
   if (keepKey) return "keep-" + keepKey;
+
+  // key attribute (auto-generated or user-provided)
+  const key = node.getAttribute?.("key");
+  if (key) return "key-" + key;
 
   // id attribute
   const id = node.id;
@@ -239,16 +252,19 @@ function diffChildren(target, newParent, opts) {
     }
   }
 
-  // Pass 1b: for unmatched new children, try soft match with unmatched old
-  // Skip elements with fez-keep or fez components - they only match by key
+  // Pass 1b: for unmatched new children, find best-match among unmatched old
+  // Uses class similarity scoring to avoid mismatching when leading siblings
+  // are added/removed by {#if} blocks.
+  // Two-pass: collect all candidate pairs with scores, then assign highest first.
+  // This prevents low-quality matches from consuming candidates needed by better ones.
   const unmatchedOld = oldChildren.filter((c) => !usedOld.has(c));
-  let uIdx = 0;
+  const candidates = [];
+
   for (let i = 0; i < matches.length; i++) {
     if (matches[i].old) continue; // already matched
 
     const newChild = matches[i].new;
-    // Don't soft-match new nodes that have a key (fez-keep, id)
-    // They should only match by their key
+    // Don't soft-match new nodes that have a fez-keep key
     if (
       getNewNodeKey(newChild) &&
       getNewNodeKey(newChild).startsWith("keep-")
@@ -256,9 +272,8 @@ function diffChildren(target, newParent, opts) {
       continue;
     }
 
-    while (uIdx < unmatchedOld.length) {
-      const candidate = unmatchedOld[uIdx];
-      uIdx++;
+    for (let j = 0; j < unmatchedOld.length; j++) {
+      const candidate = unmatchedOld[j];
       // Don't soft-match old nodes that have fez-keep or are fez components
       if (
         candidate.nodeType === 1 &&
@@ -267,12 +282,25 @@ function diffChildren(target, newParent, opts) {
       ) {
         continue;
       }
-      if (softMatch(candidate, newChild)) {
-        matches[i].old = candidate;
-        usedOld.add(candidate);
-        break;
+      const score = scoreSoftMatch(candidate, newChild);
+      if (score > 0) {
+        candidates.push({ matchIdx: i, oldIdx: j, score });
       }
     }
+  }
+
+  // Sort by score descending - highest quality matches get priority
+  candidates.sort((a, b) => b.score - a.score);
+
+  // Assign matches: best-scored pairs first
+  const usedOldIdx = new Set();
+  const assignedMatch = new Set();
+  for (const c of candidates) {
+    if (assignedMatch.has(c.matchIdx) || usedOldIdx.has(c.oldIdx)) continue;
+    matches[c.matchIdx].old = unmatchedOld[c.oldIdx];
+    usedOld.add(unmatchedOld[c.oldIdx]);
+    usedOldIdx.add(c.oldIdx);
+    assignedMatch.add(c.matchIdx);
   }
 
   // Phase 2: Remove unmatched old children
@@ -357,14 +385,51 @@ function diffChildren(target, newParent, opts) {
 }
 
 /**
- * Soft match: same node type and (for elements) same tag name.
+ * Score how well two nodes match for soft matching.
+ * Returns 0 for no match (different nodeType or tagName).
+ * Higher score = better match.
+ *
+ * Scoring:
+ *   1  = same nodeType (text/comment nodes)
+ *   1  = same tagName (elements, base score)
+ *  +3  per shared CSS class
+ *  +2  for same number of attributes
  */
-function softMatch(oldNode, newNode) {
-  if (oldNode.nodeType !== newNode.nodeType) return false;
-  if (oldNode.nodeType === 1) {
-    return oldNode.nodeName === newNode.nodeName;
+function scoreSoftMatch(oldNode, newNode) {
+  if (oldNode.nodeType !== newNode.nodeType) return 0;
+
+  // Text/comment nodes: same nodeType is enough
+  if (oldNode.nodeType !== 1) return 1;
+
+  // Elements: must have same tag
+  if (oldNode.nodeName !== newNode.nodeName) return 0;
+
+  let score = 1;
+
+  // Score by shared CSS classes
+  const oldClasses = oldNode.getAttribute?.("class");
+  const newClasses = newNode.getAttribute?.("class");
+  if (oldClasses && newClasses) {
+    const oldSet = new Set(oldClasses.split(/\s+/).filter(Boolean));
+    const newSet = new Set(newClasses.split(/\s+/).filter(Boolean));
+    for (const cls of newSet) {
+      if (oldSet.has(cls)) score += 3;
+    }
+  } else if (!oldClasses && !newClasses) {
+    // Both have no class - slight bonus for similarity
+    score += 1;
   }
-  return true;
+
+  // Bonus for same attribute count (structural similarity)
+  if (
+    oldNode.attributes &&
+    newNode.attributes &&
+    oldNode.attributes.length === newNode.attributes.length
+  ) {
+    score += 2;
+  }
+
+  return score;
 }
 
 /**

@@ -47,6 +47,51 @@ export default function createSvelteTemplate(text, opts = {}) {
     // Allow Svelte-style fez:attr namespace syntax as alias for fez-attr
     text = text.replace(/\bfez:([a-z]+)=/gi, "fez-$1=");
 
+    // Convert Svelte-style class:name={expr} conditional class directives
+    // e.g. class:active={state.value === key} -> merges ternary into class attribute
+    text = text.replace(/<[a-z][a-z0-9-]*\b[^>]*>/gi, (tag) => {
+      if (!/\bclass:[\w-]+=/.test(tag)) return tag;
+
+      const directives = [];
+
+      // Extract class:name={expr} directives (brace-delimited)
+      tag = tag.replace(
+        /\s*\bclass:([\w-]+)=\{([^}]*)\}/g,
+        (_, name, expr) => {
+          directives.push({ name, expr });
+          return "";
+        },
+      );
+
+      // Extract class:name="expr" directives (quote-delimited)
+      tag = tag.replace(
+        /\s*\bclass:([\w-]+)="([^"]*)"/g,
+        (_, name, expr) => {
+          directives.push({ name, expr });
+          return "";
+        },
+      );
+
+      if (!directives.length) return tag;
+
+      const ternaries = directives
+        .map((d) => ` {(${d.expr}) ? '${d.name}' : ''}`)
+        .join("");
+
+      if (/\bclass="/.test(tag)) {
+        // Append to existing class attribute
+        tag = tag.replace(
+          /class="([^"]*)"/,
+          (_, val) => `class="${val}${ternaries}"`,
+        );
+      } else {
+        // No existing class - create one before closing >
+        tag = tag.replace(/(\s*\/?>)$/, ` class="${ternaries.trim()}"$1`);
+      }
+
+      return tag;
+    });
+
     // Error if fez-keep is placed on a fez component (custom element with dash in tag name)
     const keepOnComponent = text.match(
       /<([a-z]+-[a-z][a-z0-9-]*)\b[^>]*\bfez-keep=/,
@@ -102,6 +147,12 @@ export default function createSvelteTemplate(text, opts = {}) {
 
     // Convert self-closing <slot /> to <slot></slot>
     text = text.replace(/<slot\s*\/>/gi, "<slot></slot>");
+
+    // Auto-generate key attributes on HTML elements for stable morph diffing.
+    // Elements without key= get a sequential key injected. Elements inside
+    // {#each}/{#for} loops include the loop index variable in the key.
+    // User-provided key= attributes are preserved as-is.
+    text = autoInjectKeys(text);
 
     // Parse and build template literal
     let result = "";
@@ -469,4 +520,182 @@ export default function createSvelteTemplate(text, opts = {}) {
     console.error("Template:", text.substring(0, 200));
     return () => "";
   }
+}
+
+// ---------------------------------------------------------------------------
+// Auto-inject key attributes for morph stability
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract loop index variable name from a block directive.
+ * {#each items as item, idx} -> "idx"
+ * {#each items as item}      -> "i"
+ * {#for item in items}       -> "i"
+ */
+function getLoopIndexVar(directive) {
+  if (directive.startsWith("#each ")) {
+    const rest = directive.slice(6);
+    const asIdx = rest.indexOf(" as ");
+    if (asIdx < 0) return "i";
+    const binding = rest.slice(asIdx + 4).trim();
+    const parts = binding.split(",").map((s) => s.trim());
+    return parts.length >= 2 ? parts[parts.length - 1] : "i";
+  }
+  if (directive.startsWith("#for ")) {
+    const rest = directive.slice(5);
+    const inIdx = rest.indexOf(" in ");
+    if (inIdx < 0) return "i";
+    const binding = rest.slice(0, inIdx).trim();
+    const parts = binding.split(",").map((s) => s.trim());
+    // 3+ params: last is explicit index (e.g., {#for key, val, idx in obj})
+    if (parts.length >= 3) return parts[parts.length - 1];
+    // 1-2 params: implicit index 'i'
+    return "i";
+  }
+  return "i";
+}
+
+/**
+ * Auto-inject key="N" attributes on HTML elements for stable morph diffing.
+ *
+ * - Static elements get key="N" (sequential counter)
+ * - Elements inside {#each}/{#for} get key="N-{indexVar}" (dynamic per iteration)
+ * - Nested loops stack: key="N-{i}-{j}"
+ * - Elements that already have key= are skipped
+ *
+ * @param {string} text - preprocessed template source
+ * @returns {string} template with key attributes injected
+ */
+function autoInjectKeys(text) {
+  let result = "";
+  let pos = 0;
+  let keyCounter = 0;
+  const scopeStack = []; // {type: 'if'|'loop', indexVar?: string, inElse?: boolean}
+
+  while (pos < text.length) {
+    // Block directives: {#...}, {/...}, {:...}
+    if (
+      text[pos] === "{" &&
+      pos + 1 < text.length &&
+      /[#/:]/.test(text[pos + 1])
+    ) {
+      let j = pos + 1;
+      let depth = 1;
+      while (j < text.length) {
+        if (text[j] === "{") depth++;
+        else if (text[j] === "}") {
+          depth--;
+          if (depth === 0) break;
+        }
+        j++;
+      }
+
+      const directive = text.slice(pos + 1, j).trim();
+
+      if (directive.startsWith("#if ") || directive.startsWith("#unless ")) {
+        scopeStack.push({ type: "if" });
+      } else if (
+        directive.startsWith("#each ") ||
+        directive.startsWith("#for ")
+      ) {
+        scopeStack.push({
+          type: "loop",
+          indexVar: getLoopIndexVar(directive),
+          inElse: false,
+        });
+      } else if (directive === "/if" || directive === "/unless") {
+        if (scopeStack.length) scopeStack.pop();
+      } else if (directive === "/each" || directive === "/for") {
+        if (scopeStack.length) scopeStack.pop();
+      } else if (
+        directive === ":else" ||
+        directive === "else" ||
+        directive.startsWith(":else if ") ||
+        directive.startsWith("else if ")
+      ) {
+        // Mark loop scope as "in else" so elements don't get index suffix
+        const top = scopeStack[scopeStack.length - 1];
+        if (top && top.type === "loop") {
+          top.inElse = true;
+        }
+      }
+
+      result += text.slice(pos, j + 1);
+      pos = j + 1;
+      continue;
+    }
+
+    // Opening HTML tag
+    if (
+      text[pos] === "<" &&
+      pos + 1 < text.length &&
+      /[a-zA-Z]/.test(text[pos + 1])
+    ) {
+      // Find closing > while skipping quoted strings and {expr} blocks
+      let j = pos + 1;
+      while (j < text.length) {
+        if (text[j] === '"' || text[j] === "'") {
+          const q = text[j++];
+          while (j < text.length && text[j] !== q) j++;
+        } else if (text[j] === "{") {
+          let d = 1;
+          j++;
+          while (j < text.length && d > 0) {
+            if (text[j] === "{") d++;
+            else if (text[j] === "}") d--;
+            j++;
+          }
+          continue;
+        } else if (text[j] === ">") {
+          break;
+        }
+        j++;
+      }
+
+      const tag = text.slice(pos, j + 1);
+
+      // Skip closing tags
+      if (text[pos + 1] === "/") {
+        result += tag;
+        pos = j + 1;
+        continue;
+      }
+
+      // Skip if already has key=
+      if (/\bkey\s*=/.test(tag)) {
+        result += tag;
+        pos = j + 1;
+        continue;
+      }
+
+      // Build key value
+      const n = keyCounter++;
+      const activeLoops = scopeStack.filter(
+        (s) => s.type === "loop" && !s.inElse,
+      );
+      let keyValue;
+      if (activeLoops.length > 0) {
+        const suffix = activeLoops.map((s) => `-{${s.indexVar}}`).join("");
+        keyValue = `${n}${suffix}`;
+      } else {
+        keyValue = `${n}`;
+      }
+
+      // Inject key before closing > or />
+      if (tag.trimEnd().endsWith("/>")) {
+        const slashPos = tag.lastIndexOf("/");
+        result += tag.slice(0, slashPos) + ` key="${keyValue}"/>`;
+      } else {
+        result += tag.slice(0, -1) + ` key="${keyValue}">`;
+      }
+
+      pos = j + 1;
+      continue;
+    }
+
+    result += text[pos];
+    pos++;
+  }
+
+  return result;
 }

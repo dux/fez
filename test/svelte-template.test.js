@@ -93,13 +93,13 @@ const createFezGlobals = () => ({
   },
 });
 
-// Helper to render template and get HTML string
+// Helper to render template and get HTML string (strips auto-generated keys)
 const render = (template, ctx) => {
   ctx.UID = ctx.UID || 123;
   ctx.Fez = Fez;
   ctx.fezGlobals = ctx.fezGlobals || createFezGlobals();
   const fn = createSvelteTemplate(template);
-  return fn(ctx);
+  return fn(ctx).replace(/ key="[^"]*"/g, "");
 };
 
 describe("Svelte-style template", () => {

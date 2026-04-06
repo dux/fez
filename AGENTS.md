@@ -158,9 +158,7 @@ The `<script>` block has two zones:
 </style>
 
 <!-- Template (Svelte-like syntax) -->
-<button onclick="fez.increment()" name="{state.buttonName}">
-  Count: {state.count}
-</button>
+<button onclick="fez.increment()" name="{state.buttonName}">Count: {state.count}</button>
 ```
 
 ## Template Syntax (Svelte-like)
@@ -338,7 +336,7 @@ class {
 ```html
 <!-- Function pointers - only when passing objects/arrays from loops -->
 {#each state.tasks as task, index}
-<button onclick="{()" ="">editTask(task)}>Edit</button>
+<button onclick="{() => editTask(task)}">Edit</button>
 {/each}
 ```
 
@@ -358,6 +356,28 @@ Arrow functions are automatically transformed:
 <my-component attr="value" />
 <!-- becomes: <my-component attr="value"></my-component> -->
 ```
+
+## Conditional Class Directives
+
+Use `class:name={condition}` to conditionally toggle CSS classes (Svelte-style):
+
+```html
+<!-- Toggle 'active' class based on condition -->
+<div class="btn" class:active="{state.isActive}">Click</div>
+
+<!-- Multiple class directives on one element -->
+<div class="card" class:selected="{state.id === props.current}" class:disabled="{state.loading}">
+  Content
+</div>
+
+<!-- Without existing class attribute -->
+<span class:highlight="{state.query}">Result</span>
+
+<!-- Quote syntax also works -->
+<div class:visible="state.show">...</div>
+```
+
+At compile time, `class:name={expr}` is converted to a ternary expression merged into the `class` attribute. The class name is added when the expression is truthy, removed when falsy.
 
 ## Special Attributes
 
@@ -427,11 +447,7 @@ All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is con
 
   ```html
   <!-- Passing evaluated values (functions, objects, etc.) -->
-  <my-component
-    :onclick="handleClick"
-    :config="{theme: 'dark'}"
-    :is_active="true"
-  >
+  <my-component :onclick="handleClick" :config="{theme: 'dark'}" :is_active="true">
     <!-- Passing string values (no colon needed) -->
     <my-component title="Hello" class_name="primary"></my-component
   ></my-component>
@@ -662,9 +678,7 @@ This is automatic - no extra configuration needed.
     <!-- CORRECT - use curly braces to capture values at render time -->
     <child-component name="{name}" data="{state.items}">
       <!-- CORRECT - fez. prefix works (fez is bound to this in templates) -->
-      <child-component
-        :data="fez.state.items"
-      ></child-component></child-component
+      <child-component :data="fez.state.items"></child-component></child-component
   ></child-component>
   ```
 
@@ -674,40 +688,40 @@ This is automatic - no extra configuration needed.
 
 ```javascript
 // ES Module imports (use /+esm for CDN modules)
-import library from "https://cdn.jsdelivr.net/npm/library/+esm";
+import library from 'https://cdn.jsdelivr.net/npm/library/+esm';
 
 // Import map for bare specifiers (avoids duplicate library instances)
 // Rewrites bare specifiers to full URLs at compile time
 Fez.head({
   importmap: {
-    three: "https://esm.sh/three@0.160.0",
-    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/",
+    three: 'https://esm.sh/three@0.160.0',
+    'three/addons/': 'https://esm.sh/three@0.160.0/examples/jsm/',
   },
 });
-import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 // Dynamic script/style loading
-Fez.head({ js: "https://cdn.example.com/script.js" });
-Fez.head({ css: "https://cdn.example.com/styles.css" });
+Fez.head({ js: 'https://cdn.example.com/script.js' });
+Fez.head({ css: 'https://cdn.example.com/styles.css' });
 ```
 
 ## Utility Shortcuts
 
 ```javascript
-this.find(".selector"); // Scoped querySelector
+this.find('.selector'); // Scoped querySelector
 this.setTimeout(fn, 1000); // Auto-cleaned timeout
 this.setInterval(fn, 1000); // Auto-cleaned interval
-Fez.fetch("/data"); // Built-in cached fetch
+Fez.fetch('/data'); // Built-in cached fetch
 this.formData(); // Get form values
 this.childNodes(); // Get child elements as array
 this.childNodes(fn); // Get children mapped with function
 this.childNodes(true); // Get children as objects: { html, ROOT, ...attrs }
 
 // localStorage with JSON serialization (preserves types)
-Fez.localStorage.set("count", 42);
-Fez.localStorage.get("count"); // 42 (number)
-Fez.localStorage.get("missing", "default"); // fallback value
+Fez.localStorage.set('count', 42);
+Fez.localStorage.get('count'); // 42 (number)
+Fez.localStorage.get('missing', 'default'); // fallback value
 
 // Resolve a function from a string or function reference
 Fez.getFunction(this.props.onclick);
@@ -726,14 +740,14 @@ Fez.toPairs({ a: 1, b: 2 }); // [['a', 1], ['b', 2]] - [key, value]
 Fez.toPairs(null); // [] - safe for null/undefined
 
 // Component Index (unified registry for all component data)
-Fez.index["ui-btn"].class; // Component class
-Fez.index["ui-btn"].meta; // Metadata from META = {...}
-Fez.index["ui-btn"].demo; // Demo HTML string
-Fez.index["ui-btn"].info; // Info HTML string
-Fez.index["ui-btn"].source; // Raw .fez source code
+Fez.index['ui-btn'].class; // Component class
+Fez.index['ui-btn'].meta; // Metadata from META = {...}
+Fez.index['ui-btn'].demo; // Demo HTML string
+Fez.index['ui-btn'].info; // Info HTML string
+Fez.index['ui-btn'].source; // Raw .fez source code
 
-Fez.index.get("name"); // { class, meta, demo: DOMNode, info: DOMNode, source }
-Fez.index.apply("name", el); // Render demo into element and execute scripts
+Fez.index.get('name'); // { class, meta, demo: DOMNode, info: DOMNode, source }
+Fez.index.apply('name', el); // Render demo into element and execute scripts
 Fez.index.names(); // ['ui-btn', 'ui-card', ...] all component names
 Fez.index.withDemo(); // Component names that have demos
 Fez.index.all(); // All components as { name: { class, meta, demo, info, source } }
@@ -744,8 +758,8 @@ Fez.index.info(); // Log all component names to console
 
 ```javascript
 Fez.LOG = true; // Enable framework logs
-Fez("component").state; // Inspect component state
-Fez.state.get("key"); // Check global state
+Fez('component').state; // Inspect component state
+Fez.state.get('key'); // Check global state
 ```
 
 ## When Unsure

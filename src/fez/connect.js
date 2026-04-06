@@ -13,27 +13,8 @@
  */
 
 import createTemplate from "./lib/template.js";
+import closeCustomTags from "./lib/close-custom-tags.js";
 import FezBase from "./instance.js";
-
-// =============================================================================
-// CONSTANTS
-// =============================================================================
-
-const SELF_CLOSING_TAGS = new Set([
-  "area",
-  "base",
-  "br",
-  "col",
-  "embed",
-  "hr",
-  "img",
-  "input",
-  "link",
-  "meta",
-  "source",
-  "track",
-  "wbr",
-]);
 
 // Attribute observer for reactive props
 const attrObserver = new MutationObserver((mutations) => {
@@ -181,22 +162,6 @@ function ensureFezBase(Fez, name, klass) {
 
   Fez.consoleLog(`${name} compiled`);
   return newKlass;
-}
-
-/**
- * Convert self-closing custom tags to full format
- * <my-comp /> -> <my-comp></my-comp>
- * Uses (?:[^>]|=>) to skip => (arrow functions) inside attributes
- */
-function closeCustomTags(html) {
-  return html.replace(
-    /<([a-z][a-z-]*)\b((?:=>|[^>])*)>/g,
-    (match, tag, attrs) => {
-      if (!attrs.trimEnd().endsWith("/")) return match;
-      if (SELF_CLOSING_TAGS.has(tag)) return match;
-      return `<${tag}${attrs.replace(/\s*\/$/, "")}></${tag}>`;
-    },
-  );
 }
 
 /**

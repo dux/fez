@@ -67,8 +67,18 @@ afterAll(() => {
   global.Fez = originalFez;
 });
 
-// Helper to render template and get HTML
+// Helper to render template and get HTML (strips auto-generated key attrs)
 function render(template, ctx) {
+  const tpl = createSvelteTemplate(template);
+  const fezGlobals = createMockFezGlobals();
+  return tpl({ ...ctx, Fez: MockFez, UID: 999, fezGlobals }).replace(
+    / key="[^"]*"/g,
+    "",
+  );
+}
+
+// Helper that preserves key attributes for key-specific tests
+function renderWithKeys(template, ctx) {
   const tpl = createSvelteTemplate(template);
   const fezGlobals = createMockFezGlobals();
   return tpl({ ...ctx, Fez: MockFez, UID: 999, fezGlobals });
@@ -257,6 +267,58 @@ describe("svelte template", () => {
       );
       expect(html).toContain("primary");
       expect(html).not.toContain("disabled");
+    });
+
+    test("class:name={expr} directive - truthy", () => {
+      const html = render(
+        '<span class="btn" class:active={state.on}>Click</span>',
+        { state: { on: true }, props: {} },
+      );
+      expect(html).toContain("active");
+      expect(html).toContain("btn");
+    });
+
+    test("class:name={expr} directive - falsy", () => {
+      const html = render(
+        '<span class="btn" class:active={state.on}>Click</span>',
+        { state: { on: false }, props: {} },
+      );
+      expect(html).not.toContain("active");
+      expect(html).toContain("btn");
+    });
+
+    test("class:name={expr} with comparison expression", () => {
+      const html = render(
+        '<span class="btn" class:active={String(state.key) === String(state.value)}>Go</span>',
+        { state: { key: "a", value: "a" }, props: {} },
+      );
+      expect(html).toContain("active");
+    });
+
+    test("multiple class: directives on one element", () => {
+      const html = render(
+        '<div class="box" class:active={state.on} class:hidden={state.hide}>X</div>',
+        { state: { on: true, hide: false }, props: {} },
+      );
+      expect(html).toContain("active");
+      expect(html).not.toContain("hidden");
+      expect(html).toContain("box");
+    });
+
+    test("class:name={expr} without existing class attribute", () => {
+      const html = render(
+        "<div class:active={state.on}>X</div>",
+        { state: { on: true }, props: {} },
+      );
+      expect(html).toContain("active");
+    });
+
+    test("class:name with quoted expression", () => {
+      const html = render(
+        '<div class="btn" class:selected="state.on">X</div>',
+        { state: { on: true }, props: {} },
+      );
+      expect(html).toContain("selected");
     });
   });
 
@@ -534,6 +596,62 @@ describe("svelte template", () => {
         props: {},
       });
       expect(html).toContain('disabled="false"');
+    });
+  });
+
+  describe("auto key injection", () => {
+    test("injects sequential keys on static elements", () => {
+      const html = renderWithKeys("<div>A</div><span>B</span><p>C</p>", {
+        state: {},
+        props: {},
+      });
+      expect(html).toContain('key="0"');
+      expect(html).toContain('key="1"');
+      expect(html).toContain('key="2"');
+    });
+
+    test("keys are stable across re-renders with {#if}", () => {
+      const htmlTrue = renderWithKeys(
+        '{#if state.show}<div class="overlay">X</div>{/if}<div class="button">B</div>',
+        { state: { show: true }, props: {} },
+      );
+      const htmlFalse = renderWithKeys(
+        '{#if state.show}<div class="overlay">X</div>{/if}<div class="button">B</div>',
+        { state: { show: false }, props: {} },
+      );
+      // Button key must be the same in both renders
+      const btnKeyTrue = htmlTrue.match(/class="button"[^>]*key="(\d+)"/);
+      const btnKeyFalse = htmlFalse.match(/class="button"[^>]*key="(\d+)"/);
+      expect(btnKeyTrue[1]).toBe(btnKeyFalse[1]);
+    });
+
+    test("loop elements get dynamic keys with index", () => {
+      const html = renderWithKeys(
+        "{#each state.items as item}<li>{item}</li>{/each}",
+        { state: { items: ["a", "b", "c"] }, props: {} },
+      );
+      expect(html).toContain('key="0-0"');
+      expect(html).toContain('key="0-1"');
+      expect(html).toContain('key="0-2"');
+    });
+
+    test("loop with explicit index variable", () => {
+      const html = renderWithKeys(
+        "{#each state.items as item, idx}<li>{item}</li>{/each}",
+        { state: { items: ["x", "y"] }, props: {} },
+      );
+      expect(html).toContain('key="0-0"');
+      expect(html).toContain('key="0-1"');
+    });
+
+    test("preserves user-provided key", () => {
+      const html = renderWithKeys(
+        '{#each state.items as item}<div key="{item}">X</div>{/each}',
+        { state: { items: ["foo", "bar"] }, props: {} },
+      );
+      expect(html).toContain('key="foo"');
+      expect(html).toContain('key="bar"');
+      expect(html).not.toContain('key="0-');
     });
   });
 });

@@ -17,18 +17,18 @@
 // IMPORTS
 // =============================================================================
 
-import Gobber from "./vendor/gobber.js";
-import { fezMorph } from "./morph.js";
-import objectDump from "./utils/dump.js";
-import highlightAll from "./utils/highlight_all.js";
-import connect from "./connect.js";
-import compile from "./compile.js";
-import state from "./lib/global-state.js";
-import createTemplate from "./lib/template.js";
-import { subscribe, publish } from "./lib/pubsub.js";
-import fezLocalStorage from "./lib/localstorage.js";
-import fezAwait from "./lib/await-helper.js";
-import index from "./lib/index.js";
+import Gobber from './vendor/gobber.js';
+import { fezMorph } from './lib/morph.js';
+import objectDump from './utils/dump.js';
+import highlightAll from './utils/highlight_all.js';
+import connect from './connect.js';
+import compile from './compile.js';
+import state from './lib/global-state.js';
+import createTemplate from './lib/template.js';
+import { subscribe, publish } from './lib/pubsub.js';
+import fezLocalStorage from './lib/localstorage.js';
+import fezAwait from './lib/await-helper.js';
+import index from './lib/index.js';
 
 // =============================================================================
 // MAIN FEZ FUNCTION
@@ -50,36 +50,41 @@ import index from "./lib/index.js";
  */
 const Fez = (name, klass) => {
   // Find by UID
-  if (typeof name === "number") {
+  if (typeof name === 'number') {
     const fez = Fez.instances.get(name);
     if (fez) return fez;
-    Fez.onError("lookup", `Instance with UID "${name}" not found. Component may have been destroyed or never created.`, { uid: name });
+    Fez.onError(
+      'lookup',
+      `Instance with UID "${name}" not found. Component may have been destroyed or never created.`,
+      { uid: name },
+    );
     return;
   }
 
   if (!name) {
-    Fez.onError("lookup", "Fez() called without arguments. Expected component name, UID, or DOM node.");
+    Fez.onError(
+      'lookup',
+      'Fez() called without arguments. Expected component name, UID, or DOM node.',
+    );
     return;
   }
 
   // With second argument
   if (klass) {
     const isPureFn =
-      typeof klass === "function" &&
+      typeof klass === 'function' &&
       !/^\s*class/.test(klass.toString()) &&
       !/\b(this|new)\b/.test(klass.toString());
 
     // Fez('name', callback) - find all & execute
     if (isPureFn) {
-      const list = Array.from(
-        document.querySelectorAll(`.fez.fez-${name}`),
-      ).filter((n) => n.fez);
+      const list = Array.from(document.querySelectorAll(`.fez.fez-${name}`)).filter((n) => n.fez);
       list.forEach((el) => klass(el.fez));
       return list;
     }
 
     // Fez('name', selector) - find with context
-    if (typeof klass !== "function") {
+    if (typeof klass !== 'function') {
       return Fez.find(name, klass);
     }
 
@@ -89,16 +94,24 @@ const Fez = (name, klass) => {
 
   // Find instance by name or node
   const node = name.nodeName
-    ? name.closest(".fez")
-    : document.querySelector(name.includes("#") ? name : `.fez.fez-${name}`);
+    ? name.closest('.fez')
+    : document.querySelector(name.includes('#') ? name : `.fez.fez-${name}`);
 
   if (!node) {
-    Fez.onError("lookup", `Component "${name}" not found in DOM. Ensure the component is defined and rendered.`, { componentName: name });
+    Fez.onError(
+      'lookup',
+      `Component "${name}" not found in DOM. Ensure the component is defined and rendered.`,
+      { componentName: name },
+    );
     return;
   }
 
   if (!node.fez) {
-    Fez.onError("lookup", `DOM node "${name}" exists but has no Fez instance attached. Component may not be initialized yet.`, { node, tagName: name });
+    Fez.onError(
+      'lookup',
+      `DOM node "${name}" exists but has no Fez instance attached. Component may not be initialized yet.`,
+      { node, tagName: name },
+    );
     return;
   }
 
@@ -125,18 +138,17 @@ Fez.instances = new Map();
  * @returns {FezBase|undefined}
  */
 Fez.find = (onode, name) => {
-  let node =
-    typeof onode === "string" ? document.body.querySelector(onode) : onode;
+  let node = typeof onode === 'string' ? document.body.querySelector(onode) : onode;
 
   // jQuery compatibility
-  if (typeof node.val === "function") node = node[0];
+  if (typeof node.val === 'function') node = node[0];
 
-  const selector = name ? `.fez.fez-${name}` : ".fez";
+  const selector = name ? `.fez.fez-${name}` : '.fez';
   const closestNode = node.closest(selector);
 
   if (closestNode?.fez) return closestNode.fez;
 
-  Fez.onError("find", `Node connector not found. Selector: "${selector}", node: ${onode}`, {
+  Fez.onError('find', `Node connector not found. Selector: "${selector}", node: ${onode}`, {
     original: onode,
     resolved: node,
     selector,
@@ -163,7 +175,7 @@ Fez.cssClass = (text) => {
     for (let i = 0; i < text.length; i++) {
       hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
     }
-    return "fez-" + Math.abs(hash).toString(36);
+    return 'fez-' + Math.abs(hash).toString(36);
   }
 };
 
@@ -174,13 +186,13 @@ Fez.cssClass = (text) => {
  * @returns {string} Generated class name
  */
 Fez.globalCss = (cssClass, opts = {}) => {
-  if (typeof cssClass === "function") cssClass = cssClass();
+  if (typeof cssClass === 'function') cssClass = cssClass();
 
-  if (cssClass.includes(":")) {
+  if (cssClass.includes(':')) {
     let text = cssClass
-      .split("\n")
+      .split('\n')
       .filter((line) => !/^\s*\/\//.test(line))
-      .join("\n");
+      .join('\n');
 
     if (opts.wrap) text = `:fez { ${text} }`;
     text = text.replace(/\:fez|\:host/, `.fez.fez-${opts.name}`);
@@ -206,11 +218,7 @@ Fez.morphdom = (target, newNode) => {
   fezMorph(target, newNode, {
     // Preserve child fez components - skip morphing them entirely
     skipNode: (oldNode) => {
-      if (
-        oldNode.classList?.contains("fez") &&
-        oldNode.fez &&
-        !oldNode.fez._destroyed
-      ) {
+      if (oldNode.classList?.contains('fez') && oldNode.fez && !oldNode.fez._destroyed) {
         if (Fez.LOG) {
           console.log(
             `Fez: preserved child component ${oldNode.fez.fezName} (UID ${oldNode.fez.UID})`,
@@ -223,7 +231,7 @@ Fez.morphdom = (target, newNode) => {
 
     // Cleanup destroyed fez components
     beforeRemove: (node) => {
-      if (node.classList?.contains("fez") && node.fez) {
+      if (node.classList?.contains('fez') && node.fez) {
         node.fez.fezOnDestroy();
       }
     },
@@ -279,15 +287,14 @@ Fez.onError = (kind, message, context) => {
   let componentName = context?.componentName || context?.name;
 
   // Try to extract component name from message if not in context
-  if (!componentName && typeof message === "string") {
+  if (!componentName && typeof message === 'string') {
     const match = message.match(/<([^>]+)>/);
     if (match) componentName = match[1];
   }
 
   // Format the error message with component context
-  const prefix = componentName ? ` [${componentName}]` : "";
-  const errorMsg =
-    typeof message === "string" ? message : message?.message || String(message);
+  const prefix = componentName ? ` [${componentName}]` : '';
+  const errorMsg = typeof message === 'string' ? message : message?.message || String(message);
   const fullMessage = `Fez ${kind}:${prefix} ${errorMsg}`;
 
   // Log with context if available
@@ -309,8 +316,8 @@ Fez.onError = (kind, message, context) => {
 // LOAD UTILITIES & EXPORTS
 // =============================================================================
 
-import addUtilities from "./utility.js";
-import cssMixin from "./utils/css_mixin.js";
+import addUtilities from './lib/utility.js';
+import cssMixin from './utils/css_mixin.js';
 
 addUtilities(Fez);
 cssMixin(Fez);
@@ -321,6 +328,6 @@ Fez.state = state;
 Fez.log = objectDump;
 Fez.highlightAll = highlightAll;
 
-Fez.onReady(() => Fez.consoleLog("Fez.LOG === true, logging enabled."));
+Fez.onReady(() => Fez.consoleLog('Fez.LOG === true, logging enabled.'));
 
 export default Fez;

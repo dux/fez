@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { Window } from "happy-dom";
-import { fezMorph, syncClassList, isFormInput } from "../src/fez/morph.js";
+import { fezMorph, syncClassList, isFormInput } from "../src/fez/lib/morph.js";
 
 let document;
 
@@ -762,6 +762,194 @@ describe("node identity preservation", () => {
     expect(container.children[0]._marker).toBe(markerC);
     expect(container.children[1]._marker).toBe(markerA);
     expect(container.children[2]._marker).toBe(markerB);
+
+    container.remove();
+  });
+
+  test("leading sibling removal does not mismatch by tag", () => {
+    // Simulates {#if} removing leading children - the classic bug
+    // Old: [div.overlay] [div.picker] [div.button] [input]
+    // New: [div.button] [input]
+    // The differ should match div.button<->div.button, not div.overlay<->div.button
+    const container = document.createElement("div");
+    container.innerHTML =
+      '<div class="overlay">Overlay</div><div class="picker">Picker</div><div class="button">Button</div><input type="hidden" />';
+    document.body.appendChild(container);
+
+    const buttonEl = container.querySelector(".button");
+    buttonEl._marker = "original-button";
+    const inputEl = container.querySelector("input");
+    inputEl._marker = "original-input";
+
+    const newNode = document.createElement("div");
+    newNode.innerHTML = '<div class="button">Button</div><input type="hidden" />';
+
+    fezMorph(container, newNode);
+
+    // The button should be matched to the OLD button element (same class)
+    const currentButton = container.querySelector(".button");
+    expect(currentButton._marker).toBe("original-button");
+    expect(currentButton.textContent).toBe("Button");
+
+    // The input should be preserved
+    const currentInput = container.querySelector("input");
+    expect(currentInput._marker).toBe("original-input");
+
+    // Overlay and picker should be gone
+    expect(container.querySelector(".overlay")).toBeNull();
+    expect(container.querySelector(".picker")).toBeNull();
+
+    expect(container.innerHTML).toBe(
+      '<div class="button">Button</div><input type="hidden">',
+    );
+
+    container.remove();
+  });
+
+  test("leading sibling addition does not mismatch", () => {
+    // Simulates {#if} adding leading children
+    // Old: [div.button] [input]
+    // New: [div.overlay] [div.picker] [div.button] [input]
+    const container = document.createElement("div");
+    container.innerHTML = '<div class="button">Button</div><input type="hidden" />';
+    document.body.appendChild(container);
+
+    const buttonEl = container.querySelector(".button");
+    buttonEl._marker = "original-button";
+
+    const newNode = document.createElement("div");
+    newNode.innerHTML =
+      '<div class="overlay">Overlay</div><div class="picker">Picker</div><div class="button">Button</div><input type="hidden" />';
+
+    fezMorph(container, newNode);
+
+    // The button should be matched to the old button (same class), not to the overlay
+    const currentButton = container.querySelector(".button");
+    expect(currentButton._marker).toBe("original-button");
+
+    // Overlay and picker are new elements
+    expect(container.querySelector(".overlay")).not.toBeNull();
+    expect(container.querySelector(".picker")).not.toBeNull();
+
+    container.remove();
+  });
+
+  test("preserves JS-set inline styles when template has no style attr", () => {
+    // Simulates positionPicker() setting inline styles on an element
+    // whose template has no style attribute
+    const container = document.createElement("div");
+    container.innerHTML = '<div class="picker">Content</div>';
+    document.body.appendChild(container);
+
+    const picker = container.querySelector(".picker");
+    picker.style.left = "100px";
+    picker.style.top = "200px";
+    picker.style.visibility = "visible";
+
+    // Re-render with same structure, no style in template
+    const newNode = document.createElement("div");
+    newNode.innerHTML = '<div class="picker">Updated</div>';
+
+    fezMorph(container, newNode);
+
+    const current = container.querySelector(".picker");
+    expect(current.style.left).toBe("100px");
+    expect(current.style.top).toBe("200px");
+    expect(current.style.visibility).toBe("visible");
+    expect(current.textContent).toBe("Updated");
+
+    container.remove();
+  });
+
+  test("syncs style when template explicitly sets it", () => {
+    const container = document.createElement("div");
+    container.innerHTML = '<div class="box" style="color: red;">Text</div>';
+    document.body.appendChild(container);
+
+    const el = container.querySelector(".box");
+    el.style.left = "50px"; // JS-set
+
+    const newNode = document.createElement("div");
+    newNode.innerHTML = '<div class="box" style="color: blue;">Text</div>';
+
+    fezMorph(container, newNode);
+
+    const current = container.querySelector(".box");
+    expect(current.getAttribute("style")).toBe("color: blue;");
+
+    container.remove();
+  });
+
+  test("preserves inline styles on matched elements when leading siblings removed", () => {
+    // The original color-hue bug: picker had inline position styles set by JS
+    // When {#if} removed overlay before picker, differ mismatched and lost styles
+    const container = document.createElement("div");
+    container.innerHTML =
+      '<div class="preview" style="background: red;">Preview</div><input /><div class="overlay"></div><div class="picker" style="left: 100px; top: 200px;">Picker Content</div>';
+    document.body.appendChild(container);
+
+    const pickerEl = container.querySelector(".picker");
+    pickerEl._marker = "original-picker";
+
+    // Close: remove overlay and picker
+    const newNode = document.createElement("div");
+    newNode.innerHTML =
+      '<div class="preview" style="background: blue;">Preview</div><input />';
+
+    fezMorph(container, newNode);
+
+    // Preview should be updated, not replaced with picker content
+    const preview = container.querySelector(".preview");
+    expect(preview.textContent).toBe("Preview");
+    expect(preview.getAttribute("style")).toBe("background: blue;");
+
+    // Picker and overlay should be gone
+    expect(container.querySelector(".picker")).toBeNull();
+    expect(container.querySelector(".overlay")).toBeNull();
+
+    container.remove();
+  });
+
+  test("key attribute enables exact matching across leading removal", () => {
+    const container = document.createElement("div");
+    container.innerHTML =
+      '<div key="0" class="overlay">Overlay</div><div key="1" class="picker">Picker</div><div key="2" class="button">Button</div>';
+    document.body.appendChild(container);
+
+    const buttonEl = container.querySelector(".button");
+    buttonEl._marker = "original-button";
+
+    const newNode = document.createElement("div");
+    newNode.innerHTML = '<div key="2" class="button">Button</div>';
+
+    fezMorph(container, newNode);
+
+    const current = container.querySelector(".button");
+    expect(current._marker).toBe("original-button");
+    expect(container.querySelector(".overlay")).toBeNull();
+    expect(container.querySelector(".picker")).toBeNull();
+
+    container.remove();
+  });
+
+  test("key attribute enables exact matching across leading addition", () => {
+    const container = document.createElement("div");
+    container.innerHTML = '<div key="2" class="button">Button</div><input key="3" />';
+    document.body.appendChild(container);
+
+    const buttonEl = container.querySelector(".button");
+    buttonEl._marker = "original-button";
+
+    const newNode = document.createElement("div");
+    newNode.innerHTML =
+      '<div key="0" class="overlay">Overlay</div><div key="1" class="picker">Picker</div><div key="2" class="button">Button</div><input key="3" />';
+
+    fezMorph(container, newNode);
+
+    const current = container.querySelector(".button");
+    expect(current._marker).toBe("original-button");
+    expect(container.querySelector(".overlay")).not.toBeNull();
+    expect(container.querySelector(".picker")).not.toBeNull();
 
     container.remove();
   });

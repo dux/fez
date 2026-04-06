@@ -89,6 +89,72 @@ There is no some "internal state" that is by some magic reflected to DOM. No! Al
 
 That is all.
 
+## DOM Diffing Engine
+
+Fez uses a custom real-DOM morph algorithm (not a virtual DOM). The live DOM is the source of truth - it is never thrown away. On every render, the template produces a new HTML string which is parsed into a detached DOM tree, and the differ mutates the live DOM in-place to match.
+
+### Render Pipeline
+
+When component state changes, the following happens:
+
+1. **State Proxy setter** detects the change
+2. **Debounced to next `requestAnimationFrame`** via `fezNextTick` - multiple state changes in the same tick are batched into one render
+3. **`beforeRender()`** runs - compute derived/reactive state
+4. **Template function** executes, producing an HTML string
+5. **FNV-1 hash check** - the rendered string is hashed and compared to the previous render. If identical, the entire morph is skipped (zero-cost no-op render)
+6. **Parse to detached DOM** - the string is set as `innerHTML` on a fresh detached element
+7. **`fezMorph()`** runs - walks both trees and mutates the live DOM to match
+8. **Post-processing** - `fez-this`, `fez-bind`, `fez-use` attributes are resolved, input values restored
+
+### Element Matching
+
+The differ uses priority-based key resolution when matching old (live) and new (template) children. Keys only need to be unique among siblings - they are scoped to the parent's direct children, not global.
+
+| Priority    | Key               | Source                                            |
+| ----------- | ----------------- | ------------------------------------------------- |
+| 1 (highest) | `fez-uid-{UID}`   | Live fez component instances                      |
+| 2           | `keep-{value}`    | `fez-keep` attribute                              |
+| 3           | `key-{value}`     | Manual or auto-injected `key` attribute           |
+| 4           | `id-{value}`      | `id` attribute                                    |
+| 5 (lowest)  | scored soft match | Tag name + CSS class similarity + attribute count |
+
+You can always use a manual `key` attribute for exact matching:
+
+```html
+{#each state.items as item}
+<div key="{item.id}">{item.name}</div>
+{/each}
+```
+
+At compile time, `autoInjectKeys()` also adds sequential `key` attributes to every element that doesn't already have one. Inside loops, keys automatically include the loop index variable (e.g. `key="3-{i}"`), so most cases work without manual keys.
+
+Elements that don't match by key fall through to **scored soft matching** - a greedy algorithm that pairs unmatched old/new elements by tag name similarity, shared CSS classes, and attribute count. Fez components and `fez-keep` elements are excluded from soft matching - they only match by key.
+
+### Two-Level Skip Optimization
+
+Fez avoids unnecessary work at two levels:
+
+**1. Parent level - hash check skips entire morph**
+
+If a component's rendered HTML string hasn't changed (same FNV-1 hash), the morph is skipped entirely. No DOM tree walking, no diffing, no mutations. This makes re-renders triggered by unrelated global state changes essentially free.
+
+**2. Child level - fez components are never morphed**
+
+When the parent does re-render and the morph runs, child fez component nodes are **preserved as-is**. The differ sees the live component instance, matches it by UID, and only repositions it if needed (via `insertBefore`). No attribute sync, no subtree diffing. The child's internal DOM is completely untouched.
+
+A child component only re-renders when:
+
+- Its own `this.state` changes
+- New props are passed, triggering `onPropsChange(name, value)`
+
+This means a parent with 100 child components in a loop can re-render its own template without touching any of those children - they continue operating with their own state and DOM intact.
+
+### Attribute and Class Syncing
+
+- **Class changes** use `classList.add/remove` instead of `setAttribute` - this preserves CSS transitions and animations
+- **Inline styles** set via JS (e.g. `element.style.left = '100px'`) are preserved when the template doesn't set a `style` attribute
+- **Active input focus** - `value` and `checked` attributes are not synced on the currently focused input, preventing disruption during typing
+
 ## Template Syntax (Svelte-like)
 
 Fez uses a Svelte-inspired template syntax with single braces `{ }` for expressions and block directives.
@@ -320,15 +386,15 @@ Use arrow functions for clean event handling with automatic loop variable interp
 
 ```html
 <!-- Simple handler -->
-<button onclick="{()" ="">handleClick()}>Click me</button>
+<button onclick="{() => handleClick()}">Click me</button>
 
 <!-- With event parameter -->
-<button onclick="{(e)" ="">handleClick(e)}>Click me</button>
+<button onclick="{(e) => handleClick(e)}">Click me</button>
 
 <!-- Inside loops - index is automatically interpolated -->
 {#each state.tasks as task, index}
-<button onclick="{()" ="">removeTask(index)}>Remove #{index}</button>
-<button onclick="{(e)" ="">editTask(index, e)}>Edit</button>
+<button onclick="{() => removeTask(index)}">Remove #{index}</button>
+<button onclick="{(e) => editTask(index, e)}">Edit</button>
 {/each}
 ```
 
@@ -346,6 +412,28 @@ Custom elements can use self-closing syntax:
 <ui-icon name="star" />
 <!-- Automatically converted to: <ui-icon name="star"></ui-icon> -->
 ```
+
+### Conditional Class Directives
+
+Use `class:name={condition}` to conditionally toggle CSS classes (Svelte-style):
+
+```html
+<!-- Toggle 'active' class based on condition -->
+<div class="btn" class:active="{state.isActive}">Click</div>
+
+<!-- Multiple class directives on one element -->
+<div class="card" class:selected="{state.id === props.current}" class:disabled="{state.loading}">
+  Content
+</div>
+
+<!-- Without existing class attribute -->
+<span class:highlight="{state.query}">Result</span>
+
+<!-- Quote syntax also works -->
+<div class:visible="state.show">...</div>
+```
+
+At compile time, `class:name={expr}` is converted to a ternary expression merged into the `class` attribute. The class name is added when the expression is truthy, removed when falsy.
 
 ## Example: Counter Component
 
@@ -388,17 +476,14 @@ Here's a simple counter component that demonstrates Fez's core features:
   }
 </style>
 
-<button onclick="{()" ="">
-  state.count -= 1} disabled={state.count == 1}>-
-</button>
+<button onclick="{() => state.count -= 1}" disabled="{state.count" ="" ="1}">-</button>
 
 <span> {state.count} </span>
 
-<button onclick="{()" ="">more()} disabled={isMax()}>+</button>
+<button onclick="{() => more()}" disabled="{isMax()}">+</button>
 {#if state.count > 0}
 <span>&mdash;</span>
-{#if state.count == MAX} MAX {:else} {#if state.count % 2} odd {:else} even
-{/if} {/if} {/if}
+{#if state.count == MAX} MAX {:else} {#if state.count % 2} odd {:else} even {/if} {/if} {/if}
 ```
 
 To use this component in your HTML:
@@ -438,6 +523,7 @@ This example showcases:
 ### Advanced Templating & Styling
 
 - **Svelte-like Template Engine** - Single brace syntax (`{ }`), control flow (`{#if}`, `{#unless}`, `{#for}`, `{#each}`, `{#await}`), and block templates
+- **Conditional Class Directives** - Svelte-style `class:name={condition}` for toggling CSS classes without ternary operators
 - **Arrow Function Handlers** - Clean event syntax with automatic loop variable interpolation
 - **Reactive State Management** - Built-in reactive `state` object automatically triggers re-renders on property changes
 - **Component-Aware DOM Diffing** - Custom differ that understands Fez component boundaries, preserves element state and CSS animations, with hash-based render skipping for zero-cost no-op renders
@@ -460,10 +546,13 @@ This example showcases:
 
 ### Performance & Integration
 
-- **Optimized Rendering** - Batched microtask rendering for flicker-free component initialization
-- **Smart DOM Updates** - Efficient DOM manipulation with minimal reflows
+- **Hash-Based Render Skipping** - FNV-1 hash of rendered HTML skips the entire morph when nothing changed (zero-cost no-op renders)
+- **Batched State Updates** - Multiple state changes in the same tick are debounced into a single `requestAnimationFrame` render
+- **Component Isolation** - Child fez components are never morphed during parent re-renders, only repositioned. They re-render only when their own state or props change
+- **Priority-Based Element Matching** - Keyed matching (fez-keep > key > id) with scored soft-match fallback preserves DOM identity across renders
+- **CSS Animation Preservation** - Class syncing uses `classList.add/remove`, not `setAttribute`, so transitions and animations survive re-renders
+- **Active Input Protection** - `value` and `checked` are not synced on the focused input, preventing disruption during typing
 - **Built-in Fetch with Caching** - `Fez.fetch()` includes automatic response caching and JSON/FormData handling
-- **Global Component Access** - Register components globally with `GLOBAL = 'ComponentName'` for easy access
 - **Rich Lifecycle Hooks** - `init`, `onMount`, `beforeRender`, `afterRender`, `onDestroy`, `onPropsChange`, `onStateChange`, `onGlobalStateChange`
 - **Development Mode** - Enable detailed logging with `Fez.DEV = true`
 
@@ -748,8 +837,8 @@ Load all components with a single call:
 ```js
 // Load all components listed in components.txt
 // Paths are relative to the txt file location
-Fez.head({ fez: "./demo/components.txt" }, () => {
-  console.log("All components loaded!");
+Fez.head({ fez: './demo/components.txt' }, () => {
+  console.log('All components loaded!');
 });
 ```
 
@@ -960,16 +1049,16 @@ Fez includes a built-in fetch wrapper with automatic JSON parsing and session-ba
 
 ```js
 // GET request with promise
-const data = await Fez.fetch("https://api.example.com/data");
+const data = await Fez.fetch('https://api.example.com/data');
 
 // GET request with callback, does not create promise
-Fez.fetch("https://api.example.com/data", (data) => {
+Fez.fetch('https://api.example.com/data', (data) => {
   console.log(data);
 });
 
 // POST request
-const result = await Fez.fetch("POST", "https://api.example.com/data", {
-  key: "value",
+const result = await Fez.fetch('POST', 'https://api.example.com/data', {
+  key: 'value',
 });
 ```
 
@@ -986,8 +1075,8 @@ const result = await Fez.fetch("POST", "https://api.example.com/data", {
 ```js
 // Override default error handler
 Fez.onError = (kind, error) => {
-  if (kind === "fetch") {
-    console.error("Fetch failed:", error);
+  if (kind === 'fetch') {
+    console.error('Fetch failed:', error);
     // Show user-friendly error message
   }
 };
@@ -1066,13 +1155,13 @@ class Counter extends FezBase {
 
 ```js
 // Set global state from outside components
-Fez.state.set("count", 10);
+Fez.state.set('count', 10);
 
 // Get global state value
-const count = Fez.state.get("count");
+const count = Fez.state.get('count');
 
 // Subscribe to specific key changes (returns unsubscribe function)
-const unsubscribe = Fez.state.subscribe("language", (value, oldValue, key) => {
+const unsubscribe = Fez.state.subscribe('language', (value, oldValue, key) => {
   console.log(`Language changed from ${oldValue} to ${value}`);
 });
 unsubscribe(); // stop listening
@@ -1083,7 +1172,7 @@ Fez.state.subscribe((key, value, oldValue) => {
 });
 
 // Iterate over all components listening to a key
-Fez.state.forEach("count", (component) => {
+Fez.state.forEach('count', (component) => {
   console.log(`${component.fezName} is listening to count`);
 });
 ```
@@ -1097,14 +1186,14 @@ class MyComponent extends FezBase {
   onGlobalStateChange(key, value) {
     console.log(`Global state "${key}" changed to:`, value);
     // Custom logic instead of automatic render
-    if (key === "theme") {
+    if (key === 'theme') {
       this.updateTheme(value);
     }
   }
 
   render() {
     // Still subscribes by reading the value
-    return `<div class="${this.globalState.theme || "light"}">...</div>`;
+    return `<div class="${this.globalState.theme || 'light'}">...</div>`;
   }
 }
 ```
@@ -1115,11 +1204,11 @@ Control global state from outside Fez components:
 
 ```js
 // From anywhere in your app (vanilla JS, other frameworks, etc.)
-Fez.state.set("language", "en");
+Fez.state.set('language', 'en');
 
 // All components using this.globalState.language will automatically re-render
-document.getElementById("lang-select").addEventListener("change", (e) => {
-  Fez.state.set("language", e.target.value);
+document.getElementById('lang-select').addEventListener('change', (e) => {
+  Fez.state.set('language', e.target.value);
 });
 ```
 
@@ -1152,7 +1241,7 @@ class Counter extends FezBase {
 
     // Find max across all counter instances
     let max = 0;
-    Fez.state.forEach("maxCount", (fez) => {
+    Fez.state.forEach('maxCount', (fez) => {
       if (fez.state?.count > max) {
         max = fez.state.count;
       }
@@ -1188,8 +1277,7 @@ The original double-brace syntax `{{ }}` is still fully supported for backward c
 state.hidden}}...{{/unless}}
 
 <!-- Loops -->
-{{for item in state.items}}...{{/for}} {{each state.items as item,
-index}}...{{/each}}
+{{for item in state.items}}...{{/for}} {{each state.items as item, index}}...{{/each}}
 
 <!-- Raw HTML and JSON -->
 {{raw state.htmlContent}} {{json state.data}}
