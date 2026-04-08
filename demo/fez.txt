@@ -2,6 +2,7 @@ fez/bubble-alerter
 fez/demo-await
 fez/input-checkbox-toggle
 fez/input-color
+fez/input-country
 fez/input-currency
 fez/input-date
 fez/input-html
