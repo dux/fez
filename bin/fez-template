@@ -1,0 +1,167 @@
+#!/usr/bin/env bun
+
+import { parseArgs } from 'util'
+import fs from 'fs'
+import path from 'path'
+import createTemplate, { clearTemplateCache } from '../src/fez/lib/template.js'
+
+const INFO = 'Validate and debug Fez template blocks'
+
+const { values, positionals } = parseArgs({
+  args: Bun.argv.slice(2),
+  options: {
+    help: { type: 'boolean', short: 'h' },
+    debug: { type: 'boolean', short: 'd' },
+    info: { type: 'boolean' },
+  },
+  allowPositionals: true,
+})
+
+if (values.info) {
+  console.log(INFO)
+  process.exit(0)
+}
+
+if (values.help || positionals.length === 0) {
+  console.log(`Usage: fez template <file.fez> [file2.fez ...]
+
+${INFO}
+
+Options:
+  -h, --help   Show this help message
+  -d, --debug  Print generated template function body on errors
+
+Examples:
+  fez template demo/fez/ui-counter.fez
+  fez template --debug app/assets/auto/fez/js/input-currency-code.fez
+`)
+  process.exit(0)
+}
+
+let exitCode = 0
+
+for (const filePath of positionals) {
+  const absolutePath = path.resolve(filePath)
+
+  if (!fs.existsSync(absolutePath)) {
+    console.error(`${filePath}: File error: File not found`)
+    exitCode = 1
+    continue
+  }
+
+  const html = extractTemplate(fs.readFileSync(absolutePath, 'utf-8'))
+  const componentName = path.basename(filePath, '.fez')
+  const errors = validateTemplate(html, componentName, values.debug)
+
+  if (errors.length) {
+    exitCode = 1
+    for (const error of errors) {
+      console.error(`${filePath}: Template compiler error: ${error.message}`)
+      if (error.detail) console.error(`  Template: ${error.detail}`)
+      if (error.debug) console.error(`\n${error.debug}`)
+    }
+  } else {
+    console.log(`${filePath}: template ok`)
+  }
+}
+
+process.exit(exitCode)
+
+function extractTemplate(source) {
+  const result = []
+  const lines = source.split('\n')
+  let currentBlock = ''
+
+  for (const line of lines) {
+    const trimmedLine = line.trim()
+
+    if (!currentBlock && /^<(demo|info|script|head|header|style)\b/i.test(trimmedLine)) {
+      currentBlock = trimmedLine.match(/^<(\w+)/i)[1].toLowerCase()
+      continue
+    }
+
+    if (currentBlock) {
+      if (
+        trimmedLine.endsWith(`</${currentBlock}>`) ||
+        (currentBlock === 'head' && trimmedLine.endsWith('</header>'))
+      ) {
+        currentBlock = ''
+      }
+      continue
+    }
+
+    result.push(line)
+  }
+
+  return result.join('\n').trim()
+}
+
+function validateTemplate(html, componentName, debug) {
+  const logs = captureConsoleErrors(() => {
+    createTemplate(html, { name: componentName })
+  })
+
+  const errors = []
+  for (let i = 0; i < logs.length; i++) {
+    const log = logs[i]
+    const match = log.match(/^FEZ template compile error in <([^>]+)>:\s*(.*)$/)
+    if (!match) continue
+
+    errors.push({
+      message: match[2] || 'Template compiler failed',
+      detail: (logs[i + 1] || '').replace(/^Template:\s*/, ''),
+      debug: debug ? debugTemplateFunction(html, componentName) : '',
+    })
+  }
+
+  return errors
+}
+
+function captureConsoleErrors(fn) {
+  const oldError = console.error
+  const logs = []
+
+  console.error = (...args) => {
+    logs.push(args.map(String).join(' '))
+  }
+
+  try {
+    fn()
+  } finally {
+    console.error = oldError
+  }
+
+  return logs
+}
+
+function debugTemplateFunction(html, componentName) {
+  const RealFunction = globalThis.Function
+  const oldError = console.error
+  let debug = ''
+
+  globalThis.Function = function (...args) {
+    try {
+      return RealFunction(...args)
+    } catch (error) {
+      debug = [
+        `Generated template function for <${componentName}> failed: ${error.message}`,
+        '',
+        args.join('\n---ARG---\n'),
+      ].join('\n')
+      throw error
+    }
+  }
+
+  console.error = () => {}
+
+  try {
+    clearTemplateCache()
+    createTemplate(html, { name: componentName })
+  } finally {
+    console.error = oldError
+    globalThis.Function = RealFunction
+    clearTemplateCache()
+  }
+
+  return debug
+}

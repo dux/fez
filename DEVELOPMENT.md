@@ -37,7 +37,7 @@ bun test --coverage                        # With coverage
 
 #### Test Specific Features
 ```bash
-bun test test/svelte-template.test.js  # Template tests
+bun test test/template-compiler.test.js  # Template tests
 bun test test/morph.test.js            # DOM morph tests
 bun test test/pubsub.test.js           # Pub/sub tests
 bun test test/fez-error.test.js        # Error handling tests

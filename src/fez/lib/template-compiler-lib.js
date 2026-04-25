@@ -1,4 +1,4 @@
-// Template utility functions for svelte-template parser
+// Template utility functions for the Fez template compiler
 // Extracted to keep main parser file smaller
 
 /**

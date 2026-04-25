@@ -627,25 +627,22 @@ export default class FezBase {
     }
   }
 
-  /**
-   * Get root element children as array, optionally transform
-   * Returns only element nodes (nodeType === 1), text nodes are excluded.
-   * Pass true to convert children to objects with attrs as keys, innerHTML as .html, original node as .ROOT
-   */
   childNodes(func) {
     let children = this._fezChildNodes || Array.from(this.root.children);
-    if (func === true) {
-      children = children.map((node) => {
-        const obj = { html: node.innerHTML, ROOT: node };
-        for (const attr of node.attributes) {
-          obj[attr.name] = attr.value;
-        }
-        return obj;
-      });
-    } else if (func) {
+    if (func) {
       children = children.map(func);
     }
     return children;
+  }
+
+  childObjects() {
+    return this.childNodes().map((node) => {
+      const obj = { html: node.innerHTML, ROOT: node };
+      for (const attr of node.attributes) {
+        obj[attr.name] = attr.value;
+      }
+      return obj;
+    });
   }
 
   /**

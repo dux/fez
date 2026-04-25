@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { Window } from "happy-dom";
-import createSvelteTemplate from "../src/fez/lib/svelte-template.js";
+import createTemplateCompiler from "../src/fez/lib/template-compiler.js";
 
 // Setup happy-dom for DOM APIs
 const window = new Window();
@@ -98,11 +98,11 @@ const render = (template, ctx) => {
   ctx.UID = ctx.UID || 123;
   ctx.Fez = Fez;
   ctx.fezGlobals = ctx.fezGlobals || createFezGlobals();
-  const fn = createSvelteTemplate(template);
+  const fn = createTemplateCompiler(template);
   return fn(ctx).replace(/ key="[^"]*"/g, "");
 };
 
-describe("Svelte-style template", () => {
+describe("Fez template compiler", () => {
   describe("expressions", () => {
     test("simple expression", () => {
       const html = render("{state.name}", { state: { name: "Alice" } });
@@ -549,6 +549,26 @@ describe("Svelte-style template", () => {
         },
       );
       expect(html).toBe("<span>a</span><span>b</span>");
+    });
+
+    test("#for with :else inside #if uses loop else", () => {
+      const html = render(
+        "{#if state.show}<div>{#for item in state.items}<span>{item}</span>{:else}<p>No items</p>{/for}</div>{/if}",
+        {
+          state: { show: true, items: [] },
+        },
+      );
+      expect(html).toBe("<div><p>No items</p></div>");
+    });
+
+    test("#for with index and :else inside #if compiles", () => {
+      const html = render(
+        "{#if state.show}<div>{#for item, idx in state.items}<span>{idx}:{item}</span>{:else}<p>No items</p>{/for}</div>{/if}",
+        {
+          state: { show: true, items: ["a"] },
+        },
+      );
+      expect(html).toBe("<div><span>0:a</span></div>");
     });
 
     test("#each with :else shows else content on empty object", () => {

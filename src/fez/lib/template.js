@@ -1,7 +1,7 @@
 /**
  * Fez Template Compiler
  *
- * Compiles Svelte-style templates to render functions.
+ * Compiles Fez templates to render functions.
  * Supports legacy {{ }} and [[ ]] syntax via auto-conversion.
  *
  * Syntax:
@@ -13,7 +13,7 @@
  *   {#for item in arr}  - Loop (alt syntax)
  */
 
-import createSvelteTemplate from "./svelte-template.js";
+import createTemplateCompiler from "./template-compiler.js";
 
 // Template cache
 const cache = new Map();
@@ -41,7 +41,7 @@ export default function createTemplate(text, opts = {}) {
   }
 
   // Compile
-  const fn = createSvelteTemplate(text, opts);
+  const fn = createTemplateCompiler(text, opts);
   cache.set(text, fn);
 
   return fn;

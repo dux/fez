@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Window } from "happy-dom";
-import createSvelteTemplate from "../src/fez/lib/svelte-template.js";
+import createTemplateCompiler from "../src/fez/lib/template-compiler.js";
 
 // Setup happy-dom globals (scoped to this test file)
 let window, document;
@@ -69,7 +69,7 @@ afterAll(() => {
 
 // Helper to render template and get HTML (strips auto-generated key attrs)
 function render(template, ctx) {
-  const tpl = createSvelteTemplate(template);
+  const tpl = createTemplateCompiler(template);
   const fezGlobals = createMockFezGlobals();
   return tpl({ ...ctx, Fez: MockFez, UID: 999, fezGlobals }).replace(
     / key="[^"]*"/g,
@@ -79,12 +79,12 @@ function render(template, ctx) {
 
 // Helper that preserves key attributes for key-specific tests
 function renderWithKeys(template, ctx) {
-  const tpl = createSvelteTemplate(template);
+  const tpl = createTemplateCompiler(template);
   const fezGlobals = createMockFezGlobals();
   return tpl({ ...ctx, Fez: MockFez, UID: 999, fezGlobals });
 }
 
-describe("svelte template", () => {
+describe("template compiler", () => {
   describe("basic rendering", () => {
     test("renders simple element", () => {
       const html = render("<div>Hello</div>", { state: {}, props: {} });

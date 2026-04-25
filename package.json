@@ -18,7 +18,8 @@
   "bin": {
     "fez": "bin/fez",
     "fez-compile": "bin/fez-compile",
-    "fez-index": "bin/fez-index"
+    "fez-index": "bin/fez-index",
+    "fez-template": "bin/fez-template"
   },
   "files": [
     "bin",

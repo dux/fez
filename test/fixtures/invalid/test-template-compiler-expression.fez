@@ -1,0 +1,9 @@
+<script>
+  class {
+    init() {
+      this.state.value = 'bad'
+    }
+  }
+</script>
+
+<div>{state.value(}</div>

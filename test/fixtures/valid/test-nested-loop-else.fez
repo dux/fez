@@ -1,0 +1,18 @@
+<script>
+  class {
+    init() {
+      this.state.show = true
+      this.state.items = []
+    }
+  }
+</script>
+
+{#if state.show}
+  <div>
+    {#for item, idx in state.items}
+      <span>{idx}:{item}</span>
+    {:else}
+      <p>No items</p>
+    {/for}
+  </div>
+{/if}

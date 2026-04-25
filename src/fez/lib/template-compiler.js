@@ -1,4 +1,4 @@
-// Svelte-like template parser for Fez
+// Fez template compiler
 // Compiles to a single function that returns HTML string
 //
 // Supports:
@@ -24,7 +24,7 @@ import {
   extractBracedExpression,
   getAttributeContext,
   getEventAttributeContext,
-} from "./svelte-template-lib.js";
+} from "./template-compiler-lib.js";
 
 /**
  * Compile template to a function that returns HTML string
@@ -33,7 +33,7 @@ import {
  * @param {Object} opts - Options
  * @param {string} opts.name - Component name for error messages
  */
-export default function createSvelteTemplate(text, opts = {}) {
+export default function createTemplateCompiler(text, opts = {}) {
   const componentName = opts.name || "unknown";
 
   try {
@@ -44,10 +44,10 @@ export default function createSvelteTemplate(text, opts = {}) {
       .replaceAll("&gt;", ">")
       .replaceAll("&amp;", "&");
 
-    // Allow Svelte-style fez:attr namespace syntax as alias for fez-attr
+    // Allow Fez namespace syntax as alias for fez-attr
     text = text.replace(/\bfez:([a-z]+)=/gi, "fez-$1=");
 
-    // Convert Svelte-style class:name={expr} conditional class directives
+    // Convert class:name={expr} conditional class directives
     // e.g. class:active={state.value === key} -> merges ternary into class attribute
     text = text.replace(/<[a-z][a-z0-9-]*\b[^>]*>/gi, (tag) => {
       if (!/\bclass:[\w-]+=/.test(tag)) return tag;
@@ -161,6 +161,7 @@ export default function createSvelteTemplate(text, opts = {}) {
     const loopVarStack = []; // Track all loop variables for arrow function transformation
     const loopItemVarStack = []; // Track item vars (non-index) that could be objects
     const loopStack = []; // Track loop info for :else support
+    const blockStack = []; // Track if/loop nesting order for :else handling
     const awaitStack = []; // Track await blocks for :then/:catch
     let awaitCounter = 0; // Unique ID for each await block
 
@@ -247,21 +248,25 @@ export default function createSvelteTemplate(text, opts = {}) {
           const cond = expr.slice(4);
           result += "${Fez.isTruthy(" + cond + ") ? `";
           ifStack.push(false); // No else yet
+          blockStack.push("if");
         } else if (expr.startsWith("#unless ")) {
           const cond = expr.slice(8);
           result += "${!Fez.isTruthy(" + cond + ") ? `";
           ifStack.push(false); // No else yet
+          blockStack.push("if");
         } else if (expr === ":else" || expr === "else") {
-          // Check if we're inside a loop (for empty list handling)
-          if (loopStack.length > 0 && !ifStack.length) {
+          const currentBlock = blockStack[blockStack.length - 1];
+          if (currentBlock === "loop") {
             // :else inside a loop - for empty array case
             const loopInfo = loopStack[loopStack.length - 1];
             loopInfo.hasElse = true;
             result += '`).join("") : `';
-          } else {
+          } else if (currentBlock === "if") {
             // :else inside an if block
             result += "` : `";
             ifStack[ifStack.length - 1] = true; // Has else
+          } else {
+            throw new Error("{:else} without matching {#if}, {#unless}, {#each}, or {#for}");
           }
         } else if (
           expr.startsWith(":else if ") ||
@@ -280,6 +285,7 @@ export default function createSvelteTemplate(text, opts = {}) {
           // Keep hasElse as false - still need final else
         } else if (expr === "/if" || expr === "/unless") {
           const hasElse = ifStack.pop();
+          blockStack.pop();
           result += hasElse ? "`}" : "` : ``}";
         } else if (expr.startsWith("#each ") || expr.startsWith("#for ")) {
           const isEach = expr.startsWith("#each ");
@@ -308,6 +314,7 @@ export default function createSvelteTemplate(text, opts = {}) {
           // Use a wrapper that allows checking length and provides else support
           // ((_arr) => _arr.length ? _arr.map(...).join('') : elseContent)(collection)
           loopStack.push({ collectionExpr, hasElse: false });
+          blockStack.push("loop");
 
           result +=
             "${((_arr) => _arr.length ? _arr.map((" + loopParams + ") => `";
@@ -315,6 +322,7 @@ export default function createSvelteTemplate(text, opts = {}) {
           loopVarStack.pop(); // Remove loop vars when exiting loop
           loopItemVarStack.pop(); // Remove item vars when exiting loop
           const loopInfo = loopStack.pop();
+          blockStack.pop();
           if (loopInfo.hasElse) {
             // Close the else branch
             result += "`)(" + loopInfo.collectionExpr + ")}";
@@ -505,7 +513,7 @@ export default function createSvelteTemplate(text, opts = {}) {
         return tplFunc.bind(ctx)();
       } catch (e) {
         console.error(
-          `FEZ svelte template runtime error in <${ctx.fezName || componentName}>:`,
+          `FEZ template runtime error in <${ctx.fezName || componentName}>:`,
           e.message,
         );
         console.error("Template source:", result.substring(0, 500));
@@ -514,7 +522,7 @@ export default function createSvelteTemplate(text, opts = {}) {
     };
   } catch (e) {
     console.error(
-      `FEZ svelte template compile error in <${componentName}>:`,
+      `FEZ template compile error in <${componentName}>:`,
       e.message,
     );
     console.error("Template:", text.substring(0, 200));

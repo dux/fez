@@ -32,6 +32,13 @@ describe("fez compile", () => {
       expect(result.exitCode).toBe(0);
     });
 
+    test("compiles nested loop else inside if", async () => {
+      const result = await compile(
+        "test/fixtures/valid/test-nested-loop-else.fez",
+      );
+      expect(result.exitCode).toBe(0);
+    });
+
     test("compiles input-html component with ESM imports and template logic", async () => {
       const result = await compile("demo/fez/input-html.fez");
       expect(result.exitCode).toBe(0);
@@ -77,6 +84,25 @@ describe("fez compile", () => {
       );
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain("attribute");
+    });
+
+    test("detects template compiler syntax errors", async () => {
+      const result = await compile(
+        "test/fixtures/invalid/test-template-compiler-expression.fez",
+      );
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("Template compiler error");
+      expect(result.stderr).toContain("Unexpected");
+    });
+
+    test("prints generated template function with --debug-template", async () => {
+      const result =
+        await $`bin/fez-compile --debug-template test/fixtures/invalid/test-template-compiler-expression.fez`
+          .quiet()
+          .nothrow();
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr.toString()).toContain("Generated template function");
+      expect(result.stderr.toString()).toContain("const fez = this");
     });
   });
 

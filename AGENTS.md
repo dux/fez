@@ -29,7 +29,16 @@ All documentation and demos go INSIDE the .fez file (no separate .html files) us
 ```bash
 # Compile and validate components - catches JS syntax errors and template issues
 bunx fez-compile path/to/component.fez
+
+# Validate only the .fez template block with the Fez template compiler
+fez template path/to/component.fez
+
+# Print generated template function body when template compilation fails
+fez compile --debug-template path/to/component.fez
+fez template --debug path/to/component.fez
 ```
+
+`.fez` files use Fez's own template compiler (`src/fez/lib/template-compiler.js`), not the Svelte compiler. Use the Svelte compiler only for `.svelte` files.
 
 ## Core Rules for Claude
 
@@ -716,7 +725,7 @@ Fez.fetch('/data'); // Built-in cached fetch
 this.formData(); // Get form values
 this.childNodes(); // Get child elements as array
 this.childNodes(fn); // Get children mapped with function
-this.childNodes(true); // Get children as objects: { html, ROOT, ...attrs }
+this.childObjects(); // Get children as objects: { html, ROOT, ...attrs }
 
 // localStorage with JSON serialization (preserves types)
 Fez.localStorage.set('count', 42);

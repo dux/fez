@@ -22,8 +22,11 @@ It uses minimal abstraction. You will learn to use it in 15 minutes, just look a
 Fez provides command-line tools for development:
 
 ```bash
-# Compile and validate Fez components
-bunx @dinoreic/fez compile demo/fez/*.fez
+# Compile and validate a Fez component
+bunx @dinoreic/fez compile demo/fez/ui-counter.fez
+
+# Validate only the template block
+bunx @dinoreic/fez template demo/fez/ui-counter.fez
 ```
 
 Or install globally:
@@ -31,7 +34,17 @@ Or install globally:
 ```bash
 bun add -g @dinoreic/fez
 fez compile my-component.fez
+fez template my-component.fez
 ```
+
+`fez compile` validates both JavaScript and Fez template syntax. Use `--debug-template` when a template compile error needs the generated render function:
+
+```bash
+fez compile --debug-template my-component.fez
+fez template --debug my-component.fez
+```
+
+`.fez` files are compiled with Fez's own template compiler (`src/fez/lib/template-compiler.js`). The Svelte compiler is only for `.svelte` files.
 
 ## Why Fez is Simpler
 
@@ -522,7 +535,7 @@ This example showcases:
 
 ### Advanced Templating & Styling
 
-- **Svelte-like Template Engine** - Single brace syntax (`{ }`), control flow (`{#if}`, `{#unless}`, `{#for}`, `{#each}`, `{#await}`), and block templates
+- **Fez Template Compiler** - Single brace syntax (`{ }`), control flow (`{#if}`, `{#unless}`, `{#for}`, `{#each}`, `{#await}`), and block templates
 - **Conditional Class Directives** - Svelte-style `class:name={condition}` for toggling CSS classes without ternary operators
 - **Arrow Function Handlers** - Clean event syntax with automatic loop variable interpolation
 - **Reactive State Management** - Built-in reactive `state` object automatically triggers re-renders on property changes
@@ -681,8 +694,7 @@ Fez('foo-bar', class {
   // gets root childNodes
   this.childNodes()           // returns array of child elements
   this.childNodes(func)       // map children with function
-  this.childNodes(true)       // convert to objects: { html, ROOT, ...attrs }
-                              // html = innerHTML, ROOT = original node, attrs become keys
+  this.childObjects()         // convert to objects: { html, ROOT, ...attrs }
 
   // check if the this.root node is attached to dom
   this.isConnected
@@ -767,7 +779,7 @@ Fez.cssClass(text)
 // display information about registered components in console
 Fez.info()
 
-// inspect Fez or Svelte element, dumps props/state/template info to console
+// inspect Fez element, dumps props/state/template info to console
 Fez.log(nodeOrSelector)
 
 // Dev helper: press Cmd/Ctrl + E to toggle overlays highlighting each component on the page.

@@ -4,6 +4,7 @@ import { parseArgs } from 'util'
 import fs from 'fs'
 import path from 'path'
 import prettier from 'prettier'
+import createTemplate, { clearTemplateCache } from '../src/fez/lib/template.js'
 
 const INFO = 'Compile Fez components and report errors'
 
@@ -12,6 +13,7 @@ const { values, positionals } = parseArgs({
   options: {
     help: { type: 'boolean', short: 'h' },
     output: { type: 'boolean', short: 'o' },
+    'debug-template': { type: 'boolean', short: 'd' },
     info: { type: 'boolean' },
   },
   allowPositionals: true,
@@ -28,12 +30,14 @@ if (values.help || positionals.length === 0) {
 ${INFO}
 
 Options:
-  -h, --help    Show this help message
-  -o, --output  Output compiled JavaScript
+  -h, --help            Show this help message
+  -o, --output          Output compiled JavaScript
+  -d, --debug-template  Print generated template function body on template errors
 
 Examples:
   fez compile demo/fez/ui-counter.fez
   fez compile -o demo/fez/ui-counter.fez > compiled.js
+  fez compile --debug-template demo/fez/ui-counter.fez
 `)
   process.exit(0)
 }
@@ -221,6 +225,88 @@ function validateTemplate(html, filePath) {
   return errors
 }
 
+function validateTemplateCompiler(html, filePath, componentName, debugTemplate = false) {
+  const errors = []
+
+  if (!html.trim()) {
+    return errors
+  }
+
+  const logs = captureConsoleErrors(() => {
+    createTemplate(html, { name: componentName })
+  })
+
+  for (let i = 0; i < logs.length; i++) {
+    const log = logs[i]
+    const match = log.match(/^FEZ template compile error in <([^>]+)>:\s*(.*)$/)
+    if (!match) continue
+
+    const error = {
+      message: match[2] || 'Template compiler failed',
+      file: filePath,
+      kind: 'Template compiler',
+      detail: (logs[i + 1] || '').replace(/^Template:\s*/, ''),
+    }
+
+    if (debugTemplate) {
+      error.debug = debugTemplateFunction(html, componentName)
+    }
+
+    errors.push(error)
+  }
+
+  return errors
+}
+
+function captureConsoleErrors(fn) {
+  const oldError = console.error
+  const logs = []
+
+  console.error = (...args) => {
+    logs.push(args.map(String).join(' '))
+  }
+
+  try {
+    fn()
+  } finally {
+    console.error = oldError
+  }
+
+  return logs
+}
+
+function debugTemplateFunction(html, componentName) {
+  const RealFunction = globalThis.Function
+  const oldError = console.error
+  let debug = ''
+
+  globalThis.Function = function (...args) {
+    try {
+      return RealFunction(...args)
+    } catch (error) {
+      debug = [
+        `Generated template function for <${componentName}> failed: ${error.message}`,
+        '',
+        args.join('\n---ARG---\n'),
+      ].join('\n')
+      throw error
+    }
+  }
+
+  console.error = () => {}
+
+  try {
+    clearTemplateCache()
+    createTemplate(html, { name: componentName })
+  } finally {
+    console.error = oldError
+    globalThis.Function = RealFunction
+    clearTemplateCache()
+  }
+
+  return debug
+}
+
 // Generate compiled JavaScript from parsed .fez file
 function generateCompiledJS(parsed, componentName) {
   let klass = parsed.script
@@ -279,7 +365,7 @@ async function formatCompiledJS(code, filePath) {
 }
 
 // Process a single file
-async function compileFile(filePath) {
+async function compileFile(filePath, options = {}) {
   const errors = []
   const absolutePath = path.resolve(filePath)
   
@@ -309,6 +395,7 @@ async function compileFile(filePath) {
   
   // Validate template
   errors.push(...validateTemplate(parsed.html, filePath))
+  errors.push(...validateTemplateCompiler(parsed.html, filePath, componentName, options.debugTemplate))
 
   // Generate compiled output only if no errors
   let compiled = errors.length === 0 ? generateCompiledJS(parsed, componentName) : null
@@ -327,13 +414,17 @@ async function compileFile(filePath) {
 
 // Main execution
 const filePath = positionals[0]
-const { errors, compiled } = await compileFile(filePath)
+const { errors, compiled } = await compileFile(filePath, {
+  debugTemplate: values['debug-template'],
+})
 
 if (errors.length > 0) {
   for (const error of errors) {
     const location = error.line ? `:${error.line}${error.column ? ':' + error.column : ''}` : ''
     const kind = error.kind ? `${error.kind} error: ` : ''
     console.error(`${error.file}${location}: ${kind}${error.message}`)
+    if (error.detail) console.error(`  Template: ${error.detail}`)
+    if (error.debug) console.error(`\n${error.debug}`)
   }
   process.exit(1)
 }
