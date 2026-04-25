@@ -1,6 +1,5 @@
 <script>
   class {
-    FAST = true
 
     init() {
       this._type = this.props.type || 'info'

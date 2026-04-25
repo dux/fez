@@ -73,7 +73,6 @@
   // claude generated
 
   class {
-    FAST = true
 
     setFill(percentage) {
       this.state.fill = parseInt(percentage)

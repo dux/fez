@@ -39,7 +39,6 @@
   import { TextGeometry } from 'three/addons/geometries/TextGeometry.js'
 
   class {
-    FAST = true
 
     colors = [
       { name: 'White', hex: '#FFFFFF' },

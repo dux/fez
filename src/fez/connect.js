@@ -86,10 +86,10 @@ export default function connect(name, klass) {
       name,
       class extends HTMLElement {
         connectedCallback() {
-          if (shouldRenderFast(this, klass)) {
-            connectNode(name, this);
-          } else {
+          if (document.readyState === "loading") {
             requestAnimationFrame(() => connectNode(name, this));
+          } else {
+            connectNode(name, this);
           }
         }
       },
@@ -128,7 +128,6 @@ function ensureFezBase(Fez, name, klass) {
 
   // Map config properties
   const configMap = {
-    FAST: "FAST",
     GLOBAL: "GLOBAL",
     NAME: "nodeName",
   };
@@ -162,18 +161,6 @@ function ensureFezBase(Fez, name, klass) {
 
   Fez.consoleLog(`${name} compiled`);
   return newKlass;
-}
-
-/**
- * Determine if component should render synchronously
- */
-function shouldRenderFast(node, klass) {
-  const attr = node.getAttribute("fez-fast");
-  if (attr === "false") return false;
-
-  const klassFast =
-    typeof klass.FAST === "function" ? klass.FAST(node) : klass.FAST;
-  return !!(attr || klassFast || node.childNodes[0] || node.nextSibling);
 }
 
 // =============================================================================

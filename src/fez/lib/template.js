@@ -30,19 +30,23 @@ const cache = new Map();
  * @returns {Function} Render function (ctx) => html
  */
 export default function createTemplate(text, opts = {}) {
-  // Check cache
   if (cache.has(text)) {
     return cache.get(text);
   }
 
-  // Convert legacy syntax if detected
-  if (hasLegacySyntax(text)) {
-    text = convertLegacySyntax(text, opts.name);
+  const cacheKey = normalizeTemplateText(text, opts);
+  if (cache.has(cacheKey)) {
+    const fn = cache.get(cacheKey);
+    cache.set(text, fn);
+    return fn;
   }
 
   // Compile
-  const fn = createTemplateCompiler(text, opts);
-  cache.set(text, fn);
+  const fn = createTemplateCompiler(cacheKey, opts);
+  cache.set(cacheKey, fn);
+  if (cacheKey !== text) {
+    cache.set(text, fn);
+  }
 
   return fn;
 }
@@ -52,6 +56,16 @@ export default function createTemplate(text, opts = {}) {
  */
 export function clearTemplateCache() {
   cache.clear();
+}
+
+/**
+ * Normalize template text before cache lookup and compilation.
+ */
+function normalizeTemplateText(text, opts = {}) {
+  if (hasLegacySyntax(text)) {
+    return convertLegacySyntax(text, opts.name);
+  }
+  return text;
 }
 
 // =============================================================================

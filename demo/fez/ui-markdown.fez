@@ -27,7 +27,6 @@ I am **markdown** from Fez custom component called `<ui-markdown>`, created inli
   import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
 
   class {
-    FAST = true
     
     init(props) {
       let text = props.html || this.root.innerHTML;

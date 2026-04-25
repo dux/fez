@@ -98,7 +98,9 @@ function extractTemplate(source) {
 
 function validateTemplate(html, componentName, debug) {
   const logs = captureConsoleErrors(() => {
+    clearTemplateCache()
     createTemplate(html, { name: componentName })
+    clearTemplateCache()
   })
 
   const errors = []
@@ -128,6 +130,7 @@ function captureConsoleErrors(fn) {
   try {
     fn()
   } finally {
+    clearTemplateCache()
     console.error = oldError
   }
 

@@ -86,7 +86,6 @@
 </demo>
 
 <script>
-  FAST = true
 
   init(props) {
     this.setStyle('--speed', `0.${props.speed || 3}s`)

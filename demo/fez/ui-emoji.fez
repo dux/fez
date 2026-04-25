@@ -152,7 +152,6 @@
   }
 
   class {
-    FAST = true
     
     init(props) {
       this.props = props || {}

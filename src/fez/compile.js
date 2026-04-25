@@ -17,6 +17,8 @@
 
 import closeCustomTags from "./lib/close-custom-tags.js";
 
+const compileCache = new Map();
+
 // =============================================================================
 // HELPERS
 // =============================================================================
@@ -37,6 +39,10 @@ function dedent(text) {
 
   // Remove common indentation
   return lines.map((l) => l.slice(minIndent)).join("\n");
+}
+
+function startsWithTag(text, tagName) {
+  return new RegExp(`^<${tagName}(?:\\s|>|$)`, "i").test(text);
 }
 
 // =============================================================================
@@ -106,6 +112,11 @@ export default function compile(tagName, html) {
   // Store original source
   Fez.index.ensure(tagName).source = html;
 
+  const cached = compileCache.get(tagName);
+  if (cached?.html === html && Fez.index[tagName]?.class) {
+    return Fez.index[tagName].class;
+  }
+
   // Extract and compile
   const classCode = generateClassCode(tagName, compileToClass(html));
 
@@ -114,6 +125,8 @@ export default function compile(tagName, html) {
 
   // Execute the class code
   executeClassCode(tagName, classCode);
+  compileCache.set(tagName, { html });
+  return Fez.index[tagName]?.class;
 }
 
 // =============================================================================
@@ -246,8 +259,8 @@ function compileToClass(html) {
     ) {
       type = "script";
     } else if (
-      trimmedLine.startsWith("<head") &&
-      !result.script &&
+      startsWithTag(trimmedLine, "head") &&
+      !result.head &&
       type !== "demo" &&
       type !== "info"
     ) {
@@ -280,10 +293,7 @@ function compileToClass(html) {
       result.style = block.join("\n");
       block = [];
       type = "";
-    } else if (
-      (trimmedLine.endsWith("</head>") || trimmedLine.endsWith("</header>")) &&
-      type === "head"
-    ) {
+    } else if (trimmedLine.endsWith("</head>") && type === "head") {
       result.head = block.join("\n");
       block = [];
       type = "";

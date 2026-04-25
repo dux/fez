@@ -43,7 +43,7 @@
 
       this.onWindowScroll(() => {
         const scrollY = window.scrollY
-        const shouldShow = scrollY > 1000
+        const shouldShow = scrollY > 120
 
         if (shouldShow !== this.state.isVisible) {
           this.state.isVisible = shouldShow
@@ -54,6 +54,10 @@
     scrollToTop() {
       window.scrollTo({ top: 0, behavior: 'smooth' })
       setTimeout(() => window.BlockSelect.state.show = true, 700)
+    }
+
+    showComponents() {
+      window.BlockSelect.state.show = true
     }
   </script>
 
@@ -76,9 +80,11 @@
       .header-container {
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: space-between;
         height: 50px;
-        padding: 0 20px;
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 0 22px;
       }
 
       .logo-section {
@@ -91,6 +97,51 @@
           height: 60px;
           margin-bottom: -35px;
           width: auto;
+        }
+      }
+
+      nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      nav a,
+      nav button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        background: transparent;
+        color: #333;
+        cursor: pointer;
+        font: inherit;
+        font-size: 14px;
+        line-height: 1;
+        text-decoration: none;
+
+        &:hover {
+          border-color: #ddd;
+          background: #f7f7f7;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .header-container {
+          padding: 0 12px;
+        }
+
+        nav {
+          gap: 2px;
+        }
+
+        nav a,
+        nav button {
+          padding: 0 8px;
+          font-size: 13px;
         }
       }
     }
@@ -134,6 +185,12 @@
       <div class="logo-section" onclick="fez.scrollToTop()">
         <img src="demo/fez.png" alt="Fez Logo">
       </div>
+      <nav aria-label="Demo navigation">
+        <button onclick="fez.showComponents()">Components</button>
+        <a href="./demo/raw.html">Raw</a>
+        <a href="https://dux.github.io/fez/">Docs</a>
+        <a href="https://github.com/dux/fez">GitHub</a>
+      </nav>
     </div>
   </header>
   <div class="blur-bar {state.isVisible ? 'visible' : ''}"></div>

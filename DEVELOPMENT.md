@@ -91,8 +91,6 @@ Fez('my-component', class extends FezBase {
       &:hover { background: darkblue; }
     }
   `
-
-  FAST = true
 })
 ```
 
@@ -217,8 +215,7 @@ bun run format:check
 
 ## Performance Tips
 
-1. **Use FAST = true** for components without slots
-2. **Use fez:keep** to preserve expensive DOM nodes
+1. **Use fez:keep** to preserve expensive DOM nodes
 3. **Keep state shallow** - deep nesting adds proxy overhead
 4. **Use beforeRender()** for computed values, not init()
 5. **Minimize template complexity** - split into child components

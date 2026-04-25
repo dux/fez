@@ -73,7 +73,6 @@
   COUNTRIES.forEach(([code, name]) => { COUNTRY_MAP[code] = name })
 
   class {
-    FAST = true
 
     init(props) {
       this.state.is_array = props.array === 'true'

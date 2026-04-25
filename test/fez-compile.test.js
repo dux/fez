@@ -43,6 +43,30 @@ describe("fez compile", () => {
       const result = await compile("demo/fez/input-html.fez");
       expect(result.exitCode).toBe(0);
     });
+
+    test("parses head blocks after script outside template HTML", async () => {
+      const result =
+        await $`bin/fez-compile -o test/fixtures/valid/test-head-after-script.fez`
+          .quiet()
+          .nothrow();
+      const stdout = result.stdout.toString();
+      expect(result.exitCode).toBe(0);
+      expect(stdout).toContain("<div>Body</div>");
+      expect(stdout).not.toContain("<head>");
+      expect(stdout).not.toContain("after-script.css");
+    });
+
+    test("preserves header elements in template HTML", async () => {
+      const result =
+        await $`bin/fez-compile -o test/fixtures/valid/test-header-element.fez`
+          .quiet()
+          .nothrow();
+      const stdout = result.stdout.toString();
+      expect(result.exitCode).toBe(0);
+      expect(stdout).toContain("<header");
+      expect(stdout).toContain("<nav");
+      expect(stdout).toContain("<div>Body</div>");
+    });
   });
 
   describe("invalid files - JavaScript errors", () => {

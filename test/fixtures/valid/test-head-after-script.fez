@@ -1,0 +1,9 @@
+<script>
+value = "ok"
+</script>
+
+<head>
+<link rel="stylesheet" href="/after-script.css">
+</head>
+
+<div>Body</div>

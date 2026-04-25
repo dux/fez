@@ -9,26 +9,22 @@ command = ARGV[0]
 args = ARGV[1..-1]
 
 if command.nil? || command == '--help' || command == '-h'
-  puts "Usage: fez <command> [<args>]"
-  puts ""
-  puts "Available commands:"
-  
   subcommands = Dir[bin_dir.join("fez-*")].map do |path|
     File.basename(path).sub(/^fez-/, '')
   end.sort
-  
-  max_len = subcommands.map(&:length).max || 0
-  
+
+  puts "Usage: fez <command> [<args>]"
+  puts ""
+  puts "Available commands: #{subcommands.join(', ')}"
+
   subcommands.each do |cmd|
     cmd_path = bin_dir.join("fez-#{cmd}")
-    info = `#{cmd_path} --info 2>/dev/null`.strip
-    if info.empty?
-      puts "  #{cmd}"
-    else
-      puts "  #{cmd.ljust(max_len)}  #{info}"
-    end
+    help = `#{cmd_path} --help 2>&1`.strip
+    next if help.empty?
+    puts ""
+    puts help.gsub(/^/, '  ')
   end
-  
+
   exit 0
 end
 

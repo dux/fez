@@ -1,0 +1,19 @@
+<script>
+  init() {
+    this.state.visible = true
+  }
+</script>
+
+<style>
+  header {
+    display: block;
+  }
+</style>
+
+<header class="{state.visible ? 'visible' : ''}">
+  <nav>
+    <a href="/">Home</a>
+  </nav>
+</header>
+
+<div>Body</div>

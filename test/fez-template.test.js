@@ -26,6 +26,16 @@ describe("fez template", () => {
     expect(result.stderr).toContain("Unexpected");
   });
 
+  test("reports repeated invalid templates independently", async () => {
+    const result = await runTemplate(
+      "test/fixtures/invalid/test-template-compiler-expression.fez",
+      "test/fixtures/invalid/test-template-compiler-expression.fez",
+    );
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).not.toContain("template ok");
+    expect(result.stderr.match(/Template compiler error/g)?.length).toBe(2);
+  });
+
   test("prints generated function body with --debug", async () => {
     const result = await runTemplate(
       "--debug",

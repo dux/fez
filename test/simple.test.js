@@ -33,3 +33,23 @@ test("Components can be defined", async () => {
     throw new Error("Fez not properly loaded");
   }
 });
+
+test("Fez.compile reuses same source for same component name", async () => {
+  const Fez = globalThis.window.Fez;
+  const oldGlobalFez = globalThis.Fez;
+  const source = "<div>{state.value}</div>";
+
+  try {
+    globalThis.Fez = Fez;
+
+    Fez.compile("test-compile-cache", source);
+    const firstClass = Fez.index["test-compile-cache"].class;
+
+    Fez.compile("test-compile-cache", source);
+    const secondClass = Fez.index["test-compile-cache"].class;
+
+    expect(secondClass).toBe(firstClass);
+  } finally {
+    globalThis.Fez = oldGlobalFez;
+  }
+});

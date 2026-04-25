@@ -1,6 +1,5 @@
 <script>
   class {
-    FAST = true
 
     META = {
       toolbar: {

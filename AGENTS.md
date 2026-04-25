@@ -60,7 +60,7 @@ The `<script>` block has two zones:
 1. **Module-level code** (BEFORE `class {}`) - imports, `Fez.head()` calls, shared variables. Like `<script context="module">` in Svelte.
 2. **Component class** (MUST be the LAST thing in `<script>`) - all component logic. **NEVER put code after `class {}`**.
 
-**CRITICAL: ALL class properties (FAST, META, NAME) go INSIDE `class {}`, never outside it.**
+**CRITICAL: ALL class properties (META, NAME) go INSIDE `class {}`, never outside it.**
 
 ```html
 <!-- Documentation shown in demo pages -->
@@ -93,7 +93,6 @@ The `<script>` block has two zones:
   // --- Component class (MUST be last in <script>) ---
   class {
     // Class properties go here, INSIDE class - NEVER outside
-    FAST = true   // sync render, prevents flicker
     META = {}     // component metadata
 
     init(props) {
@@ -525,10 +524,6 @@ All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is con
 ### Performance
 
 - Use throttled events: `this.on('scroll', callback, 100)`
-- `FAST = true` - synchronous render, prevents flash of unstyled content
-  - Place as a **class property** (first line inside `class { }`), never as a standalone statement
-  - Do **NOT** use when component reads innerHTML, slot content, or `this.root.textContent` in `init()`
-  - Use for self-contained components that generate their own content (icons, badges, viewers)
 
 ### External DOM Libraries (Three.js, Charts, Video players, etc.)
 
@@ -666,7 +661,7 @@ This is automatic - no extra configuration needed.
 
 ## Common Mistakes to Avoid
 
-- **Putting `FAST`, `META`, or other class properties outside `class {}`** - they MUST be inside the class body. Module-level code (imports, `Fez.head()`) goes before the class, everything else goes inside it.
+- **Putting `META` or other class properties outside `class {}`** - they MUST be inside the class body. Module-level code (imports, `Fez.head()`) goes before the class, everything else goes inside it.
 - Using React hooks (useState, useEffect)
 - **Using `:fez` or `body` selectors in styles** - never use them; all styles in `<style>` are auto-scoped to the component. Root-level styles apply to the component root node. For global styles wrap in `body { ... }`, use `:fez { ... }` inside body block to reference the component root
 - **Putting computed/derived state in `init()` instead of `beforeRender()`** - derived values that depend on state should go in `beforeRender()` so they update on every re-render (like Svelte's `$:`)

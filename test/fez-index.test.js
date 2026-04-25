@@ -209,6 +209,49 @@ describe("component compilation with index", () => {
     const result = await compile("test/fixtures/valid/test-with-meta.fez");
     expect(result.exitCode).toBe(0);
   });
+
+  test("processes head blocks after script blocks", () => {
+    const Fez = getFez();
+    const appended = [];
+    const oldAppendChild = document.head.appendChild;
+    const oldDomRoot = Fez.domRoot;
+    const oldGlobalFez = globalThis.Fez;
+
+    globalThis.Fez = Fez;
+    document.head.appendChild = (node) => {
+      appended.push(node);
+      return node;
+    };
+    Fez.domRoot = () => ({
+      children: [
+        {
+          tagName: "LINK",
+          cloneNode: () => ({ tagName: "LINK", href: "/after-script.css" }),
+        },
+      ],
+    });
+
+    try {
+      Fez.compile(
+        "test-head-after-script",
+        `<script>
+value = "ok"
+</script>
+<head>
+<link rel="stylesheet" href="/after-script.css">
+</head>
+<div>Body</div>`,
+      );
+    } finally {
+      document.head.appendChild = oldAppendChild;
+      Fez.domRoot = oldDomRoot;
+      globalThis.Fez = oldGlobalFez;
+    }
+
+    expect(appended.some((node) => node.href === "/after-script.css")).toBe(
+      true,
+    );
+  });
 });
 
 describe("demo section parsing", () => {

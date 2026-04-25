@@ -644,6 +644,16 @@ describe("template compiler", () => {
       expect(html).toContain('key="0-1"');
     });
 
+    test("nested implicit loops get unique generated keys", () => {
+      const html = renderWithKeys(
+        "{#for row in state.rows}{#for color in row}<span>{color}</span>{/for}{/for}",
+        { state: { rows: [["red", "green"], ["blue", "gold"]] }, props: {} },
+      );
+      const keys = [...html.matchAll(/key="([^"]+)"/g)].map((m) => m[1]);
+      expect(keys).toHaveLength(4);
+      expect(new Set(keys).size).toBe(4);
+    });
+
     test("preserves user-provided key", () => {
       const html = renderWithKeys(
         '{#each state.items as item}<div key="{item}">X</div>{/each}',

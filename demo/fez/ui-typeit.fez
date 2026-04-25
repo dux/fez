@@ -104,7 +104,6 @@
 
   class {
     NAME = 'span'
-    FAST = true
 
     init(props) {
       this.copy('style')

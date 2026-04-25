@@ -13,7 +13,6 @@
 
 <script>
 class {
-  FAST = true
 
   init() {
     this.state.userData = this.fetchUser()

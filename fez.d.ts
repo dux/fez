@@ -68,13 +68,6 @@ interface FezComponentConfig {
   /** Component HTML template */
   HTML?: string | (() => string);
 
-  /** 
-   * Control rendering timing to prevent flicker
-   * - true: renders immediately in main loop (no flicker)
-   * - false/undefined: renders in next animation frame (may flicker)
-   */
-  FAST?: boolean | ((node: HTMLElement) => boolean);
-
   /** Make component globally accessible as window[name] */
   GLOBAL?: string | boolean;
 

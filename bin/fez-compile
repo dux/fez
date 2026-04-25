@@ -54,6 +54,7 @@ function parseFezFile(content) {
 
   let currentBlock = []
   let currentType = ''
+  const startsWithTag = (text, tagName) => new RegExp(`^<${tagName}(?:\\s|>|$)`, 'i').test(text)
 
   for (let line of lines) {
     const trimmedLine = line.trim()
@@ -65,7 +66,7 @@ function parseFezFile(content) {
       currentType = 'info'
     } else if (trimmedLine.startsWith('<script') && !result.script && currentType !== 'head' && currentType !== 'demo' && currentType !== 'info') {
       currentType = 'script'
-    } else if (trimmedLine.startsWith('<head') && !result.script && currentType !== 'demo' && currentType !== 'info') {
+    } else if (startsWithTag(trimmedLine, 'head') && !result.head && currentType !== 'demo' && currentType !== 'info') {
       currentType = 'head'
     } else if (trimmedLine.startsWith('<style') && currentType !== 'demo' && currentType !== 'info') {
       currentType = 'style'
@@ -85,7 +86,7 @@ function parseFezFile(content) {
       result.style = currentBlock.join('\n')
       currentBlock = []
       currentType = ''
-    } else if ((trimmedLine.endsWith('</head>') || trimmedLine.endsWith('</header>')) && currentType === 'head') {
+    } else if (trimmedLine.endsWith('</head>') && currentType === 'head') {
       result.head = currentBlock.join('\n')
       currentBlock = []
       currentType = ''
@@ -233,7 +234,9 @@ function validateTemplateCompiler(html, filePath, componentName, debugTemplate =
   }
 
   const logs = captureConsoleErrors(() => {
+    clearTemplateCache()
     createTemplate(html, { name: componentName })
+    clearTemplateCache()
   })
 
   for (let i = 0; i < logs.length; i++) {
@@ -269,6 +272,7 @@ function captureConsoleErrors(fn) {
   try {
     fn()
   } finally {
+    clearTemplateCache()
     console.error = oldError
   }
 

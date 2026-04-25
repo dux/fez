@@ -63,16 +63,19 @@ const loadDefaults = () => {
         this.state.components = [];
         this.state.filtered = false;
         this.state.showAllUrl = "";
+        this.state.allComponentsUrl = "";
 
         // Check for name from props or query string
         const urlParams = new URLSearchParams(window.location.search);
         const name = props.name || urlParams.get("fez");
+        const allUrl = new URL(window.location.href);
+        allUrl.searchParams.delete("fez");
+        this.state.allComponentsUrl =
+          allUrl.pathname + allUrl.search + allUrl.hash;
 
         // If filtering, store URL without ?fez param
         if (urlParams.get("fez")) {
-          const url = new URL(window.location.href);
-          url.searchParams.delete("fez");
-          this.state.showAllUrl = url.pathname + url.search;
+          this.state.showAllUrl = this.state.allComponentsUrl;
           this.state.filtered = true;
         }
 
@@ -176,6 +179,81 @@ const loadDefaults = () => {
         return `:fez {
         display: block;
         font-family: system-ui, -apple-system, sans-serif;
+        color: #1f2937;
+      }
+      .fez-demo-header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 14px 0 18px;
+        margin-bottom: 34px;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .fez-demo-brand {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        min-width: 0;
+        text-decoration: none;
+        color: inherit;
+      }
+      .fez-demo-logo {
+        font-size: 22px;
+        font-weight: 750;
+        line-height: 1;
+      }
+      .fez-demo-subtitle {
+        color: #6b7280;
+        font-size: 14px;
+        line-height: 1.3;
+        white-space: nowrap;
+      }
+      .fez-demo-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .fez-demo-nav a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        color: #374151;
+        font-size: 14px;
+        line-height: 1;
+        text-decoration: none;
+      }
+      .fez-demo-nav a:hover {
+        border-color: #d1d5db;
+        background: #f9fafb;
+      }
+      .fez-demo-nav a[aria-current="page"] {
+        border-color: #c7d2fe;
+        background: #eef2ff;
+        color: #3730a3;
+      }
+      @media (max-width: 640px) {
+        .fez-demo-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+        .fez-demo-brand {
+          flex-direction: column;
+          gap: 4px;
+        }
+        .fez-demo-nav {
+          justify-content: flex-start;
+          width: 100%;
+        }
       }
       .fez-demo-item {
         margin-bottom: 40px;
@@ -250,6 +328,17 @@ const loadDefaults = () => {
 
       HTML() {
         return `{#if state.ready}
+        <header class="fez-demo-header">
+          <a class="fez-demo-brand" href="{state.allComponentsUrl}">
+            <span class="fez-demo-logo">Fez</span>
+            <span class="fez-demo-subtitle">Component demos</span>
+          </a>
+          <nav class="fez-demo-nav" aria-label="Demo navigation">
+            <a href="{state.allComponentsUrl}" aria-current="{state.filtered ? '' : 'page'}">Components</a>
+            <a href="https://dux.github.io/fez/">Docs</a>
+            <a href="https://github.com/dux/fez">GitHub</a>
+          </nav>
+        </header>
         {#each state.components as name}
           <div class="fez-demo-item">
             <h2 class="fez-demo-title">{name}{#if state.filtered} <a href="{state.showAllUrl}" class="fez-demo-show-all">show all</a>{:else} <a onclick="fez.openSingle('{name}')" class="fez-demo-open-single">open</a>{/if}</h2>

@@ -109,7 +109,6 @@ test('lifecycle - init and onMount are called', async () => {
         }
 
         HTML = '<div class="lifecycle">{state.value}</div>';
-        FAST = true;
       });
     });
 
@@ -142,7 +141,6 @@ test('lifecycle - onDestroy is called on DOM removal', async () => {
         }
 
         HTML = '<div class="destroy-test">{state.status}</div>';
-        FAST = true;
       });
     });
 
@@ -186,7 +184,6 @@ test('state - changes trigger re-render', async () => {
         }
 
         HTML = `<button class="counter" onclick="fez.increment()">Count: {state.count}</button>`;
-        FAST = true;
       });
     });
 
@@ -228,7 +225,6 @@ test('state - nested changes are reactive', async () => {
 
         HTML = `<div class="user">{state.user.name} ({state.user.age})</div>
                 <button class="update" onclick="fez.updateName()">Update</button>`;
-        FAST = true;
       });
     });
 
@@ -280,7 +276,6 @@ test('fez:keep - preserves element across re-renders', async () => {
             <button class="increment" onclick="fez.increment()">Count: {state.count}</button>
           </div>
         `;
-        FAST = true;
       });
     });
 
@@ -341,7 +336,6 @@ test('pubsub - component publish/subscribe', async () => {
         }
 
         HTML = '<button class="child-btn" onclick="fez.send()">{state.label}</button>';
-        FAST = true;
       });
 
       // Parent subscribes and receives the bubbled event
@@ -360,7 +354,6 @@ test('pubsub - component publish/subscribe', async () => {
             <slot></slot>
           </div>
         `;
-        FAST = true;
       });
     });
 
@@ -403,7 +396,6 @@ test('pubsub - Fez.publish global broadcast', async () => {
         }
 
         HTML = '<div class="listener-data">{state.received || "nothing"}</div>';
-        FAST = true;
       });
     });
 
@@ -447,14 +439,12 @@ test('global state - cross-component reactivity', async () => {
         }
 
         HTML = '<button class="write" onclick="fez.write()">Write</button>';
-        FAST = true;
       });
 
       // Reader component - reads globalState directly in template so it
       // re-renders and shows the latest value when globalState changes
       window.Fez('test-reader', class {
         HTML = '<div class="reader-value">{globalState.sharedValue || "initial"}</div>';
-        FAST = true;
       });
     });
 
@@ -504,7 +494,6 @@ test('template - conditionals work', async () => {
             <div class="visible">Shown!</div>
           {/if}
         `;
-        FAST = true;
       });
     });
 
@@ -548,7 +537,6 @@ test('template - loops work', async () => {
             {/each}
           </div>
         `;
-        FAST = true;
       });
     });
 
@@ -586,7 +574,6 @@ test('fez:bind - two-way input binding', async () => {
           <input fez:bind="state.name" class="bound-input" />
           <div class="bound-value">{state.name}</div>
         `;
-        FAST = true;
       });
     });
 

@@ -48,7 +48,6 @@
 
 <script>
   class {
-    FAST = true
 
     init(props) {
       this.height = parseInt(props.height) || 400

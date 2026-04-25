@@ -1,6 +1,5 @@
 <script>
   class {
-    FAST = true
 
     init() {
       this._width = this.props.width || 'normal'

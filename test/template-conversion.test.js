@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import createTemplate from "../src/fez/lib/template.js";
+import createTemplate, { clearTemplateCache } from "../src/fez/lib/template.js";
 
 // Mock Fez.htmlEscape
 globalThis.Fez = {
@@ -40,6 +40,27 @@ describe("Old to new syntax conversion", () => {
     test("converts [[ expr ]] to {expr}", () => {
       const html = render("[[ state.name ]]", { state: { name: "Bob" } });
       expect(html).toBe("Bob");
+    });
+
+    test("legacy templates are cached after normalization", () => {
+      const RealFunction = globalThis.Function;
+      let compileCount = 0;
+
+      globalThis.Function = function (...args) {
+        compileCount++;
+        return RealFunction(...args);
+      };
+
+      try {
+        clearTemplateCache();
+        const first = createTemplate("{{ state.name }}", { name: "legacy-cache" });
+        const second = createTemplate("{{ state.name }}", { name: "legacy-cache" });
+        expect(second).toBe(first);
+        expect(compileCount).toBe(1);
+      } finally {
+        globalThis.Function = RealFunction;
+        clearTemplateCache();
+      }
     });
   });
 

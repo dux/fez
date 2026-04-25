@@ -564,6 +564,34 @@ function getLoopIndexVar(directive) {
 }
 
 /**
+ * Extract a stable loop item variable for auto-generated keys.
+ * Used when nested loops reuse the same implicit index variable.
+ */
+function getLoopItemKeyVar(directive) {
+  let binding = "";
+
+  if (directive.startsWith("#each ")) {
+    const rest = directive.slice(6);
+    const asIdx = rest.indexOf(" as ");
+    if (asIdx < 0) return "";
+    binding = rest.slice(asIdx + 4).trim();
+  } else if (directive.startsWith("#for ")) {
+    const rest = directive.slice(5);
+    const inIdx = rest.indexOf(" in ");
+    if (inIdx < 0) return "";
+    binding = rest.slice(0, inIdx).trim();
+  }
+
+  const first = binding
+    .replace(/^\[/, "")
+    .replace(/\]$/, "")
+    .split(",")[0]
+    .trim();
+
+  return /^[A-Za-z_$][\w$]*$/.test(first) ? first : "";
+}
+
+/**
  * Auto-inject key="N" attributes on HTML elements for stable morph diffing.
  *
  * - Static elements get key="N" (sequential counter)
@@ -609,6 +637,7 @@ function autoInjectKeys(text) {
         scopeStack.push({
           type: "loop",
           indexVar: getLoopIndexVar(directive),
+          itemKeyVar: getLoopItemKeyVar(directive),
           inElse: false,
         });
       } else if (directive === "/if" || directive === "/unless") {
@@ -683,7 +712,19 @@ function autoInjectKeys(text) {
       );
       let keyValue;
       if (activeLoops.length > 0) {
-        const suffix = activeLoops.map((s) => `-{${s.indexVar}}`).join("");
+        const indexCounts = activeLoops.reduce((counts, loop) => {
+          counts[loop.indexVar] = (counts[loop.indexVar] || 0) + 1;
+          return counts;
+        }, {});
+        const suffix = activeLoops
+          .map((loop) => {
+            const keyVar =
+              indexCounts[loop.indexVar] > 1 && loop.itemKeyVar
+                ? loop.itemKeyVar
+                : loop.indexVar;
+            return `-{${keyVar}}`;
+          })
+          .join("");
         keyValue = `${n}${suffix}`;
       } else {
         keyValue = `${n}`;

@@ -58,7 +58,7 @@ Fez lookup [ui-button]: Component "ui-button" not found in DOM. Ensure the compo
 - **Fez static API**: Complete type information for all static methods
 - **Lifecycle hooks**: Proper types for `init`, `onMount`, `beforeRender`, etc.
 - **Reactive state**: Types for `this.state` and `this.globalState`
-- **Component config**: Types for `FAST`, `GLOBAL`, `CSS`, `HTML`, `META`, etc.
+- **Component config**: Types for `GLOBAL`, `CSS`, `HTML`, `META`, etc.
 - **Pub/Sub system**: Types for publish/subscribe methods
 - **DOM helpers**: Types for `find`, `attr`, `val`, `childNodes`, etc.
 
