@@ -38,7 +38,7 @@ export default class FezBase {
         delete attrs[key];
         try {
           const newVal = new Function(`return (${val})`).bind(newNode)();
-          attrs[key.replace(/[\:_]/, "")] = newVal;
+          attrs[key.replace(/^:/, "")] = newVal;
         } catch (e) {
           Fez.onError(
             "attr",
@@ -126,6 +126,9 @@ export default class FezBase {
       this._data.delete(key);
       return value;
     },
+    clear() {
+      this._data.clear();
+    },
   };
 
   /**
@@ -202,6 +205,9 @@ export default class FezBase {
     // Call user's onDestroy hook
     this.onDestroy();
     this.onDestroy = () => {};
+
+    // Clean up fezGlobals (orphaned entries from conditional children that never mounted)
+    this.fezGlobals.clear();
 
     // Clean up root references
     if (this.root) {

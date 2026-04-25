@@ -409,18 +409,19 @@ export default (Fez) => {
   // Use Fez.pointer(func, { persist: true }) to keep the pointer
   Fez.POINTER_SEQ = 0;
   Fez.POINTER = {};
+  Fez.POINTER_CREATED = {};
   Fez.pointer = (func, opts = {}) => {
     if (typeof func == "function") {
       const uid = ++Fez.POINTER_SEQ;
 
       if (opts.persist) {
-        // Persistent pointer - stays until manually removed
         Fez.POINTER[uid] = func;
       } else {
-        // One-time use pointer - auto-cleanup after first call
+        Fez.POINTER_CREATED[uid] = Date.now();
         Fez.POINTER[uid] = (...args) => {
           const result = func(...args);
           delete Fez.POINTER[uid];
+          delete Fez.POINTER_CREATED[uid];
           return result;
         };
       }
@@ -432,7 +433,20 @@ export default (Fez) => {
   // Manually clear all pointers (useful for testing or cleanup)
   Fez.clearPointers = () => {
     Fez.POINTER = {};
+    Fez.POINTER_CREATED = {};
   };
+
+  // Sweep stale one-time pointers older than 5 minutes
+  Fez.sweepPointers = () => {
+    const cutoff = Date.now() - 5 * 60 * 1000;
+    for (const uid of Object.keys(Fez.POINTER_CREATED)) {
+      if (Fez.POINTER_CREATED[uid] < cutoff) {
+        delete Fez.POINTER[uid];
+        delete Fez.POINTER_CREATED[uid];
+      }
+    }
+  };
+  setInterval(Fez.sweepPointers, 60 * 1000);
 
   // Resolve a function from a string or function reference
   Fez.getFunction = (pointer) => {

@@ -117,12 +117,10 @@ export default function createTemplateCompiler(text, opts = {}) {
     // This allows loop variables to be passed as props to child components
     // :file="el.file" -> :file={`Fez(${UID}).fezGlobals.delete(${fez.fezGlobals.set(el.file)})`}
     // Uses Fez(UID) so child component can find parent's fezGlobals
+    // Supports variable access, method calls, ternaries, arrow funcs, etc.
     text = text.replace(/:(\w+)="([^"{}]+)"/g, (match, attr, expr) => {
-      // Only convert if expr looks like a variable access (not a string literal)
-      if (/^[\w.[\]]+$/.test(expr.trim())) {
-        return `:${attr}={\`Fez(\${UID}).fezGlobals.delete(\${fez.fezGlobals.set(${expr})})\`}`;
-      }
-      return match;
+      if (/^\d+$/.test(expr.trim())) return match;
+      return `:${attr}={\`Fez(\${UID}).fezGlobals.delete(\${fez.fezGlobals.set(${expr})})\`}`;
     });
 
     // Remove HTML comments
