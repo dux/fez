@@ -74,11 +74,11 @@
 
 <script>
   flip() {
-    this.find('.card').classList.toggle('flipped')
+    this.find('.card')?.classList.toggle('flipped')
   }
 
   autoflip() {
-    setTimeout(()=>{
+    this.setTimeout(()=>{
       this.flip()
       this.autoflip()
     }, 5000  + (Math.random() * 15* 1000))

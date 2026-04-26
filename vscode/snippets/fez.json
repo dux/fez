@@ -1,0 +1,270 @@
+{
+  "Fez Component": {
+    "prefix": "fez-component",
+    "body": [
+      "<script>",
+      "  class {",
+      "    FAST = true",
+      "",
+      "    init(props) {",
+      "      $0",
+      "    }",
+      "  }",
+      "</script>",
+      "",
+      "<style>",
+      "  $1",
+      "</style>",
+      "",
+      "$2"
+    ],
+    "description": "Fez component scaffold"
+  },
+  "Fez Component Full": {
+    "prefix": "fez-component-full",
+    "body": [
+      "<info>",
+      "  <ul>",
+      "    <li>${1:Component description}</li>",
+      "  </ul>",
+      "</info>",
+      "",
+      "<demo>",
+      "  <${2:my-component}></${2:my-component}>",
+      "</demo>",
+      "",
+      "<script>",
+      "  class {",
+      "    FAST = true",
+      "",
+      "    init(props) {",
+      "      $0",
+      "    }",
+      "",
+      "    onMount(props) {",
+      "    }",
+      "",
+      "    onDestroy() {",
+      "    }",
+      "  }",
+      "</script>",
+      "",
+      "<style>",
+      "  $3",
+      "</style>",
+      "",
+      "$4"
+    ],
+    "description": "Full Fez component with info, demo, lifecycle"
+  },
+  "Fez Class Block": {
+    "prefix": "fez-class",
+    "body": [
+      "class {",
+      "  FAST = true",
+      "",
+      "  init(props) {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Fez class block"
+  },
+  "Fez init": {
+    "prefix": "fez-init",
+    "body": [
+      "init(props) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Fez init lifecycle method"
+  },
+  "Fez onMount": {
+    "prefix": "fez-mount",
+    "body": [
+      "onMount(props) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Fez onMount lifecycle method"
+  },
+  "Fez onDestroy": {
+    "prefix": "fez-destroy",
+    "body": [
+      "onDestroy() {",
+      "  $0",
+      "}"
+    ],
+    "description": "Fez onDestroy lifecycle method"
+  },
+  "Fez beforeRender": {
+    "prefix": "fez-before-render",
+    "body": [
+      "beforeRender() {",
+      "  $0",
+      "}"
+    ],
+    "description": "Fez beforeRender for reactive computed state"
+  },
+  "If Block": {
+    "prefix": "fez-if",
+    "body": [
+      "{#if ${1:condition}}",
+      "  $0",
+      "{/if}"
+    ],
+    "description": "Fez {#if} block"
+  },
+  "If/Else Block": {
+    "prefix": "fez-if-else",
+    "body": [
+      "{#if ${1:condition}}",
+      "  $2",
+      "{:else}",
+      "  $0",
+      "{/if}"
+    ],
+    "description": "Fez {#if}/{:else} block"
+  },
+  "Unless Block": {
+    "prefix": "fez-unless",
+    "body": [
+      "{#unless ${1:condition}}",
+      "  $0",
+      "{/unless}"
+    ],
+    "description": "Fez {#unless} block"
+  },
+  "Each Block": {
+    "prefix": "fez-each",
+    "body": [
+      "{#each ${1:state.items} as ${2:item}}",
+      "  $0",
+      "{/each}"
+    ],
+    "description": "Fez {#each} loop"
+  },
+  "Each Block with Else": {
+    "prefix": "fez-each-else",
+    "body": [
+      "{#each ${1:state.items} as ${2:item}}",
+      "  $3",
+      "{:else}",
+      "  $0",
+      "{/each}"
+    ],
+    "description": "Fez {#each} loop with {:else} fallback"
+  },
+  "For Block": {
+    "prefix": "fez-for",
+    "body": [
+      "{#for ${1:item} in ${2:state.items}}",
+      "  $0",
+      "{/for}"
+    ],
+    "description": "Fez {#for} loop"
+  },
+  "For Key/Value Block": {
+    "prefix": "fez-for-kv",
+    "body": [
+      "{#for ${1:key}, ${2:val} in ${3:state.obj}}",
+      "  $0",
+      "{/for}"
+    ],
+    "description": "Fez {#for} key/value loop"
+  },
+  "Await Block": {
+    "prefix": "fez-await",
+    "body": [
+      "{#await ${1:state.promise}}",
+      "  <p>Loading...</p>",
+      "{:then ${2:result}}",
+      "  $0",
+      "{:catch ${3:error}}",
+      "  <p>Error: {${3:error}.message}</p>",
+      "{/await}"
+    ],
+    "description": "Fez {#await} block"
+  },
+  "Raw HTML": {
+    "prefix": "fez-html",
+    "body": "{@html ${1:state.content}}",
+    "description": "Fez {@html} raw output"
+  },
+  "JSON Debug": {
+    "prefix": "fez-json",
+    "body": "{@json ${1:state.data}}",
+    "description": "Fez {@json} debug output"
+  },
+  "Fez Bind": {
+    "prefix": "fez-bind",
+    "body": "<input fez:bind=\"state.${1:value}\" />",
+    "description": "Fez two-way binding"
+  },
+  "Fez This": {
+    "prefix": "fez-this",
+    "body": "fez:this=\"${1:elementRef}\"",
+    "description": "Fez element reference"
+  },
+  "Fez Keep": {
+    "prefix": "fez-keep",
+    "body": "fez:keep=\"${1:unique-key}\"",
+    "description": "Fez element preservation"
+  },
+  "Fez onclick": {
+    "prefix": "fez-onclick",
+    "body": "onclick=\"fez.${1:method}(${2})\"",
+    "description": "Fez event handler"
+  },
+  "Class Directive": {
+    "prefix": "fez-class-dir",
+    "body": "class:${1:name}={${2:condition}}",
+    "description": "Fez conditional class directive"
+  },
+  "Fez Subscribe": {
+    "prefix": "fez-subscribe",
+    "body": [
+      "this.subscribe('${1:event}', (${2:data}) => {",
+      "  $0",
+      "})"
+    ],
+    "description": "Fez pub/sub subscribe"
+  },
+  "Fez Publish": {
+    "prefix": "fez-publish",
+    "body": "this.publish('${1:event}', ${2:data})",
+    "description": "Fez pub/sub publish"
+  },
+  "Fez Head Import Map": {
+    "prefix": "fez-importmap",
+    "body": [
+      "Fez.head({ importmap: {",
+      "  '${1:name}': '${2:url}',",
+      "}})"
+    ],
+    "description": "Fez.head() import map"
+  },
+  "Fez Head CSS": {
+    "prefix": "fez-head-css",
+    "body": "Fez.head({ css: '${1:url}' })",
+    "description": "Fez.head() external CSS"
+  },
+  "Fez Head JS": {
+    "prefix": "fez-head-js",
+    "body": "Fez.head({ js: '${1:url}' })",
+    "description": "Fez.head() external JS"
+  },
+  "Fez getFunction": {
+    "prefix": "fez-getfunc",
+    "body": "this.${1:handler} = Fez.getFunction(props.${2:onclick})",
+    "description": "Fez.getFunction for handler props"
+  },
+  "Fez CDN Script": {
+    "prefix": "fez-cdn",
+    "body": [
+      "<script src=\"https://dux.github.io/fez/dist/fez.js\"></script>",
+      "<script fez=\"${1:path/to/component.fez}\"></script>"
+    ],
+    "description": "Fez CDN script tags"
+  }
+}

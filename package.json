@@ -72,7 +72,11 @@
     "test:coverage": "bun test --coverage",
     "prepublishOnly": "bun run build && bun run test",
     "publish": "npm publish --access public",
-    "index": "ls demo/fez/*.fez | xargs -n1 basename | sed 's/\\.fez$//' | sort | sed 's/^/fez\\//' > demo/fez.txt"
+    "index": "ls demo/fez/*.fez | xargs -n1 basename | sed 's/\\.fez$//' | sort | sed 's/^/fez\\//' > demo/fez.txt",
+    "vscode:lint": "node --check vscode/src/extension.js",
+    "vscode:test": "node --check vscode/src/extension.js",
+    "vscode:package": "cd vscode && npx @vscode/vsce package --no-dependencies",
+    "vscode:install": "cd vscode && npx @vscode/vsce package --allow-missing-repository --no-dependencies && code --install-extension fez-vscode-tools-0.1.0.vsix"
   },
   "dependencies": {
     "glob": "^13.0.0",

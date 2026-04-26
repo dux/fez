@@ -1,0 +1,78 @@
+{
+  "name": "fez-vscode-tools",
+  "displayName": "Fez Tools",
+  "description": "Language support for Fez components - syntax highlighting, snippets, and tooling for .fez files.",
+  "version": "0.1.0",
+  "publisher": "dux",
+  "engines": {
+    "vscode": "^1.92.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "activationEvents": [
+    "onLanguage:fez",
+    "onLanguage:html",
+    "onLanguage:erb",
+    "onLanguage:haml"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "fez",
+        "aliases": ["Fez", "fez"],
+        "extensions": [".fez"],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "fez",
+        "aliases": ["Fez HTML"],
+        "extensions": [".fez.html"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "fez",
+        "scopeName": "source.fez",
+        "path": "./syntaxes/fez.tmLanguage.json",
+        "embeddedLanguages": {
+          "source.js": "javascript",
+          "source.css.scss": "scss",
+          "text.html.basic": "html"
+        }
+      }
+    ],
+    "snippets": [
+      {
+        "language": "fez",
+        "path": "./snippets/fez.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "fez.wrapWithIf",
+        "title": "Fez: Wrap with {#if}"
+      },
+      {
+        "command": "fez.wrapWithEach",
+        "title": "Fez: Wrap with {#each}"
+      },
+      {
+        "command": "fez.compile",
+        "title": "Fez: Compile Current File"
+      }
+    ]
+  },
+  "scripts": {
+    "lint": "node --check src/extension.js",
+    "test": "node --check src/extension.js",
+    "package": "npx @vscode/vsce package --no-dependencies",
+    "install": "npx @vscode/vsce package --allow-missing-repository --no-dependencies && code --install-extension fez-vscode-tools-0.1.0.vsix"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.92.0"
+  }
+}

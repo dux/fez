@@ -51,11 +51,12 @@
   <script>
     Fez('ui-pubsub', class {
       update (info) {
-        this.target.innerHTML = info
+        if (this.target) this.target.innerHTML = info
       }
 
       init() {
         this.target = this.find('.target')
+        if (!this.target) return
         this.subscribe('ping', this.update)
         this.update('waiting for a ping...')
       }

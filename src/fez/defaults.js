@@ -182,17 +182,18 @@ const loadDefaults = () => {
         color: #1f2937;
       }
       .fez-demo-header {
-        position: sticky;
-        top: 0;
-        z-index: 20;
+
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 18px;
-        padding: 14px 0 18px;
-        margin-bottom: 34px;
+        padding: 14px 22px;
+        margin: 12px auto 34px;
+        max-width: 900px;
         background: #fff;
-        border-bottom: 1px solid #e5e7eb;
+        border-radius: 14px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06);
+        border: 1px solid #e5e7eb;
       }
       .fez-demo-brand {
         display: flex;
@@ -301,8 +302,10 @@ const loadDefaults = () => {
       }
       .fez-demo-content {
         min-height: 50px;
+        text-align: left;
       }
       .fez-demo-info {
+        text-align: left;
         background: #fff;
         border: 1px solid #ddd;
         border-radius: 6px;
@@ -358,7 +361,7 @@ const loadDefaults = () => {
           </div>
         {/each}
       {:else}
-        <div style="padding: 40px; text-align: center; color: #888;">Loading components...</div>
+        <div style="text-align: center; color: #888;">Loading components...</div>
       {/if}`;
       }
     },

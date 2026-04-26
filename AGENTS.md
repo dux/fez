@@ -45,7 +45,7 @@ fez template --debug path/to/component.fez
 1. **ALWAYS** use Fez-specific Svelte-like syntax (NO React/Vue conventions)
 2. **ALWAYS** use 2-space indentation inside template blocks (`{#if}`, `{#each}`, `{#for}`, `{#await}`, etc.) - content inside blocks must be indented by 2 spaces relative to the block tag
 3. **NEVER** use hooks - `this.state` replaces useState/useEffect
-4. All `<style>` content is locally scoped to the component. Root-level styles apply to the component root node, nested selectors apply to children. For global styles wrap in `body { ... }`, use `:fez { ... }` inside body block to reference the component root
+4. `<style>` content is locally scoped by default (auto-wrapped in `:fez { }`). For global styles use `body { ... }`. **IMPORTANT:** if `body { }` appears anywhere in the style block, auto-scoping is disabled for the entire block - you MUST wrap local styles in `:fez { ... }` explicitly.
 5. **ALWAYS** initialize state in `init()`, put reactive/derived state in `beforeRender()`
 6. **ALWAYS** use kebab-case component names (e.g., `user-profile`)
 7. **NEVER** use `{#if}` blocks inside HTML attributes - use ternary operators `{condition ? 'value' : ''}` instead
@@ -162,6 +162,19 @@ The `<script>` block has two zones:
         margin: 0;
       }
     }
+  }
+</style>
+
+<!-- Mixing local + global styles -->
+<style>
+  :fez {
+    .card { border: 1px solid #ddd; }
+    button { background: gold; }
+  }
+
+  body {
+    .some-external-class { color: blue; }
+    :fez .child { font-weight: bold; }
   }
 </style>
 
@@ -663,7 +676,19 @@ This is automatic - no extra configuration needed.
 
 - **Putting `META` or other class properties outside `class {}`** - they MUST be inside the class body. Module-level code (imports, `Fez.head()`) goes before the class, everything else goes inside it.
 - Using React hooks (useState, useEffect)
-- **Using `:fez` or `body` selectors in styles** - never use them; all styles in `<style>` are auto-scoped to the component. Root-level styles apply to the component root node. For global styles wrap in `body { ... }`, use `:fez { ... }` inside body block to reference the component root
+- **Mixing local and global styles without `:fez` wrapper** - if your `<style>` has a `body { }` block, the compiler disables auto-scoping for the entire block, so all other styles leak globally. Wrap local styles in `:fez { ... }`:
+  ```html
+  <style>
+    /* WRONG - .card leaks globally because body {} disables auto-scoping */
+    .card { padding: 10px; }
+    body { .global-thing { color: red; } }
+
+    /* CORRECT - wrap local styles in :fez */
+    :fez { .card { padding: 10px; } }
+    body { .global-thing { color: red; } }
+  </style>
+  ```
+  Note: `:fez { }` is NOT needed if the style block has no `body { }` - the compiler auto-scopes everything.
 - **Putting computed/derived state in `init()` instead of `beforeRender()`** - derived values that depend on state should go in `beforeRender()` so they update on every re-render (like Svelte's `$:`)
 - Using string interpolation in onclick instead of arrow functions
 - Direct DOM manipulation for simple reactive UI (use state instead) - BUT use direct DOM for external libraries (Three.js, charts, etc.) since DOM diffing doesn't handle them well

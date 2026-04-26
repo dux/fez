@@ -545,7 +545,7 @@ This example showcases:
 - **Auto-ID for Form Inputs** - Elements with `fez:this` automatically get stable IDs, helping the differ preserve input state across re-renders
 - **Import Maps** - Use `Fez.head({importmap: {...}})` to map bare import specifiers to full URLs, avoiding duplicate library instances
 - **Style Macros** - Define custom CSS shortcuts like `Fez.cssMixin('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }`
-- **Locally Scoped Styles** - All `<style>` content is locally scoped to the component. Root-level styles apply to the component root node. For global styles wrap in `body { ... }`, use `:fez { ... }` inside body block to reference the component root
+- **Locally Scoped Styles** - All `<style>` content is locally scoped by default. **Important:** if `body { }` appears in the style block, auto-scoping is disabled for the entire block - wrap local styles in `:fez { ... }` explicitly
 
 ### Developer Experience
 
@@ -942,16 +942,21 @@ All parts are optional
   </script>
 
   <style>
-    /* All styles are locally scoped to the component */
-    /* Root-level styles apply to the component root node */
+    /* All styles auto-scoped when no body {} is present */
     color: red;
     padding: 10px;
-
     .child { font-weight: bold; }
   </style>
+
+  <!-- When mixing local + global styles: -->
   <style>
-    /* For global styles, wrap in body { ... } */
-    /* Use :fez { ... } inside body block to reference the component root */
+    /* Local styles MUST use :fez wrapper when body {} is present */
+    :fez {
+      color: red;
+      padding: 10px;
+      .child { font-weight: bold; }
+    }
+    /* Global styles */
     body {
       .some-global-class { color: blue; }
       :fez { border: 1px solid red; }

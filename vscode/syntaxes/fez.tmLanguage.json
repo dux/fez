@@ -1,0 +1,383 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicolo-ribaudo/tc39-proposal-scope-mapping/refs/heads/main/schemas/vscode/tmLanguage.schema.json",
+  "name": "Fez",
+  "scopeName": "source.fez",
+  "fileTypes": ["fez", "fez.html"],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#script-block" },
+    { "include": "#style-block" },
+    { "include": "#info-block" },
+    { "include": "#demo-block" },
+    { "include": "#template" }
+  ],
+  "repository": {
+    "comment": {
+      "begin": "<!--",
+      "end": "-->",
+      "name": "comment.block.html.fez",
+      "captures": {
+        "0": { "name": "punctuation.definition.comment.html.fez" }
+      }
+    },
+    "script-block": {
+      "begin": "^(<)(script)(\\b[^>]*)(>)",
+      "end": "^(</)(script)(>)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html.fez" },
+        "2": { "name": "entity.name.tag.script.html.fez" },
+        "3": { "patterns": [{ "include": "#html-attributes" }] },
+        "4": { "name": "punctuation.definition.tag.end.html.fez" }
+      },
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html.fez" },
+        "2": { "name": "entity.name.tag.script.html.fez" },
+        "3": { "name": "punctuation.definition.tag.end.html.fez" }
+      },
+      "contentName": "source.js",
+      "patterns": [
+        { "include": "#fez-class-block" },
+        { "include": "source.js" }
+      ]
+    },
+    "fez-class-block": {
+      "begin": "\\b(class)\\s*(\\{)",
+      "end": "^(\\})",
+      "beginCaptures": {
+        "1": { "name": "storage.type.class.fez" },
+        "2": { "name": "punctuation.definition.block.js" }
+      },
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.block.js" }
+      },
+      "patterns": [
+        { "include": "#fez-class-properties" },
+        { "include": "source.js" }
+      ]
+    },
+    "fez-class-properties": {
+      "patterns": [
+        {
+          "match": "\\b(FAST|META|NAME)\\b",
+          "name": "variable.other.constant.fez"
+        },
+        {
+          "match": "\\b(init|onMount|onDestroy|beforeRender|onWindowResize|onWindowScroll|onPropsChange)\\b",
+          "name": "entity.name.function.lifecycle.fez"
+        }
+      ]
+    },
+    "style-block": {
+      "begin": "^(<)(style)(\\b[^>]*)(>)",
+      "end": "^(</)(style)(>)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html.fez" },
+        "2": { "name": "entity.name.tag.style.html.fez" },
+        "3": { "patterns": [{ "include": "#html-attributes" }] },
+        "4": { "name": "punctuation.definition.tag.end.html.fez" }
+      },
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html.fez" },
+        "2": { "name": "entity.name.tag.style.html.fez" },
+        "3": { "name": "punctuation.definition.tag.end.html.fez" }
+      },
+      "contentName": "source.css.scss",
+      "patterns": [
+        { "include": "source.css.scss" }
+      ]
+    },
+    "info-block": {
+      "begin": "^(<)(info)(>)",
+      "end": "^(</)(info)(>)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html.fez" },
+        "2": { "name": "entity.name.tag.info.fez" },
+        "3": { "name": "punctuation.definition.tag.end.html.fez" }
+      },
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html.fez" },
+        "2": { "name": "entity.name.tag.info.fez" },
+        "3": { "name": "punctuation.definition.tag.end.html.fez" }
+      },
+      "contentName": "text.html.basic",
+      "patterns": [
+        { "include": "#template" }
+      ]
+    },
+    "demo-block": {
+      "begin": "^(<)(demo)(>)",
+      "end": "^(</)(demo)(>)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html.fez" },
+        "2": { "name": "entity.name.tag.demo.fez" },
+        "3": { "name": "punctuation.definition.tag.end.html.fez" }
+      },
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html.fez" },
+        "2": { "name": "entity.name.tag.demo.fez" },
+        "3": { "name": "punctuation.definition.tag.end.html.fez" }
+      },
+      "contentName": "text.html.basic",
+      "patterns": [
+        { "include": "#template" }
+      ]
+    },
+    "template": {
+      "patterns": [
+        { "include": "#comment" },
+        { "include": "#fez-block-start" },
+        { "include": "#fez-block-middle" },
+        { "include": "#fez-block-end" },
+        { "include": "#fez-raw-html" },
+        { "include": "#fez-json-debug" },
+        { "include": "#fez-expression-legacy" },
+        { "include": "#fez-expression" },
+        { "include": "#html-tag-custom" },
+        { "include": "#html-tag-void" },
+        { "include": "#html-tag-close" },
+        { "include": "#html-tag-open" },
+        { "include": "text.html.basic" }
+      ]
+    },
+    "fez-block-start": {
+      "match": "(\\{)(#)(if|each|for|await|unless)\\b(.*?)(\\})",
+      "captures": {
+        "1": { "name": "punctuation.definition.block.begin.fez" },
+        "2": { "name": "keyword.control.flow.fez" },
+        "3": { "name": "keyword.control.flow.fez" },
+        "4": {
+          "patterns": [
+            {
+              "match": "\\b(as|in)\\b",
+              "name": "keyword.operator.fez"
+            },
+            { "include": "source.js" }
+          ]
+        },
+        "5": { "name": "punctuation.definition.block.end.fez" }
+      }
+    },
+    "fez-block-middle": {
+      "match": "(\\{)(:)(else if|else|then|catch)\\b(.*?)(\\})",
+      "captures": {
+        "1": { "name": "punctuation.definition.block.begin.fez" },
+        "2": { "name": "keyword.control.flow.fez" },
+        "3": { "name": "keyword.control.flow.fez" },
+        "4": {
+          "patterns": [{ "include": "source.js" }]
+        },
+        "5": { "name": "punctuation.definition.block.end.fez" }
+      }
+    },
+    "fez-block-end": {
+      "match": "(\\{)(/)(if|each|for|await|unless)(\\})",
+      "captures": {
+        "1": { "name": "punctuation.definition.block.begin.fez" },
+        "2": { "name": "keyword.control.flow.fez" },
+        "3": { "name": "keyword.control.flow.fez" },
+        "4": { "name": "punctuation.definition.block.end.fez" }
+      }
+    },
+    "fez-raw-html": {
+      "match": "(\\{)(@html)\\s+(.*?)(\\})",
+      "captures": {
+        "1": { "name": "punctuation.definition.expression.begin.fez" },
+        "2": { "name": "keyword.other.html.fez" },
+        "3": {
+          "patterns": [{ "include": "source.js" }]
+        },
+        "4": { "name": "punctuation.definition.expression.end.fez" }
+      }
+    },
+    "fez-json-debug": {
+      "match": "(\\{)(@json)\\s+(.*?)(\\})",
+      "captures": {
+        "1": { "name": "punctuation.definition.expression.begin.fez" },
+        "2": { "name": "keyword.other.json.fez" },
+        "3": {
+          "patterns": [{ "include": "source.js" }]
+        },
+        "4": { "name": "punctuation.definition.expression.end.fez" }
+      }
+    },
+    "fez-expression": {
+      "begin": "\\{(?!\\{)(?![#/:])",
+      "end": "\\}",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.expression.begin.fez" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.expression.end.fez" }
+      },
+      "contentName": "meta.embedded.expression.fez",
+      "patterns": [
+        { "include": "source.js" }
+      ]
+    },
+    "fez-expression-legacy": {
+      "begin": "\\{\\{(?![#/]|if |for |else|unless)",
+      "end": "\\}\\}",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.expression.begin.fez" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.expression.end.fez" }
+      },
+      "contentName": "meta.embedded.expression.fez",
+      "patterns": [
+        { "include": "source.js" }
+      ]
+    },
+    "html-tag-custom": {
+      "begin": "(<)([a-z][a-z0-9]*-[a-z0-9-]*)",
+      "end": "(/?>)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html.fez" },
+        "2": { "name": "entity.name.tag.custom.fez" }
+      },
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.end.html.fez" }
+      },
+      "patterns": [
+        { "include": "#fez-attributes" },
+        { "include": "#html-attributes" }
+      ]
+    },
+    "html-tag-void": {
+      "match": "(<)(area|base|br|col|embed|hr|img|input|keygen|link|menuitem|meta|param|source|track|wbr)\\b",
+      "captures": {
+        "1": { "name": "punctuation.definition.tag.begin.html.fez" },
+        "2": { "name": "entity.name.tag.html.fez" }
+      }
+    },
+    "html-tag-open": {
+      "begin": "(<)([a-zA-Z][a-zA-Z0-9]*)",
+      "end": "(/?>)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html.fez" },
+        "2": { "name": "entity.name.tag.html.fez" }
+      },
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.end.html.fez" }
+      },
+      "patterns": [
+        { "include": "#fez-attributes" },
+        { "include": "#html-attributes" }
+      ]
+    },
+    "html-tag-close": {
+      "match": "(</)([a-zA-Z][a-zA-Z0-9-]*)(>)",
+      "captures": {
+        "1": { "name": "punctuation.definition.tag.begin.html.fez" },
+        "2": { "name": "entity.name.tag.html.fez" },
+        "3": { "name": "punctuation.definition.tag.end.html.fez" }
+      }
+    },
+    "fez-attributes": {
+      "patterns": [
+        {
+          "match": "(fez:(?:bind|this|keep|use))(=)(\"[^\"]*\")",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.fez" },
+            "2": { "name": "punctuation.separator.key-value.html" },
+            "3": { "name": "string.quoted.double.html" }
+          }
+        },
+        {
+          "match": "(class):([a-zA-Z_-][a-zA-Z0-9_-]*)(=)(\"[^\"]*\")",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.html" },
+            "2": { "name": "entity.other.attribute-name.class-directive.fez" },
+            "3": { "name": "punctuation.separator.key-value.html" },
+            "4": {
+              "name": "string.quoted.double.html",
+              "patterns": [{ "include": "#fez-expression" }]
+            }
+          }
+        },
+        {
+          "match": "(class):([a-zA-Z_-][a-zA-Z0-9_-]*)(=)(\\{[^}]*\\})",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.html" },
+            "2": { "name": "entity.other.attribute-name.class-directive.fez" },
+            "3": { "name": "punctuation.separator.key-value.html" },
+            "4": {
+              "patterns": [{ "include": "#fez-expression" }]
+            }
+          }
+        },
+        {
+          "match": "(:)([a-zA-Z_][a-zA-Z0-9_]*)(=)(\"[^\"]*\")",
+          "captures": {
+            "1": { "name": "keyword.operator.evaluated.fez" },
+            "2": { "name": "entity.other.attribute-name.evaluated.fez" },
+            "3": { "name": "punctuation.separator.key-value.html" },
+            "4": {
+              "name": "string.quoted.double.html",
+              "patterns": [{ "include": "source.js" }]
+            }
+          }
+        }
+      ]
+    },
+    "html-attributes": {
+      "patterns": [
+        {
+          "match": "\\b(on[a-z]+)(=)(\"[^\"]*\")",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.event.html.fez" },
+            "2": { "name": "punctuation.separator.key-value.html" },
+            "3": {
+              "name": "string.quoted.double.html",
+              "patterns": [
+                {
+                  "match": "fez\\.[a-zA-Z_][a-zA-Z0-9_]*",
+                  "name": "entity.name.function.fez"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "begin": "([a-zA-Z_-][a-zA-Z0-9_-]*)(=)(\\{)",
+          "end": "(\\})",
+          "beginCaptures": {
+            "1": { "name": "entity.other.attribute-name.html" },
+            "2": { "name": "punctuation.separator.key-value.html" },
+            "3": { "name": "punctuation.definition.expression.begin.fez" }
+          },
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.expression.end.fez" }
+          },
+          "contentName": "meta.embedded.expression.fez",
+          "patterns": [
+            { "include": "source.js" }
+          ]
+        },
+        {
+          "match": "([a-zA-Z_-][a-zA-Z0-9_-]*)(=)(\"[^\"]*\")",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.html" },
+            "2": { "name": "punctuation.separator.key-value.html" },
+            "3": {
+              "name": "string.quoted.double.html",
+              "patterns": [{ "include": "#fez-expression" }]
+            }
+          }
+        },
+        {
+          "match": "([a-zA-Z_-][a-zA-Z0-9_-]*)(=)('[^']*')",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.html" },
+            "2": { "name": "punctuation.separator.key-value.html" },
+            "3": { "name": "string.quoted.single.html" }
+          }
+        },
+        {
+          "match": "\\b([a-zA-Z_-][a-zA-Z0-9_-]*)\\b(?!=)",
+          "name": "entity.other.attribute-name.html"
+        }
+      ]
+    }
+  }
+}

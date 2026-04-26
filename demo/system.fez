@@ -56,9 +56,6 @@
       setTimeout(() => window.BlockSelect.state.show = true, 700)
     }
 
-    showComponents() {
-      window.BlockSelect.state.show = true
-    }
   </script>
 
   <style>
@@ -82,7 +79,7 @@
         align-items: center;
         justify-content: space-between;
         height: 50px;
-        max-width: 1180px;
+        max-width: 1600px;
         margin: 0 auto;
         padding: 0 22px;
       }
@@ -100,48 +97,24 @@
         }
       }
 
-      nav {
-        display: flex;
-        align-items: center;
-        gap: 8px;
+      .spacer, .github-link {
+        flex: 1;
       }
 
-      nav a,
-      nav button {
+      .github-link {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-end;
         min-height: 34px;
-        padding: 0 12px;
-        border: 1px solid transparent;
-        border-radius: 6px;
+        border: none;
         background: transparent;
         color: #333;
-        cursor: pointer;
         font: inherit;
         font-size: 14px;
-        line-height: 1;
         text-decoration: none;
 
         &:hover {
-          border-color: #ddd;
-          background: #f7f7f7;
-        }
-      }
-
-      @media (max-width: 640px) {
-        .header-container {
-          padding: 0 12px;
-        }
-
-        nav {
-          gap: 2px;
-        }
-
-        nav a,
-        nav button {
-          padding: 0 8px;
-          font-size: 13px;
+          color: #000;
         }
       }
     }
@@ -182,15 +155,11 @@
 
   <header class="{state.isVisible ? 'visible' : ''}">
     <div class="header-container">
+      <div class="spacer"></div>
       <div class="logo-section" onclick="fez.scrollToTop()">
         <img src="demo/fez.png" alt="Fez Logo">
       </div>
-      <nav aria-label="Demo navigation">
-        <button onclick="fez.showComponents()">Components</button>
-        <a href="./demo/raw.html">Raw</a>
-        <a href="https://dux.github.io/fez/">Docs</a>
-        <a href="https://github.com/dux/fez">GitHub</a>
-      </nav>
+      <a class="github-link" href="https://github.com/dux/fez">GitHub</a>
     </div>
   </header>
   <div class="blur-bar {state.isVisible ? 'visible' : ''}"></div>

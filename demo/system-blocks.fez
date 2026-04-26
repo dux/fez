@@ -22,6 +22,19 @@
             sessionStorage.removeItem('scrollY')
           }
         }, 200)
+
+        const allNames = Fez.index.names()
+        const withDemo = Fez.index.withDemo()
+        const undocumented = allNames.filter(n => !withDemo.includes(n)).sort()
+        if (undocumented.length) {
+          const container = this.find('#undocumented')
+          if (container) {
+            container.innerHTML = '<h3 style="margin-top: 40px; color: #888;">Undocumented components</h3>'
+              + '<div style="display: flex; flex-wrap: wrap; gap: 8px;">'
+              + undocumented.map(n => `<code style="padding: 4px 8px; background: #f5f5f5; border-radius: 4px; font-size: 14px;">&lt;${n}&gt;</code>`).join('')
+              + '</div>'
+          }
+        }
       })
     }
 
@@ -36,6 +49,8 @@
   {#for name in state.names}
      <block-promo name={name} />
   {/for}
+
+  <div id="undocumented"></div>
 </xmp>
 
 <xmp fez="block-promo">
@@ -92,6 +107,7 @@
     }
 
     init(props) {
+      if (!props.name) return
       this.name = props.name
       Fez.fetch(`./demo/fez/${props.name}.fez`, (res) => {
         Fez.compile(props.name, res)

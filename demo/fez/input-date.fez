@@ -88,6 +88,10 @@
       })
     }
 
+    onDestroy() {
+      this.picker?.destroy()
+    }
+
     setDate(value) {
       value ||= ''
       this.state.selectedDate = value
