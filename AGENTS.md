@@ -672,6 +672,20 @@ Elements with static `fez:this` attributes automatically get stable IDs (`id="fe
 
 This is automatic - no extra configuration needed.
 
+## Slot Unwrap
+
+Use `<slot unwrap />` when children must be inserted without a wrapper div. By default, `<slot />` wraps children in a `<div class="fez-slot">`. With `unwrap`, the wrapper div is dissolved after filling, leaving children directly in the parent element.
+
+**Important:** Components using `<slot unwrap />` cannot use `this.state` - state changes trigger re-renders which would lose the unwrapped slot content. Setting state will log a console error.
+
+```html
+<!-- Default slot: children wrapped in <div class="fez-slot"> -->
+<slot />
+
+<!-- Unwrap slot: wrapper dissolved after fill, children in parent -->
+<slot unwrap />
+```
+
 ## Common Mistakes to Avoid
 
 - **Putting `META` or other class properties outside `class {}`** - they MUST be inside the class body. Module-level code (imports, `Fez.head()`) goes before the class, everything else goes inside it.

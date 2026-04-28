@@ -83,8 +83,8 @@ export default function compile(tagName, html) {
   // Multiple xmp/template tags in html? Process them
   // Check for top-level fez definitions (not ones inside <demo> blocks)
   if (hasTopLevelFezElements(html)) {
-    // Extract top-level demo/info before processing inner components
     if (tagName) {
+      Fez.index.ensure(tagName).source = html;
       const parts = compileToClass(html);
       if (parts.info?.trim()) {
         Fez.index.ensure(tagName).info = parts.info;

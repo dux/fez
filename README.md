@@ -551,7 +551,7 @@ This example showcases:
 
 - **Built-in Utilities** - Helpful methods like `formData()`, `setInterval()` (auto-cleanup), `onWindowResize()`, and `fezNextTick()`
 - **Two-Way Data Binding** - Use `fez:bind` directive for automatic form synchronization
-- **Advanced Slot System** - Full `<slot />` support with event listener preservation
+- **Advanced Slot System** - Full `<slot />` support with event listener preservation. Use `<slot unwrap />` to dissolve the wrapper div, leaving children directly in the parent
 - **Publish/Subscribe** - Built-in pub/sub system for component communication
 - **Global State Management** - Automatic subscription-based global state with `this.globalState` proxy
 - **Dynamic Component Loading** - Load components from URLs with `<template fez="path/to/component.fez">`
@@ -1015,6 +1015,13 @@ All parts are optional
     <span fez:keep="star-{i}-{rating}">
       <ui-star fill={fill} />
     </span>
+
+    <!-- Slot: children wrapped in a .fez-slot div (default) -->
+    <slot />
+
+    <!-- Slot unwrap: wrapper div dissolved, children directly in parent -->
+    <!-- Components with <slot unwrap /> cannot use this.state -->
+    <slot unwrap />
 
     <!-- :attribute for evaluated attributes (converts to JSON) -->
     <div :data-config="state.config"></div>

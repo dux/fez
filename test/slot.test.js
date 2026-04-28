@@ -548,6 +548,105 @@ describe("slot behavior", () => {
     });
   });
 
+  describe("slot unwrap - .fez-slot wrapper dissolved after fill", () => {
+    /**
+     * Simulates fezKeepNode with unwrap: fills .fez-slot, then
+     * dissolves the wrapper div, leaving children in parent.
+     */
+    function fezKeepNodeWithUnwrap(root, newNode, _fezSlotNodes) {
+      const newSlot = newNode.querySelector(".fez-slot");
+      if (newSlot && _fezSlotNodes) {
+        _fezSlotNodes.forEach((child) => newSlot.appendChild(child));
+        if (newSlot.hasAttribute("unwrap")) {
+          const parent = newSlot.parentNode;
+          while (newSlot.firstChild) {
+            parent.insertBefore(newSlot.firstChild, newSlot);
+          }
+          newSlot.remove();
+        }
+      }
+    }
+
+    function fezRenderUnwrap(root, templateHtml, _fezSlotNodes) {
+      const newNode = document.createElement("div");
+      newNode.innerHTML = templateHtml;
+      fezKeepNodeWithUnwrap(root, newNode, _fezSlotNodes);
+      morphdom(root, newNode);
+    }
+
+    test("unwrap dissolves .fez-slot wrapper, children in parent", () => {
+      const root = document.createElement("div");
+      root.classList.add("fez");
+      root.innerHTML = "<p>One</p><p>Two</p>";
+      document.body.appendChild(root);
+
+      const captured = Array.from(root.childNodes);
+
+      fezRenderUnwrap(
+        root,
+        '<h3>Title</h3><ul><div class="fez-slot" fez-keep="default-slot" unwrap></div></ul>',
+        captured,
+      );
+
+      expect(root.querySelector(".fez-slot")).toBeNull();
+      const ul = root.querySelector("ul");
+      expect(ul).not.toBeNull();
+      expect(ul.children.length).toBe(2);
+      expect(ul.children[0].textContent).toBe("One");
+      expect(ul.children[1].textContent).toBe("Two");
+
+      root.remove();
+    });
+
+    test("without unwrap attr, .fez-slot wrapper is kept", () => {
+      const root = document.createElement("div");
+      root.classList.add("fez");
+      root.innerHTML = "<p>Content</p>";
+      document.body.appendChild(root);
+
+      const captured = Array.from(root.childNodes);
+
+      fezRenderUnwrap(
+        root,
+        '<div class="fez-slot" fez-keep="default-slot"></div>',
+        captured,
+      );
+
+      const slot = root.querySelector(".fez-slot");
+      expect(slot).not.toBeNull();
+      expect(slot.children.length).toBe(1);
+      expect(slot.children[0].textContent).toBe("Content");
+
+      root.remove();
+    });
+
+    test("unwrap with mixed content preserves order", () => {
+      const root = document.createElement("div");
+      root.classList.add("fez");
+      root.appendChild(document.createTextNode("text "));
+      const b = document.createElement("b");
+      b.textContent = "bold";
+      root.appendChild(b);
+      document.body.appendChild(root);
+
+      const captured = Array.from(root.childNodes);
+
+      fezRenderUnwrap(
+        root,
+        '<div class="body"><div class="fez-slot" fez-keep="default-slot" unwrap></div></div>',
+        captured,
+      );
+
+      const body = root.querySelector(".body");
+      expect(body.querySelector(".fez-slot")).toBeNull();
+      expect(body.childNodes.length).toBe(2);
+      expect(body.childNodes[0].textContent).toBe("text ");
+      expect(body.childNodes[1].tagName).toBe("B");
+
+      root.remove();
+    });
+  });
+
   describe("childNodes() behavior", () => {
     test("before render (onInit) - returns _fezChildNodes", () => {
       // Before first render, no slot exists. childNodes() returns captured children.

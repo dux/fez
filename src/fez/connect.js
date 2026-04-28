@@ -62,6 +62,10 @@ export default function connect(name, klass) {
 
   // Process HTML template
   if (klass.html) {
+    if (/<slot\s[^>]*unwrap[\s>\/]/.test(klass.html)) {
+      klass.fezSlotUnwrap = true;
+    }
+
     klass.html = klass.html
       .replace(
         /<slot(\s[^>]*)?>/,

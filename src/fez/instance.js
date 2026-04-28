@@ -451,17 +451,23 @@ export default class FezBase {
    * fez-keep matching is handled natively by the differ (morph.js).
    */
   fezKeepNode(newNode) {
-    // First render only: move captured children into slot container.
-    // On subsequent renders the differ preserves the live .fez-slot via fez-keep.
     if (this._fezSlotInitialized) return;
+    if (!this._fezSlotNodes) return;
 
-    // Safe to use .querySelector - newNode is a fresh template with no nested components yet
     const newSlot = newNode.querySelector(".fez-slot");
-    if (newSlot && this._fezSlotNodes) {
+    if (newSlot) {
       this._fezSlotInitialized = true;
       this._fezSlotNodes.forEach((child) => {
         newSlot.appendChild(child);
       });
+
+      if (newSlot.hasAttribute("unwrap")) {
+        const parent = newSlot.parentNode;
+        while (newSlot.firstChild) {
+          parent.insertBefore(newSlot.firstChild, newSlot);
+        }
+        newSlot.remove();
+      }
     }
   }
 
@@ -481,7 +487,18 @@ export default class FezBase {
       this.class.css = Fez.globalCss(this.class.css, { name: this.fezName });
     }
 
-    this.state ||= this.fezReactiveStore();
+    if (this.class.fezSlotUnwrap) {
+      this._fezStateDisabled = true;
+      this.state = new Proxy({}, {
+        set: (t, k, v) => {
+          console.error(`Fez: <${this.fezName}> uses <slot unwrap />, this.state is disabled`);
+          return true;
+        },
+        get: (t, k) => undefined,
+      });
+    } else {
+      this.state ||= this.fezReactiveStore();
+    }
     this.globalState = Fez.state.createProxy(this);
     this.fezRegisterBindMethods();
   }

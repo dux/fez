@@ -61,6 +61,7 @@ const loadDefaults = () => {
       init(props) {
         this.state.ready = false;
         this.state.components = [];
+        this.state.undocumented = [];
         this.state.filtered = false;
         this.state.showAllUrl = "";
         this.state.allComponentsUrl = "";
@@ -79,21 +80,30 @@ const loadDefaults = () => {
           this.state.filtered = true;
         }
 
-        // Wait for components to be loaded, then render
+        const notFez = n => !n.startsWith('fez-');
+        let lastCount = 0;
+        let stableTicks = 0;
+
         const checkReady = () => {
-          // If name provided, render only that component
           if (name) {
-            if (Fez.index[name]?.demo) {
-              this.state.components = [name];
+            if (Fez.index[name]?.class) {
+              this.state.components = Fez.index[name]?.demo ? [name] : [];
               this.state.ready = true;
             } else {
               setTimeout(checkReady, 100);
             }
           } else {
-            // Render all components that have demos
-            const names = Fez.index.withDemo().sort();
-            if (names.length > 0) {
-              this.state.components = names;
+            const all = Fez.index.names().filter(notFez);
+            if (all.length > 0 && all.length === lastCount) {
+              stableTicks++;
+            } else {
+              stableTicks = 0;
+            }
+            lastCount = all.length;
+
+            if (stableTicks >= 2) {
+              this.state.components = Fez.index.withDemo().filter(notFez).sort();
+              this.state.undocumented = all.filter(n => !Fez.index[n]?.demo).sort();
               this.state.ready = true;
             } else {
               setTimeout(checkReady, 100);
@@ -113,7 +123,7 @@ const loadDefaults = () => {
           "Fez source: " +
             name +
             "\n\n" +
-            (Fez.index[name]?.source || "Source not available"),
+            (Fez.index[name]?.source || "Made via raw Fez API, source not available"),
         );
       }
 
@@ -303,6 +313,8 @@ const loadDefaults = () => {
       .fez-demo-content {
         min-height: 50px;
         text-align: left;
+        h3, h4, h5 { margin: 16px 0 8px; }
+        h3:first-child, h4:first-child, h5:first-child { margin-top: 0; }
       }
       .fez-demo-info {
         text-align: left;
@@ -318,6 +330,13 @@ const loadDefaults = () => {
         margin-top: 30px;
         display: flex;
         gap: 10px;
+      }
+      .fez-demo-undocumented {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #ddd;
+        h3 { font-size: 16px; font-weight: 600; color: #6b7280; margin: 0 0 12px; }
+        .fez-demo-undocumented-list { display: flex; flex-wrap: wrap; gap: 8px; }
       }
       .fez-demo-btn {
         padding: 8px 16px;
@@ -360,6 +379,16 @@ const loadDefaults = () => {
             </div>
           </div>
         {/each}
+        {#if state.undocumented.length}
+          <div class="fez-demo-undocumented">
+            <h3>Undocumented</h3>
+            <div class="fez-demo-undocumented-list">
+              {#each state.undocumented as name}
+                <button class="fez-demo-btn" onclick="fez.showFez('{name}')">{name}</button>
+              {/each}
+            </div>
+          </div>
+        {/if}
       {:else}
         <div style="text-align: center; color: #888;">Loading components...</div>
       {/if}`;
