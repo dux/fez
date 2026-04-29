@@ -16,13 +16,11 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "fez": "bin/fez",
-    "fez-compile": "bin/fez-compile",
-    "fez-index": "bin/fez-index",
-    "fez-template": "bin/fez-template"
+    "fez": "bin/fez"
   },
   "files": [
     "bin",
+    "browser-ai",
     "dist",
     "src",
     "fez.d.ts",

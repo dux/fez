@@ -27,6 +27,10 @@ bunx @dinoreic/fez compile demo/fez/ui-counter.fez
 
 # Validate only the template block
 bunx @dinoreic/fez template demo/fez/ui-counter.fez
+
+# Start the AI browser bridge server for development eval
+bunx @dinoreic/fez ai-server
+bunx @dinoreic/fez ai-server --port 48000
 ```
 
 Or install globally:
@@ -35,6 +39,7 @@ Or install globally:
 bun add -g @dinoreic/fez
 fez compile my-component.fez
 fez template my-component.fez
+fez ai-server
 ```
 
 `fez compile` validates both JavaScript and Fez template syntax. Use `--debug-template` when a template compile error needs the generated render function:
@@ -45,6 +50,57 @@ fez template --debug my-component.fez
 ```
 
 `.fez` files are compiled with Fez's own template compiler (`src/fez/lib/template-compiler.js`). The Svelte compiler is only for `.svelte` files.
+
+## AI Browser Bridge
+
+The AI browser bridge lets an AI agent (or any HTTP client) evaluate JavaScript in a connected browser page. It is for local development only.
+
+### Quick start
+
+```bash
+# Start the server
+fez ai-server
+
+# Check if it is running
+curl -s http://127.0.0.1:47832/health
+```
+
+Add the client script to your page (dev only):
+
+```html
+<script src="http://127.0.0.1:47832/bridge.js" async></script>
+```
+
+The client only activates on localhost with page ports above 2999. It auto-connects with exponential backoff and silently does nothing if the server is not running.
+
+```bash
+# Evaluate an expression in the most recently focused page
+curl -s http://127.0.0.1:47832/ask \
+  -H 'content-type: application/json' \
+  -d '{"expr":"document.title"}'
+
+# Run statements (use body instead of expr)
+curl -s http://127.0.0.1:47832/ask \
+  -H 'content-type: application/json' \
+  -d '{"body":"return { href: location.href, title: document.title }"}'
+```
+
+When multiple tabs are connected, the server picks the most relevant one (focused > visible > most recently active). Use `clientId` or `urlIncludes` to target a specific tab.
+
+### Browser console
+
+All `console.log/warn/error/info/debug` calls and uncaught errors are forwarded to the server. They print to the server terminal in real time and are buffered for API access:
+
+```bash
+# Get recent console output
+curl -s http://127.0.0.1:47832/console
+
+# Filter by level, limit count
+curl -s http://127.0.0.1:47832/console?level=error&last=10
+
+# Clear the buffer
+curl -s -X DELETE http://127.0.0.1:47832/console
+```
 
 ## Why Fez is Simpler
 

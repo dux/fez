@@ -36,7 +36,43 @@ fez template path/to/component.fez
 # Print generated template function body when template compilation fails
 fez compile --debug-template path/to/component.fez
 fez template --debug path/to/component.fez
+
+# Start the AI browser bridge server (local dev only, default port 47832)
+fez ai-server
+fez ai-server --port 48000
 ```
+
+## AI Browser Bridge
+
+Evaluate JavaScript in a live browser page during local development.
+
+Start: `fez ai-server` (port 47832, override with `--port`)
+
+Browser loads the client automatically from the server:
+
+```html
+<script src="http://127.0.0.1:47832/bridge.js" async></script>
+```
+
+Use:
+
+```bash
+curl -s http://127.0.0.1:47832/ask \
+  -H 'content-type: application/json' \
+  -d '{"expr":"document.title"}'
+
+curl -s http://127.0.0.1:47832/ask \
+  -H 'content-type: application/json' \
+  -d '{"body":"return { href: location.href, title: document.title }"}'
+
+# Browser console output (log/warn/error/info/debug + uncaught errors)
+curl -s http://127.0.0.1:47832/console
+curl -s http://127.0.0.1:47832/console?level=error
+curl -s http://127.0.0.1:47832/console?level=error&last=10
+curl -s -X DELETE http://127.0.0.1:47832/console
+```
+
+Console output is also printed to the server terminal in real time.
 
 `.fez` files use Fez's own template compiler (`src/fez/lib/template-compiler.js`), not the Svelte compiler. Use the Svelte compiler only for `.svelte` files.
 

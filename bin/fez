@@ -2,7 +2,6 @@
 
 require 'pathname'
 
-# Resolve the actual bin directory (handles symlinks from bunx/npx)
 bin_dir = Pathname.new(__FILE__).realpath.dirname
 
 command = ARGV[0]
@@ -10,21 +9,21 @@ args = ARGV[1..-1]
 
 if command.nil? || command == '--help' || command == '-h'
   subcommands = Dir[bin_dir.join("fez-*")].map do |path|
-    File.basename(path).sub(/^fez-/, '')
-  end.sort
+    name = File.basename(path).sub(/^fez-/, '')
+    info = `#{path} --info 2>/dev/null`.strip
+    [name, info]
+  end.sort_by(&:first)
 
-  puts "Usage: fez <command> [<args>]"
+  max = subcommands.map { |name, _| name.length }.max
+
+  puts "Usage: fez <command> [options]"
   puts ""
-  puts "Available commands: #{subcommands.join(', ')}"
-
-  subcommands.each do |cmd|
-    cmd_path = bin_dir.join("fez-#{cmd}")
-    help = `#{cmd_path} --help 2>&1`.strip
-    next if help.empty?
-    puts ""
-    puts help.gsub(/^/, '  ')
+  puts "Commands:"
+  subcommands.each do |name, info|
+    puts "  %-#{max}s  %s" % [name, info]
   end
-
+  puts ""
+  puts "Run 'fez <command> --help' for details on a specific command."
   exit 0
 end
 
@@ -33,6 +32,6 @@ subcommand_path = bin_dir.join("fez-#{command}")
 if File.exist?(subcommand_path) && File.executable?(subcommand_path)
   exec(subcommand_path.to_s, *args)
 else
-  puts "fez: '#{command}' is not a fez command. See 'fez --help'."
+  $stderr.puts "fez: '#{command}' is not a fez command. See 'fez --help'."
   exit 1
 end
