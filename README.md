@@ -29,8 +29,8 @@ bunx @dinoreic/fez compile demo/fez/ui-counter.fez
 bunx @dinoreic/fez template demo/fez/ui-counter.fez
 
 # Start the AI browser bridge server for development eval
-bunx @dinoreic/fez ai-server
-bunx @dinoreic/fez ai-server --port 48000
+bunx @dinoreic/fez ai-bridge
+bunx @dinoreic/fez ai-bridge --port 48000
 ```
 
 Or install globally:
@@ -39,7 +39,7 @@ Or install globally:
 bun add -g @dinoreic/fez
 fez compile my-component.fez
 fez template my-component.fez
-fez ai-server
+fez ai-bridge
 ```
 
 `fez compile` validates both JavaScript and Fez template syntax. Use `--debug-template` when a template compile error needs the generated render function:
@@ -59,7 +59,7 @@ The AI browser bridge lets an AI agent (or any HTTP client) evaluate JavaScript 
 
 ```bash
 # Start the server
-fez ai-server
+fez ai-bridge
 
 # Check if it is running
 curl -s http://127.0.0.1:47832/health

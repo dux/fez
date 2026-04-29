@@ -149,6 +149,51 @@
     send({ type: "console", level: "error", args: [serialize("Unhandled rejection: " + msg)], page: describe() });
   });
 
+  var origFetch = window.fetch;
+  window.fetch = function () {
+    var url = arguments[0];
+    var opts = arguments[1] || {};
+    var method = (opts.method || "GET").toUpperCase();
+    if (typeof url === "object" && url.url) url = url.url;
+    var startTime = Date.now();
+
+    return origFetch.apply(this, arguments).then(function (res) {
+      send({ type: "network", method: method, url: String(url), status: res.status, duration: Date.now() - startTime, ok: res.ok, page: describe() });
+      if (!res.ok) {
+        res.clone().text().then(function (body) {
+          send({ type: "console", level: "error", args: [serialize("HTTP " + res.status + " " + method + " " + url), serialize(body.slice(0, 500))], page: describe() });
+        }).catch(function () {});
+      }
+      return res;
+    }).catch(function (err) {
+      send({ type: "network", method: method, url: String(url), status: 0, duration: Date.now() - startTime, ok: false, error: err.message, page: describe() });
+      throw err;
+    });
+  };
+
+  var origXhrOpen = XMLHttpRequest.prototype.open;
+  var origXhrSend = XMLHttpRequest.prototype.send;
+
+  XMLHttpRequest.prototype.open = function (method, url) {
+    this.__aiBridge = { method: method.toUpperCase(), url: String(url), startTime: 0 };
+    return origXhrOpen.apply(this, arguments);
+  };
+
+  XMLHttpRequest.prototype.send = function () {
+    var xhr = this;
+    var info = xhr.__aiBridge;
+    if (info) {
+      info.startTime = Date.now();
+      xhr.addEventListener("loadend", function () {
+        send({ type: "network", method: info.method, url: info.url, status: xhr.status, duration: Date.now() - info.startTime, ok: xhr.status >= 200 && xhr.status < 400, page: describe() });
+        if (xhr.status >= 400) {
+          send({ type: "console", level: "error", args: [serialize("HTTP " + xhr.status + " " + info.method + " " + info.url), serialize((xhr.responseText || "").slice(0, 500))], page: describe() });
+        }
+      });
+    }
+    return origXhrSend.apply(this, arguments);
+  };
+
   window.__aiBridge = { reconnect: connect, describe: describe, sendPage: sendPage };
 
   connect();

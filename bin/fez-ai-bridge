@@ -1,0 +1,184 @@
+#!/usr/bin/env bun
+
+import { parseArgs } from 'util'
+import path from 'path'
+
+const INFO = 'AI browser bridge - server, eval, and console'
+const DEFAULT_PORT = 47832
+
+const { values, positionals } = parseArgs({
+  args: Bun.argv.slice(2),
+  options: {
+    help: { type: 'boolean', short: 'h' },
+    info: { type: 'boolean' },
+    port: { type: 'string', short: 'p' },
+    console: { type: 'boolean', short: 'c' },
+    network: { type: 'boolean' },
+    errors: { type: 'boolean', short: 'e' },
+    level: { type: 'string', short: 'l' },
+    last: { type: 'string', short: 'n' },
+    body: { type: 'boolean', short: 'b' },
+    clear: { type: 'boolean' },
+  },
+  allowPositionals: true,
+})
+
+if (values.info) {
+  console.log(INFO)
+  process.exit(0)
+}
+
+if (values.help) {
+  console.log(`Usage: fez ai-bridge [options] [expression]
+
+${INFO}
+
+Setup:
+  1. Add to your page (dev only):
+     <script src="http://127.0.0.1:${DEFAULT_PORT}/bridge.js" async></script>
+  2. Start the server:
+     fez ai-bridge
+
+  The client script only activates on localhost with port > 2999.
+  If the server is not running, the script silently does nothing.
+
+Modes:
+  fez ai-bridge                     Start the server
+  fez ai-bridge "document.title"    Eval expression in browser, print result
+  fez ai-bridge -b "return 1+2"    Eval statements (body mode)
+  fez ai-bridge --console           Show recent browser console output
+  fez ai-bridge -c -l error        Show only errors
+  fez ai-bridge -c --clear          Clear console buffer
+  fez ai-bridge --network           Show recent network requests
+  fez ai-bridge --network -e        Show only failed requests
+
+Options:
+  -h, --help        Show this help message
+  -p, --port PORT   Server port (default: ${DEFAULT_PORT})
+  -c, --console     Fetch browser console logs
+  -l, --level LVL   Filter console by level (log, warn, error, info, debug)
+  -n, --last N      Number of entries (default: 50, works with --console and --network)
+  -e, --errors      Show only failed requests (with --network)
+  -b, --body        Eval as statements instead of expression
+      --clear       Clear buffer (with --console or --network)
+      --network     Fetch browser network request log
+
+HTTP API (for scripts and agents):
+  GET  /bridge.js           Browser client script
+  GET  /health              Server status
+  GET  /clients             Connected browser tabs
+  GET  /console             Console log buffer (?level=error&last=10)
+  GET  /network             Network request log (?errors=1&last=10)
+  POST /ask                 Eval code: { expr?: string, body?: string }
+  WS   /socket              WebSocket endpoint for browser clients
+`)
+  process.exit(0)
+}
+
+const port = Number(values.port || Bun.env.AI_BRIDGE_PORT || DEFAULT_PORT)
+const base = `http://127.0.0.1:${port}`
+
+if (values.console) {
+  if (values.clear) {
+    const res = await fetch(`${base}/console`, { method: 'DELETE' }).catch(() => null)
+    if (!res) { console.error('ai-bridge server not running'); process.exit(1) }
+    console.log('Console cleared.')
+    process.exit(0)
+  }
+
+  const params = new URLSearchParams()
+  if (values.level) params.set('level', values.level)
+  if (values.last) params.set('last', values.last)
+  const url = `${base}/console${params.toString() ? '?' + params : ''}`
+  const res = await fetch(url).catch(() => null)
+  if (!res) { console.error('ai-bridge server not running'); process.exit(1) }
+
+  const data = await res.json()
+  const COLORS = { error: '\x1b[31m', warn: '\x1b[33m', info: '\x1b[36m', debug: '\x1b[90m', log: '' }
+  const RESET = '\x1b[0m'
+
+  for (const entry of data.logs) {
+    const color = COLORS[entry.level] || ''
+    const tag = entry.level.toUpperCase().padEnd(5)
+    const args = (entry.args || []).map(a => {
+      if (!a) return ''
+      if (a.type === 'json') return typeof a.value === 'string' ? a.value : JSON.stringify(a.value)
+      return a.value != null ? String(a.value) : ''
+    }).join(' ')
+    const page = entry.title || entry.url || ''
+    console.log(`${color}[${tag}]${RESET} ${args}  \x1b[90m${page}${RESET}`)
+  }
+
+  process.exit(0)
+}
+
+if (values.network) {
+  if (values.clear) {
+    const res = await fetch(`${base}/network`, { method: 'DELETE' }).catch(() => null)
+    if (!res) { console.error('ai-bridge server not running'); process.exit(1) }
+    console.log('Network log cleared.')
+    process.exit(0)
+  }
+
+  const params = new URLSearchParams()
+  if (values.errors) params.set('errors', '1')
+  if (values.last) params.set('last', values.last)
+  const url = `${base}/network${params.toString() ? '?' + params : ''}`
+  const res = await fetch(url).catch(() => null)
+  if (!res) { console.error('ai-bridge server not running'); process.exit(1) }
+
+  const data = await res.json()
+  const RESET = '\x1b[0m'
+
+  for (const entry of data.logs) {
+    const color = entry.ok ? '\x1b[32m' : '\x1b[31m'
+    const status = entry.status || 'ERR'
+    console.log(`${color}${String(status).padStart(3)}${RESET} ${entry.method.padEnd(4)} ${entry.url}  \x1b[90m${entry.duration}ms${RESET}`)
+  }
+
+  process.exit(0)
+}
+
+if (positionals.length > 0) {
+  const code = positionals.join(' ')
+  const payload = values.body ? { body: code } : { expr: code }
+
+  const res = await fetch(`${base}/ask`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch(() => null)
+
+  if (!res) { console.error('ai-bridge server not running'); process.exit(1) }
+
+  const data = await res.json()
+
+  if (data.error) {
+    console.error(data.error)
+    process.exit(1)
+  }
+
+  const r = data.response
+  if (r && r.ok) {
+    const result = r.result
+    if (result && result.type === 'json') {
+      console.log(typeof result.value === 'string' ? result.value : JSON.stringify(result.value, null, 2))
+    } else if (result && result.type === 'string') {
+      console.log(result.value)
+    } else if (result && result.type === 'undefined') {
+      console.log('undefined')
+    }
+  } else if (r && !r.ok) {
+    console.error(r.error?.message || 'Eval error')
+    process.exit(1)
+  }
+
+  process.exit(0)
+}
+
+if (values.port) {
+  process.env.AI_BRIDGE_PORT = values.port
+}
+
+const serverPath = path.join(import.meta.dirname, '../browser-ai/server.js')
+await import(serverPath)

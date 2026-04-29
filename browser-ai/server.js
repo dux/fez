@@ -9,7 +9,7 @@ const STALE_TIMEOUT_MS = 90_000;
 const clientJs = readFileSync(join(import.meta.dirname, "client.js"), "utf-8");
 
 if (Bun.argv.includes("--help") || Bun.argv.includes("-h")) {
-  console.log(`Usage: fez ai-server [--port PORT]
+  console.log(`Usage: fez ai-bridge [--port PORT]
 
 Starts the local AI bridge server for development browser eval.
 
@@ -28,7 +28,9 @@ if (!Number.isInteger(port) || port <= 2999) {
 const clients = new Map();
 const pending = new Map();
 const consoleLogs = [];
+const networkLogs = [];
 const MAX_CONSOLE_LOGS = 500;
+const MAX_NETWORK_LOGS = 500;
 
 const LEVEL_COLORS = { error: "\x1b[31m", warn: "\x1b[33m", info: "\x1b[36m", debug: "\x1b[90m", log: "\x1b[37m" };
 const RESET = "\x1b[0m";
@@ -59,6 +61,27 @@ const handleConsoleMessage = (message, clientId) => {
   const text = message.args.map(formatConsoleArg).join(" ");
   const page = message.page?.title || message.page?.href || "";
   console.log(`${color}[${tag}]${RESET} ${text}  ${RESET}\x1b[90m(${page})${RESET}`);
+};
+
+const handleNetworkMessage = (message, clientId) => {
+  const entry = {
+    method: message.method,
+    url: message.url,
+    status: message.status,
+    duration: message.duration,
+    ok: message.ok,
+    error: message.error,
+    clientId,
+    ts: new Date().toISOString(),
+  };
+
+  networkLogs.push(entry);
+  if (networkLogs.length > MAX_NETWORK_LOGS) networkLogs.shift();
+
+  if (!message.ok) {
+    const status = message.status || "ERR";
+    console.log(`\x1b[31m[NET  ]\x1b[0m ${status} ${message.method} ${message.url} ${message.duration}ms${message.error ? " - " + message.error : ""}  \x1b[90m(${message.page?.title || message.page?.href || ""})\x1b[0m`);
+  }
 };
 
 const json = (body, init = {}) => {
@@ -189,6 +212,18 @@ try {
       return json({ ok: true });
     }
 
+    if (url.pathname === "/network" && request.method === "GET") {
+      const last = Number(url.searchParams.get("last") || 50);
+      const errors = url.searchParams.get("errors");
+      let logs = errors ? networkLogs.filter((e) => !e.ok) : networkLogs;
+      return json({ logs: logs.slice(-last) });
+    }
+
+    if (url.pathname === "/network" && request.method === "DELETE") {
+      networkLogs.length = 0;
+      return json({ ok: true });
+    }
+
     if (url.pathname === "/ask" && request.method === "POST") {
       const body = await parseJson(request);
 
@@ -224,6 +259,7 @@ try {
         health: "GET /health",
         clients: "GET /clients",
         console: "GET /console?level=error&last=50 | DELETE /console",
+        network: "GET /network?errors=1&last=50 | DELETE /network",
         ask: "POST /ask { expr?, body?, clientId?, urlIncludes? }",
         socket: "WS /socket",
       },
@@ -269,6 +305,11 @@ try {
 
       if (message.type === "console") {
         handleConsoleMessage(message, id);
+        return;
+      }
+
+      if (message.type === "network") {
+        handleNetworkMessage(message, id);
         return;
       }
 

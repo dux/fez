@@ -38,15 +38,15 @@ fez compile --debug-template path/to/component.fez
 fez template --debug path/to/component.fez
 
 # Start the AI browser bridge server (local dev only, default port 47832)
-fez ai-server
-fez ai-server --port 48000
+fez ai-bridge
+fez ai-bridge --port 48000
 ```
 
 ## AI Browser Bridge
 
 Evaluate JavaScript in a live browser page during local development.
 
-Start: `fez ai-server` (port 47832, override with `--port`)
+Start: `fez ai-bridge` (port 47832, override with `--port`)
 
 Browser loads the client automatically from the server:
 
