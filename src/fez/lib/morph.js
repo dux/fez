@@ -1,11 +1,11 @@
 /**
- * fez-morph - Component-aware DOM differ for Fez
+ * nodeMorph - Pluggable DOM differ
  *
- * Replaces Idiomorph with a simpler, Fez-specific algorithm that:
- * - Matches fez components by UID (never morphs them, only moves/preserves/destroys)
- * - Matches keyed elements by fez-keep attribute (preserved entirely)
- * - Matches elements by id (morphed in place)
- * - Falls back to tag+position matching
+ * A simple, hook-driven DOM differ that:
+ * - Matches keyed elements by id, key, or fez-keep attribute
+ * - Lets callers extend keying via describeOld/describeNew (used by fez to match live
+ *   component instances by UID and template placeholders by class)
+ * - Falls back to tag+class similarity scoring for unkeyed siblings
  * - Uses classList.add/remove for class sync (preserves CSS animations)
  * - Skips value sync on focused INPUT/TEXTAREA/SELECT
  */
@@ -18,18 +18,20 @@
  * Morph target element to match newNode structure.
  * Mutates target in-place. newNode is consumed (nodes may be moved out of it).
  *
+ * The target's own attributes are NOT touched - only its children are diffed.
+ *
  * @param {Element} target  - live DOM element to update
  * @param {Element} newNode - detached element with desired state
  * @param {Object}  opts
- * @param {Function} opts.skipNode(oldNode)    - return true to preserve subtree as-is
- * @param {Function} opts.beforeRemove(node)   - called before removing a node
+ * @param {Function} [opts.describeOld(oldNode)] - return { key, aliases?, preserve?, softMatch? } or null
+ * @param {Function} [opts.describeNew(newNode)] - return primary key string or null
+ * @param {Function} [opts.skipNode(oldNode)]    - return true to preserve subtree as-is
+ * @param {Function} [opts.beforeRemove(node)]   - called before removing a node
  */
-export function fezMorph(target, newNode, opts = {}) {
+export function nodeMorph(target, newNode, opts = {}) {
   // NOTE: We do NOT sync root element attributes here.
-  // The root is the component wrapper (class="fez fez-name goXXX") managed by Fez,
-  // not by the template. Syncing root attrs would strip component CSS classes.
-
-  // Diff children recursively
+  // Callers may set root attributes (e.g. component wrappers); diffing them
+  // would surprise the caller.
   diffChildren(target, newNode, opts);
 
   // Clean up trailing whitespace text node (matches old behavior)
@@ -38,6 +40,9 @@ export function fezMorph(target, newNode, opts = {}) {
     next.remove();
   }
 }
+
+// Back-compat alias
+export const fezMorph = nodeMorph;
 
 // ---------------------------------------------------------------------------
 // Attribute Sync
@@ -123,60 +128,48 @@ function isFormInput(node) {
 // Node Keys
 // ---------------------------------------------------------------------------
 
-function getNodeKey(node) {
+/**
+ * Built-in attribute keying. Same logic for old and new nodes.
+ * Returns { key, preserve } or null.
+ */
+function builtinKey(node) {
   if (node.nodeType !== 1) return null;
 
-  // Fez component - match by UID
-  if (node.classList?.contains("fez") && node.fez) {
-    return "fez-uid-" + node.fez.UID;
-  }
-
-  // fez-keep attribute
   const keepKey = node.getAttribute?.("fez-keep");
-  if (keepKey) return "keep-" + keepKey;
+  if (keepKey) return { key: "keep-" + keepKey, preserve: true };
 
-  // key attribute (auto-generated or user-provided)
   const key = node.getAttribute?.("key");
-  if (key) return "key-" + key;
+  if (key) return { key: "key-" + key, preserve: false };
 
-  // id attribute
   const id = node.id;
-  if (id) return "id-" + id;
+  if (id) return { key: "id-" + id, preserve: false };
 
   return null;
 }
 
 /**
- * For new (template) nodes, get the key they SHOULD match against.
- * New nodes don't have .fez instances, but they may have fez-keep or id.
+ * Resolve descriptor for an old (live) node.
+ * Caller hook wins; falls back to built-in attribute keying.
  */
-function getNewNodeKey(node) {
-  if (node.nodeType !== 1) return null;
-
-  // fez-keep attribute
-  const keepKey = node.getAttribute?.("fez-keep");
-  if (keepKey) return "keep-" + keepKey;
-
-  // key attribute (auto-generated or user-provided)
-  const key = node.getAttribute?.("key");
-  if (key) return "key-" + key;
-
-  // id attribute
-  const id = node.id;
-  if (id) return "id-" + id;
-
-  // Check if this is a placeholder for a fez component (has fez class)
-  // New template nodes don't have .fez but may have class="fez fez-name"
-  if (node.classList?.contains("fez")) {
-    // Match by fez-name class
-    for (const cls of node.classList) {
-      if (cls.startsWith("fez-") && cls !== "fez") {
-        return "fez-class-" + cls;
-      }
-    }
+function describeOld(node, opts) {
+  if (opts.describeOld) {
+    const d = opts.describeOld(node);
+    if (d) return d;
   }
+  return builtinKey(node);
+}
 
-  return null;
+/**
+ * Resolve key for a new (template) node.
+ * Caller hook wins; falls back to built-in attribute keying.
+ */
+function describeNewKey(node, opts) {
+  if (opts.describeNew) {
+    const k = opts.describeNew(node);
+    if (k) return k;
+  }
+  const b = builtinKey(node);
+  return b ? b.key : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -208,27 +201,18 @@ function diffChildren(target, newParent, opts) {
     return;
   }
 
-  // Build key map for old children
-  // A node can have multiple keys (e.g., fez component has UID key + id key)
+  // Build key map for old children.
+  // A node may register under multiple keys (primary + aliases).
   const oldByKey = new Map();
+  const oldDescriptors = new Map(); // node -> descriptor
   for (const child of oldChildren) {
-    const key = getNodeKey(child);
-    if (key) {
-      oldByKey.set(key, child);
-      // Fez components also match by id and class (template placeholders have no .fez)
-      if (key.startsWith("fez-uid-")) {
-        if (child.id) {
-          oldByKey.set("id-" + child.id, child);
-        }
-        // Also match by fez-name class (e.g., "fez-class-fez-my-comp")
-        if (child.classList) {
-          for (const cls of child.classList) {
-            if (cls.startsWith("fez-") && cls !== "fez") {
-              oldByKey.set("fez-class-" + cls, child);
-              break;
-            }
-          }
-        }
+    const desc = describeOld(child, opts);
+    if (!desc) continue;
+    oldDescriptors.set(child, desc);
+    oldByKey.set(desc.key, child);
+    if (desc.aliases) {
+      for (const alias of desc.aliases) {
+        if (!oldByKey.has(alias)) oldByKey.set(alias, child);
       }
     }
   }
@@ -237,14 +221,15 @@ function diffChildren(target, newParent, opts) {
   const matches = []; // [{old, new, preserve}]
   const usedOld = new Set();
 
-  // Pass 1a: match by key (fez-keep, id, fez UID)
+  // Pass 1a: match by key
   for (let i = 0; i < newChildren.length; i++) {
     const newChild = newChildren[i];
-    const key = getNewNodeKey(newChild);
+    const key = describeNewKey(newChild, opts);
 
     if (key && oldByKey.has(key)) {
       const oldChild = oldByKey.get(key);
-      const preserve = key.startsWith("keep-") || key.startsWith("fez-uid-");
+      const desc = oldDescriptors.get(oldChild);
+      const preserve = !!desc?.preserve;
       matches.push({ old: oldChild, new: newChild, preserve });
       usedOld.add(oldChild);
     } else {
@@ -264,23 +249,20 @@ function diffChildren(target, newParent, opts) {
     if (matches[i].old) continue; // already matched
 
     const newChild = matches[i].new;
-    // Don't soft-match new nodes that have a fez-keep key
-    if (
-      getNewNodeKey(newChild) &&
-      getNewNodeKey(newChild).startsWith("keep-")
-    ) {
-      continue;
+    // Don't soft-match new nodes that have a preserve key (e.g. fez-keep).
+    // They were keyed for an exact match; soft-matching by tag would be wrong.
+    if (newChild.nodeType === 1) {
+      const b = builtinKey(newChild);
+      if (b?.preserve) continue;
     }
 
     for (let j = 0; j < unmatchedOld.length; j++) {
       const candidate = unmatchedOld[j];
-      // Don't soft-match old nodes that have fez-keep or are fez components
-      if (
-        candidate.nodeType === 1 &&
-        (candidate.getAttribute?.("fez-keep") ||
-          (candidate.classList?.contains("fez") && candidate.fez))
-      ) {
-        continue;
+      // Caller can opt nodes out of soft-matching (e.g. fez components, fez-keep)
+      if (candidate.nodeType === 1) {
+        const desc = oldDescriptors.get(candidate);
+        if (desc?.preserve) continue;
+        if (desc && desc.softMatch === false) continue;
       }
       const score = scoreSoftMatch(candidate, newChild);
       if (score > 0) {
@@ -323,7 +305,7 @@ function diffChildren(target, newParent, opts) {
       const newChild = match.new;
 
       if (match.preserve) {
-        // fez-keep or fez component: preserve entirely, just ensure position
+        // preserve entirely, just ensure position
         if (oldChild !== cursor) {
           target.insertBefore(oldChild, cursor);
         } else {
@@ -346,7 +328,7 @@ function diffChildren(target, newParent, opts) {
       } else if (oldChild.nodeType === 1 && newChild.nodeType === 1) {
         // Both elements
         if (opts.skipNode && opts.skipNode(oldChild)) {
-          // Skip this subtree entirely (fez component via skipNode callback)
+          // Skip this subtree entirely
         } else if (oldChild.nodeName === newChild.nodeName) {
           // Same tag: sync attributes and recurse
           syncAttributes(oldChild, newChild);

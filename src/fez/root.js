@@ -18,7 +18,7 @@
 // =============================================================================
 
 import Gobber from './vendor/gobber.js';
-import { fezMorph } from './lib/morph.js';
+import attachMorph from './lib/fez-morph.js';
 import objectDump from './utils/dump.js';
 import highlightAll from './utils/highlight_all.js';
 import connect from './connect.js';
@@ -204,39 +204,10 @@ Fez.globalCss = (cssClass, opts = {}) => {
 };
 
 // =============================================================================
-// DOM MORPHING
+// DOM MORPHING (see lib/fez-morph.js)
 // =============================================================================
 
-/**
- * Morph DOM node to new state (via fez-morph)
- * Child fez components are automatically preserved (skipped from morphing)
- * Use fez-keep attribute for explicit element preservation
- * @param {Element} target - Element to morph
- * @param {Element} newNode - New state
- */
-Fez.morphdom = (target, newNode) => {
-  fezMorph(target, newNode, {
-    // Preserve child fez components - skip morphing them entirely
-    skipNode: (oldNode) => {
-      if (oldNode.classList?.contains('fez') && oldNode.fez && !oldNode.fez._destroyed) {
-        if (Fez.LOG) {
-          console.log(
-            `Fez: preserved child component ${oldNode.fez.fezName} (UID ${oldNode.fez.UID})`,
-          );
-        }
-        return true;
-      }
-      return false;
-    },
-
-    // Cleanup destroyed fez components
-    beforeRemove: (node) => {
-      if (node.classList?.contains('fez') && node.fez) {
-        node.fez.fezOnDestroy();
-      }
-    },
-  });
-};
+attachMorph(Fez);
 
 // =============================================================================
 // PUB/SUB SYSTEM (see lib/pubsub.js)
