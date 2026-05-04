@@ -27,16 +27,25 @@
 </demo>
 
 <script>
-  Fez.head({importmap: {
-    "three": "https://esm.sh/three@0.160.0",
-    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/"
-  }})
+  const THREE_CDN = 'https://esm.sh/three@0.160.0'
 
-  import * as THREE from 'three'
-  import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
-  import { FontLoader } from 'three/addons/loaders/FontLoader.js'
-  import { TextGeometry } from 'three/addons/geometries/TextGeometry.js'
+  let THREE, OrbitControls, GLTFLoader, FontLoader, TextGeometry
+
+  async function loadThree() {
+    if (THREE) return
+    const [three, orbit, gltf, font, text] = await Promise.all([
+      import(`${THREE_CDN}`),
+      import(`${THREE_CDN}/examples/jsm/controls/OrbitControls.js`),
+      import(`${THREE_CDN}/examples/jsm/loaders/GLTFLoader.js`),
+      import(`${THREE_CDN}/examples/jsm/loaders/FontLoader.js`),
+      import(`${THREE_CDN}/examples/jsm/geometries/TextGeometry.js`),
+    ])
+    THREE = three
+    OrbitControls = orbit.OrbitControls
+    GLTFLoader = gltf.GLTFLoader
+    FontLoader = font.FontLoader
+    TextGeometry = text.TextGeometry
+  }
 
   class {
 
@@ -84,13 +93,15 @@
       this.loadButton.addEventListener('click', () => this.startLoading())
     }
 
-    startLoading() {
+    async startLoading() {
       if (this.isLoaded) return
       this.isLoaded = true
 
       // Hide button, show spinner
       this.loadButton.style.display = 'none'
       this.loadingOverlay.querySelector('.spinner').style.display = 'block'
+
+      await loadThree()
 
       if (this.editable) {
         this.textInput = this.find('.text-input')

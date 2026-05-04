@@ -38,12 +38,16 @@ Just a simple text area with **markdown** support.
 </demo>
 
 <script>
+  // Tiptap/prosemirror need a single shared instance of @tiptap/pm across
+  // packages. esm.sh dedupes transitive deps server-side; jsdelivr's +esm
+  // bundles each package with its own copy and triggers prosemirror's
+  // "Adding different instances of a keyed plugin" RangeError.
   import { Editor, Node, Extension, mergeAttributes } from 'https://esm.sh/@tiptap/core@2'
   import { Plugin, PluginKey } from 'https://esm.sh/@tiptap/pm@2/state'
   import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2'
   import Link from 'https://esm.sh/@tiptap/extension-link@2'
   import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder@2'
-  import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
+  import { marked } from 'https://cdn.jsdelivr.net/npm/marked/+esm'
   import TurndownService from 'https://esm.sh/turndown@7'
 
   // Generic block extension factory

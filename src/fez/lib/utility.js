@@ -102,16 +102,17 @@ export default (Fez) => {
 
     if (config.script) {
       if (config.script.includes("import ")) {
-        if (callback) {
-          Fez.consoleError(
-            "Fez.head callback is not supported when script with import is passed (module context).",
-          );
-        }
-
-        // Evaluate inline script in context in the module
+        // Evaluate inline script in module context.
+        // The module's import graph resolves asynchronously - fire callback
+        // on the script element's load/error events so callers know when
+        // top-level code has actually run.
         const script = document.createElement("script");
         script.type = "module";
         script.textContent = config.script;
+        if (callback) {
+          script.addEventListener("load", () => callback(null));
+          script.addEventListener("error", (e) => callback(e?.error || new Error("module script error")));
+        }
         document.head.appendChild(script);
         requestAnimationFrame(() => script.remove());
       } else {

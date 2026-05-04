@@ -395,13 +395,21 @@ function generateClassCode(tagName, parts) {
 function executeClassCode(tagName, code) {
   // Module imports require script tag
   if (code.includes("import ")) {
-    // Extract importmap and rewrite bare import specifiers to full URLs
+    // Extract importmap and rewrite bare import specifiers to full URLs.
+    // We do BOTH:
+    //  1. Textual rewrite of the component's own `from 'spec'` imports
+    //  2. Install a real <script type="importmap"> so the browser can
+    //     resolve bare specifiers in TRANSITIVELY loaded modules (e.g.
+    //     three/addons/*.js fetched from a CDN that doesn't rewrite
+    //     bare imports).
     const importmapRe =
       /Fez\.head\(\s*\{\s*importmap\s*:\s*(\{[\s\S]*?\})\s*\}\s*\)\s*;?/g;
+    const collectedImports = {};
     let match;
     while ((match = importmapRe.exec(code)) !== null) {
       try {
         const imports = new Function(`return ${match[1]}`)();
+        Object.assign(collectedImports, imports);
         // Sort by length descending so "three/addons/" matches before "three"
         const sorted = Object.entries(imports).sort(
           (a, b) => b[0].length - a[0].length,
@@ -420,14 +428,27 @@ function executeClassCode(tagName, code) {
     // Remove the Fez.head({importmap:...}) calls
     code = code.replace(importmapRe, "");
 
-    Fez.head({ script: code });
+    // Install / merge a page-level importmap so transitively loaded
+    // modules (e.g. CDN files that import 'three' internally) resolve.
+    if (Object.keys(collectedImports).length > 0) {
+      installImportmap(collectedImports);
+    }
 
-    // Check for compile errors after delay
-    setTimeout(() => {
-      if (!Fez.index[tagName]?.class) {
-        Fez.consoleError(`Template "${tagName}" possible compile error.`);
+    // Wait for the module's import graph to resolve, then verify the
+    // component class actually registered. Avoids false positives on
+    // slow CDN module chains (esm.sh, jsdelivr).
+    Fez.head({ script: code }, (err) => {
+      if (err) {
+        Fez.consoleError(`Template "${tagName}" module load failed: ${err.message || err}`);
+        return;
       }
-    }, 2000);
+      // Give the module's top-level code a microtask to register
+      queueMicrotask(() => {
+        if (!Fez.index[tagName]?.class) {
+          Fez.consoleError(`Template "${tagName}" possible compile error.`);
+        }
+      });
+    });
   } else {
     try {
       new Function(code)();
@@ -436,6 +457,40 @@ function executeClassCode(tagName, code) {
       console.log(code);
     }
   }
+}
+
+/**
+ * Install a page-level <script type="importmap"> for bare module specifiers
+ * in transitively loaded modules (e.g. CDN files that import 'three').
+ *
+ * Limitations:
+ *  - Must be in the DOM before any <script type="module"> that uses bare
+ *    specifiers is parsed. Since fez fetches components asynchronously,
+ *    this only works reliably when the importmap-declaring component is
+ *    the first to load, OR when the host page declares the importmap in
+ *    HTML directly.
+ *  - Older Firefox honors only the first importmap on the page; later
+ *    additions are ignored. Modern Chromium/Safari (and recent Firefox)
+ *    support multiple importmaps and merge them.
+ *
+ * For deterministic behavior, prefer declaring importmaps statically in
+ * your index.html. The textual rewrite of the component's own
+ * `from 'spec'` imports works in all cases and is the primary mechanism.
+ */
+function installImportmap(imports) {
+  if (typeof document === "undefined") return;
+  if (!document.head?.appendChild) return;
+  // If the page already has an importmap (declared in HTML or installed
+  // earlier), don't add another. Firefox warns about multiple importmaps,
+  // and most browsers honor only the first regardless. The textual
+  // rewrite of the component's own imports already covers the common case.
+  if (document.querySelector('script[type="importmap"]')) return;
+  try {
+    const el = document.createElement("script");
+    el.type = "importmap";
+    el.textContent = JSON.stringify({ imports });
+    document.head.insertBefore(el, document.head.firstChild);
+  } catch {}
 }
 
 /**

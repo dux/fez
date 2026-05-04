@@ -32,7 +32,7 @@
   <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/tippy.css">
   <script type="module">
     // add tooltip="..." to any node
-    import tippy from 'https://cdn.skypack.dev/tippy.js'
+    import tippy from 'https://cdn.jsdelivr.net/npm/tippy.js@6/+esm'
 
     const bindTippy = () => {
       const ttName = 'tooltip'

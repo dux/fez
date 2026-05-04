@@ -19,7 +19,7 @@
 </demo>
 
 <script>
-  import confetti from 'https://cdn.skypack.dev/canvas-confetti';
+  import confetti from 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/+esm';
 
   class {
     NAME = 'span'
