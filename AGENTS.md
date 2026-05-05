@@ -158,6 +158,11 @@ The `<script>` block has two zones:
       this.editor?.destroy()
     }
 
+    onRefresh(props) {
+      // runs after onMount, and again whenever the parent re-renders and reuses this child
+      // call this.refresh() here if the child should re-render in response
+    }
+
     onWindowResize() {} // on Window resize
     onWindowScroll() {} // on window scroll
 

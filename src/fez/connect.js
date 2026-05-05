@@ -252,6 +252,7 @@ function connectNode(name, node) {
 
   // Mount
   fez.onMount(fez.props);
+  fez.onRefresh(fez.props);
 
   // Form submit handling
   if (fez.onSubmit) {

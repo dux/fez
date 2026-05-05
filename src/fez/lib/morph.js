@@ -27,6 +27,7 @@
  * @param {Function} [opts.describeNew(newNode)] - return primary key string or null
  * @param {Function} [opts.skipNode(oldNode)]    - return true to preserve subtree as-is
  * @param {Function} [opts.beforeRemove(node)]   - called before removing a node
+ * @param {Function} [opts.onPreserve(oldNode, newNode)] - called when a keyed node is matched and preserved
  */
 export function nodeMorph(target, newNode, opts = {}) {
   // NOTE: We do NOT sync root element attributes here.
@@ -305,6 +306,7 @@ function diffChildren(target, newParent, opts) {
       const newChild = match.new;
 
       if (match.preserve) {
+        if (opts.onPreserve) opts.onPreserve(oldChild, newChild);
         // preserve entirely, just ensure position
         if (oldChild !== cursor) {
           target.insertBefore(oldChild, cursor);

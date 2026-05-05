@@ -38,24 +38,40 @@ function fezDescribeOld(node) {
 }
 
 /**
- * Describe a template (new) fez component placeholder by its fez-name class,
- * so it matches against the live component's `fez-class-` alias.
- */
-function fezDescribeNew(node) {
-  if (node.nodeType !== 1) return null;
-  if (!node.classList?.contains('fez')) return null;
-  for (const cls of node.classList) {
-    if (cls.startsWith('fez-') && cls !== 'fez') {
-      return 'fez-class-' + cls;
-    }
-  }
-  return null;
-}
-
-/**
  * Attach Fez.morphdom and Fez.nodeMorph to the Fez root.
  */
 export default function attachMorph(Fez) {
+  /**
+   * Describe a template (new) fez component placeholder so it matches against
+   * the live component's `fez-class-` alias. Recognizes three forms:
+   *   1. Inline-rendered: <div class="fez fez-x">   (already mounted-ish)
+   *   2. Raw custom tag:  <my-comp>                 (server-rendered placeholder)
+   *   3. fez= attribute:  <div fez="my-comp">       (server-rendered placeholder)
+   */
+  function fezDescribeNew(node) {
+    if (node.nodeType !== 1) return null;
+
+    if (node.classList?.contains('fez')) {
+      for (const cls of node.classList) {
+        if (cls.startsWith('fez-') && cls !== 'fez') {
+          return 'fez-class-' + cls;
+        }
+      }
+    }
+
+    const tag = node.tagName?.toLowerCase();
+    if (tag && Fez.index?.[tag]) {
+      return 'fez-class-fez-' + tag;
+    }
+
+    const fezAttr = node.getAttribute?.('fez');
+    if (fezAttr && Fez.index?.[fezAttr]) {
+      return 'fez-class-fez-' + fezAttr;
+    }
+
+    return null;
+  }
+
   const fezMorphOpts = {
     describeOld: fezDescribeOld,
     describeNew: fezDescribeNew,
@@ -77,6 +93,13 @@ export default function attachMorph(Fez) {
     beforeRemove: (node) => {
       if (node.classList?.contains('fez') && node.fez) {
         node.fez.fezOnDestroy();
+      }
+    },
+
+    // Notify preserved fez children that their parent re-rendered
+    onPreserve: (oldNode) => {
+      if (oldNode.classList?.contains('fez') && oldNode.fez && !oldNode.fez._destroyed) {
+        oldNode.fez.onRefresh(oldNode.fez.props);
       }
     },
   };

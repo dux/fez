@@ -585,6 +585,27 @@ describe("fez component preservation", () => {
     container.remove();
   });
 
+  test("onPreserve called for keyed nodes preserved across morph", () => {
+    const container = document.createElement("div");
+    container.innerHTML = '<div fez-keep="k"><span>orig</span></div>';
+    document.body.appendChild(container);
+
+    const kept = container.querySelector("[fez-keep]");
+
+    const newNode = document.createElement("div");
+    newNode.innerHTML = '<div fez-keep="k"><span>new</span></div>';
+
+    const preserved = [];
+    fezMorph(container, newNode, {
+      onPreserve: (oldNode) => preserved.push(oldNode),
+    });
+
+    expect(preserved).toEqual([kept]);
+    expect(container.querySelector("[fez-keep] span").textContent).toBe("orig");
+
+    container.remove();
+  });
+
   test("fez component matched by UID when reordered", () => {
     const container = document.createElement("div");
     container.innerHTML =

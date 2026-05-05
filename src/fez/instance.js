@@ -181,6 +181,7 @@ export default class FezBase {
   onStateChange() {}
   onGlobalStateChange() {}
   onPropsChange() {}
+  onRefresh() {}
 
   /**
    * Centralized destroy logic - called by MutationObserver when element is removed
