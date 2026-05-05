@@ -880,6 +880,24 @@ Fez.resolveFunction(pointer, context)
 Fez.head(config, callback)
 ```
 
+## Singleton / Global Components
+
+Declare `GLOBAL` on the class and Fez auto-appends a single instance to `<body>` on ready - useful for overlays, dialogs and global click/key listeners that should not require manual placement in every layout.
+
+```js
+Fez('image-preview', class {
+  GLOBAL = true       // append <image-preview> to body on ready, no window reference
+  // GLOBAL = 'ImagePreview'   // alternative: also expose instance as window.ImagePreview
+
+  init() { ... }
+})
+```
+
+- `GLOBAL = true` - body-append only (one instance, no global handle)
+- `GLOBAL = 'Name'` - same, plus the instance is stored on `window.Name` so other code can call methods on it (e.g. `Dialog.open(...)`)
+
+See `demo/fez/ui-dialog.fez` for a complete singleton example.
+
 ## Loading Multiple Components
 
 For loading many components at once, use a `.txt` file listing component paths:

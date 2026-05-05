@@ -575,6 +575,22 @@ All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is con
   }
   ```
 
+- **Design toggleable views so close and open render visibly different HTML.** `fezRender` skips the morph when the new HTML hashes to the same value as the previous render (`src/fez/instance.js`, hash-skip), and rAF-batched state writes can collapse a `close()` + `open(sameThing)` pair into a single render whose output matches the last one — morph skipped, DOM stale. Use a `state.open` boolean + a stable root with `class:hidden={!state.open}` and `{#if state.open}` gating the body, so the closed render is `<div class="… hidden"></div>` and the open render emits the full subtree. **Do NOT** poke private fields like `this._fezHash = null` to force a morph, and **do NOT** sprinkle `data-tick={state.counter}` to force unique hashes — both are workarounds for a state design that doesn't differ enough.
+
+  ```html
+  <!-- CORRECT - close vs open differ in class AND inner content -->
+  <div class="overlay" class:hidden={!state.open} onclick="fez.close()">
+    {#if state.open}
+      <img src={state.url} />
+    {/if}
+  </div>
+  ```
+
+  ```javascript
+  open(url)  { this.state.url = url; this.state.open = true }
+  close()    { this.state.open = false }
+  ```
+
 ### Performance
 
 - Use throttled events: `this.on('scroll', callback, 100)`
@@ -712,6 +728,21 @@ Elements with static `fez:this` attributes automatically get stable IDs (`id="fe
 ```
 
 This is automatic - no extra configuration needed.
+
+## Singleton / Global Components
+
+A component can declare itself as a singleton with `GLOBAL`. Fez auto-appends one instance of it to `<body>` on ready - no need to place the tag manually in any layout.
+
+```javascript
+class {
+  GLOBAL = true       // append <my-tag> to body on ready (no window reference)
+  GLOBAL = 'Dialog'   // same, plus expose the instance as window.Dialog
+
+  init() { ... }
+}
+```
+
+Use this for components that listen globally (e.g. `image-preview`, `ui-dialog`, toast hosts). Pick `GLOBAL = 'Name'` when other code needs to call methods on the instance (`Dialog.open(...)`); otherwise `GLOBAL = true`.
 
 ## Slot Unwrap
 

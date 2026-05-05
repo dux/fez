@@ -1,5 +1,6 @@
 fez/bubble-alerter
 fez/demo-await
+fez/image-preview
 fez/input-checkbox-toggle
 fez/input-color
 fez/input-country

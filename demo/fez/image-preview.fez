@@ -1,0 +1,310 @@
+<info>
+  <h3>image-preview</h3>
+  <p>Singleton fullscreen image gallery overlay. Mounted automatically via <code>GLOBAL = 'ImagePreview'</code>.</p>
+  <ul>
+    <li>Click any element on the page that has an <code>img-url</code> attribute - the URL is shown in a fullscreen overlay.</li>
+    <li>All other <code>[img-url]</code> elements on the page form the gallery, navigable via the bottom thumbnail strip or Left/Right arrow keys.</li>
+    <li>Click the active image (or press Up/Down/Enter) to toggle fullscreen-fit; click again or press the same key to scale back. Esc closes the panel.</li>
+    <li>An optional <code>img-desc</code> attribute on the element (or any ancestor - resolved with <code>closest()</code>) is shown as a small caption.</li>
+    <li>Override <code>ImagePreview.thumbUrl = (url) =&gt; ...</code> to plug in a CDN resizer for the thumbnail strip.</li>
+  </ul>
+</info>
+
+<demo>
+  <p>Click any image to open the gallery. The four images on the right share the <code>img-desc="Wildlife"</code> on their wrapper - the others have per-image captions.</p>
+
+  <div style="display:flex;flex-wrap:wrap;gap:8px;max-width:760px">
+    <img src="https://picsum.photos/id/1015/220/150"
+         img-url="https://picsum.photos/id/1015/1600/1000"
+         img-desc="River winding through the mountains"
+         style="width:220px;height:150px;object-fit:cover;cursor:pointer;border-radius:6px" />
+    <img src="https://picsum.photos/id/1018/220/150"
+         img-url="https://picsum.photos/id/1018/1600/1000"
+         img-desc="Mountain ridge above the clouds"
+         style="width:220px;height:150px;object-fit:cover;cursor:pointer;border-radius:6px" />
+    <img src="https://picsum.photos/id/1043/220/150"
+         img-url="https://picsum.photos/id/1043/1600/1000"
+         img-desc="Calm harbour at dusk"
+         style="width:220px;height:150px;object-fit:cover;cursor:pointer;border-radius:6px" />
+    <img src="https://picsum.photos/id/1059/220/150"
+         img-url="https://picsum.photos/id/1059/1600/1000"
+         img-desc="Snow-covered pines"
+         style="width:220px;height:150px;object-fit:cover;cursor:pointer;border-radius:6px" />
+    <img src="https://picsum.photos/id/1067/220/150"
+         img-url="https://picsum.photos/id/1067/1600/1000"
+         img-desc="City skyline at golden hour"
+         style="width:220px;height:150px;object-fit:cover;cursor:pointer;border-radius:6px" />
+    <img src="https://picsum.photos/id/1084/220/150"
+         img-url="https://picsum.photos/id/1084/1600/1000"
+         img-desc="Misty forest path"
+         style="width:220px;height:150px;object-fit:cover;cursor:pointer;border-radius:6px" />
+
+    <div img-desc="Wildlife" style="display:flex;flex-wrap:wrap;gap:8px">
+      <img src="https://picsum.photos/id/1025/220/150"
+           img-url="https://picsum.photos/id/1025/1600/1000"
+           style="width:220px;height:150px;object-fit:cover;cursor:pointer;border-radius:6px" />
+      <img src="https://picsum.photos/id/237/220/150"
+           img-url="https://picsum.photos/id/237/1600/1000"
+           style="width:220px;height:150px;object-fit:cover;cursor:pointer;border-radius:6px" />
+      <img src="https://picsum.photos/id/219/220/150"
+           img-url="https://picsum.photos/id/219/1600/1000"
+           style="width:220px;height:150px;object-fit:cover;cursor:pointer;border-radius:6px" />
+    </div>
+  </div>
+</demo>
+
+<script>
+  document.addEventListener('click', (e) => {
+    const node = e.target.closest('[img-url]')
+    if (!node) return
+    const url = node.getAttribute('img-url')
+    if (!url) return
+    const ip = window.ImagePreview
+    if (!ip) return
+    e.preventDefault()
+    e.stopPropagation()
+    ip.open(url)
+  }, true)
+
+  document.addEventListener('keydown', (e) => {
+    const ip = window.ImagePreview
+    if (!ip || !ip.state.open) return
+    if (e.key === 'ArrowLeft') { e.preventDefault(); ip.prev() }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); ip.next() }
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Enter') {
+      e.preventDefault()
+      ip.toggleExpand()
+    }
+    else if (e.key === 'Escape') {
+      e.preventDefault()
+      ip.close()
+    }
+  })
+
+  class {
+    GLOBAL = 'ImagePreview'
+
+    init() {
+      this.state.open = false
+      this.state.urls = null
+      this.state.descs = null
+      this.state.index = 0
+      this.state.expanded = false
+    }
+
+    open(url) {
+      const all = Array.from(document.querySelectorAll('[img-url]'))
+      const items = all.map(n => {
+        const u = n.getAttribute('img-url')
+        const descNode = n.closest('[img-desc]')
+        return { url: u, desc: descNode ? descNode.getAttribute('img-desc') : '' }
+      }).filter(x => x.url)
+      const urls = items.map(x => x.url)
+      const idx = urls.indexOf(url)
+      this.state.urls = urls
+      this.state.descs = items.map(x => x.desc)
+      this.state.index = idx >= 0 ? idx : 0
+      this.state.open = true
+      setTimeout(() => {
+        this.scrollThumbToCenter()
+        this.fitImage()
+      }, 0)
+    }
+
+    close() {
+      this.state.open = false
+      this.state.expanded = false
+    }
+
+    toggleExpand() {
+      this.state.expanded = !this.state.expanded
+      setTimeout(() => this.fitImage(), 0)
+      setTimeout(() => this.fitImage(), 320)
+    }
+
+    select(i) {
+      if (i < 0 || i >= this.state.urls.length) return
+      this.state.index = i
+      setTimeout(() => {
+        this.scrollThumbToCenter()
+        this.fitImage()
+      }, 0)
+    }
+
+    prev() {
+      this.select(this.state.index - 1)
+    }
+
+    next() {
+      this.select(this.state.index + 1)
+    }
+
+    onWindowResize() {
+      this.fitImage()
+    }
+
+    fitImage() {
+      const main = this.find('.image-preview-main')
+      const img = main && main.querySelector('img')
+      if (!img || !img.naturalWidth) return
+      const apply = () => {
+        const cw = main.clientWidth
+        const ch = main.clientHeight
+        if (!cw || !ch) return
+        const imgRatio = img.naturalWidth / img.naturalHeight
+        const containerRatio = cw / ch
+        if (imgRatio >= containerRatio) {
+          img.style.width = '100%'
+          img.style.height = 'auto'
+        } else {
+          img.style.width = 'auto'
+          img.style.height = '100%'
+        }
+      }
+      if (img.complete) apply()
+      else img.addEventListener('load', apply, { once: true })
+    }
+
+    // Override at runtime to plug in a CDN/resizer:
+    //   ImagePreview.thumbUrl = (url) => 'https://my-cdn/c300?' + url
+    thumbUrl(url) {
+      return url
+    }
+
+    scrollThumbToCenter() {
+      const strip = this.find('.image-preview-strip')
+      if (!strip) return
+      const active = strip.querySelector('.active')
+      if (!active) return
+      const stripRect = strip.getBoundingClientRect()
+      const activeRect = active.getBoundingClientRect()
+      const offset = (activeRect.left + activeRect.width / 2) - (stripRect.left + stripRect.width / 2)
+      strip.scrollTo({ left: strip.scrollLeft + offset, behavior: 'smooth' })
+    }
+  }
+</script>
+
+<style>
+  .image-preview-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 9999;
+
+    &.hidden {
+      display: none;
+    }
+  }
+
+  .image-preview-main {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    right: 15px;
+    bottom: 189px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease;
+
+    img {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      cursor: zoom-in;
+      border-radius: 10px;
+      transition: width 0.3s ease, height 0.3s ease;
+    }
+
+    &.expanded {
+      top: 15px;
+      left: 15px;
+      right: 15px;
+      bottom: 15px;
+      z-index: 2;
+
+      img {
+        cursor: zoom-out;
+      }
+    }
+
+    .image-preview-caption {
+      position: absolute;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      max-width: 80%;
+      text-align: center;
+      pointer-events: none;
+    }
+  }
+
+  .image-preview-strip {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 174px;
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    overflow-x: auto;
+    background: rgba(0, 0, 0, 0.5);
+    scrollbar-width: thin;
+    opacity: 1;
+    transition: opacity 0.2s ease 0.3s;
+
+    img {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      opacity: 0.55;
+      transition: opacity 0.15s, border-color 0.15s, transform 0.15s;
+      flex-shrink: 0;
+
+      &:hover {
+        opacity: 0.85;
+      }
+
+      &.active {
+        opacity: 1;
+        border-color: #fff;
+        transform: scale(1.05);
+      }
+    }
+  }
+
+  .image-preview-main.expanded ~ .image-preview-strip {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s ease 0s;
+  }
+</style>
+
+<div class="image-preview-overlay" class:hidden={!state.open} onclick="fez.close()">
+  {#if state.open}
+    <div class="image-preview-main" class:expanded={state.expanded}>
+      <img src={state.urls[state.index]} onclick="event.stopPropagation(); fez.toggleExpand()" />
+      {#if state.descs[state.index]}
+        <div class="image-preview-caption">{state.descs[state.index]}</div>
+      {/if}
+    </div>
+    {#if state.urls.length > 1}
+      <div class="image-preview-strip" onclick="event.stopPropagation()">
+        {#each state.urls as url, i}
+          <img class={i === state.index ? 'active' : ''} src={fez.thumbUrl(url)} onclick="fez.select({i})" />
+        {/each}
+      </div>
+    {/if}
+  {/if}
+</div>
