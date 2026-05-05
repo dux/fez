@@ -115,6 +115,68 @@ describe("Fez.nodeMorph - DocumentFragment input", () => {
   });
 });
 
+describe("Fez.nodeMorph - sibling fez components", () => {
+  test("preserves all sibling fez components in a loop (regression)", () => {
+    // Register a fake fez component tag so fezDescribeNew recognizes it.
+    Fez.index.ensure("test-img");
+
+    const target = makeTarget("div", "");
+
+    // Three mounted siblings, each with unique UID + auto-injected key.
+    for (let i = 0; i < 3; i++) {
+      const el = document.createElement("test-img");
+      el.classList.add("fez", "fez-test-img");
+      el.setAttribute("key", `0-0-${i}`);
+      el.setAttribute("src", `img-${i}.jpg`);
+      el.fez = { UID: 1000 + i, _destroyed: false, props: {}, onRefresh: () => {} };
+      el._marker = `M${i}`;
+      target.appendChild(el);
+    }
+
+    // New template renders the same three siblings (different src).
+    Fez.nodeMorph(
+      target,
+      '<test-img class="fez-test-img" key="0-0-0" src="new-0.jpg"></test-img>' +
+        '<test-img class="fez-test-img" key="0-0-1" src="new-1.jpg"></test-img>' +
+        '<test-img class="fez-test-img" key="0-0-2" src="new-2.jpg"></test-img>',
+    );
+
+    expect(target.children.length).toBe(3);
+    expect(target.children[0]._marker).toBe("M0");
+    expect(target.children[1]._marker).toBe("M1");
+    expect(target.children[2]._marker).toBe("M2");
+
+    target.remove();
+  });
+});
+
+describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
+  test("pjax-style: 1 mounted + N new siblings without key=", () => {
+    // Pjax payload renders raw <my-comp> tags with no key=. Without the
+    // duplicate-claim guard in Pass 1a, all N new placeholders collapse onto
+    // the single old mounted instance and the rest get inserted but the user
+    // observes "only one element present" because old is matched + preserved
+    // and new ones never get to claim it.
+    Fez.index.ensure("test-card");
+
+    const target = makeTarget("div", "");
+    const old = document.createElement("test-card");
+    old.classList.add("fez", "fez-test-card");
+    old.setAttribute("ref", "old-ref");
+    old.fez = { UID: 9000, _destroyed: false, props: {}, onRefresh: () => {} };
+    old._marker = "OLD";
+    target.appendChild(old);
+
+    const html = Array.from({ length: 5 }, (_, i) =>
+      `<test-card ref="r-${i}"></test-card>`,
+    ).join("");
+    Fez.nodeMorph(target, html);
+
+    expect(target.children.length).toBe(5);
+    target.remove();
+  });
+});
+
 describe("Fez.nodeMorph - validation", () => {
   test("errors on non-Element target", () => {
     let captured = null;

@@ -223,12 +223,22 @@ function diffChildren(target, newParent, opts) {
   const usedOld = new Set();
 
   // Pass 1a: match by key
+  // Multiple new children can resolve to the same alias (e.g. when fezDescribeNew
+  // returns 'fez-class-fez-X' for every <X> sibling because the template has no
+  // explicit key=). Skip claiming an old child that's already been claimed —
+  // treat the duplicate as unmatched so it falls through to soft-match or
+  // insertion-as-new. Otherwise N siblings collapse onto the first old child
+  // and the rest get garbage-collected in Phase 2.
   for (let i = 0; i < newChildren.length; i++) {
     const newChild = newChildren[i];
     const key = describeNewKey(newChild, opts);
 
     if (key && oldByKey.has(key)) {
       const oldChild = oldByKey.get(key);
+      if (usedOld.has(oldChild)) {
+        matches.push({ old: null, new: newChild, preserve: false });
+        continue;
+      }
       const desc = oldDescriptors.get(oldChild);
       const preserve = !!desc?.preserve;
       matches.push({ old: oldChild, new: newChild, preserve });
