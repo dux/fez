@@ -167,9 +167,13 @@ ${t}
         padding: 8px 16px;
         border: 1px solid #ccc;
         background: #fff;
+        color: #333;
+        font: inherit;
+        line-height: 1.2;
         border-radius: 4px;
         cursor: pointer;
-        &:hover { background: #f0f0f0; }
+        box-shadow: none;
+        &:hover { background: #f0f0f0; color: #333; }
       }`}HTML(){return`{#if state.ready}
         <header class="fez-demo-header">
           <a class="fez-demo-brand" href="{state.allComponentsUrl}">
