@@ -9,7 +9,6 @@
 <demo>
   <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 200px)); gap: 20px;">
     <ui-clock city="Zagreb" utc="1"></ui-clock>
-    <ui-clock city="Moscow" utc="4"></ui-clock>
     <ui-clock city="NYC" utc="-5"></ui-clock>
     <ui-clock city="Sydney" utc="10"></ui-clock>
   </div>

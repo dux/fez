@@ -222,6 +222,10 @@ function connectNode(name, node) {
   // Copy ID
   if (fez.props.id) newNode.setAttribute("id", fez.props.id);
 
+  // Copy compiler/user key for DOM differ preservation
+  const key = node.getAttribute("key");
+  if (key) newNode.setAttribute("key", key);
+
   // Copy fez-keep for DOM differ preservation
   const fezKeep = node.getAttribute("fez-keep");
   if (fezKeep) newNode.setAttribute("fez-keep", fezKeep);

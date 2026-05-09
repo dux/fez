@@ -312,6 +312,51 @@ describe("attribute sync", () => {
 
     const current = container.querySelector("input");
     expect(current.getAttribute("value")).toBe("new");
+    expect(current.value).toBe("new");
+
+    container.remove();
+  });
+
+  test("syncs checkbox checked property on non-focused input", () => {
+    const container = document.createElement("div");
+    container.innerHTML = '<input type="checkbox" />';
+    document.body.appendChild(container);
+
+    const newNode = document.createElement("div");
+    newNode.innerHTML = '<input type="checkbox" checked />';
+
+    fezMorph(container, newNode);
+
+    const current = container.querySelector("input");
+    expect(current.hasAttribute("checked")).toBe(true);
+    expect(current.checked).toBe(true);
+
+    const unchecked = document.createElement("div");
+    unchecked.innerHTML = '<input type="checkbox" />';
+    fezMorph(container, unchecked);
+
+    expect(current.hasAttribute("checked")).toBe(false);
+    expect(current.checked).toBe(false);
+
+    container.remove();
+  });
+
+  test("syncs selected option property", () => {
+    const container = document.createElement("div");
+    container.innerHTML =
+      '<select><option value="a" selected>A</option><option value="b">B</option></select>';
+    document.body.appendChild(container);
+
+    const select = container.querySelector("select");
+    const newNode = document.createElement("div");
+    newNode.innerHTML =
+      '<select><option value="a">A</option><option value="b" selected>B</option></select>';
+
+    fezMorph(container, newNode);
+
+    expect(select.value).toBe("b");
+    expect(select.options[0].selected).toBe(false);
+    expect(select.options[1].selected).toBe(true);
 
     container.remove();
   });

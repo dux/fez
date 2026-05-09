@@ -206,14 +206,18 @@ function diffChildren(target, newParent, opts) {
   // A node may register under multiple keys (primary + aliases).
   const oldByKey = new Map();
   const oldDescriptors = new Map(); // node -> descriptor
+  const addOldKey = (key, child) => {
+    if (!oldByKey.has(key)) oldByKey.set(key, []);
+    oldByKey.get(key).push(child);
+  };
   for (const child of oldChildren) {
     const desc = describeOld(child, opts);
     if (!desc) continue;
     oldDescriptors.set(child, desc);
-    oldByKey.set(desc.key, child);
+    addOldKey(desc.key, child);
     if (desc.aliases) {
       for (const alias of desc.aliases) {
-        if (!oldByKey.has(alias)) oldByKey.set(alias, child);
+        addOldKey(alias, child);
       }
     }
   }
@@ -234,8 +238,13 @@ function diffChildren(target, newParent, opts) {
     const key = describeNewKey(newChild, opts);
 
     if (key && oldByKey.has(key)) {
-      const oldChild = oldByKey.get(key);
-      if (usedOld.has(oldChild)) {
+      const oldBucket = oldByKey.get(key);
+      while (oldBucket.length && usedOld.has(oldBucket[0])) {
+        oldBucket.shift();
+      }
+      const oldChild = oldBucket.shift();
+
+      if (!oldChild) {
         matches.push({ old: null, new: newChild, preserve: false });
         continue;
       }
@@ -345,6 +354,7 @@ function diffChildren(target, newParent, opts) {
           // Same tag: sync attributes and recurse
           syncAttributes(oldChild, newChild);
           diffChildren(oldChild, newChild, opts);
+          syncDomProperties(oldChild, newChild);
         } else {
           // Different tag: replace
           callBeforeRemoveDeep(oldChild, opts);
@@ -375,6 +385,34 @@ function diffChildren(target, newParent, opts) {
       // No old match: insert new node
       target.insertBefore(match.new, cursor);
     }
+  }
+}
+
+function syncDomProperties(oldNode, newNode) {
+  if (oldNode.nodeType !== 1 || newNode.nodeType !== 1) return;
+
+  const isActiveInput =
+    oldNode === document.activeElement && isFormInput(oldNode);
+  const tag = oldNode.nodeName;
+
+  if ("disabled" in oldNode) {
+    oldNode.disabled = newNode.hasAttribute("disabled");
+  }
+
+  if (tag === "INPUT") {
+    const type = (oldNode.getAttribute("type") || "").toLowerCase();
+    if (!isActiveInput && newNode.hasAttribute("value")) {
+      oldNode.value = newNode.getAttribute("value");
+    }
+    if (!isActiveInput && (type === "checkbox" || type === "radio")) {
+      oldNode.checked = newNode.hasAttribute("checked");
+    }
+  } else if (tag === "TEXTAREA") {
+    if (!isActiveInput) oldNode.value = newNode.value;
+  } else if (tag === "SELECT") {
+    if (!isActiveInput) oldNode.value = newNode.value;
+  } else if (tag === "OPTION") {
+    oldNode.selected = newNode.hasAttribute("selected");
   }
 }
 

@@ -3,7 +3,7 @@
     <li>Star rating with partial fills (e.g., 3.5 stars)</li>
     <li>Pure Fez SVG rendering, no external dependencies</li>
     <li>Customizable colors, supports display and interactive modes</li>
-    <li>Use <code>color="random"</code> for a random color on each render</li>
+    <li>Use <code>color="random"</code> for a random color per component instance</li>
   </ul>
 </info>
 
@@ -99,41 +99,67 @@
       return `hsl(${hue}, 70%, 55%)`
     }
 
-    init(props) {
-      // If stars param is given, render multiple stars
+    resolvedColor(props) {
+      if (props.color === 'random') {
+        this.state.random_color ||= this.randomColor()
+        return this.state.random_color
+      }
+      return props.color || '#FFD700'
+    }
+
+    strokeColor(props, color) {
+      if (props.stroke_color) return props.stroke_color
+      return color.startsWith('#') ? Fez.darkenColor(color) : color
+    }
+
+    parseFill(fill) {
+      let value = parseInt(fill || '0')
+
+      if (fill && String(fill).includes('.') && parseFloat(fill) <= 1) {
+        value = Math.round(parseFloat(fill) * 100)
+      }
+
+      return value
+    }
+
+    parseRating(props) {
+      let rating = parseFloat(props.rating || props.fill || '0')
+
+      if (rating <= 1 && rating > 0) {
+        rating = rating * parseInt(props.stars)
+      }
+
+      return rating
+    }
+
+    applyProps(props) {
+      const color = this.resolvedColor(props)
+
       if (props.stars) {
         this.state.stars = parseInt(props.stars)
-        this.state.rating = parseFloat(props.rating || props.fill || '0')
-
-        // If rating is between 0-1, convert to star scale
-        if (this.state.rating <= 1 && this.state.rating > 0) {
-          this.state.rating = this.state.rating * this.state.stars
-        }
-
-        // Store props to pass down
-        this.state.color = props.color
-        this.state.size = props.size
+        this.state.rating = this.parseRating(props)
+        this.state.color = color
+        this.state.size = props.size || '24'
       }
       else {
-        // Single star mode
-        this.state.fill = parseInt(props.fill || '0')
-
-        // If fill is a decimal between 0-1, convert to percentage
-        if (props.fill && props.fill.includes('.') && parseFloat(props.fill) <= 1) {
-          this.state.fill = Math.round(parseFloat(props.fill) * 100)
-        }
-
-        const color = props.color === 'random' ? this.randomColor() : (props.color || '#FFD700')
-
-        props.size = props.size || '24'
-        props.fill_color = color
-        props.unfilled_color = props.unfilled_color || '#E0E0E0'
-        props.stroke_color = props.stroke_color || Fez.darkenColor(props.fill_color)
-        props.stroke_unfilled_color = props.stroke_unfilled_color || '#CCCCCC'
-
-        // Generate unique ID for gradient
-        this.gradient_id = `star-${Math.random().toString(36).substr(2, 9)}`
+        this.state.stars = 0
+        this.state.fill = this.parseFill(props.fill)
+        this.state.size = props.size || '24'
+        this.state.fill_color = color
+        this.state.unfilled_color = props.unfilled_color || '#E0E0E0'
+        this.state.stroke_color = this.strokeColor(props, color)
+        this.state.stroke_unfilled_color = props.stroke_unfilled_color || '#CCCCCC'
       }
+    }
+
+    init(props) {
+      this.state.random_color = ''
+      this.gradient_id = `star-${Math.random().toString(36).substr(2, 9)}`
+      this.applyProps(props)
+    }
+
+    onPropsChange() {
+      this.applyProps(this.props)
     }
   }
 </script>
@@ -170,20 +196,20 @@
     {/for}
   </div>
 {:else}
-  <svg xmlns="http://www.w3.org/2000/svg" width="{props.size}" viewBox="0 -10 187.673 179.503" height="{props.size}">
+  <svg xmlns="http://www.w3.org/2000/svg" width="{state.size}" viewBox="0 -10 187.673 179.503" height="{state.size}">
     {#if parseInt(state.fill) > 0 && parseInt(state.fill) < 100}
       <defs>
         <linearGradient id="linear-gradient-{gradient_id}" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" style="stop-color:{props.fill_color};stop-opacity:1" />
-          <stop offset="{state.fill}%" style="stop-color:{props.fill_color};stop-opacity:1"/>
-          <stop offset="{state.fill}%" style="stop-color:{props.unfilled_color};stop-opacity:1" />
+          <stop offset="0%" style="stop-color:{state.fill_color};stop-opacity:1" />
+          <stop offset="{state.fill}%" style="stop-color:{state.fill_color};stop-opacity:1"/>
+          <stop offset="{state.fill}%" style="stop-color:{state.unfilled_color};stop-opacity:1" />
         </linearGradient>
       </defs>
     {/if}
     <path
       stroke-width="5"
-      stroke={parseInt(state.fill) > 0 ? props.stroke_color : props.stroke_unfilled_color}
-      fill={parseInt(state.fill) === 100 ? props.fill_color : (parseInt(state.fill) === 0 ? props.unfilled_color : 'url(#linear-gradient-' + gradient_id + ')')}
+      stroke={parseInt(state.fill) > 0 ? state.stroke_color : state.stroke_unfilled_color}
+      fill={parseInt(state.fill) === 100 ? state.fill_color : (parseInt(state.fill) === 0 ? state.unfilled_color : 'url(#linear-gradient-' + gradient_id + ')')}
       d="M187.183 57.47a9.955 9.955 0 00-8.587-6.86l-54.167-4.918-21.42-50.134a9.978 9.978 0 00-9.172-6.052 9.972 9.972 0 00-9.172 6.061l-21.42 50.125L9.07 50.611a9.973 9.973 0 00-8.578 6.858 9.964 9.964 0 002.917 10.596l40.944 35.908-12.073 53.184a9.97 9.97 0 003.878 10.298A9.953 9.953 0 0042 169.357a9.937 9.937 0 005.114-1.424l46.724-27.925 46.707 27.925a9.936 9.936 0 0010.964-.478 9.979 9.979 0 003.88-10.298l-12.074-53.184 40.944-35.9a9.98 9.98 0 002.925-10.604zm0 0"
     />
   </svg>

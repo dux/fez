@@ -42,6 +42,40 @@ function fezDescribeOld(node) {
   };
 }
 
+function refreshPreservedComponent(oldNode, newNode) {
+  const fez = oldNode.fez;
+  if (!fez || fez._destroyed) return;
+
+  let nextProps = fez.props || {};
+  if (newNode && fez.class?.getProps) {
+    nextProps = fez.class.getProps(newNode, oldNode);
+  }
+
+  const prevProps = fez.props || {};
+  const keys = new Set([
+    ...Object.keys(prevProps),
+    ...Object.keys(nextProps),
+  ]);
+  let changed = false;
+
+  for (const key of keys) {
+    if (prevProps[key] !== nextProps[key]) {
+      changed = true;
+    }
+  }
+
+  fez.props = nextProps;
+  if (changed) {
+    for (const key of keys) {
+      if (prevProps[key] !== nextProps[key]) {
+        fez.onPropsChange(key, nextProps[key] ?? null);
+      }
+    }
+  }
+  if (changed) fez.refresh();
+  fez.onRefresh(fez.props);
+}
+
 /**
  * Attach Fez.morphdom and Fez.nodeMorph to the Fez root.
  */
@@ -107,9 +141,9 @@ export default function attachMorph(Fez) {
     },
 
     // Notify preserved fez children that their parent re-rendered
-    onPreserve: (oldNode) => {
+    onPreserve: (oldNode, newNode) => {
       if (oldNode.classList?.contains('fez') && oldNode.fez && !oldNode.fez._destroyed) {
-        oldNode.fez.onRefresh(oldNode.fez.props);
+        refreshPreservedComponent(oldNode, newNode);
       }
     },
   };
@@ -144,13 +178,16 @@ export default function attachMorph(Fez) {
     let newNode;
 
     if (typeof src === 'string') {
+      src = src.trim();
       const wrapper = document.createElement(tagLower);
       wrapper.innerHTML = src;
       // If the user provided a single root with the matching tag, unwrap it.
       if (
         wrapper.children.length === 1 &&
         wrapper.firstElementChild.tagName === tagName &&
-        wrapper.childNodes.length === 1
+        Array.from(wrapper.childNodes).every((node) =>
+          node.nodeType !== 3 || !node.textContent.trim(),
+        )
       ) {
         newNode = wrapper.firstElementChild;
       } else {

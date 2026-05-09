@@ -44,6 +44,13 @@ describe("Fez.nodeMorph - HTML string input", () => {
     target.remove();
   });
 
+  test("unwraps matching root with surrounding whitespace", () => {
+    const target = makeTarget("ul", "<li>a</li>");
+    Fez.nodeMorph(target, "\n  <ul><li>x</li></ul>\n");
+    expect(target.innerHTML).toBe("<li>x</li>");
+    target.remove();
+  });
+
   test("preserves child element identity across morph", () => {
     const target = makeTarget("ul", "<li>a</li><li>b</li>");
     const liA = target.children[0];
@@ -173,6 +180,78 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     Fez.nodeMorph(target, html);
 
     expect(target.children.length).toBe(5);
+    target.remove();
+  });
+
+  test("preserves repeated old siblings through shared class alias", () => {
+    Fez.index.ensure("test-card-alias");
+
+    const target = makeTarget("div", "");
+    for (let i = 0; i < 3; i++) {
+      const old = document.createElement("test-card-alias");
+      old.classList.add("fez", "fez-test-card-alias");
+      old.fez = { UID: 9100 + i, _destroyed: false, props: {}, onRefresh: () => {} };
+      old._marker = `OLD-${i}`;
+      target.appendChild(old);
+    }
+
+    Fez.nodeMorph(
+      target,
+      "<test-card-alias></test-card-alias>" +
+        "<test-card-alias></test-card-alias>" +
+        "<test-card-alias></test-card-alias>",
+    );
+
+    expect(target.children[0]._marker).toBe("OLD-0");
+    expect(target.children[1]._marker).toBe("OLD-1");
+    expect(target.children[2]._marker).toBe("OLD-2");
+    target.remove();
+  });
+});
+
+describe("Fez.morphdom - preserved component props", () => {
+  test("preserved keyed component receives next props", () => {
+    Fez.index.ensure("test-preserved-child");
+
+    const target = makeTarget("div", "");
+    const old = document.createElement("test-preserved-child");
+    old.classList.add("fez", "fez-test-preserved-child");
+    old.setAttribute("key", "0");
+
+    const changes = [];
+    old.fez = {
+      UID: 9200,
+      _destroyed: false,
+      props: { value: "a", removed: "yes" },
+      class: {
+        getProps(node) {
+          const props = {};
+          for (const attr of node.attributes) props[attr.name] = attr.value;
+          return props;
+        },
+      },
+      onPropsChange: (name, value) => changes.push([name, value]),
+      onRefresh: (props) => {
+        old._refreshProps = props;
+      },
+      refresh: () => {
+        old._refreshCalled = true;
+      },
+    };
+    target.appendChild(old);
+
+    Fez.nodeMorph(
+      target,
+      '<test-preserved-child key="0" value="b"></test-preserved-child>',
+    );
+
+    expect(target.firstElementChild).toBe(old);
+    expect(old.fez.props.value).toBe("b");
+    expect(old.fez.props.removed).toBeUndefined();
+    expect(old._refreshCalled).toBe(true);
+    expect(old._refreshProps.value).toBe("b");
+    expect(changes).toContainEqual(["value", "b"]);
+    expect(changes).toContainEqual(["removed", null]);
     target.remove();
   });
 });
