@@ -15,7 +15,7 @@ It uses minimal abstraction. You will learn to use it in 15 minutes, just look a
 
 ## How to install
 
-`<script src="https://dux.github.io/fez/dist/fez.js"></script>`
+`<script src="https://raw.githubusercontent.com/dux/fez/main/dist/fez.js"></script>`
 
 ## CLI Tools
 
@@ -559,7 +559,7 @@ To use this component in your HTML:
 
 ```html
 <!-- Load Fez library -->
-<script src="https://dux.github.io/fez/dist/fez.js"></script>
+<script src="https://raw.githubusercontent.com/dux/fez/main/dist/fez.js"></script>
 
 <!-- Load component via template tag -->
 <template fez="/fez-libs/ex-counter.fez"></template>
@@ -751,18 +751,20 @@ Fez('foo-bar', class {
   // this.state has fezReactiveStore() attached by default. any change will trigger this.fezRender()
   this.state.foo = 123
 
-  // generic window event handler with automatic cleanup
-  // eventName: 'resize', 'scroll', 'mousemove', etc.
-  // delay: throttle delay in ms (default: 200ms)
-  this.on(eventName, func, delay)
+  // listen on any EventTarget with auto-cleanup, this binding, isConnected guard,
+  // and optional throttle. Returns a disposer for early unregister.
+  // String-first form: target defaults to window for resize/scroll/beforeunload/...
+  // (see Fez.WINDOW_EVENTS), document for everything else.
+  this.on('resize', () => this.recompute())                          // window
+  this.on('pjax:render', e => this.refresh())                        // document
+  this.on(window, 'keydown', e => ...)                               // explicit target
+  this.on(this.find('.x'), 'click', e => ..., { throttle: 100 })     // throttled
 
-  // window resize event with cleanup (shorthand for this.on('resize', func, delay))
-  // runs immediately on init and then throttled
-  this.onWindowResize(func, delay)
+  // window resize handler — runs once on bind, then on throttled resize (default 200ms)
+  this.onWindowResize(func, throttle)
 
-  // window scroll event with cleanup (shorthand for this.on('scroll', func, delay))
-  // runs immediately on init and then throttled
-  this.onWindowScroll(func, delay)
+  // window scroll handler — runs once on bind, then on throttled scroll (default 200ms)
+  this.onWindowScroll(func, throttle)
 
   // requestAnimationFrame wrapper with deduplication
   this.fezNextTick(func, name)

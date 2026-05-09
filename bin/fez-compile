@@ -187,6 +187,100 @@ function validateScript(script, filePath) {
   return errors
 }
 
+// Validate <style> block - balanced braces/parens, terminated strings/comments.
+// Catches the silent-failure class of bug where one bad token breaks all
+// downstream rules in the goober blob (every component shares one stylesheet).
+function validateStyle(style, filePath) {
+  const errors = []
+  if (!style || !style.trim()) return errors
+
+  let braces = 0
+  let parens = 0
+  let inString = null
+  let stringStart = null
+  let line = 1
+  let col = 0
+
+  for (let i = 0; i < style.length; i++) {
+    const ch = style[i]
+    if (ch === '\n') { line++; col = 0; continue }
+    col++
+
+    if (inString) {
+      if (ch === '\\') { i++; col++; continue }
+      if (ch === inString) { inString = null; stringStart = null }
+      continue
+    }
+
+    // Skip /* ... */ comments, with multi-line tracking
+    if (ch === '/' && style[i + 1] === '*') {
+      const startLine = line, startCol = col
+      i += 2; col += 2
+      while (i < style.length && !(style[i] === '*' && style[i + 1] === '/')) {
+        if (style[i] === '\n') { line++; col = 0 } else { col++ }
+        i++
+      }
+      if (i >= style.length) {
+        errors.push({
+          message: `Unterminated /* */ comment starting at style block line ${startLine}:${startCol}`,
+          file: filePath, line: startLine, column: startCol, kind: 'Style'
+        })
+        return errors
+      }
+      i++; col++ // skip the trailing '/'
+      continue
+    }
+
+    if (ch === '"' || ch === "'") {
+      inString = ch
+      stringStart = { line, col }
+      continue
+    }
+    if (ch === '{') braces++
+    else if (ch === '}') {
+      braces--
+      if (braces < 0) {
+        errors.push({
+          message: `Unmatched } at style block line ${line}:${col}`,
+          file: filePath, line, column: col, kind: 'Style'
+        })
+        return errors
+      }
+    } else if (ch === '(') parens++
+    else if (ch === ')') {
+      parens--
+      if (parens < 0) {
+        errors.push({
+          message: `Unmatched ) at style block line ${line}:${col}`,
+          file: filePath, line, column: col, kind: 'Style'
+        })
+        return errors
+      }
+    }
+  }
+
+  if (inString) {
+    errors.push({
+      message: `Unterminated ${inString} string starting at style block line ${stringStart.line}:${stringStart.col}`,
+      file: filePath, line: stringStart.line, column: stringStart.col, kind: 'Style'
+    })
+  }
+  if (braces > 0) {
+    errors.push({
+      message: `${braces} unclosed { brace${braces > 1 ? 's' : ''} in style block`,
+      file: filePath, kind: 'Style'
+    })
+  }
+  if (parens > 0) {
+    errors.push({
+      message: `${parens} unclosed ( paren${parens > 1 ? 's' : ''} in style block`,
+      file: filePath, kind: 'Style'
+    })
+  }
+
+  return errors
+}
+
 // Validate template syntax (basic checks)
 function validateTemplate(html, filePath) {
   const errors = []
@@ -396,7 +490,10 @@ async function compileFile(filePath, options = {}) {
   
   // Validate script
   errors.push(...validateScript(parsed.script, filePath))
-  
+
+  // Validate style
+  errors.push(...validateStyle(parsed.style, filePath))
+
   // Validate template
   errors.push(...validateTemplate(parsed.html, filePath))
   errors.push(...validateTemplateCompiler(parsed.html, filePath, componentName, options.debugTemplate))

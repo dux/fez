@@ -85,6 +85,33 @@ describe("fez compile", () => {
     });
   });
 
+  describe("invalid files - style errors", () => {
+    test("detects unterminated string in style block", async () => {
+      const result = await compile(
+        "test/fixtures/invalid/test-style-unterminated-string.fez",
+      );
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("Unterminated");
+    });
+
+    test("detects unclosed brace in style block", async () => {
+      const result = await compile(
+        "test/fixtures/invalid/test-style-unclosed-brace.fez",
+      );
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("unclosed { brace");
+    });
+
+    test("detects unterminated comment in style block", async () => {
+      const result = await compile(
+        "test/fixtures/invalid/test-style-unterminated-comment.fez",
+      );
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("Unterminated");
+      expect(result.stderr).toContain("comment");
+    });
+  });
+
   describe("invalid files - template errors", () => {
     test("detects unmatched {{if}} block", async () => {
       const result = await compile(

@@ -18,7 +18,7 @@ All documentation and demos go INSIDE the .fez file (no separate .html files) us
 ## CDN
 
 ```html
-<script src="https://dux.github.io/fez/dist/fez.js"></script>
+<script src="https://raw.githubusercontent.com/dux/fez/main/dist/fez.js"></script>
 
 <!-- Load components with fez attribute (NOT type="fez" src="...") -->
 <script fez="path/to/component.fez"></script>
@@ -593,7 +593,7 @@ All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is con
 
 ### Performance
 
-- Use throttled events: `this.on('scroll', callback, 100)`
+- Use throttled events: `this.on('scroll', callback, { throttle: 100 })`
 
 ### External DOM Libraries (Three.js, Charts, Video players, etc.)
 
@@ -657,6 +657,48 @@ Fez.subscribe('#modal', 'event', callback)        // fires only if #modal exists
 Fez.state.subscribe('key', (value, oldValue) => {}) // subscribe to specific key
 Fez.state.subscribe((key, value, oldValue) => {})   // subscribe to ALL changes
 ```
+
+### DOM / `addEventListener` listeners
+
+For events fired on `document`, `window`, or arbitrary DOM nodes (custom `pjax:render`, `keydown`, `resize`, third-party `CustomEvent`s, etc.), `this.subscribe` does not apply — those go through native `addEventListener`. Use **`this.on`** — it binds `this`, guards on `isConnected`, and auto-removes on destroy.
+
+```javascript
+// CORRECT — this.on binds this, auto-removes on destroy
+onMount() {
+  this.on('pjax:render', (e) => {
+    this.state.active = matchLink(e.detail.to)
+  })
+}
+```
+
+Signature:
+
+```javascript
+this.on(eventName, handler)                     // string-first form, see target rule below
+this.on(target, eventName, handler)             // any EventTarget (window, document, element, ...)
+this.on('scroll', handler, { throttle: 100 })   // optional throttle (ms)
+```
+
+String-first target rule: events in `Fez.WINDOW_EVENTS` (`resize`, `scroll`, `beforeunload`, `hashchange`, `popstate`, `online`, `offline`, `message`, `storage`, `load`, `unload`, `pagehide`, `pageshow`, `orientationchange`, `error`) default to `window`. Everything else defaults to `document`. Pass `target` explicitly when in doubt; mutate `Fez.WINDOW_EVENTS` to customize.
+
+- `handler` is invoked with `this = component` and the event arg
+- Listener is removed automatically on destroy (no `onDestroy` boilerplate)
+- Handler is skipped while `this.isConnected === false`
+- Returns a disposer function for early unregister
+- Each call adds its own listener — every component instance owns its own subscription
+- Just mutate state in the handler — no need to call `this.refresh()`; the state assignment re-renders
+
+```javascript
+// WRONG — manual addEventListener leaks unless paired with removeEventListener,
+// and `this.handler` from the prototype isn't bound when the DOM invokes it
+onMount() {
+  document.addEventListener('pjax:render', this.activateActiveNav)
+}
+```
+
+**Why not just declare the method as an arrow class property and use `addEventListener` directly?** That works but: (1) you still need a manual `removeEventListener` in `onDestroy`, (2) arrow properties live on `this` rather than the prototype so you lose prototype introspection, and (3) there's no `isConnected` guard. `this.on` covers all three.
+
+**`onRefresh` vs DOM listeners.** `onRefresh` only fires when a fez **parent** re-renders and preserves this child (see `src/fez/lib/fez-morph.js:onPreserve`). It does *not* fire when the component refreshes itself, and it does *not* fire from external DOM events. If your component lives outside any fez parent (mounted directly under plain HTML — a layout shell, a portal, a global menu), `onRefresh` will never fire after the initial mount. Hook the relevant DOM event with the pattern above instead.
 
 ### Component Isolation in Loops
 

@@ -59,7 +59,7 @@
       let demo = Fez.index[name]?.demo || ''
       let code = Fez(`#code-${name}`).getSource()
       const body = [
-        '<link rel="stylesheet" href="//cdn.simplecss.org/simple.css" />\n<scr'+'ipt src="//dux.github.io/fez/dist/fez.js"></scr'+'ipt>',
+        '<link rel="stylesheet" href="//cdn.simplecss.org/simple.css" />\n<scr'+'ipt src="https://raw.githubusercontent.com/dux/fez/main/dist/fez.js"></scr'+'ipt>',
         `<!-- FEZ code start -->\n<x`+`mp fez="${name}">\n${code}\n</xm`+`p>\n<!-- FEZ code end -->`,
         `<!-- HTML code start -->\n${demo}\n<!-- HTML code end -->`
       ]

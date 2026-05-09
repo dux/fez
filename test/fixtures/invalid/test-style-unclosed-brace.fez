@@ -1,0 +1,14 @@
+<script>
+  init() {}
+</script>
+
+<div>hello</div>
+
+<style>
+  .root {
+    padding: 1rem;
+    .nested {
+      color: red;
+    /* missing closing brace for .nested */
+  }
+</style>

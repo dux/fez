@@ -8,6 +8,20 @@ import parseNode from "./lib/n.js";
 import createTemplate from "./lib/template.js";
 import { componentSubscribe, componentPublish } from "./lib/pubsub.js";
 
+/**
+ * Event names that default to `window` in `this.on('event', handler)`.
+ * Anything not in this set defaults to `document`. Exposed as `Fez.WINDOW_EVENTS`
+ * for userland customization.
+ */
+export const WINDOW_EVENTS = new Set([
+  "resize", "scroll",
+  "load", "beforeunload", "unload", "pagehide", "pageshow",
+  "hashchange", "popstate",
+  "online", "offline",
+  "message", "storage",
+  "orientationchange", "error",
+]);
+
 export default class FezBase {
   // ===========================================================================
   // STATIC METHODS
@@ -505,16 +519,20 @@ export default class FezBase {
   }
 
   /**
-   * Bind all instance methods to this
+   * Bind all instance methods to this, walking the prototype chain
+   * so inherited FezBase methods (refresh, fezRefresh, ...) bind too
    */
   fezRegisterBindMethods() {
-    const methods = Object.getOwnPropertyNames(
-      Object.getPrototypeOf(this),
-    ).filter(
-      (method) =>
-        method !== "constructor" && typeof this[method] === "function",
-    );
-    methods.forEach((method) => (this[method] = this[method].bind(this)));
+    const methods = new Set();
+    let proto = Object.getPrototypeOf(this);
+    while (proto && proto !== Object.prototype) {
+      for (const name of Object.getOwnPropertyNames(proto)) {
+        if (name === "constructor" || methods.has(name)) continue;
+        if (typeof this[name] === "function") methods.add(name);
+      }
+      proto = Object.getPrototypeOf(proto);
+    }
+    methods.forEach((name) => (this[name] = this[name].bind(this)));
   }
 
   /**
@@ -749,42 +767,50 @@ export default class FezBase {
   // ===========================================================================
 
   /**
-   * Add window event listener with auto-cleanup
+   * Add an event listener on any EventTarget with auto-cleanup.
+   * Handler is bound to the component and only fires while it is connected.
+   *
+   *   this.on('resize', () => this.recompute())                  // window (event in WINDOW_EVENTS)
+   *   this.on('pjax:render', () => this.refresh())               // document (default for unknown events)
+   *   this.on(window, 'keydown', e => ...)                       // explicit target
+   *   this.on(this.find('.x'), 'click', e => ..., { throttle: 100 })
+   *
+   * Returns a disposer for early unregister.
    */
-  on(eventName, func, delay = 200) {
-    this._eventHandlers = this._eventHandlers || {};
-
-    if (this._eventHandlers[eventName]) {
-      window.removeEventListener(eventName, this._eventHandlers[eventName]);
+  on(target, eventName, handler, opts) {
+    if (typeof target === "string") {
+      [target, eventName, handler, opts] = [
+        WINDOW_EVENTS.has(target) ? window : document,
+        target,
+        eventName,
+        handler,
+      ];
     }
-
-    const throttledFunc = Fez.throttle(() => {
-      if (this.isConnected) func.call(this);
-    }, delay);
-
-    this._eventHandlers[eventName] = throttledFunc;
-    window.addEventListener(eventName, throttledFunc);
-
-    this.addOnDestroy(() => {
-      window.removeEventListener(eventName, throttledFunc);
-      delete this._eventHandlers[eventName];
-    });
+    const call = handler.bind(this);
+    const guarded = (e) => {
+      if (this.isConnected) call(e);
+    };
+    const fn = opts?.throttle ? Fez.throttle(guarded, opts.throttle) : guarded;
+    target.addEventListener(eventName, fn, opts);
+    const dispose = () => target.removeEventListener(eventName, fn, opts);
+    this.addOnDestroy(dispose);
+    return dispose;
   }
 
   /**
-   * Window resize handler
+   * Window resize handler — calls fn once immediately, then on throttled resize.
    */
-  onWindowResize(func, delay) {
-    this.on("resize", func, delay);
-    func();
+  onWindowResize(func, throttle = 200) {
+    this.on("resize", func, { throttle });
+    func.call(this);
   }
 
   /**
-   * Window scroll handler
+   * Window scroll handler — calls fn once immediately, then on throttled scroll.
    */
-  onWindowScroll(func, delay) {
-    this.on("scroll", func, delay);
-    func();
+  onWindowScroll(func, throttle = 200) {
+    this.on("scroll", func, { throttle });
+    func.call(this);
   }
 
   /**

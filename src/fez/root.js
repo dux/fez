@@ -23,6 +23,7 @@ import objectDump from './utils/dump.js';
 import highlightAll from './utils/highlight_all.js';
 import connect from './connect.js';
 import compile from './compile.js';
+import { WINDOW_EVENTS } from './instance.js';
 import state from './lib/global-state.js';
 import createTemplate from './lib/template.js';
 import { subscribe, publish } from './lib/pubsub.js';
@@ -121,6 +122,12 @@ const Fez = (name, klass) => {
 // =============================================================================
 // COMPONENT REGISTRY
 // =============================================================================
+
+/**
+ * Event names that default to `window` in `this.on('event', handler)`.
+ * Anything not in this set defaults to `document`. Mutate to customize.
+ */
+Fez.WINDOW_EVENTS = WINDOW_EVENTS;
 
 /** Unified component index - Fez.index['name'] = { class, meta, demo, info, source } */
 Fez.index = index;

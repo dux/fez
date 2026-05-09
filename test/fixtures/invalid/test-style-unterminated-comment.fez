@@ -1,0 +1,13 @@
+<script>
+  init() {}
+</script>
+
+<div>hello</div>
+
+<style>
+  .root {
+    padding: 1rem;
+    /* unterminated comment
+    color: red;
+  }
+</style>

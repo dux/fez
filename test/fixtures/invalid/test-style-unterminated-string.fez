@@ -1,0 +1,12 @@
+<script>
+  init() {}
+</script>
+
+<div>hello</div>
+
+<style>
+  a {
+    color: #fff;
+    transition: background 0.12s ease, color 0.12s ',mo;
+  }
+</style>
