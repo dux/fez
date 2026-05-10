@@ -207,6 +207,95 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     expect(target.children[2]._marker).toBe("OLD-2");
     target.remove();
   });
+
+  test("does not preserve unkeyed component when slot content changes", () => {
+    Fez.index.ensure("test-slot-card");
+
+    const target = makeTarget("div", "");
+    const old = document.createElement("test-slot-card");
+    old.classList.add("fez", "fez-test-slot-card");
+    old._marker = "OLD";
+
+    let destroyed = false;
+    old.fez = {
+      UID: 9300,
+      _destroyed: false,
+      _fezSlotSignature: "<span>Old</span>",
+      props: {},
+      onRefresh: () => {},
+      fezOnDestroy: () => {
+        destroyed = true;
+        old.fez._destroyed = true;
+      },
+    };
+    old._fezSlotSignature = "<span>Old</span>";
+    target.appendChild(old);
+
+    Fez.nodeMorph(target, "<test-slot-card><span>New</span></test-slot-card>");
+
+    expect(target.children.length).toBe(1);
+    expect(target.firstElementChild).not.toBe(old);
+    expect(target.firstElementChild.textContent).toBe("New");
+    expect(destroyed).toBe(true);
+    target.remove();
+  });
+
+  test("preserves unkeyed component when slot content is unchanged", () => {
+    Fez.index.ensure("test-slot-card-same");
+
+    const target = makeTarget("div", "");
+    const old = document.createElement("test-slot-card-same");
+    old.classList.add("fez", "fez-test-slot-card-same");
+    old._marker = "OLD";
+    old.fez = {
+      UID: 9301,
+      _destroyed: false,
+      _fezSlotSignature: "<span>Same</span>",
+      props: {},
+      onRefresh: () => {},
+    };
+    old._fezSlotSignature = "<span>Same</span>";
+    target.appendChild(old);
+
+    Fez.nodeMorph(
+      target,
+      "<test-slot-card-same><span>Same</span></test-slot-card-same>",
+    );
+
+    expect(target.children.length).toBe(1);
+    expect(target.firstElementChild).toBe(old);
+    expect(target.firstElementChild._marker).toBe("OLD");
+    target.remove();
+  });
+
+  test("keyed component identity overrides slot content signature", () => {
+    Fez.index.ensure("test-slot-card-keyed");
+
+    const target = makeTarget("div", "");
+    const old = document.createElement("test-slot-card-keyed");
+    old.classList.add("fez", "fez-test-slot-card-keyed");
+    old.setAttribute("key", "stable");
+    old._marker = "OLD";
+    old.fez = {
+      UID: 9302,
+      _destroyed: false,
+      _fezSlotSignature: "<span>Old</span>",
+      props: {},
+      onRefresh: () => {},
+    };
+    old._fezSlotSignature = "<span>Old</span>";
+    target.appendChild(old);
+
+    Fez.nodeMorph(
+      target,
+      '<test-slot-card-keyed key="stable"><span>New</span></test-slot-card-keyed>',
+    );
+
+    expect(target.children.length).toBe(1);
+    expect(target.firstElementChild).toBe(old);
+    expect(target.firstElementChild._marker).toBe("OLD");
+    target.remove();
+  });
 });
 
 describe("Fez.morphdom - preserved component props", () => {

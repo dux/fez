@@ -8,6 +8,32 @@
 
 import { nodeMorph } from './morph.js';
 
+function normalizeSlotHtml(value) {
+  return String(value || '').trim();
+}
+
+function slotSignature(node) {
+  return normalizeSlotHtml(
+    node?._fezSlotSignature ??
+      node?.fez?._fezSlotSignature ??
+      node?.innerHTML,
+  );
+}
+
+function slotSignatureHash(node) {
+  const text = slotSignature(node);
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function unkeyedFezAlias(base, node) {
+  return `${base}:slot-${slotSignatureHash(node)}`;
+}
+
 /**
  * Describe a live (old) fez component node so the differ can:
  *  - match by UID
@@ -31,7 +57,7 @@ function fezDescribeOld(node) {
   if (node.classList) {
     for (const cls of node.classList) {
       if (cls.startsWith('fez-') && cls !== 'fez') {
-        aliases.push('fez-class-' + cls);
+        aliases.push(unkeyedFezAlias('fez-class-' + cls, node));
         break;
       }
     }
@@ -105,7 +131,7 @@ export default function attachMorph(Fez) {
             ? 'key-' + internalKey
             : keyAttr
               ? 'key-' + keyAttr
-              : 'fez-class-' + cls;
+              : unkeyedFezAlias('fez-class-' + cls, node);
         }
       }
     }
@@ -116,12 +142,14 @@ export default function attachMorph(Fez) {
         ? 'key-' + internalKey
         : keyAttr
           ? 'key-' + keyAttr
-          : 'fez-class-fez-' + tag;
+          : unkeyedFezAlias('fez-class-fez-' + tag, node);
     }
 
     const fezAttr = node.getAttribute?.('fez');
     if (fezAttr && Fez.index?.[fezAttr]) {
-      return keyAttr ? 'key-' + keyAttr : 'fez-class-fez-' + fezAttr;
+      return keyAttr
+        ? 'key-' + keyAttr
+        : unkeyedFezAlias('fez-class-fez-' + fezAttr, node);
     }
 
     return null;
