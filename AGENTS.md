@@ -76,12 +76,12 @@ Console output is also printed to the server terminal in real time.
 
 `.fez` files use Fez's own template compiler (`src/fez/lib/template-compiler.js`), not the Svelte compiler. Use the Svelte compiler only for `.svelte` files.
 
-## Core Rules for Claude
+## Core Rules for LLM
 
 1. **ALWAYS** use Fez-specific Svelte-like syntax (NO React/Vue conventions)
 2. **ALWAYS** use 2-space indentation inside template blocks (`{#if}`, `{#each}`, `{#for}`, `{#await}`, etc.) - content inside blocks must be indented by 2 spaces relative to the block tag
 3. **NEVER** use hooks - `this.state` replaces useState/useEffect
-4. `<style>` content is locally scoped by default (auto-wrapped in `:fez { }`). For global styles use `body { ... }`. **IMPORTANT:** if `body { }` appears anywhere in the style block, auto-scoping is disabled for the entire block - you MUST wrap local styles in `:fez { ... }` explicitly.
+4. `<style>` content is locally scoped by default: when the block contains no top-level `:fez` or `body` rule, the compiler wraps the **whole style block** in `:fez { ... }`. `:fez` represents the generated outer wrapper node with the `fez` class, not the first template child. If the first element is `<nav>` and it needs `display: flex`, write `nav { display: flex; }`, not root-level `display: flex`. For global styles use `body { ... }`. **IMPORTANT:** if `:fez { }` or `body { }` appears anywhere in the style block, auto-scoping is disabled for the entire block - you MUST wrap local styles in `:fez { ... }` explicitly.
 5. **ALWAYS** initialize state in `init()`, put reactive/derived state in `beforeRender()`
 6. **ALWAYS** use kebab-case component names (e.g., `user-profile`)
 7. **NEVER** use `{#if}` blocks inside HTML attributes - use ternary operators `{condition ? 'value' : ''}` instead
@@ -175,8 +175,16 @@ The `<script>` block has two zones:
 
 <style>
   /* All styles are locally scoped to the component */
-  /* Root-level styles apply to the component root node */
+  /* Bare declarations are wrapped around the whole block as :fez { ... } */
+  /* :fez is the generated outer wrapper node, not the first template child */
   padding: 20px;
+
+  /* Style the actual first template child when it needs layout */
+  nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
 
   /* nested SCSS syntax */
   button {
@@ -192,30 +200,17 @@ The `<script>` block has two zones:
       background: orange;
     }
   }
-
-  .card {
-    border: 1px solid #ddd;
-
-    .header {
-      font-size: 18px;
-
-      h3 {
-        margin: 0;
-      }
-    }
-  }
 </style>
 
 <!-- Mixing local + global styles -->
 <style>
-  :fez {
-    .card { border: 1px solid #ddd; }
-    button { background: gold; }
-  }
-
   body {
     .some-external-class { color: blue; }
-    :fez .child { font-weight: bold; }
+
+    :fez {
+      .card { border: 1px solid #ddd; }
+      button { background: gold; }
+    }
   }
 </style>
 
@@ -244,12 +239,6 @@ The `<script>` block has two zones:
 ### Conditionals
 
 ```html
-{#if state.isActive}
-<div>Active</div>
-{:else}
-<div>Inactive</div>
-{/if}
-
 <!-- With else if -->
 {#if state.status === 'loading'}
 <span>Loading...</span>
@@ -288,18 +277,6 @@ Handle promises directly in templates with automatic loading/error states:
 </div>
 {:catch error}
 <p class="error">Failed to load: {error.message}</p>
-{/await}
-
-<!-- Skip pending state (shows nothing while loading) -->
-{#await state.data}{:then result}
-<p>Result: {result}</p>
-{/await}
-
-<!-- With error handling but no pending state -->
-{#await state.data}{:then result}
-<p>{result}</p>
-{:catch err}
-<p>Error: {err.message}</p>
 {/await}
 ```
 
@@ -517,6 +494,7 @@ All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is con
 
 - **ALWAYS use `Fez.getFunction()` for handler props** (onclick, ping, onselect, etc.):
   Props can come as strings or functions, so always normalize them with `Fez.getFunction()`:
+  `Fez.getFunction()` returns void empty function for empty strings and nulls.
 
   ```javascript
   init(props) {
@@ -546,6 +524,7 @@ All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is con
 - Modify arrays/objects directly (they're deeply reactive)
 - Use `beforeRender()` for reactive computed/derived state (replacement for Svelte's `$:` reactive statements) - runs before every re-render
 - Use `onMount()` for updates that need mounted template
+- Use `this.local` for non-reactive per-instance values such as external library instances, normalized handler props, cached measurements, and parsed config. Mutating `this.local` does not refresh the component, and Fez clears it after `onDestroy()`.
 - **NEVER bind state to form input values** - state changes trigger full re-render. Use `fez:this` instead:
 
   ```html
@@ -571,7 +550,7 @@ All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is con
 
   // CORRECT - keep handler props as props, use directly
   init(props) {
-    this.onClickHandler = Fez.getFunction(props.onclick)
+    this.local.onClickHandler = Fez.getFunction(props.onclick)
   }
   ```
 
@@ -804,8 +783,16 @@ Use `<slot unwrap />` when children must be inserted without a wrapper div. By d
 
 - **Putting `META` or other class properties outside `class {}`** - they MUST be inside the class body. Module-level code (imports, `Fez.head()`) goes before the class, everything else goes inside it.
 - Using React hooks (useState, useEffect)
-- **Mixing local and global styles without `:fez` wrapper** - if your `<style>` has a `body { }` block, the compiler disables auto-scoping for the entire block, so all other styles leak globally. Wrap local styles in `:fez { ... }`:
+- **Misunderstanding style scoping and the `:fez` wrapper** - if a `<style>` block has no top-level `:fez` or `body` rule, the compiler auto-wraps the whole block in `:fez { ... }`. `:fez` is the generated outer wrapper node with the `fez` class, not the first template child. Root-level declarations style that wrapper; styles for the first child must target that child selector. If your `<style>` has a `:fez { }` or `body { }` block, the compiler disables auto-scoping for the entire block, so all other styles leak globally unless you wrap local styles in `:fez { ... }`:
   ```html
+  <style>
+    /* WRONG - this styles the generated wrapper, not a first-child <nav> */
+    display: flex;
+
+    /* CORRECT - style the actual first template child */
+    nav { display: flex; }
+  </style>
+
   <style>
     /* WRONG - .card leaks globally because body {} disables auto-scoping */
     .card { padding: 10px; }
@@ -816,11 +803,12 @@ Use `<slot unwrap />` when children must be inserted without a wrapper div. By d
     body { .global-thing { color: red; } }
   </style>
   ```
-  Note: `:fez { }` is NOT needed if the style block has no `body { }` - the compiler auto-scopes everything.
+  Note: `:fez { }` is NOT needed if the style block has no top-level `:fez` or `body` rule - the compiler auto-scopes everything by wrapping the whole block.
 - **Putting computed/derived state in `init()` instead of `beforeRender()`** - derived values that depend on state should go in `beforeRender()` so they update on every re-render (like Svelte's `$:`)
 - Using string interpolation in onclick instead of arrow functions
 - Direct DOM manipulation for simple reactive UI (use state instead) - BUT use direct DOM for external libraries (Three.js, charts, etc.) since DOM diffing doesn't handle them well
 - Missing `init()` for state initialization
+- **Putting non-render data in `state` or directly on `this`** - use `this.local` for non-reactive per-instance values like editor objects, normalized callbacks, measurements, timers, and parsed config. Keep module-level constants outside the component.
 - Using `{#if}` blocks inside attributes (use ternary operators instead)
 - Writing flat CSS instead of nested SCSS syntax
 - Using `this.prop('name')` instead of `props.name` in `init()` and `onMount()`
@@ -870,6 +858,7 @@ this.find('.selector'); // Scoped querySelector
 this.setTimeout(fn, 1000); // Auto-cleaned timeout
 this.setInterval(fn, 1000); // Auto-cleaned interval
 Fez.fetch('/data'); // Built-in cached fetch
+this.local.editor = editor; // Non-reactive per-instance storage
 this.formData(); // Get form values
 this.childNodes(); // Get child elements as array
 this.childNodes(fn); // Get children mapped with function

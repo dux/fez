@@ -15,6 +15,9 @@ type ReactiveState<T = Record<string, any>> = T;
 /** Global state proxy for cross-component communication */
 type GlobalState = Record<string, any>;
 
+/** Non-reactive per-instance storage */
+type LocalStore = Record<string, any>;
+
 /** Component props (always strings from HTML attributes) */
 type ComponentProps = Record<string, string>;
 
@@ -118,6 +121,9 @@ declare abstract class FezBase {
 
   /** Global state proxy - shared across components */
   globalState: GlobalState;
+
+  /** Non-reactive per-instance storage - changes do not trigger re-renders */
+  local: LocalStore;
 
   /** Component props from HTML attributes */
   props: ComponentProps & EvaluatedProps;

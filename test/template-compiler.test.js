@@ -93,13 +93,13 @@ const createFezGlobals = () => ({
   },
 });
 
-// Helper to render template and get HTML string (strips auto-generated keys)
+// Helper to render template and get HTML string (strips auto-generated internal keys)
 const render = (template, ctx) => {
   ctx.UID = ctx.UID || 123;
   ctx.Fez = Fez;
   ctx.fezGlobals = ctx.fezGlobals || createFezGlobals();
   const fn = createTemplateCompiler(template);
-  return fn(ctx).replace(/ key="[^"]*"/g, "");
+  return fn(ctx).replace(/ fez-key="[^"]*"/g, "");
 };
 
 describe("Fez template compiler", () => {

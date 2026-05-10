@@ -146,8 +146,8 @@ export default function createTemplateCompiler(text, opts = {}) {
     // Convert self-closing <slot /> to <slot></slot>
     text = text.replace(/<slot\s*\/>/gi, "<slot></slot>");
 
-    // Auto-generate key attributes on HTML elements for stable morph diffing.
-    // Elements without key= get a sequential key injected. Elements inside
+    // Auto-generate internal fez-key markers for stable morph diffing.
+    // Elements without key= get a sequential internal key. Elements inside
     // {#each}/{#for} loops include the loop index variable in the key.
     // User-provided key= attributes are preserved as-is.
     text = autoInjectKeys(text);
@@ -529,7 +529,7 @@ export default function createTemplateCompiler(text, opts = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// Auto-inject key attributes for morph stability
+// Auto-inject internal key markers for morph stability
 // ---------------------------------------------------------------------------
 
 /**
@@ -562,7 +562,7 @@ function getLoopIndexVar(directive) {
 }
 
 /**
- * Extract a stable loop item variable for auto-generated keys.
+ * Extract a stable loop item variable for auto-generated internal keys.
  * Used when nested loops reuse the same implicit index variable.
  */
 function getLoopItemKeyVar(directive) {
@@ -590,15 +590,15 @@ function getLoopItemKeyVar(directive) {
 }
 
 /**
- * Auto-inject key="N" attributes on HTML elements for stable morph diffing.
+ * Auto-inject fez-key="N" markers on HTML elements for stable morph diffing.
  *
- * - Static elements get key="N" (sequential counter)
- * - Elements inside {#each}/{#for} get key="N-{indexVar}" (dynamic per iteration)
- * - Nested loops stack: key="N-{i}-{j}"
+ * - Static elements get fez-key="N" (sequential counter)
+ * - Elements inside {#each}/{#for} get fez-key="N-{indexVar}" (dynamic per iteration)
+ * - Nested loops stack: fez-key="N-{i}-{j}"
  * - Elements that already have key= are skipped
  *
  * @param {string} text - preprocessed template source
- * @returns {string} template with key attributes injected
+ * @returns {string} template with internal key markers injected
  */
 function autoInjectKeys(text) {
   let result = "";
@@ -728,12 +728,12 @@ function autoInjectKeys(text) {
         keyValue = `${n}`;
       }
 
-      // Inject key before closing > or />
+      // Inject internal key marker before closing > or />
       if (tag.trimEnd().endsWith("/>")) {
         const slashPos = tag.lastIndexOf("/");
-        result += tag.slice(0, slashPos) + ` key="${keyValue}"/>`;
+        result += tag.slice(0, slashPos) + ` fez-key="${keyValue}"/>`;
       } else {
-        result += tag.slice(0, -1) + ` key="${keyValue}">`;
+        result += tag.slice(0, -1) + ` fez-key="${keyValue}">`;
       }
 
       pos = j + 1;

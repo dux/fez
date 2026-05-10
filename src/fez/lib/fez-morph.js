@@ -21,9 +21,11 @@ function fezDescribeOld(node) {
 
   const aliases = [];
   if (node.id) aliases.push('id-' + node.id);
-  // Compiler-injected key= disambiguates fez component siblings inside loops.
+  // Compiler-injected internal keys disambiguate fez component siblings inside loops.
   // Without this alias, multiple <my-comp> siblings all collapse onto the first
   // old child via the shared 'fez-class-fez-my-comp' alias.
+  const internalKey = node._fezKey;
+  if (internalKey !== undefined) aliases.push('key-' + internalKey);
   const keyAttr = node.getAttribute?.('key');
   if (keyAttr) aliases.push('key-' + keyAttr);
   if (node.classList) {
@@ -90,22 +92,31 @@ export default function attachMorph(Fez) {
   function fezDescribeNew(node) {
     if (node.nodeType !== 1) return null;
 
-    // Compiler-injected key= disambiguates fez component siblings inside loops.
+    // Compiler-injected internal keys disambiguate fez component siblings inside loops.
     // Prefer it over the shared tag-based alias so each new placeholder maps to
     // its own old child instead of all collapsing onto the first one.
+    const internalKey = node._fezKey;
     const keyAttr = node.getAttribute?.('key');
 
     if (node.classList?.contains('fez')) {
       for (const cls of node.classList) {
         if (cls.startsWith('fez-') && cls !== 'fez') {
-          return keyAttr ? 'key-' + keyAttr : 'fez-class-' + cls;
+          return internalKey !== undefined
+            ? 'key-' + internalKey
+            : keyAttr
+              ? 'key-' + keyAttr
+              : 'fez-class-' + cls;
         }
       }
     }
 
     const tag = node.tagName?.toLowerCase();
     if (tag && Fez.index?.[tag]) {
-      return keyAttr ? 'key-' + keyAttr : 'fez-class-fez-' + tag;
+      return internalKey !== undefined
+        ? 'key-' + internalKey
+        : keyAttr
+          ? 'key-' + keyAttr
+          : 'fez-class-fez-' + tag;
     }
 
     const fezAttr = node.getAttribute?.('fez');

@@ -135,7 +135,7 @@ export function isArrowFunction(expr) {
  * we use simple interpolation since indices are primitives.
  *
  * Output for index-only: "fez.removeTask(${index})"
- * Output for item refs: "${'Fez(' + UID + ').fezGlobals.delete(' + fez.fezGlobals.set(() => fez.removeTask(item)) + ')()'}"
+ * Output for item refs: "${'Fez(' + UID + ').fezGlobals.get(' + fez.fezGlobals.setHandler((event) => fez.removeTask(item)) + ')(event)'}"
  */
 export function transformArrowToHandler(
   expr,
@@ -207,9 +207,9 @@ export function transformArrowToHandler(
       },
     );
 
-    // Store the function with captured loop vars, retrieve and call at click time
-    // Uses IIFE to build the string at render time with UID and set() evaluated
-    return `\${'Fez(' + UID + ').fezGlobals.delete(' + fez.fezGlobals.set(() => ${body}) + ')()'}`;
+    // Store the function with captured loop vars, retrieve and call at click time.
+    // Handler slots are persistent for the rendered DOM and cleaned up on render.
+    return `\${'Fez(' + UID + ').fezGlobals.get(' + fez.fezGlobals.setHandler((event) => ${body}) + ')(event)'}`;
   }
 
   // No item variables - use simple interpolation for indices (original behavior)

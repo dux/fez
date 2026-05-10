@@ -32,15 +32,39 @@ function createMockFezGlobals() {
   return {
     _data: new Map(),
     _counter: 0,
+    _handlerCounter: 0,
+    _handlerKeys: new Set(),
+    _nextHandlerKeys: null,
     set(value) {
       const key = this._counter++;
       this._data.set(key, value);
       return key;
     },
+    setHandler(value) {
+      const key = `h${this._handlerCounter++}`;
+      this._data.set(key, value);
+      this._nextHandlerKeys?.add(key);
+      return `'${key}'`;
+    },
+    get(key) {
+      return this._data.get(key);
+    },
     delete(key) {
       const value = this._data.get(key);
       this._data.delete(key);
       return value;
+    },
+    beginRender() {
+      this._handlerCounter = 0;
+      this._nextHandlerKeys = new Set();
+    },
+    commitRender() {
+      if (!this._nextHandlerKeys) return;
+      for (const key of this._handlerKeys) {
+        if (!this._nextHandlerKeys.has(key)) this._data.delete(key);
+      }
+      this._handlerKeys = this._nextHandlerKeys;
+      this._nextHandlerKeys = null;
     },
   };
 }
@@ -67,17 +91,26 @@ afterAll(() => {
   global.Fez = originalFez;
 });
 
-// Helper to render template and get HTML (strips auto-generated key attrs)
+// Helper to render template and get HTML (strips auto-generated internal key markers)
 function render(template, ctx) {
   const tpl = createTemplateCompiler(template);
   const fezGlobals = createMockFezGlobals();
   return tpl({ ...ctx, Fez: MockFez, UID: 999, fezGlobals }).replace(
-    / key="[^"]*"/g,
+    / fez-key="[^"]*"/g,
     "",
   );
 }
 
-// Helper that preserves key attributes for key-specific tests
+function renderWithGlobals(template, ctx, fezGlobals = createMockFezGlobals()) {
+  const tpl = createTemplateCompiler(template);
+  const renderCtx = { ...ctx, Fez: MockFez, UID: 999, fezGlobals };
+  fezGlobals.beginRender();
+  const html = tpl(renderCtx).replace(/ fez-key="[^"]*"/g, "");
+  fezGlobals.commitRender();
+  return { html, fezGlobals, ctx: renderCtx, tpl };
+}
+
+// Helper that preserves generated key markers for key-specific tests
 function renderWithKeys(template, ctx) {
   const tpl = createTemplateCompiler(template);
   const fezGlobals = createMockFezGlobals();
@@ -509,7 +542,7 @@ describe("template compiler", () => {
       // When arrow uses item vars (not just indices), it stores handler in fezGlobals
       // This ensures the item reference is captured at render time
       expect(html).toBe(
-        '<button onclick="Fez(999).fezGlobals.delete(0)()">Edit</button><button onclick="Fez(999).fezGlobals.delete(1)()">Edit</button>',
+        '<button onclick="Fez(999).fezGlobals.get(\'h0\')(event)">Edit</button><button onclick="Fez(999).fezGlobals.get(\'h1\')(event)">Edit</button>',
       );
     });
 
@@ -526,8 +559,77 @@ describe("template compiler", () => {
       );
       // Each button should reference fezGlobals with a unique key
       expect(html).toBe(
-        '<span onclick="Fez(999).fezGlobals.delete(0)()">js</span><span onclick="Fez(999).fezGlobals.delete(1)()">css</span>',
+        '<span onclick="Fez(999).fezGlobals.get(\'h0\')(event)">js</span><span onclick="Fez(999).fezGlobals.get(\'h1\')(event)">css</span>',
       );
+    });
+
+    test("captured object handlers are persistent across repeated calls", () => {
+      const calls = [];
+      const task = { id: 1, title: "Ship" };
+      const { html, fezGlobals } = renderWithGlobals(
+        "{#each state.tasks as task}<button onclick={() => editTask(task)}>Edit</button>{/each}",
+        {
+          state: { tasks: [task] },
+          props: {},
+          editTask(value) {
+            calls.push(value);
+          },
+        },
+      );
+
+      expect(html).toBe(
+        '<button onclick="Fez(999).fezGlobals.get(\'h0\')(event)">Edit</button>',
+      );
+
+      const handler = fezGlobals.get("h0");
+      handler(new Event("click"));
+      handler(new Event("click"));
+
+      expect(calls).toEqual([task, task]);
+      expect(fezGlobals.get("h0")).toBe(handler);
+    });
+
+    test("captured handler keys are stable and stale handlers are cleaned up", () => {
+      const calls = [];
+      const first = { id: 1, title: "First" };
+      const second = { id: 2, title: "Second" };
+      const fezGlobals = createMockFezGlobals();
+      const template =
+        "{#each state.tasks as task}<button onclick={() => editTask(task)}>Edit</button>{/each}";
+
+      const firstRender = renderWithGlobals(
+        template,
+        {
+          state: { tasks: [first, second] },
+          props: {},
+          editTask(value) {
+            calls.push(value);
+          },
+        },
+        fezGlobals,
+      );
+
+      const secondRender = renderWithGlobals(
+        template,
+        {
+          state: { tasks: [second] },
+          props: {},
+          editTask(value) {
+            calls.push(value);
+          },
+        },
+        fezGlobals,
+      );
+
+      expect(firstRender.html).toContain("get('h0')");
+      expect(firstRender.html).toContain("get('h1')");
+      expect(secondRender.html).toBe(
+        '<button onclick="Fez(999).fezGlobals.get(\'h0\')(event)">Edit</button>',
+      );
+      expect(fezGlobals.get("h1")).toBeUndefined();
+
+      fezGlobals.get("h0")(new Event("click"));
+      expect(calls).toEqual([second]);
     });
 
     test("index-only handlers do not use fezGlobals", () => {
@@ -605,9 +707,10 @@ describe("template compiler", () => {
         state: {},
         props: {},
       });
-      expect(html).toContain('key="0"');
-      expect(html).toContain('key="1"');
-      expect(html).toContain('key="2"');
+      expect(html).toContain('fez-key="0"');
+      expect(html).toContain('fez-key="1"');
+      expect(html).toContain('fez-key="2"');
+      expect(html).not.toContain(' key="');
     });
 
     test("keys are stable across re-renders with {#if}", () => {
@@ -620,8 +723,8 @@ describe("template compiler", () => {
         { state: { show: false }, props: {} },
       );
       // Button key must be the same in both renders
-      const btnKeyTrue = htmlTrue.match(/class="button"[^>]*key="(\d+)"/);
-      const btnKeyFalse = htmlFalse.match(/class="button"[^>]*key="(\d+)"/);
+      const btnKeyTrue = htmlTrue.match(/class="button"[^>]*fez-key="(\d+)"/);
+      const btnKeyFalse = htmlFalse.match(/class="button"[^>]*fez-key="(\d+)"/);
       expect(btnKeyTrue[1]).toBe(btnKeyFalse[1]);
     });
 
@@ -630,9 +733,10 @@ describe("template compiler", () => {
         "{#each state.items as item}<li>{item}</li>{/each}",
         { state: { items: ["a", "b", "c"] }, props: {} },
       );
-      expect(html).toContain('key="0-0"');
-      expect(html).toContain('key="0-1"');
-      expect(html).toContain('key="0-2"');
+      expect(html).toContain('fez-key="0-0"');
+      expect(html).toContain('fez-key="0-1"');
+      expect(html).toContain('fez-key="0-2"');
+      expect(html).not.toContain(' key="');
     });
 
     test("loop with explicit index variable", () => {
@@ -640,8 +744,9 @@ describe("template compiler", () => {
         "{#each state.items as item, idx}<li>{item}</li>{/each}",
         { state: { items: ["x", "y"] }, props: {} },
       );
-      expect(html).toContain('key="0-0"');
-      expect(html).toContain('key="0-1"');
+      expect(html).toContain('fez-key="0-0"');
+      expect(html).toContain('fez-key="0-1"');
+      expect(html).not.toContain(' key="');
     });
 
     test("nested implicit loops get unique generated keys", () => {
@@ -649,7 +754,7 @@ describe("template compiler", () => {
         "{#for row in state.rows}{#for color in row}<span>{color}</span>{/for}{/for}",
         { state: { rows: [["red", "green"], ["blue", "gold"]] }, props: {} },
       );
-      const keys = [...html.matchAll(/key="([^"]+)"/g)].map((m) => m[1]);
+      const keys = [...html.matchAll(/fez-key="([^"]+)"/g)].map((m) => m[1]);
       expect(keys).toHaveLength(4);
       expect(new Set(keys).size).toBe(4);
     });
@@ -661,7 +766,7 @@ describe("template compiler", () => {
       );
       expect(html).toContain('key="foo"');
       expect(html).toContain('key="bar"');
-      expect(html).not.toContain('key="0-');
+      expect(html).not.toContain('fez-key=');
     });
   });
 });

@@ -97,6 +97,15 @@ function syncAttributes(oldNode, newNode) {
   }
 }
 
+function syncInternalKeys(oldNode, newNode) {
+  if (oldNode.nodeType !== 1 || newNode.nodeType !== 1) return;
+  if (newNode._fezKey !== undefined) {
+    oldNode._fezKey = newNode._fezKey;
+  } else {
+    delete oldNode._fezKey;
+  }
+}
+
 /**
  * Sync classes using classList.add/remove to preserve CSS animations.
  */
@@ -138,6 +147,10 @@ function builtinKey(node) {
 
   const keepKey = node.getAttribute?.("fez-keep");
   if (keepKey) return { key: "keep-" + keepKey, preserve: true };
+
+  if (node._fezKey !== undefined) {
+    return { key: "key-" + node._fezKey, preserve: false };
+  }
 
   const key = node.getAttribute?.("key");
   if (key) return { key: "key-" + key, preserve: false };
@@ -326,6 +339,7 @@ function diffChildren(target, newParent, opts) {
 
       if (match.preserve) {
         if (opts.onPreserve) opts.onPreserve(oldChild, newChild);
+        syncInternalKeys(oldChild, newChild);
         // preserve entirely, just ensure position
         if (oldChild !== cursor) {
           target.insertBefore(oldChild, cursor);
@@ -353,6 +367,7 @@ function diffChildren(target, newParent, opts) {
         } else if (oldChild.nodeName === newChild.nodeName) {
           // Same tag: sync attributes and recurse
           syncAttributes(oldChild, newChild);
+          syncInternalKeys(oldChild, newChild);
           diffChildren(oldChild, newChild, opts);
           syncDomProperties(oldChild, newChild);
         } else {
@@ -396,7 +411,7 @@ function syncDomProperties(oldNode, newNode) {
   const tag = oldNode.nodeName;
 
   if ("disabled" in oldNode) {
-    oldNode.disabled = newNode.hasAttribute("disabled");
+    syncBooleanProperty(oldNode, newNode, "disabled");
   }
 
   if (tag === "INPUT") {
@@ -405,15 +420,26 @@ function syncDomProperties(oldNode, newNode) {
       oldNode.value = newNode.getAttribute("value");
     }
     if (!isActiveInput && (type === "checkbox" || type === "radio")) {
-      oldNode.checked = newNode.hasAttribute("checked");
+      syncBooleanProperty(oldNode, newNode, "checked");
     }
   } else if (tag === "TEXTAREA") {
     if (!isActiveInput) oldNode.value = newNode.value;
   } else if (tag === "SELECT") {
     if (!isActiveInput) oldNode.value = newNode.value;
   } else if (tag === "OPTION") {
-    oldNode.selected = newNode.hasAttribute("selected");
+    syncBooleanProperty(oldNode, newNode, "selected");
   }
+}
+
+function booleanAttrEnabled(node, attr) {
+  if (!node.hasAttribute(attr)) return false;
+  return !["false", "null", "undefined"].includes(node.getAttribute(attr));
+}
+
+function syncBooleanProperty(oldNode, newNode, attr) {
+  const enabled = booleanAttrEnabled(newNode, attr);
+  oldNode[attr] = enabled;
+  if (!enabled) oldNode.removeAttribute(attr);
 }
 
 /**

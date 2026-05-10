@@ -125,23 +125,50 @@ export default class FezBase {
 
   n = parseNode;
   fezBlocks = {};
+  local = {};
 
   // Store for passing values to child components (e.g., loop vars)
   fezGlobals = {
     _data: new Map(),
     _counter: 0,
+    _handlerCounter: 0,
+    _handlerKeys: new Set(),
+    _nextHandlerKeys: null,
     set(value) {
       const key = this._counter++;
       this._data.set(key, value);
       return key;
+    },
+    setHandler(value) {
+      const key = `h${this._handlerCounter++}`;
+      this._data.set(key, value);
+      this._nextHandlerKeys?.add(key);
+      return `'${key}'`;
+    },
+    get(key) {
+      return this._data.get(key);
     },
     delete(key) {
       const value = this._data.get(key);
       this._data.delete(key);
       return value;
     },
+    beginRender() {
+      this._handlerCounter = 0;
+      this._nextHandlerKeys = new Set();
+    },
+    commitRender() {
+      if (!this._nextHandlerKeys) return;
+      for (const key of this._handlerKeys) {
+        if (!this._nextHandlerKeys.has(key)) this._data.delete(key);
+      }
+      this._handlerKeys = this._nextHandlerKeys;
+      this._nextHandlerKeys = null;
+    },
     clear() {
       this._data.clear();
+      this._handlerKeys.clear();
+      this._nextHandlerKeys = null;
     },
   };
 
@@ -220,6 +247,7 @@ export default class FezBase {
     // Call user's onDestroy hook
     this.onDestroy();
     this.onDestroy = () => {};
+    this.local = {};
 
     // Clean up fezGlobals (orphaned entries from conditional children that never mounted)
     this.fezGlobals.clear();
@@ -304,6 +332,8 @@ export default class FezBase {
         : this.class.nodeName;
     const newNode = document.createElement(nodeName || "div");
 
+    this.fezGlobals.beginRender();
+
     let renderedTpl;
     if (Array.isArray(template)) {
       if (template[0] instanceof Node) {
@@ -331,12 +361,14 @@ export default class FezBase {
         // Hash-skip: if template output is identical, skip the morph entirely
         const newHash = Fez.fnv1(parsedHtml);
         if (newHash === this._fezHash) {
+          this.fezGlobals.commitRender();
           this._isRendering = false;
           return;
         }
         this._fezHash = newHash;
 
         newNode.innerHTML = parsedHtml;
+        this.fezPromoteInternalKeys(newNode);
       }
     }
 
@@ -368,6 +400,7 @@ export default class FezBase {
     });
 
     this.fezRenderPostProcess();
+    this.fezGlobals.commitRender();
     this.afterRender();
 
     this._isRendering = false;
@@ -458,6 +491,16 @@ export default class FezBase {
         }
       });
     }
+  }
+
+  /**
+   * Move compiler-generated key markers off the DOM attribute surface.
+   */
+  fezPromoteInternalKeys(node) {
+    node.querySelectorAll?.("[fez-key]").forEach((el) => {
+      el._fezKey = el.getAttribute("fez-key");
+      el.removeAttribute("fez-key");
+    });
   }
 
   /**

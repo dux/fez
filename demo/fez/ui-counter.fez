@@ -3,6 +3,7 @@
     <li>Counter demo with shared global state across instances</li>
     <li>Pure Fez, no external dependencies</li>
     <li>Uses <code>this.globalState</code> for cross-component reactivity</li>
+    <li>Uses <code>this.local</code> for non-reactive local state</li>
   </ul>
 </info>
 
@@ -13,7 +14,7 @@
 <script>
   init(props) {
     // called when Fez node is connected to DOM
-    this.MAX = 6
+    this.local.max = 6
     this.state.count = parseInt(props.start || 0)
   }
 
@@ -42,7 +43,7 @@
   }
 
   isMax() {
-    return this.state.count >= this.MAX
+    return this.state.count >= this.local.max
   }
 </script>
 
@@ -68,7 +69,7 @@
 
 <span>&mdash;</span>
 {#if state.count > 0}
-  {#if state.count == MAX}
+  {#if state.count == local.max}
     MAX
   {:else}
     {#if state.count % 2}

@@ -341,6 +341,51 @@ describe("attribute sync", () => {
     container.remove();
   });
 
+  test('syncs checkbox checked property false from checked="false" and checked="undefined"', () => {
+    const container = document.createElement("div");
+    container.innerHTML = '<input type="checkbox" checked />';
+    document.body.appendChild(container);
+
+    const input = container.querySelector("input");
+    const falseNode = document.createElement("div");
+    falseNode.innerHTML = '<input type="checkbox" checked="false" />';
+
+    fezMorph(container, falseNode);
+
+    expect(input.hasAttribute("checked")).toBe(false);
+    expect(input.checked).toBe(false);
+
+    input.checked = true;
+    input.setAttribute("checked", "checked");
+
+    const undefinedNode = document.createElement("div");
+    undefinedNode.innerHTML = '<input type="checkbox" checked="undefined" />';
+
+    fezMorph(container, undefinedNode);
+
+    expect(input.hasAttribute("checked")).toBe(false);
+    expect(input.checked).toBe(false);
+
+    container.remove();
+  });
+
+  test('syncs boolean property false from disabled="false"', () => {
+    const container = document.createElement("div");
+    container.innerHTML = '<button disabled="disabled">Next</button>';
+    document.body.appendChild(container);
+
+    const button = container.querySelector("button");
+    const newNode = document.createElement("div");
+    newNode.innerHTML = '<button disabled="false">Next</button>';
+
+    fezMorph(container, newNode);
+
+    expect(button.hasAttribute("disabled")).toBe(false);
+    expect(button.disabled).toBe(false);
+
+    container.remove();
+  });
+
   test("syncs selected option property", () => {
     const container = document.createElement("div");
     container.innerHTML =

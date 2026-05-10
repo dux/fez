@@ -556,6 +556,71 @@ test('template - loops work', async () => {
   }
 });
 
+test('template - compiler keys are internal DOM properties', async () => {
+  const page = await createTestPage('<test-internal-keys></test-internal-keys>');
+
+  try {
+    await page.evaluate(() => {
+      window.Fez('test-internal-keys', class {
+        init() {
+          this.state.items = ['a', 'b', 'c'];
+        }
+
+        reverse() {
+          this.state.items.reverse();
+        }
+
+        HTML = `
+          <button class="reverse" onclick="fez.reverse()">reverse</button>
+          {#each state.items as item}
+            <span class="internal-key-item">{item}</span>
+          {/each}
+        `;
+      });
+    });
+
+    await page.waitForFunction(() => {
+      const items = document.querySelectorAll('.internal-key-item');
+      return items.length === 3;
+    }, { timeout: 2000 });
+
+    const before = await page.evaluate(() => {
+      const root = document.querySelector('.fez-test-internal-keys');
+      return {
+        hasKeyAttrs: root.querySelector('[key], [fez-key]') !== null,
+        keys: Array.from(root.querySelectorAll('.internal-key-item')).map((el) => el._fezKey),
+        text: Array.from(root.querySelectorAll('.internal-key-item')).map((el) => el.textContent),
+      };
+    });
+
+    expect(before.hasKeyAttrs).toBe(false);
+    expect(before.keys).toEqual(['1-0', '1-1', '1-2']);
+    expect(before.text).toEqual(['a', 'b', 'c']);
+
+    await page.click('.reverse');
+
+    await page.waitForFunction(() => {
+      const items = Array.from(document.querySelectorAll('.internal-key-item'));
+      return items.map((el) => el.textContent).join(',') === 'c,b,a';
+    }, { timeout: 2000 });
+
+    const after = await page.evaluate(() => {
+      const root = document.querySelector('.fez-test-internal-keys');
+      return {
+        hasKeyAttrs: root.querySelector('[key], [fez-key]') !== null,
+        keys: Array.from(root.querySelectorAll('.internal-key-item')).map((el) => el._fezKey),
+        text: Array.from(root.querySelectorAll('.internal-key-item')).map((el) => el.textContent),
+      };
+    });
+
+    expect(after.hasKeyAttrs).toBe(false);
+    expect(after.keys).toEqual(['1-0', '1-1', '1-2']);
+    expect(after.text).toEqual(['c', 'b', 'a']);
+  } finally {
+    await closePage(page);
+  }
+});
+
 // =============================================================================
 // FORM BINDING TESTS
 // =============================================================================
