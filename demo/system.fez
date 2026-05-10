@@ -191,7 +191,8 @@
     }
 
     jump(name) {
-      const element = document.querySelector(`[name="c-${name}"]`);
+      const element = document.getElementById(`fez-demo-${name}`);
+      if (!element) return;
       const y = element.getBoundingClientRect().top + window.pageYOffset - 60;
       window.scrollTo({top: y, behavior: 'smooth'});
 

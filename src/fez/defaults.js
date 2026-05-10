@@ -51,6 +51,376 @@ const loadDefaults = () => {
     },
   );
 
+  // Sticky component index for <fez-demo>
+  Fez(
+    "fez-demo-nav",
+    class {
+      init() {
+        this.state.items = [];
+        this.state.activeIndex = -1;
+        this.state.markerTop = 0;
+        this.state.markerHeight = 0;
+        this.state.open = false;
+        this.state.loaded = false;
+        this.state.selectedName = "";
+      }
+
+      onMount() {
+        this.setTimeout(() => this.loadComponents(), 1000);
+        if (typeof window !== "undefined" && window.addEventListener) {
+          this.on("scroll", this.updateActive, { throttle: 50 });
+          this.on("resize", this.sync, { throttle: 100 });
+          this.on("hashchange", this.syncToHash);
+        }
+        this.on(this.root, "click", this.handleClick);
+      }
+
+      onRefresh() {
+        this.setTimeout(() => this.updateMarker(), 0);
+      }
+
+      loadComponents() {
+        const items = this.loadedComponents();
+        if (!items.length) {
+          this.setTimeout(() => this.loadComponents(), 250);
+          return;
+        }
+
+        this.state.items = items;
+        this.state.loaded = true;
+        this.setTimeout(() => this.syncToHash() || this.sync(), 0);
+      }
+
+      loadedComponents() {
+        const names = Fez.index.withDemo().sort();
+        const rendered = names.filter(name => document.getElementById(this.sectionId(name)));
+        return rendered.length ? rendered : names;
+      }
+
+      sectionId(name) {
+        return `fez-demo-${String(name).replace(/[^a-z0-9_-]/gi, "-")}`;
+      }
+
+      sync() {
+        this.updateActive();
+        this.updateMarker();
+      }
+
+      toggle() {
+        this.state.open = !this.state.open;
+        if (this.state.open) {
+          this.setTimeout(() => this.sync(), 0);
+        }
+      }
+
+      syncToHash() {
+        if (!window.location.hash) {
+          this.state.selectedName = "";
+          this.state.activeIndex = -1;
+          return false;
+        }
+
+        const id = window.location.hash.slice(1);
+        const index = this.state.items.findIndex(name => this.sectionId(name) === id);
+        if (index < 0) return false;
+
+        this.state.activeIndex = index;
+        this.state.selectedName = this.state.items[index];
+        this.scrollToComponent(this.state.items[index]);
+        return true;
+      }
+
+      handleClick(event) {
+        const link = event.target?.closest?.(".fez-demo-nav-link");
+        if (!link) return;
+
+        const index = Number(link.dataset.index);
+        if (Number.isFinite(index)) {
+          this.state.activeIndex = index;
+          this.state.selectedName = this.state.items[index] || "";
+          this.setTimeout(() => this.scrollToComponent(this.state.items[index]), 0);
+        }
+        this.state.open = false;
+        this.setTimeout(() => this.sync(), 0);
+      }
+
+      clearSelection(event) {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+        this.state.selectedName = "";
+        this.state.open = false;
+        this.setTimeout(() => {
+          const current = this.find(".fez-demo-nav-current");
+          if (current) current.textContent = "quick select";
+        }, 0);
+        this.setTimeout(() => this.sync(), 0);
+
+        if (window.history?.replaceState) {
+          window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        }
+      }
+
+      scrollToComponent(name) {
+        const target = document.getElementById(this.sectionId(name));
+        if (!target) return;
+
+        target.scrollIntoView({ behavior: "auto", block: "start" });
+        window.scrollBy(0, -12);
+        this.state.open = false;
+        this.state.selectedName = name;
+        const index = this.state.items.indexOf(name);
+        if (index >= 0) this.state.activeIndex = index;
+        this.updateMarker();
+
+        if (window.history?.replaceState) {
+          window.history.replaceState(null, "", `#${this.sectionId(name)}`);
+        }
+      }
+
+      updateActive() {
+        const items = this.state.items;
+        if (!items.length) return;
+
+        if (!this.state.selectedName && !window.location.hash && window.scrollY < 20) {
+          this.state.activeIndex = -1;
+          this.updateMarker(-1);
+          return;
+        }
+
+        const viewportHeight =
+          window.innerHeight || document.documentElement?.clientHeight || 800;
+        const focusLine = Math.min(viewportHeight * 0.35, 260);
+        let nextIndex = this.state.activeIndex;
+
+        items.forEach((name, index) => {
+          const section = document.getElementById(this.sectionId(name));
+          if (!section?.getBoundingClientRect) return;
+          if (section.getBoundingClientRect().top <= focusLine) {
+            nextIndex = index;
+          }
+        });
+
+        if (this.state.activeIndex !== nextIndex) {
+          this.state.activeIndex = nextIndex;
+        }
+        this.updateMarker(nextIndex);
+      }
+
+      updateMarker(index = this.state.activeIndex) {
+        if (index < 0) {
+          if (this.state.markerTop !== 0) this.state.markerTop = 0;
+          if (this.state.markerHeight !== 0) this.state.markerHeight = 0;
+          return;
+        }
+
+        const list = this.find(".fez-demo-nav-list");
+        const activeLink = this.find(`[data-index="${index}"]`);
+        if (!list?.getBoundingClientRect || !activeLink?.getBoundingClientRect) {
+          return;
+        }
+
+        const listRect = list.getBoundingClientRect();
+        const activeRect = activeLink.getBoundingClientRect();
+        const markerTop = Math.round(activeRect.top - listRect.top);
+        const markerHeight = Math.round(activeRect.height);
+
+        if (this.state.markerTop !== markerTop) {
+          this.state.markerTop = markerTop;
+        }
+        if (this.state.markerHeight !== markerHeight) {
+          this.state.markerHeight = markerHeight;
+        }
+      }
+
+      CSS() {
+        return `.fez-demo-side-nav {
+        position: fixed;
+        top: 10px;
+        left: 12px;
+        z-index: 1000;
+        width: min(340px, calc(100vw - 32px));
+        text-align: left;
+        transform: none;
+      }
+      .fez-demo-nav-control {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-height: 46px;
+        margin: 0 auto;
+        border: 1px solid #dedede;
+        border-radius: 999px;
+        background: #fff;
+        color: #20242c;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      }
+      .fez-demo-nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        flex: 1 1 auto;
+        gap: 10px;
+        min-width: 0;
+        min-height: 44px;
+        padding: 6px 10px 6px 7px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: #20242c;
+        font: inherit;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .fez-demo-nav-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        background: #20242c;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 800;
+      }
+      .fez-demo-nav-current {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        color: #242424;
+        font-size: 15px;
+        font-weight: 650;
+        line-height: 1.2;
+        text-align: left;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .fez-demo-nav-current.placeholder {
+        color: #9a9a9a;
+        font-weight: 500;
+      }
+      .fez-demo-nav-clear {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 32px;
+        height: 32px;
+        margin-right: 7px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: #8a8a8a;
+        font: inherit;
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .fez-demo-nav-clear:hover {
+        background: #f0f0f0;
+        color: #222;
+      }
+      .fez-demo-nav-panel {
+        box-sizing: border-box;
+        height: calc(100vh - 76px);
+        max-height: calc(100vh - 76px);
+        overflow: auto;
+        margin-top: 10px;
+        padding: 14px 16px 14px 14px;
+        border: 1px solid #e3e3e3;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 16px 42px rgba(0, 0, 0, 0.16);
+        animation: fezDemoNavPop 160ms ease-out;
+      }
+      @keyframes fezDemoNavPop {
+        from {
+          opacity: 0;
+          transform: translateY(-8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .fez-demo-nav-list {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin: 0;
+        padding: 0 0 0 3px;
+        border-left: 4px solid #e7e7e7;
+      }
+      .fez-demo-nav-marker {
+        position: absolute;
+        left: -4px;
+        top: 0;
+        width: 4px;
+        height: var(--marker-height, 40px);
+        background: #222;
+        transform: translateY(var(--marker-top, 0px));
+        transition: transform 180ms ease, height 180ms ease;
+      }
+      .fez-demo-nav-link {
+        display: block;
+        padding: 9px 0 9px 28px;
+        color: #8f8f8f;
+        font-size: 15px;
+        line-height: 1.35;
+        text-decoration: none;
+        overflow-wrap: anywhere;
+        transition: color 160ms ease, font-weight 160ms ease;
+      }
+      .fez-demo-nav-link:hover,
+      .fez-demo-nav-link.active {
+        color: #242424;
+      }
+      .fez-demo-nav-link.active {
+        font-weight: 650;
+      }`;
+      }
+
+      HTML() {
+        return `<nav class="fez-demo-side-nav" aria-label="Demo components">
+        <div class="fez-demo-nav-control">
+          <button
+            class="fez-demo-nav-toggle"
+            aria-label="Components"
+            aria-expanded={state.open ? 'true' : 'false'}
+            onclick="fez.toggle()"
+          >
+            <span class="fez-demo-nav-icon" aria-hidden="true">F</span>
+            <span class="fez-demo-nav-current {state.selectedName ? '' : 'placeholder'}">{state.selectedName ? state.selectedName : 'quick select'}</span>
+          </button>
+          {#if state.selectedName}
+            <button class="fez-demo-nav-clear" aria-label="Clear selection" onclick="fez.clearSelection(event)">X</button>
+          {/if}
+        </div>
+        {#if state.open}
+          <div class="fez-demo-nav-panel">
+            <div
+              class="fez-demo-nav-list"
+              style="--marker-top: {state.markerTop}px; --marker-height: {state.markerHeight}px;"
+            >
+              <span class="fez-demo-nav-marker" aria-hidden="true"></span>
+              {#each state.items as name, index}
+                <a
+                  class="fez-demo-nav-link {state.activeIndex === index ? 'active' : ''}"
+                  href="#{fez.sectionId(name)}"
+                  data-index={index}
+                  aria-current={state.activeIndex === index && state.activeIndex >= 0 ? 'page' : 'false'}
+                >{name}</a>
+              {/each}
+            </div>
+          </div>
+        {/if}
+      </nav>`;
+      }
+    },
+  );
+
   // Render all components with their demos
   // <fez-demo></fez-demo>
   // <fez-demo name="ui-clock"></fez-demo>
@@ -190,20 +560,16 @@ const loadDefaults = () => {
         display: block;
         font-family: system-ui, -apple-system, sans-serif;
         color: #1f2937;
+        padding: 0 22px 40px;
+        box-sizing: border-box;
       }
       .fez-demo-header {
-
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 18px;
-        padding: 14px 22px;
-        margin: 12px auto 34px;
-        max-width: 900px;
-        background: #fff;
-        border-radius: 14px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06);
-        border: 1px solid #e5e7eb;
+        justify-content: flex-start;
+        padding: 24px 0 18px;
+        margin: 0 auto;
+        max-width: 1180px;
       }
       .fez-demo-brand {
         display: flex;
@@ -224,50 +590,36 @@ const loadDefaults = () => {
         line-height: 1.3;
         white-space: nowrap;
       }
-      .fez-demo-nav {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-        justify-content: flex-end;
+      .fez-demo-shell {
+        display: block;
+        max-width: 980px;
+        margin: 0 auto;
       }
-      .fez-demo-nav a {
-        display: inline-flex;
-        align-items: center;
-        min-height: 34px;
-        padding: 0 12px;
-        border: 1px solid transparent;
-        border-radius: 6px;
-        color: #374151;
-        font-size: 14px;
-        line-height: 1;
-        text-decoration: none;
-      }
-      .fez-demo-nav a:hover {
-        border-color: #d1d5db;
-        background: #f9fafb;
-      }
-      .fez-demo-nav a[aria-current="page"] {
-        border-color: #c7d2fe;
-        background: #eef2ff;
-        color: #3730a3;
+      .fez-demo-main {
+        min-width: 0;
       }
       @media (max-width: 640px) {
         .fez-demo-header {
-          align-items: flex-start;
-          flex-direction: column;
+          padding-top: 16px;
         }
         .fez-demo-brand {
           flex-direction: column;
           gap: 4px;
         }
-        .fez-demo-nav {
-          justify-content: flex-start;
-          width: 100%;
+      }
+      @media (max-width: 980px) {
+        .fez-demo-shell {
+          display: block;
         }
       }
       .fez-demo-item {
         margin-bottom: 40px;
+        scroll-margin-top: 28px;
+      }
+      .fez-demo-anchor {
+        display: block;
+        height: 0;
+        scroll-margin-top: 12px;
       }
       .fez-demo-title {
         display: flex;
@@ -359,40 +711,40 @@ const loadDefaults = () => {
             <span class="fez-demo-logo">Fez</span>
             <span class="fez-demo-subtitle">Component demos</span>
           </a>
-          <nav class="fez-demo-nav" aria-label="Demo navigation">
-            <a href="{state.allComponentsUrl}" aria-current="{state.filtered ? '' : 'page'}">Components</a>
-            <a href="https://dux.github.io/fez/">Docs</a>
-            <a href="https://github.com/dux/fez">GitHub</a>
-          </nav>
         </header>
-        {#each state.components as name}
-          <div class="fez-demo-item">
-            <h2 class="fez-demo-title">{name}{#if state.filtered} <a href="{state.showAllUrl}" class="fez-demo-show-all">show all</a>{:else} <a onclick="fez.openSingle('{name}')" class="fez-demo-open-single">open</a>{/if}</h2>
-            <div class="fez-demo-cols">
-              <div class="fez-demo-left">
-                <div class="fez-demo-content" data-name={name} fez-use="renderDemo"></div>
-              </div>
-              <div class="fez-demo-right">
-                <div class="fez-demo-info" data-name={name} fez-use="renderInfo"></div>
-                <div class="fez-demo-buttons">
-                  <button class="fez-demo-btn" onclick="fez.showHtml('{name}')">Demo HTML</button>
-                  <button class="fez-demo-btn" onclick="fez.showFez('{name}')">Fez Component</button>
-                  <button class="fez-demo-btn" onclick="fez.openCodePen('{name}')">CodePen</button>
+        <div class="fez-demo-shell">
+          <main class="fez-demo-main">
+            {#each state.components as name}
+              <div class="fez-demo-item" data-demo-name={name}>
+                <a class="fez-demo-anchor" id="fez-demo-{name}" name="fez-demo-{name}" aria-hidden="true"></a>
+                <h2 class="fez-demo-title">{name}{#if state.filtered} <a href="{state.showAllUrl}" class="fez-demo-show-all">show all</a>{:else} <a onclick="fez.openSingle('{name}')" class="fez-demo-open-single">open</a>{/if}</h2>
+                <div class="fez-demo-cols">
+                  <div class="fez-demo-left">
+                    <div class="fez-demo-content" data-name={name} fez-use="renderDemo"></div>
+                  </div>
+                  <div class="fez-demo-right">
+                    <div class="fez-demo-info" data-name={name} fez-use="renderInfo"></div>
+                    <div class="fez-demo-buttons">
+                      <button class="fez-demo-btn" onclick="fez.showHtml('{name}')">Demo HTML</button>
+                      <button class="fez-demo-btn" onclick="fez.showFez('{name}')">Fez Component</button>
+                      <button class="fez-demo-btn" onclick="fez.openCodePen('{name}')">CodePen</button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        {/each}
-        {#if state.undocumented.length}
-          <div class="fez-demo-undocumented">
-            <h3>Undocumented</h3>
-            <div class="fez-demo-undocumented-list">
-              {#each state.undocumented as name}
-                <button class="fez-demo-btn" onclick="fez.showFez('{name}')">{name}</button>
-              {/each}
-            </div>
-          </div>
-        {/if}
+            {/each}
+            {#if state.undocumented.length}
+              <div class="fez-demo-undocumented">
+                <h3>Undocumented</h3>
+                <div class="fez-demo-undocumented-list">
+                  {#each state.undocumented as name}
+                    <button class="fez-demo-btn" onclick="fez.showFez('{name}')">{name}</button>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+          </main>
+        </div>
       {:else}
         <div style="text-align: center; color: #888;">Loading components...</div>
       {/if}`;

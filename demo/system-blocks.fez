@@ -147,7 +147,7 @@
   </style>
 
   {#if state.ready}
-    <a name="c-{name}"></a>
+    <a id="fez-demo-{name}" name="fez-demo-{name}"></a>
     <div style="margin-bottom: 50px;">
       <h2 class="promo-title"><a onclick="fez.openDemo()" style="cursor: pointer;">{name}</a></h2>
       <div class="flex even top">
