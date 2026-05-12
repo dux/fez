@@ -8,29 +8,22 @@
 
 import { nodeMorph } from './morph.js';
 
-function normalizeSlotHtml(value) {
-  return String(value || '').trim();
-}
-
-function slotSignature(node) {
-  return normalizeSlotHtml(
-    node?._fezSlotSignature ??
-      node?.fez?._fezSlotSignature ??
-      node?.innerHTML,
-  );
-}
-
 function slotSignatureHash(node) {
-  const text = slotSignature(node);
+  if (node._fezSlotHash) return node._fezSlotHash;
+  const text = String(node?._fezSlotSignature ?? node?.innerHTML ?? '').trim();
   let hash = 2166136261;
   for (let i = 0; i < text.length; i++) {
     hash ^= text.charCodeAt(i);
-    hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+    hash = Math.imul(hash, 16777619);
   }
-  return (hash >>> 0).toString(36);
+  const result = (hash >>> 0).toString(36);
+  node._fezSlotHash = result;
+  return result;
 }
 
-function unkeyedFezAlias(base, node) {
+function fezKeyAlias(internalKey, keyAttr, base, node) {
+  if (internalKey !== undefined) return 'key-' + internalKey;
+  if (keyAttr) return 'key-' + keyAttr;
   return `${base}:slot-${slotSignatureHash(node)}`;
 }
 
@@ -57,7 +50,7 @@ function fezDescribeOld(node) {
   if (node.classList) {
     for (const cls of node.classList) {
       if (cls.startsWith('fez-') && cls !== 'fez') {
-        aliases.push(unkeyedFezAlias('fez-class-' + cls, node));
+        aliases.push(`fez-class-${cls}:slot-${slotSignatureHash(node)}`);
         break;
       }
     }
@@ -84,23 +77,18 @@ function refreshPreservedComponent(oldNode, newNode) {
     ...Object.keys(prevProps),
     ...Object.keys(nextProps),
   ]);
-  let changed = false;
-
+  const changedKeys = [];
   for (const key of keys) {
-    if (prevProps[key] !== nextProps[key]) {
-      changed = true;
-    }
+    if (prevProps[key] !== nextProps[key]) changedKeys.push(key);
   }
 
   fez.props = nextProps;
-  if (changed) {
-    for (const key of keys) {
-      if (prevProps[key] !== nextProps[key]) {
-        fez.onPropsChange(key, nextProps[key] ?? null);
-      }
+  if (changedKeys.length) {
+    for (const key of changedKeys) {
+      fez.onPropsChange(key, nextProps[key] ?? null);
     }
+    fez.refresh();
   }
-  if (changed) fez.refresh();
   fez.onRefresh(fez.props);
 }
 
@@ -127,29 +115,19 @@ export default function attachMorph(Fez) {
     if (node.classList?.contains('fez')) {
       for (const cls of node.classList) {
         if (cls.startsWith('fez-') && cls !== 'fez') {
-          return internalKey !== undefined
-            ? 'key-' + internalKey
-            : keyAttr
-              ? 'key-' + keyAttr
-              : unkeyedFezAlias('fez-class-' + cls, node);
+          return fezKeyAlias(internalKey, keyAttr, 'fez-class-' + cls, node);
         }
       }
     }
 
     const tag = node.tagName?.toLowerCase();
     if (tag && Fez.index?.[tag]) {
-      return internalKey !== undefined
-        ? 'key-' + internalKey
-        : keyAttr
-          ? 'key-' + keyAttr
-          : unkeyedFezAlias('fez-class-fez-' + tag, node);
+      return fezKeyAlias(internalKey, keyAttr, 'fez-class-fez-' + tag, node);
     }
 
     const fezAttr = node.getAttribute?.('fez');
     if (fezAttr && Fez.index?.[fezAttr]) {
-      return keyAttr
-        ? 'key-' + keyAttr
-        : unkeyedFezAlias('fez-class-fez-' + fezAttr, node);
+      return fezKeyAlias(undefined, keyAttr, 'fez-class-fez-' + fezAttr, node);
     }
 
     return null;

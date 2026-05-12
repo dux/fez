@@ -1,6 +1,20 @@
 // Template utility functions for the Fez template compiler
 // Extracted to keep main parser file smaller
 
+const JS_GLOBALS = new Set([
+  "console", "window", "document", "Math", "JSON", "Date", "Array", "Object",
+  "String", "Number", "Boolean", "parseInt", "parseFloat", "setTimeout",
+  "setInterval", "clearTimeout", "clearInterval", "alert", "confirm", "prompt",
+  "fetch", "event",
+]);
+
+function prefixBareCalls(body) {
+  return body.replace(
+    /(?<![.\w])([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g,
+    (match, funcName) => JS_GLOBALS.has(funcName) ? match : `fez.${funcName}(`,
+  );
+}
+
 /**
  * Parse loop binding to get params and detect object iteration
  */
@@ -172,40 +186,7 @@ export function transformArrowToHandler(
       body = body.replace(eventRegex, "event");
     }
 
-    // Prefix bare function calls with fez.
-    body = body.replace(
-      /(?<![.\w])([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g,
-      (match, funcName) => {
-        const globals = [
-          "console",
-          "window",
-          "document",
-          "Math",
-          "JSON",
-          "Date",
-          "Array",
-          "Object",
-          "String",
-          "Number",
-          "Boolean",
-          "parseInt",
-          "parseFloat",
-          "setTimeout",
-          "setInterval",
-          "clearTimeout",
-          "clearInterval",
-          "alert",
-          "confirm",
-          "prompt",
-          "fetch",
-          "event",
-        ];
-        if (globals.includes(funcName)) {
-          return match;
-        }
-        return `fez.${funcName}(`;
-      },
-    );
+    body = prefixBareCalls(body);
 
     // Store the function with captured loop vars, retrieve and call at click time.
     // Handler slots are persistent for the rendered DOM and cleaned up on render.
@@ -213,55 +194,17 @@ export function transformArrowToHandler(
   }
 
   // No item variables - use simple interpolation for indices (original behavior)
-  // Replace event param with 'event' (the actual DOM event)
   if (hasEventParam && eventParam !== "event") {
     const eventRegex = new RegExp(`\\b${eventParam}\\b`, "g");
     body = body.replace(eventRegex, "event");
   }
 
-  // Interpolate loop variables - they need to be evaluated at render time
-  // e.g., removeTask(index) becomes removeTask(${index})
   for (const varName of loopVars) {
-    // Match the variable as a standalone identifier (not part of another word)
-    // and not already inside a template literal
     const varRegex = new RegExp(`(?<!\\$\\{)\\b${varName}\\b(?![^{]*\\})`, "g");
     body = body.replace(varRegex, `\${${varName}}`);
   }
 
-  // Prefix bare function calls with fez.
-  body = body.replace(
-    /(?<![.\w])([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g,
-    (match, funcName) => {
-      const globals = [
-        "console",
-        "window",
-        "document",
-        "Math",
-        "JSON",
-        "Date",
-        "Array",
-        "Object",
-        "String",
-        "Number",
-        "Boolean",
-        "parseInt",
-        "parseFloat",
-        "setTimeout",
-        "setInterval",
-        "clearTimeout",
-        "clearInterval",
-        "alert",
-        "confirm",
-        "prompt",
-        "fetch",
-        "event",
-      ];
-      if (globals.includes(funcName)) {
-        return match;
-      }
-      return `fez.${funcName}(`;
-    },
-  );
+  body = prefixBareCalls(body);
 
   return body;
 }

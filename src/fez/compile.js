@@ -496,8 +496,10 @@ function installImportmap(imports) {
 /**
  * Add CSS to hide custom element until compiled
  */
+const hiddenTags = new Set();
 function hideCustomElement(tagName) {
-  if (!tagName) return;
+  if (!tagName || hiddenTags.has(tagName)) return;
+  hiddenTags.add(tagName);
 
   let styleEl = document.getElementById("fez-hidden-styles");
   if (!styleEl) {
@@ -506,6 +508,5 @@ function hideCustomElement(tagName) {
     document.head.appendChild(styleEl);
   }
 
-  const allTags = [...Fez.index.names(), tagName].sort().join(", ");
-  styleEl.textContent = `${allTags} { display: none; }\n`;
+  styleEl.textContent = `${[...hiddenTags].sort().join(", ")} { display: none; }\n`;
 }

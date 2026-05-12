@@ -387,17 +387,16 @@ export default class FezBase {
 
     Fez.morphdom(this.root, newNode);
 
-    // Restore input values after morph - find element by _fezThisName property
-    savedInputValues.forEach((saved, name) => {
-      let el = null;
-      this.root.querySelectorAll("input, textarea, select").forEach((input) => {
-        if (input._fezThisName === name) el = input;
+    // Restore input values after morph
+    if (savedInputValues.size) {
+      this.root.querySelectorAll("input, textarea, select").forEach((el) => {
+        const saved = el._fezThisName && savedInputValues.get(el._fezThisName);
+        if (saved) {
+          el.value = saved.value;
+          if (saved.checked !== undefined) el.checked = saved.checked;
+        }
       });
-      if (el) {
-        el.value = saved.value;
-        if (saved.checked !== undefined) el.checked = saved.checked;
-      }
-    });
+    }
 
     this.fezRenderPostProcess();
     this.fezGlobals.commitRender();
@@ -427,22 +426,12 @@ export default class FezBase {
       n._fezThisName = value;
     });
 
-    // fez-use="animate" -> this.animate(node)
     fetchAttr("fez-use", (value, n) => {
-      if (value.includes("=>")) {
-        Fez.getFunction(value)(n);
-      } else {
-        if (value.includes(".")) {
-          Fez.getFunction(value).bind(n)();
-        } else {
-          const target = this[value];
-          if (typeof target == "function") {
-            target(n);
-          } else {
-            this.fezError("fez-use", `"${value}" is not a function`);
-          }
-        }
-      }
+      if (value.includes("=>")) return Fez.getFunction(value)(n);
+      if (value.includes(".")) return Fez.getFunction(value).bind(n)();
+      const target = this[value];
+      if (typeof target == "function") return target(n);
+      this.fezError("fez-use", `"${value}" is not a function`);
     });
 
     // fez-class="dialog animate" -> add class after init for animation
@@ -479,9 +468,9 @@ export default class FezBase {
       }
     });
 
-    // Normalize boolean attributes (checked, disabled, selected)
-    for (const attr of ["checked", "disabled", "selected"]) {
-      this.root.querySelectorAll(`*[${attr}]`).forEach((n) => {
+    this.root.querySelectorAll("*[checked], *[disabled], *[selected]").forEach((n) => {
+      for (const attr of ["checked", "disabled", "selected"]) {
+        if (!n.hasAttribute(attr)) continue;
         let value = n.getAttribute(attr);
         if (["false", "null", "undefined"].includes(value)) {
           n.removeAttribute(attr);
@@ -489,8 +478,8 @@ export default class FezBase {
         } else {
           n.setAttribute(attr, attr);
         }
-      });
-    }
+      }
+    });
   }
 
   /**

@@ -398,11 +398,11 @@ export default (Fez) => {
     return ["1", "true", "on"].includes(String(val).toLowerCase());
   };
 
-  // get document unique ID
-  Fez.UID = 111;
-  Fez.uid = () => {
-    return "fez_uid_" + (++Fez.UID).toString(32);
-  };
+  // public utility - do not remove
+  Fez.uid = (() => {
+    let seq = 111;
+    return () => "fez_uid_" + (++seq).toString(32);
+  })();
 
   // get global function pointer, used to pass functions to nested or inline elements
   // <some-node :callback="${Fez.pointer(opts.callback)}" ...>
@@ -429,12 +429,6 @@ export default (Fez) => {
 
       return `Fez.POINTER[${uid}]`;
     }
-  };
-
-  // Manually clear all pointers (useful for testing or cleanup)
-  Fez.clearPointers = () => {
-    Fez.POINTER = {};
-    Fez.POINTER_CREATED = {};
   };
 
   // Sweep stale one-time pointers older than 5 minutes
@@ -500,14 +494,6 @@ export default (Fez) => {
     return hash.toString(36).replaceAll("-", "");
   };
 
-  Fez.tag = (tag, opts = {}, html = "") => {
-    const json = encodeURIComponent(JSON.stringify(opts));
-    return `<${tag} data-props="${json}">${html}</${tag}>`;
-    // const json = JSON.stringify(opts, null, 2)
-    // const data = `<script type="text/template">${json}</script><${tag} data-json-template="true">${html}</${tag}>`
-    // return data
-  };
-
   // execute function until it returns true
   Fez.untilTrue = (func, pingRate) => {
     pingRate ||= 200;
@@ -563,8 +549,13 @@ export default (Fez) => {
     return [];
   };
 
-  // Returns short type identifier for data:
-  //   'o' - object, 'f' - function, 's' - string, 'a' - array, 'i' - integer, 'n' - float/number, 'u' - undefined/null
+  // public utility - do not remove
+  Fez.tag = (tag, opts = {}, html = "") => {
+    const json = encodeURIComponent(JSON.stringify(opts));
+    return `<${tag} data-props="${json}">${html}</${tag}>`;
+  };
+
+  // public utility - do not remove
   Fez.typeof = (data) => {
     if (data === null || data === undefined) return "u";
     if (Array.isArray(data)) return "a";

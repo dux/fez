@@ -206,9 +206,7 @@ function connectNode(name, node) {
   fez.props = klass.getProps(node, newNode);
   fez.class = klass;
 
-  const slotSignature = node.innerHTML.trim();
-  fez._fezSlotSignature = slotSignature;
-  newNode._fezSlotSignature = slotSignature;
+  newNode._fezSlotSignature = node.innerHTML.trim();
 
   // Move children (slot content)
   fez.fezSlot(node, newNode);

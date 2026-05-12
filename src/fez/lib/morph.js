@@ -453,32 +453,31 @@ function syncBooleanProperty(oldNode, newNode, attr) {
  *  +3  per shared CSS class
  *  +2  for same number of attributes
  */
+function getClassSet(node) {
+  if (node._morphClassSet) return node._morphClassSet;
+  const raw = node.getAttribute?.("class");
+  const result = raw ? new Set(raw.split(/\s+/).filter(Boolean)) : null;
+  node._morphClassSet = result;
+  return result;
+}
+
 function scoreSoftMatch(oldNode, newNode) {
   if (oldNode.nodeType !== newNode.nodeType) return 0;
-
-  // Text/comment nodes: same nodeType is enough
   if (oldNode.nodeType !== 1) return 1;
-
-  // Elements: must have same tag
   if (oldNode.nodeName !== newNode.nodeName) return 0;
 
   let score = 1;
 
-  // Score by shared CSS classes
-  const oldClasses = oldNode.getAttribute?.("class");
-  const newClasses = newNode.getAttribute?.("class");
-  if (oldClasses && newClasses) {
-    const oldSet = new Set(oldClasses.split(/\s+/).filter(Boolean));
-    const newSet = new Set(newClasses.split(/\s+/).filter(Boolean));
+  const oldSet = getClassSet(oldNode);
+  const newSet = getClassSet(newNode);
+  if (oldSet && newSet) {
     for (const cls of newSet) {
       if (oldSet.has(cls)) score += 3;
     }
-  } else if (!oldClasses && !newClasses) {
-    // Both have no class - slight bonus for similarity
+  } else if (!oldSet && !newSet) {
     score += 1;
   }
 
-  // Bonus for same attribute count (structural similarity)
   if (
     oldNode.attributes &&
     newNode.attributes &&
