@@ -711,7 +711,7 @@ export default class FezBase {
 
   childObjects() {
     return this.childNodes().map((node) => {
-      const obj = { html: node.innerHTML, ROOT: node };
+      const obj = { html: node.innerHTML, ROOT: node, NODE_NAME: node.nodeName.toLowerCase() };
       for (const attr of node.attributes) {
         obj[attr.name] = attr.value;
       }
