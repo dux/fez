@@ -1,0 +1,11 @@
+<style>
+  :host {
+    padding: 10px;
+
+    button {
+      background: blue;
+    }
+  }
+</style>
+
+<button>hi</button>

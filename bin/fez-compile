@@ -415,7 +415,8 @@ function generateCompiledJS(parsed, componentName) {
 
   // Add CSS if present
   if (parsed.style && parsed.style.includes(':')) {
-    let style = parsed.style
+    // Accept :host as alias for :fez (Shadow-DOM convention LLMs often emit)
+    let style = parsed.style.replace(/:host\b/g, ':fez')
     // Wrap in :fez if not already scoped
     if (!style.includes(':fez') && !/(?:^|\s)body\s*\{/.test(style)) {
       style = `:fez {\n${style}\n}`

@@ -67,6 +67,28 @@ describe("fez compile", () => {
       expect(stdout).toContain("<nav");
       expect(stdout).toContain("<div>Body</div>");
     });
+
+    test("normalizes :host to :fez in style block", async () => {
+      const result =
+        await $`bin/fez-compile -o test/fixtures/valid/test-style-host-alias.fez`
+          .quiet()
+          .nothrow();
+      const stdout = result.stdout.toString();
+      expect(result.exitCode).toBe(0);
+      expect(stdout).toContain(":fez");
+      expect(stdout).not.toContain(":host");
+    });
+
+    test("normalizes multiple :host occurrences", async () => {
+      const result =
+        await $`bin/fez-compile -o test/fixtures/valid/test-style-host-mixed.fez`
+          .quiet()
+          .nothrow();
+      const stdout = result.stdout.toString();
+      expect(result.exitCode).toBe(0);
+      expect(stdout).not.toContain(":host");
+      expect((stdout.match(/:fez/g) || []).length).toBeGreaterThanOrEqual(2);
+    });
   });
 
   describe("invalid files - JavaScript errors", () => {

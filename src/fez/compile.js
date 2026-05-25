@@ -360,7 +360,8 @@ function generateClassCode(tagName, parts) {
 
   // Add CSS
   if (String(parts.style).includes(":")) {
-    let css = Fez.cssMixin(parts.style);
+    // Accept :host as alias for :fez (Shadow-DOM convention LLMs often emit)
+    let css = Fez.cssMixin(parts.style).replace(/:host\b/g, ":fez");
     css =
       css.includes(":fez") || /(?:^|\s)body\s*\{/.test(css)
         ? css

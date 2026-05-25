@@ -81,7 +81,7 @@ Console output is also printed to the server terminal in real time.
 1. **ALWAYS** use Fez-specific Svelte-like syntax (NO React/Vue conventions)
 2. **ALWAYS** use 2-space indentation inside template blocks (`{#if}`, `{#each}`, `{#for}`, `{#await}`, etc.) - content inside blocks must be indented by 2 spaces relative to the block tag
 3. **NEVER** use hooks - `this.state` replaces useState/useEffect
-4. `<style>` content is locally scoped by default: when the block contains no top-level `:fez` or `body` rule, the compiler wraps the **whole style block** in `:fez { ... }`. `:fez` represents the generated outer wrapper node with the `fez` class, not the first template child. If the first element is `<nav>` and it needs `display: flex`, write `nav { display: flex; }`, not root-level `display: flex`. For global styles use `body { ... }`. **IMPORTANT:** if `:fez { }` or `body { }` appears anywhere in the style block, auto-scoping is disabled for the entire block - you MUST wrap local styles in `:fez { ... }` explicitly.
+4. `<style>` content is locally scoped by default: when the block contains no top-level `:fez` or `body` rule, the compiler wraps the **whole style block** in `:fez { ... }`. `:fez` represents the generated outer wrapper node with the `fez` class, not the first template child. If the first element is `<nav>` and it needs `display: flex`, write `nav { display: flex; }`, not root-level `display: flex`. For global styles use `body { ... }`. **IMPORTANT:** if `:fez { }` or `body { }` appears anywhere in the style block, auto-scoping is disabled for the entire block - you MUST wrap local styles in `:fez { ... }` explicitly. *Note:* `:host { ... }` is accepted as an alias for `:fez { ... }` (auto-normalized at compile time). Prefer `:fez` in new code.
 5. **ALWAYS** initialize state in `init()`, put reactive/derived state in `beforeRender()`
 6. **ALWAYS** use kebab-case component names (e.g., `user-profile`)
 7. **NEVER** use `{#if}` blocks inside HTML attributes - use ternary operators `{condition ? 'value' : ''}` instead
@@ -804,6 +804,7 @@ Use `<slot unwrap />` when children must be inserted without a wrapper div. By d
   </style>
   ```
   Note: `:fez { }` is NOT needed if the style block has no top-level `:fez` or `body` rule - the compiler auto-scopes everything by wrapping the whole block.
+  Note: `:host { ... }` is auto-normalized to `:fez { ... }` at compile time, but `:fez` is canonical. Don't mix the two in one block.
 - **Putting computed/derived state in `init()` instead of `beforeRender()`** - derived values that depend on state should go in `beforeRender()` so they update on every re-render (like Svelte's `$:`)
 - Using string interpolation in onclick instead of arrow functions
 - Direct DOM manipulation for simple reactive UI (use state instead) - BUT use direct DOM for external libraries (Three.js, charts, etc.) since DOM diffing doesn't handle them well
