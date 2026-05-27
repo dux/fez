@@ -58,14 +58,18 @@ function syncAttributes(oldNode, newNode) {
     oldNode === document.activeElement && isFormInput(oldNode);
 
   // Remove attributes not present in new node
-  // Exception: preserve `style` if new node doesn't set it at all,
-  // since style is commonly set by JS (e.g. positioning) and should
-  // only be synced when the template explicitly provides a style attribute.
+  // Exception: preserve `style` if new node doesn't set it AND the class
+  // attribute is unchanged - then this is the same element being re-synced
+  // and any JS-set style (e.g. positioning) should survive. If class changed,
+  // the node is being repurposed (e.g. pjax page swap), so stale style is
+  // wrong and must be cleared.
   const newHasStyle = newNode.hasAttribute("style");
+  const sameClass =
+    oldNode.getAttribute("class") === newNode.getAttribute("class");
   for (let i = oldAttrs.length - 1; i >= 0; i--) {
     const name = oldAttrs[i].name;
     if (!newNode.hasAttribute(name)) {
-      if (name === "style" && !newHasStyle) continue;
+      if (name === "style" && !newHasStyle && sameClass) continue;
       oldNode.removeAttribute(name);
     }
   }

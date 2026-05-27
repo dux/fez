@@ -429,6 +429,61 @@ describe("attribute sync", () => {
 
     container.remove();
   });
+
+  test("preserves old style when class unchanged and new has no style", () => {
+    // same element being re-synced - JS-set style (e.g. tippy positioning)
+    // should survive when the template provides neither style nor a class change
+    const container = document.createElement("div");
+    container.innerHTML = '<div class="card" style="transform: translateX(40px);"></div>';
+    document.body.appendChild(container);
+
+    const newNode = document.createElement("div");
+    newNode.innerHTML = '<div class="card"></div>';
+
+    fezMorph(container, newNode);
+
+    expect(container.querySelector("div").getAttribute("style")).toBe(
+      "transform: translateX(40px);"
+    );
+
+    container.remove();
+  });
+
+  test("clears old style when class changes (pjax page swap)", () => {
+    // node is being repurposed for a different element - stale style from
+    // the previous page (e.g. an <s-grid> div) must not bleed onto the new
+    // content (a flex card), or it overrides the new layout
+    const container = document.createElement("div");
+    container.innerHTML =
+      '<div class="xgrid" style="display: grid; gap: 20px; grid-template-columns: repeat(4, 1fr);"></div>';
+    document.body.appendChild(container);
+
+    const newNode = document.createElement("div");
+    newNode.innerHTML = '<div class="box flex gap-3 p-3"></div>';
+
+    fezMorph(container, newNode);
+
+    const el = container.querySelector("div");
+    expect(el.hasAttribute("style")).toBe(false);
+    expect(el.getAttribute("class")).toBe("box flex gap-3 p-3");
+
+    container.remove();
+  });
+
+  test("new style attribute always overwrites old", () => {
+    const container = document.createElement("div");
+    container.innerHTML = '<div class="card" style="color: red;"></div>';
+    document.body.appendChild(container);
+
+    const newNode = document.createElement("div");
+    newNode.innerHTML = '<div class="card" style="color: blue;"></div>';
+
+    fezMorph(container, newNode);
+
+    expect(container.querySelector("div").getAttribute("style")).toBe("color: blue;");
+
+    container.remove();
+  });
 });
 
 // ---------------------------------------------------------------------------
