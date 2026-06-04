@@ -256,6 +256,9 @@ export default (Fez) => {
     // Set method
     opts.method = method;
 
+    // mark as a programmatic request so the server's request.xhr? is reliable
+    opts.headers = { "x-requested-with": "XMLHttpRequest", ...opts.headers };
+
     // Create cache key from method, url, and stringified opts
     const cacheKey = `${method}:${url}:${JSON.stringify(opts)}`;
 
