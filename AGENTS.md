@@ -349,6 +349,22 @@ Arrow functions are automatically transformed:
 - `onclick={(e) => foo(e)}` becomes `onclick="fez.foo(event)"`
 - Loop variables like `index`, `item`, `i` are evaluated at render time
 
+### Strict Event Handlers (`on<event>!=`)
+
+Append `!` to an event attribute to fire the handler ONLY when the element itself is the target (no child captured the event), and to auto `stopPropagation` + `preventDefault`:
+
+```html
+<!-- closes only on a click on the overlay itself; the click does not bubble out -->
+<div class="overlay" onclick!="fez.close()"></div>
+
+<!-- card opens on the card, but NOT when its inner button is clicked -->
+<div class="card" onclick!="fez.open()">
+  <button onclick="fez.edit()">edit</button>
+</div>
+```
+
+Compiles to `onclick="fez.fezBang(event) && (fez.close())"`. Body must be a single expression. Works on any `on<event>`.
+
 ### Self-Closing Custom Elements
 
 ```html

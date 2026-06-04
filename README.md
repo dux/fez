@@ -417,6 +417,25 @@ Arrow functions in event attributes are automatically transformed:
 - `{(e) => foo(e)}` becomes `onclick="fez.foo(event)"`
 - Loop variables like `index` are evaluated at render time
 
+### Strict Event Handlers (`on<event>!=`)
+
+Append `!` to any event attribute to make the handler fire **only when the element itself is the target** (no click bubbled up from a child), and to automatically `stopPropagation()` + `preventDefault()`:
+
+```html
+<!-- opens only when the card itself is clicked, not the button inside it;
+     the click does not bubble to ancestors and its default is prevented -->
+<div class="card" onclick!="fez.openCard()">
+  <button onclick="fez.edit()">edit</button>
+</div>
+```
+
+It compiles to a small gate:
+
+- `onclick!="fez.openCard()"` becomes `onclick="fez.fezBang(event) && (fez.openCard())"`
+- `fezBang(event)` skips the body unless `event.target === event.currentTarget`, otherwise runs `stopPropagation()` + `preventDefault()` then the body
+
+The body must be a single expression (the usual `fez.method(...)` call). Works on any event (`onmousedown!=`, `onsubmit!=`, ...) - handy for modal backdrops, cards, and popovers that must not leak clicks to the page behind them.
+
 ### Self-Closing Custom Elements
 
 Custom elements can use self-closing syntax:

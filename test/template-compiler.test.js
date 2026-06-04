@@ -685,6 +685,39 @@ describe("Fez template compiler", () => {
       expect(html).toContain("onclick=\"fez.click('a')\"");
       expect(html).toContain("onclick=\"fez.click('b')\"");
     });
+
+    test("strict handler on<event>!= wraps body in self-gate", () => {
+      const html = render('<div onclick!="fez.close()">x</div>', { state: {} });
+      expect(html).toContain(
+        'onclick="fez.fezBang(event) && (fez.close())"',
+      );
+    });
+
+    test("strict handler keeps template interpolation in the body", () => {
+      const html = render(
+        "{#each state.items as item}<button onclick!=\"fez.pick('{item}')\">{item}</button>{/each}",
+        { state: { items: ["a", "b"] } },
+      );
+      expect(html).toContain(
+        "onclick=\"fez.fezBang(event) && (fez.pick('a'))\"",
+      );
+      expect(html).toContain(
+        "onclick=\"fez.fezBang(event) && (fez.pick('b'))\"",
+      );
+    });
+
+    test("strict handler works with single-quoted attribute", () => {
+      const html = render("<div onclick!='fez.close()'>x</div>", { state: {} });
+      expect(html).toContain(
+        "onclick='fez.fezBang(event) && (fez.close())'",
+      );
+    });
+
+    test("plain onclick= is left untouched (no fezBang)", () => {
+      const html = render('<div onclick="fez.close()">x</div>', { state: {} });
+      expect(html).toContain('onclick="fez.close()"');
+      expect(html).not.toContain("fezBang");
+    });
   });
 
   describe("edge cases", () => {

@@ -47,6 +47,14 @@ export default function createTemplateCompiler(text, opts = {}) {
     // Allow Fez namespace syntax as alias for fez-attr
     text = text.replace(/\bfez:([a-z]+)=/gi, "fez-$1=");
 
+    // Strict event handlers: `on<event>!="body"` runs the body only when the
+    // element itself is the target (no child captured the event) and swallows
+    // it (stopPropagation + preventDefault). Body must be a single expression.
+    text = text.replace(
+      /\bon([a-z]+)!=(["'])([\s\S]*?)\2/gi,
+      (_, ev, q, body) => `on${ev}=${q}fez.fezBang(event) && (${body})${q}`,
+    );
+
     // Convert class:name={expr} conditional class directives
     // e.g. class:active={state.value === key} -> merges ternary into class attribute
     text = text.replace(/<[a-z][a-z0-9-]*\b[^>]*>/gi, (tag) => {

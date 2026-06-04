@@ -277,7 +277,7 @@ export default class FezBase {
   fezParseHtml(text) {
     const base = this.fezHtmlRoot.replaceAll('"', "&quot;");
     text = text
-      .replace(/([!'"\s;])fez\.(\w)/g, `$1${base}$2`)
+      .replace(/([!'"\s;(])fez\.(\w)/g, `$1${base}$2`)
       .replace(/>\s+</g, "><");
     return text.trim();
   }
@@ -797,6 +797,19 @@ export default class FezBase {
   // ===========================================================================
   // EVENTS
   // ===========================================================================
+
+  /**
+   * Gate for the `on<event>!="..."` strict-handler sugar, which the template
+   * compiler expands to `fez.fezBang(event) && (body)`. Runs the body only when
+   * the element itself is the event target (no child captured the event) and
+   * swallows it with stopPropagation + preventDefault.
+   */
+  fezBang(e) {
+    if (e.target !== e.currentTarget) return false;
+    e.stopPropagation();
+    e.preventDefault();
+    return true;
+  }
 
   /**
    * Add an event listener on any EventTarget with auto-cleanup.
