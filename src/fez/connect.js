@@ -66,6 +66,14 @@ export default function connect(name, klass) {
       klass.fezSlotUnwrap = true;
     }
 
+    // The wrapper div is the morph anchor for slot content, not legacy cruft.
+    // Slotted children are external light DOM injected once - they never appear
+    // in the template output. fez-keep lets the differ match the empty .fez-slot
+    // placeholder on each re-render and preserve the captured children in place.
+    // Drop the wrapper (unwrap) and there is nothing for the differ to match, so
+    // the content gets removed on the next render - which is why unwrap disables
+    // this.state. unwrap exists for layout transparency (flex/grid/ul/table), at
+    // the cost of reactivity; the two modes are a trade, not redundancy.
     klass.html = klass.html
       .replace(
         /<slot(\s[^>]*)?>/,
