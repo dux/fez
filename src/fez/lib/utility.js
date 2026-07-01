@@ -262,8 +262,14 @@ export default (Fez) => {
     // Create cache key from method, url, and stringified opts
     const cacheKey = `${method}:${url}:${JSON.stringify(opts)}`;
 
+    // Only GET is cacheable / de-dup-able. POST is not idempotent, and its body
+    // (FormData) is not captured by cacheKey - JSON.stringify(opts) drops it -
+    // so caching or sharing a POST would silently return a stale response and
+    // swallow later submissions. POSTs must always hit the network.
+    const isGet = method === "GET";
+
     // Check cache first (with TTL validation)
-    const cached = Fez._fetchCache.get(cacheKey);
+    const cached = isGet ? Fez._fetchCache.get(cacheKey) : null;
     if (cached && Date.now() - cached.timestamp < FETCH_CACHE_TTL) {
       Fez.consoleLog(`fetch cache hit: ${method} ${url}`);
       if (callback) {
@@ -272,9 +278,6 @@ export default (Fez) => {
       }
       return Promise.resolve(cached.data);
     }
-
-    // Log live fetch
-    Fez.consoleLog(`fetch live: ${method} ${url}`);
 
     // Helper to process and cache response
     const processResponse = (response) => {
@@ -294,30 +297,53 @@ export default (Fez) => {
       Fez._fetchCache.set(key, { data, timestamp: Date.now() });
     };
 
-    // If callback provided, execute and handle
-    if (callback) {
-      fetch(url, opts)
+    // De-dup concurrent requests. The resolved-value cache above only helps once
+    // a request has completed; N callers asking for the same URL in the same tick
+    // (e.g. multiple instances of a component fetching its .fez) all miss it and
+    // each fire their own network request. Share a single in-flight promise keyed
+    // by cacheKey instead, so they collapse onto one fetch + parse. (Each joined
+    // caller still runs its own .then continuation, so this does not de-dup
+    // downstream work such as compilation - only the request itself.)
+    Fez._fetchInflight ||= new Map();
+
+    let request = isGet ? Fez._fetchInflight.get(cacheKey) : null;
+    if (request) {
+      Fez.consoleLog(`fetch inflight: ${method} ${url}`);
+    } else {
+      Fez.consoleLog(`fetch live: ${method} ${url}`);
+      request = fetch(url, opts)
         .then(processResponse)
         .then((data) => {
-          storeInCache(cacheKey, data);
-          callback(data);
-        })
+          if (isGet) storeInCache(cacheKey, data);
+          return data;
+        });
+
+      if (isGet) {
+        // Drop the in-flight entry once settled (success OR failure) so a later
+        // call re-fetches: after the value-cache TTL, or immediately if this
+        // request failed and cached nothing. Without this the map grows unbounded
+        // and a transient failure would poison the URL permanently.
+        request = request.finally(() => Fez._fetchInflight.delete(cacheKey));
+        Fez._fetchInflight.set(cacheKey, request);
+      }
+    }
+
+    // If callback provided, execute and handle
+    if (callback) {
+      request
+        .then((data) => callback(data))
         .catch((error) => Fez.onError("fetch", error));
       return;
     }
 
     // Return promise with automatic JSON parsing
-    return fetch(url, opts)
-      .then(processResponse)
-      .then((data) => {
-        storeInCache(cacheKey, data);
-        return data;
-      });
+    return request;
   };
 
   // Clear fetch cache (useful for testing or manual cache invalidation)
   Fez.clearFetchCache = () => {
     Fez._fetchCache?.clear();
+    Fez._fetchInflight?.clear();
   };
 
   Fez.darkenColor = (color, percent = 20) => {
