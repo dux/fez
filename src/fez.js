@@ -14,14 +14,20 @@
 import FezBase from './fez/instance.js'
 import Fez from './fez/root.js'
 
-// Expose to window
-if (typeof window !== 'undefined') {
+// Expose to window. Rollup inlines the fez dist IIFE into every app bundle that
+// contains a .fez component, so this module can run several times on one page.
+// Only the first run may claim window.Fez / load defaults / start the observer:
+// custom elements are defined against that first instance and connectNode reads
+// the global window.Fez.index, so a later copy resetting it orphans those elements.
+const fezPrimary = typeof window !== 'undefined' && !window.Fez
+
+if (fezPrimary) {
   window.FezBase = FezBase
   window.Fez = Fez
-}
 
-// Load default components
-import('./fez/defaults.js')
+  // Load default components
+  import('./fez/defaults.js')
+}
 
 // =============================================================================
 // AUTO-COMPILATION OBSERVER
@@ -74,7 +80,7 @@ const observer = new MutationObserver(mutations => {
   }
 })
 
-observer.observe(document.documentElement, {
+if (fezPrimary) observer.observe(document.documentElement, {
   childList: true,
   subtree: true
 })
