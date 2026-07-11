@@ -8,23 +8,44 @@
 
 import { nodeMorph } from './morph.js';
 
-function slotSignatureHash(node) {
-  if (node._fezSlotHash) return node._fezSlotHash;
-  const text = String(node?._fezSlotSignature ?? node?.innerHTML ?? '').trim();
+/**
+ * Content signature for unkeyed component identity.
+ *
+ * Live components hash their mount-time source snapshot (_fezSignature, the
+ * original outerHTML captured in connect.js before the custom tag is replaced).
+ * New placeholders hash their own outerHTML. Both sides go through the same
+ * parse -> serialize pipeline, so identical source bytes hash equal.
+ *
+ * Unkeyed identity is strict: tag + attributes + innerHTML must all match,
+ * otherwise the component is destroyed and recreated with a fresh init().
+ * Use fez-key/key/id for explicit identity (preserve + props refresh).
+ */
+function signatureHash(node) {
+  if (node._fezSigHash) return node._fezSigHash;
+  const text = String(node?._fezSignature ?? node?.outerHTML ?? '').trim();
   let hash = 2166136261;
   for (let i = 0; i < text.length; i++) {
     hash ^= text.charCodeAt(i);
     hash = Math.imul(hash, 16777619);
   }
   const result = (hash >>> 0).toString(36);
-  node._fezSlotHash = result;
+  node._fezSigHash = result;
   return result;
+}
+
+/**
+ * Explicit identity key: compiler-promoted _fezKey property, or a user-authored
+ * fez-key= attribute (server HTML never passes through the template compiler,
+ * so the attribute form is the pjax-path opt-in for morph semantics).
+ */
+function explicitFezKey(node) {
+  return node._fezKey ?? node.getAttribute?.('fez-key') ?? undefined;
 }
 
 function fezKeyAlias(internalKey, keyAttr, base, node) {
   if (internalKey !== undefined) return 'key-' + internalKey;
   if (keyAttr) return 'key-' + keyAttr;
-  return `${base}:slot-${slotSignatureHash(node)}`;
+  return `${base}:sig-${signatureHash(node)}`;
 }
 
 /**
@@ -43,14 +64,14 @@ function fezDescribeOld(node) {
   // Compiler-injected internal keys disambiguate fez component siblings inside loops.
   // Without this alias, multiple <my-comp> siblings all collapse onto the first
   // old child via the shared 'fez-class-fez-my-comp' alias.
-  const internalKey = node._fezKey;
+  const internalKey = explicitFezKey(node);
   if (internalKey !== undefined) aliases.push('key-' + internalKey);
   const keyAttr = node.getAttribute?.('key');
   if (keyAttr) aliases.push('key-' + keyAttr);
   if (node.classList) {
     for (const cls of node.classList) {
       if (cls.startsWith('fez-') && cls !== 'fez') {
-        aliases.push(`fez-class-${cls}:slot-${slotSignatureHash(node)}`);
+        aliases.push(`fez-class-${cls}:sig-${signatureHash(node)}`);
         break;
       }
     }
@@ -109,7 +130,7 @@ export default function attachMorph(Fez) {
     // Compiler-injected internal keys disambiguate fez component siblings inside loops.
     // Prefer it over the shared tag-based alias so each new placeholder maps to
     // its own old child instead of all collapsing onto the first one.
-    const internalKey = node._fezKey;
+    const internalKey = explicitFezKey(node);
     const keyAttr = node.getAttribute?.('key');
 
     if (node.classList?.contains('fez')) {
@@ -127,7 +148,8 @@ export default function attachMorph(Fez) {
 
     const fezAttr = node.getAttribute?.('fez');
     if (fezAttr && Fez.index?.[fezAttr]) {
-      return fezKeyAlias(undefined, keyAttr, 'fez-class-fez-' + fezAttr, node);
+      const attrKey = node.getAttribute?.('fez-key') ?? undefined;
+      return fezKeyAlias(attrKey, keyAttr, 'fez-class-fez-' + fezAttr, node);
     }
 
     return null;

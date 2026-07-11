@@ -214,7 +214,10 @@ function connectNode(name, node) {
   fez.props = klass.getProps(node, newNode);
   fez.class = klass;
 
-  newNode._fezSlotSignature = node.innerHTML.trim();
+  // Source snapshot for unkeyed identity matching in the differ. The live DOM
+  // is rendered output and never resembles the source again, so this is the
+  // only record of what this component was created from (tag + attrs + content).
+  newNode._fezSignature = node.outerHTML;
 
   // Move children (slot content)
   fez.fezSlot(node, newNode);
@@ -236,6 +239,12 @@ function connectNode(name, node) {
   const key = node.getAttribute("key");
   if (key) newNode.setAttribute("key", key);
   if (node._fezKey !== undefined) newNode._fezKey = node._fezKey;
+
+  // fez-key attr is the explicit identity opt-in for server-rendered HTML:
+  // matched components are preserved and get a props refresh instead of a
+  // destroy + recreate, even when attrs or content changed.
+  const fezKey = node.getAttribute("fez-key");
+  if (fezKey) newNode.setAttribute("fez-key", fezKey);
 
   // Copy fez-keep for DOM differ preservation
   const fezKeep = node.getAttribute("fez-keep");

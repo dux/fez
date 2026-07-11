@@ -123,13 +123,15 @@ When component state changes, the following happens:
 
 The differ uses priority-based key resolution when matching old (live) and new (template) children. Keys only need to be unique among siblings - they are scoped to the parent's direct children, not global.
 
-| Priority    | Key               | Source                                            |
-| ----------- | ----------------- | ------------------------------------------------- |
-| 1 (highest) | `fez-uid-{UID}`   | Live fez component instances                      |
-| 2           | `keep-{value}`    | `fez-keep` attribute                              |
-| 3           | `key-{value}`     | Manual or auto-injected `key` attribute           |
-| 4           | `id-{value}`      | `id` attribute                                    |
-| 5 (lowest)  | scored soft match | Tag name + CSS class similarity + attribute count |
+| Priority    | Key               | Source                                                              |
+| ----------- | ----------------- | ------------------------------------------------------------------- |
+| 1 (highest) | `fez-uid-{UID}`   | Live fez component instances                                        |
+| 2           | `keep-{value}`    | `fez-keep` attribute                                                |
+| 3           | `key-{value}`     | `fez-key` attribute or compiler-injected internal key               |
+| 4           | `key-{value}`     | Manual `key` attribute                                              |
+| 5           | `id-{value}`      | `id` attribute                                                      |
+| 6           | `sig-{hash}`      | Source signature of unkeyed fez components (tag + attrs + content)  |
+| 7 (lowest)  | scored soft match | Tag name + CSS class similarity + attribute count                   |
 
 You can always use a manual `key` attribute for exact matching:
 
@@ -139,9 +141,31 @@ You can always use a manual `key` attribute for exact matching:
 {/each}
 ```
 
-At compile time, `autoInjectKeys()` also adds sequential `key` attributes to every element that doesn't already have one. Inside loops, keys automatically include the loop index variable (e.g. `key="3-{i}"`), so most cases work without manual keys.
+At compile time, `autoInjectKeys()` also adds internal `fez-key` markers to every element that doesn't already have one.
+Inside loops, keys automatically include the loop index variable (e.g. `fez-key="3-{i}"`), so most cases work without manual keys.
+The markers are moved off the DOM attribute surface before morphing, so they never appear in the live document.
 
-Elements that don't match by key fall through to **scored soft matching** - a greedy algorithm that pairs unmatched old/new elements by tag name similarity, shared CSS classes, and attribute count. Fez components and `fez-keep` elements are excluded from soft matching - they only match by key.
+Elements that don't match by key fall through to **scored soft matching** - a greedy algorithm that pairs unmatched old/new elements by tag name similarity, shared CSS classes, and attribute count. Fez components and `fez-keep` elements are excluded from soft matching - they only match by key or signature.
+
+### Component Identity: Preserve vs Recreate
+
+When the differ pairs a new placeholder with a live fez component, identity decides what happens:
+
+- **Explicit key** (`fez-key`, `key`, or `id`) - the instance is preserved even when attributes or content changed.
+  Props are re-read from the new placeholder, `onPropsChange(name, value)` fires for each changed prop, the component re-renders, and `onRefresh(props)` fires.
+- **No key** - identity is the source signature: an FNV-1 hash of the component's original source (`outerHTML` - tag, attributes and slot content), captured at mount.
+  Byte-identical source means the instance is preserved untouched (only `onRefresh` fires).
+  If anything differs, the old instance is destroyed and a fresh one is created through `init()`.
+
+This matters most for pjax-style page swaps where the server renders fresh HTML.
+Unchanged chrome (menus, headers) is preserved automatically, while any component whose source changed gets a clean rebuild instead of a silently stale preserve - no manual syncing in `onRefresh` required.
+When you deliberately want an instance to survive changed attributes or content, give it a `fez-key`:
+
+```html
+<top-menu fez-key="main-menu"></top-menu>
+```
+
+A `fez-key` attribute also works as a plain identity key on non-component elements in server-rendered HTML.
 
 ### Two-Level Skip Optimization
 
@@ -158,7 +182,9 @@ When the parent does re-render and the morph runs, child fez component nodes are
 A child component only re-renders when:
 
 - Its own `this.state` changes
-- New props are passed, triggering `onPropsChange(name, value)`
+- New props are passed to an explicitly keyed component, triggering `onPropsChange(name, value)`
+
+An unkeyed child whose source (attributes or content) changed is not morphed - it is destroyed and recreated through a fresh `init()`, per the identity rules above.
 
 This means a parent with 100 child components in a loop can re-render its own template without touching any of those children - they continue operating with their own state and DOM intact.
 
@@ -581,7 +607,7 @@ This example showcases:
 - **Hash-Based Render Skipping** - FNV-1 hash of rendered HTML skips the entire morph when nothing changed (zero-cost no-op renders)
 - **Batched State Updates** - Multiple state changes in the same tick are debounced into a single `requestAnimationFrame` render
 - **Component Isolation** - Child fez components are never morphed during parent re-renders, only repositioned. They re-render only when their own state or props change
-- **Priority-Based Element Matching** - Keyed matching (fez-keep > key > id) with scored soft-match fallback preserves DOM identity across renders
+- **Priority-Based Element Matching** - Keyed matching (fez-keep > fez-key > key > id > source signature) with scored soft-match fallback preserves DOM identity across renders
 - **CSS Animation Preservation** - Class syncing uses `classList.add/remove`, not `setAttribute`, so transitions and animations survive re-renders
 - **Active Input Protection** - `value` and `checked` are not synced on the focused input, preventing disruption during typing
 - **Built-in Fetch with Caching** - `Fez.fetch()` includes automatic response caching and JSON/FormData handling

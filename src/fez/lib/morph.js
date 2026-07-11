@@ -2,7 +2,7 @@
  * nodeMorph - Pluggable DOM differ
  *
  * A simple, hook-driven DOM differ that:
- * - Matches keyed elements by id, key, or fez-keep attribute
+ * - Matches keyed elements by id, key, fez-key, or fez-keep attribute
  * - Lets callers extend keying via describeOld/describeNew (used by fez to match live
  *   component instances by UID and template placeholders by class)
  * - Falls back to tag+class similarity scoring for unkeyed siblings
@@ -155,6 +155,11 @@ function builtinKey(node) {
   if (node._fezKey !== undefined) {
     return { key: "key-" + node._fezKey, preserve: false };
   }
+
+  // Attribute form: compiled templates promote fez-key to _fezKey before the
+  // morph, so this only fires for server-rendered HTML (pjax swaps).
+  const fezKey = node.getAttribute?.("fez-key");
+  if (fezKey) return { key: "key-" + fezKey, preserve: false };
 
   const key = node.getAttribute?.("key");
   if (key) return { key: "key-" + key, preserve: false };

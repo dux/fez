@@ -29,6 +29,14 @@ function makeTarget(tag, html) {
   return el;
 }
 
+// Serialize source HTML the same way the differ sees new placeholders
+// (parse -> outerHTML), so fake _fezSignature snapshots are byte-equal.
+function sourceSignature(html) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return tmp.firstElementChild.outerHTML;
+}
+
 describe("Fez.nodeMorph - HTML string input", () => {
   test("morphs children when src has matching root tag", () => {
     const target = makeTarget("ul", "<li>a</li><li>b</li>");
@@ -159,18 +167,27 @@ describe("Fez.nodeMorph - sibling fez components", () => {
 
 describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
   test("pjax-style: 1 mounted + N new siblings without key=", () => {
-    // Pjax payload renders raw <my-comp> tags with no key=. Without the
-    // duplicate-claim guard in Pass 1a, all N new placeholders collapse onto
-    // the single old mounted instance and the rest get inserted but the user
-    // observes "only one element present" because old is matched + preserved
-    // and new ones never get to claim it.
+    // Pjax payload renders raw <my-comp> tags with no key=. The old instance
+    // has different attrs (ref=) than every placeholder, so strict signature
+    // identity destroys it and all 5 placeholders insert fresh.
     Fez.index.ensure("test-card");
 
     const target = makeTarget("div", "");
     const old = document.createElement("test-card");
     old.classList.add("fez", "fez-test-card");
     old.setAttribute("ref", "old-ref");
-    old.fez = { UID: 9000, _destroyed: false, props: {}, onRefresh: () => {} };
+    old._fezSignature = sourceSignature('<test-card ref="old-ref"></test-card>');
+
+    let destroyed = false;
+    old.fez = {
+      UID: 9000,
+      _destroyed: false,
+      props: {},
+      onRefresh: () => {},
+      fezOnDestroy: () => {
+        destroyed = true;
+      },
+    };
     old._marker = "OLD";
     target.appendChild(old);
 
@@ -180,6 +197,8 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     Fez.nodeMorph(target, html);
 
     expect(target.children.length).toBe(5);
+    expect(destroyed).toBe(true);
+    expect(Array.from(target.children).some((c) => c._marker === "OLD")).toBe(false);
     target.remove();
   });
 
@@ -190,6 +209,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     for (let i = 0; i < 3; i++) {
       const old = document.createElement("test-card-alias");
       old.classList.add("fez", "fez-test-card-alias");
+      old._fezSignature = sourceSignature("<test-card-alias></test-card-alias>");
       old.fez = { UID: 9100 + i, _destroyed: false, props: {}, onRefresh: () => {} };
       old._marker = `OLD-${i}`;
       target.appendChild(old);
@@ -220,7 +240,6 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     old.fez = {
       UID: 9300,
       _destroyed: false,
-      _fezSlotSignature: "<span>Old</span>",
       props: {},
       onRefresh: () => {},
       fezOnDestroy: () => {
@@ -228,7 +247,9 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
         old.fez._destroyed = true;
       },
     };
-    old._fezSlotSignature = "<span>Old</span>";
+    old._fezSignature = sourceSignature(
+      "<test-slot-card><span>Old</span></test-slot-card>",
+    );
     target.appendChild(old);
 
     Fez.nodeMorph(target, "<test-slot-card><span>New</span></test-slot-card>");
@@ -240,7 +261,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     target.remove();
   });
 
-  test("preserves unkeyed component when slot content is unchanged", () => {
+  test("preserves unkeyed component when source is unchanged", () => {
     Fez.index.ensure("test-slot-card-same");
 
     const target = makeTarget("div", "");
@@ -250,11 +271,12 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     old.fez = {
       UID: 9301,
       _destroyed: false,
-      _fezSlotSignature: "<span>Same</span>",
       props: {},
       onRefresh: () => {},
     };
-    old._fezSlotSignature = "<span>Same</span>";
+    old._fezSignature = sourceSignature(
+      "<test-slot-card-same><span>Same</span></test-slot-card-same>",
+    );
     target.appendChild(old);
 
     Fez.nodeMorph(
@@ -268,7 +290,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     target.remove();
   });
 
-  test("keyed component identity overrides slot content signature", () => {
+  test("keyed component identity overrides content signature", () => {
     Fez.index.ensure("test-slot-card-keyed");
 
     const target = makeTarget("div", "");
@@ -279,11 +301,12 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     old.fez = {
       UID: 9302,
       _destroyed: false,
-      _fezSlotSignature: "<span>Old</span>",
       props: {},
       onRefresh: () => {},
     };
-    old._fezSlotSignature = "<span>Old</span>";
+    old._fezSignature = sourceSignature(
+      '<test-slot-card-keyed key="stable"><span>Old</span></test-slot-card-keyed>',
+    );
     target.appendChild(old);
 
     Fez.nodeMorph(
@@ -294,6 +317,108 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     expect(target.children.length).toBe(1);
     expect(target.firstElementChild).toBe(old);
     expect(target.firstElementChild._marker).toBe("OLD");
+    target.remove();
+  });
+
+  test("recreates unkeyed component when attributes change", () => {
+    // The ui-a case: same tag, same slot content, different href between
+    // pages. Not the same thing - must go through a fresh init(), not a
+    // silent preserve that leaves the component stale.
+    Fez.index.ensure("test-attr-card");
+
+    const target = makeTarget("div", "");
+    const old = document.createElement("test-attr-card");
+    old.classList.add("fez", "fez-test-attr-card");
+    old._marker = "OLD";
+
+    let destroyed = false;
+    old.fez = {
+      UID: 9310,
+      _destroyed: false,
+      props: {},
+      onRefresh: () => {},
+      fezOnDestroy: () => {
+        destroyed = true;
+        old.fez._destroyed = true;
+      },
+    };
+    old._fezSignature = sourceSignature(
+      '<test-attr-card href="/a">Link</test-attr-card>',
+    );
+    target.appendChild(old);
+
+    Fez.nodeMorph(target, '<test-attr-card href="/b">Link</test-attr-card>');
+
+    expect(target.children.length).toBe(1);
+    expect(target.firstElementChild).not.toBe(old);
+    expect(destroyed).toBe(true);
+    target.remove();
+  });
+
+  test("fez-key attribute preserves component despite attr and content changes", () => {
+    Fez.index.ensure("test-fezkey-card");
+
+    const target = makeTarget("div", "");
+    const old = document.createElement("test-fezkey-card");
+    old.classList.add("fez", "fez-test-fezkey-card");
+    old.setAttribute("fez-key", "nav");
+    old._marker = "OLD";
+
+    const changes = [];
+    old.fez = {
+      UID: 9320,
+      _destroyed: false,
+      props: { href: "/a" },
+      class: {
+        getProps(node) {
+          const props = {};
+          for (const attr of node.attributes) props[attr.name] = attr.value;
+          return props;
+        },
+      },
+      onPropsChange: (name, value) => changes.push([name, value]),
+      onRefresh: () => {},
+      refresh: () => {
+        old._refreshCalled = true;
+      },
+    };
+    old._fezSignature = sourceSignature(
+      '<test-fezkey-card fez-key="nav" href="/a">Old</test-fezkey-card>',
+    );
+    target.appendChild(old);
+
+    Fez.nodeMorph(
+      target,
+      '<test-fezkey-card fez-key="nav" href="/b">New</test-fezkey-card>',
+    );
+
+    expect(target.children.length).toBe(1);
+    expect(target.firstElementChild).toBe(old);
+    expect(old.fez.props.href).toBe("/b");
+    expect(old._refreshCalled).toBe(true);
+    expect(changes).toContainEqual(["href", "/b"]);
+    target.remove();
+  });
+});
+
+describe("Fez.nodeMorph - fez-key on plain elements", () => {
+  test("matches plain elements by fez-key attribute across reorder", () => {
+    const target = makeTarget(
+      "div",
+      '<div fez-key="a">A</div><div fez-key="b">B</div>',
+    );
+    target.children[0]._marker = "A";
+    target.children[1]._marker = "B";
+
+    Fez.nodeMorph(
+      target,
+      '<div fez-key="b">B2</div><div fez-key="a">A2</div>',
+    );
+
+    expect(target.children[0]._marker).toBe("B");
+    expect(target.children[0].textContent).toBe("B2");
+    expect(target.children[1]._marker).toBe("A");
+    expect(target.children[1].textContent).toBe("A2");
     target.remove();
   });
 });
