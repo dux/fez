@@ -470,6 +470,35 @@ describe("attribute sync", () => {
     container.remove();
   });
 
+  test("clears old style on classless soft-matched tags (table th)", () => {
+    // pjax morph soft-matches bare <th> by tag. A fixed-width column from the
+    // previous page must not keep its style on a flex column (no width) in the
+    // next page - otherwise Relacija etc. collapse to e.g. 90px after morph.
+    const container = document.createElement("div");
+    container.innerHTML =
+      "<table><thead><tr>" +
+      '<th style="width: 90px">Prekovr.</th>' +
+      "<th>Zaposlenik</th>" +
+      "</tr></thead></table>";
+    document.body.appendChild(container);
+
+    const newNode = document.createElement("div");
+    newNode.innerHTML =
+      "<table><thead><tr>" +
+      "<th>Zaposlenik</th>" +
+      "<th>Relacija</th>" +
+      "</tr></thead></table>";
+
+    fezMorph(container, newNode);
+
+    const ths = [...container.querySelectorAll("th")];
+    expect(ths.map((th) => th.textContent)).toEqual(["Zaposlenik", "Relacija"]);
+    expect(ths[0].hasAttribute("style")).toBe(false);
+    expect(ths[1].hasAttribute("style")).toBe(false);
+
+    container.remove();
+  });
+
   test("new style attribute always overwrites old", () => {
     const container = document.createElement("div");
     container.innerHTML = '<div class="card" style="color: red;"></div>';

@@ -58,18 +58,20 @@ function syncAttributes(oldNode, newNode) {
     oldNode === document.activeElement && isFormInput(oldNode);
 
   // Remove attributes not present in new node
-  // Exception: preserve `style` if new node doesn't set it AND the class
-  // attribute is unchanged - then this is the same element being re-synced
-  // and any JS-set style (e.g. positioning) should survive. If class changed,
-  // the node is being repurposed (e.g. pjax page swap), so stale style is
-  // wrong and must be cleared.
+  // Exception: preserve `style` if new node doesn't set it AND both nodes
+  // share a non-empty class - then this is the same element being re-synced
+  // and any JS-set style (e.g. positioning) should survive. Empty class
+  // matching empty class is not identity (soft-matched bare tags like <th>
+  // must not keep a previous column's width). If class changed, the node is
+  // being repurposed (e.g. pjax page swap), so stale style must be cleared.
   const newHasStyle = newNode.hasAttribute("style");
-  const sameClass =
-    oldNode.getAttribute("class") === newNode.getAttribute("class");
+  const oldClass = oldNode.getAttribute("class") || "";
+  const newClass = newNode.getAttribute("class") || "";
+  const sameNamedClass = oldClass !== "" && oldClass === newClass;
   for (let i = oldAttrs.length - 1; i >= 0; i--) {
     const name = oldAttrs[i].name;
     if (!newNode.hasAttribute(name)) {
-      if (name === "style" && !newHasStyle && sameClass) continue;
+      if (name === "style" && !newHasStyle && sameNamedClass) continue;
       oldNode.removeAttribute(name);
     }
   }

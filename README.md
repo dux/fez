@@ -191,7 +191,7 @@ This means a parent with 100 child components in a loop can re-render its own te
 ### Attribute and Class Syncing
 
 - **Class changes** use `classList.add/remove` instead of `setAttribute` - this preserves CSS transitions and animations
-- **Inline styles** set via JS (e.g. `element.style.left = '100px'`) are preserved when the template doesn't set a `style` attribute
+- **Inline styles** set via JS (e.g. `element.style.left = '100px'`) are preserved when the template doesn't set a `style` attribute **and** both nodes share a non-empty class (identity). Classless soft-matched tags (e.g. bare `<th>`) clear stale styles so column widths don't leak across pjax page swaps
 - **Active input focus** - `value` and `checked` attributes are not synced on the currently focused input, preventing disruption during typing
 
 ## Template Syntax (Svelte-like)
