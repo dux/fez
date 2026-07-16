@@ -290,7 +290,8 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     target.remove();
   });
 
-  test("keyed component identity overrides content signature", () => {
+  test("keyed component rewrites when slot content changes", () => {
+    // Loop fez-key / key= must not keep stale light-DOM children (ui-label STEP→PDF bug)
     Fez.index.ensure("test-slot-card-keyed");
 
     const target = makeTarget("div", "");
@@ -298,11 +299,16 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     old.classList.add("fez", "fez-test-slot-card-keyed");
     old.setAttribute("key", "stable");
     old._marker = "OLD";
+    let destroyed = false;
     old.fez = {
       UID: 9302,
       _destroyed: false,
       props: {},
       onRefresh: () => {},
+      fezOnDestroy: () => {
+        destroyed = true;
+        old.fez._destroyed = true;
+      },
     };
     old._fezSignature = sourceSignature(
       '<test-slot-card-keyed key="stable"><span>Old</span></test-slot-card-keyed>',
@@ -315,8 +321,8 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     );
 
     expect(target.children.length).toBe(1);
-    expect(target.firstElementChild).toBe(old);
-    expect(target.firstElementChild._marker).toBe("OLD");
+    expect(target.firstElementChild).not.toBe(old);
+    expect(destroyed).toBe(true);
     target.remove();
   });
 
@@ -355,7 +361,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     target.remove();
   });
 
-  test("fez-key attribute preserves component despite attr and content changes", () => {
+  test("fez-key preserves component when only attrs change (slot same)", () => {
     Fez.index.ensure("test-fezkey-card");
 
     const target = makeTarget("div", "");
@@ -383,13 +389,13 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
       },
     };
     old._fezSignature = sourceSignature(
-      '<test-fezkey-card fez-key="nav" href="/a">Old</test-fezkey-card>',
+      '<test-fezkey-card fez-key="nav" href="/a">Same</test-fezkey-card>',
     );
     target.appendChild(old);
 
     Fez.nodeMorph(
       target,
-      '<test-fezkey-card fez-key="nav" href="/b">New</test-fezkey-card>',
+      '<test-fezkey-card fez-key="nav" href="/b">Same</test-fezkey-card>',
     );
 
     expect(target.children.length).toBe(1);

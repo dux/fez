@@ -26,6 +26,7 @@
  * @param {Function} [opts.describeOld(oldNode)] - return { key, aliases?, preserve?, softMatch? } or null
  * @param {Function} [opts.describeNew(newNode)] - return primary key string or null
  * @param {Function} [opts.skipNode(oldNode)]    - return true to preserve subtree as-is
+ * @param {Function} [opts.shouldPreserve(oldNode, newNode)] - return false to force rewrite of a preserve match
  * @param {Function} [opts.beforeRemove(node)]   - called before removing a node
  * @param {Function} [opts.onPreserve(oldNode, newNode)] - called when a keyed node is matched and preserved
  */
@@ -349,6 +350,17 @@ function diffChildren(target, newParent, opts) {
       const newChild = match.new;
 
       if (match.preserve) {
+        // Allow callers (Fez) to reject preserve when source content changed
+        // (e.g. slot text STEP → PDF) even if the key still matches.
+        if (opts.shouldPreserve && !opts.shouldPreserve(oldChild, newChild)) {
+          if (oldChild.nodeType === 1) {
+            callBeforeRemoveDeep(oldChild, opts);
+          }
+          target.insertBefore(newChild, oldChild);
+          target.removeChild(oldChild);
+          cursor = newChild.nextSibling;
+          continue;
+        }
         if (opts.onPreserve) opts.onPreserve(oldChild, newChild);
         syncInternalKeys(oldChild, newChild);
         // preserve entirely, just ensure position

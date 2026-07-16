@@ -9,7 +9,7 @@
 import { nodeMorph } from './morph.js';
 
 /**
- * Content signature for unkeyed component identity.
+ * Content signature for component identity and rewrite checks.
  *
  * Live components hash their mount-time source snapshot (_fezSignature, the
  * original outerHTML captured in connect.js before the custom tag is replaced).
@@ -18,19 +18,58 @@ import { nodeMorph } from './morph.js';
  *
  * Unkeyed identity is strict: tag + attributes + innerHTML must all match,
  * otherwise the component is destroyed and recreated with a fresh init().
- * Use fez-key/key/id for explicit identity (preserve + props refresh).
+ *
+ * Keyed identity (fez-key / key / id) still preserves by default for props
+ * refresh, but if the source signature changed (slot text, static children),
+ * shouldPreserve returns false and the component is rewritten.
  */
-function signatureHash(node) {
-  if (node._fezSigHash) return node._fezSigHash;
-  const text = String(node?._fezSignature ?? node?.outerHTML ?? '').trim();
+function hashText(text) {
+  text = String(text || '').trim();
   let hash = 2166136261;
   for (let i = 0; i < text.length; i++) {
     hash ^= text.charCodeAt(i);
     hash = Math.imul(hash, 16777619);
   }
-  const result = (hash >>> 0).toString(36);
+  return (hash >>> 0).toString(36);
+}
+
+function signatureHash(node) {
+  if (node._fezSigHash) return node._fezSigHash;
+  const text = String(node?._fezSignature ?? node?.outerHTML ?? '').trim();
+  const result = hashText(text);
   node._fezSigHash = result;
   return result;
+}
+
+/**
+ * Inner HTML of a serialized source tag (between first `>` and last `</`).
+ * Used so attribute/prop-only changes still preserve + refresh, while slot
+ * text changes force a rewrite.
+ */
+function innerFromOuterHtml(html) {
+  const src = String(html || '');
+  const start = src.indexOf('>');
+  const end = src.lastIndexOf('<');
+  if (start < 0 || end <= start) return '';
+  return src.slice(start + 1, end);
+}
+
+/**
+ * True when a live component may stay mounted against a new template placeholder.
+ * Slot / light-DOM content is compared via the mount-time source snapshot
+ * (_fezSignature) vs the new placeholder. If children changed
+ * (e.g. <ui-label>PDF</ui-label> → STEP), return false so the component is
+ * rewritten even when loop fez-key still matches the same index.
+ * Attribute-only changes still preserve and go through props refresh.
+ */
+function shouldPreserveFezComponent(oldNode, newNode) {
+  if (!oldNode?.fez || oldNode.fez._destroyed) return true;
+  if (oldNode._fezSignature == null) return true;
+  if (!newNode || newNode.nodeType !== 1) return true;
+  return (
+    hashText(innerFromOuterHtml(oldNode._fezSignature)) ===
+    hashText(newNode.innerHTML)
+  );
 }
 
 /**
@@ -172,10 +211,13 @@ export default function attachMorph(Fez) {
       return false;
     },
 
+    // Keyed preserve is only valid when source (attrs + slot content) still matches
+    shouldPreserve: shouldPreserveFezComponent,
+
     // Cleanup destroyed fez components
     beforeRemove: (node) => {
       if (node.classList?.contains('fez') && node.fez) {
-        node.fez.fezOnDestroy();
+        node.fez.fezOnDestroy?.();
       }
     },
 
