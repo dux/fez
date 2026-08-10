@@ -5,7 +5,6 @@ import fs from 'fs'
 import path from 'path'
 import prettier from 'prettier'
 import createTemplate, { clearTemplateCache } from '../src/fez/lib/template.js'
-import hoistGlobals from '../src/fez/utils/hoist_globals.js'
 
 const INFO = 'Compile Fez components and report errors'
 
@@ -463,16 +462,14 @@ function generateCompiledJS(parsed, componentName) {
   // Add CSS if present. Scope comes from the tag, never from the content:
   // <style> is always wrapped, <style global> is always passed through.
   // :fez is only the marker the runtime rewrites to .fez.fez-<name>.
-  // :global(...) rules ride the global channel out of the scoped block
-  const { scoped, global: hoisted } = hoistGlobals(parsed.style)
-  const globalCss = [parsed.styleGlobal, hoisted].filter(Boolean).join('\n')
-
-  if (scoped && scoped.includes(':')) {
-    klass = klass.replace(/\}\s*$/, `\n  CSS = \`:fez {\n${scoped}\n}\`\n}`)
+  // :global(...) and non-nestable at-rules are lifted out by the flattener at
+  // injection time, so the compiler just labels the two channels.
+  if (parsed.style && parsed.style.includes(':')) {
+    klass = klass.replace(/\}\s*$/, `\n  CSS = \`:fez {\n${parsed.style}\n}\`\n}`)
   }
 
-  if (globalCss && globalCss.includes(':')) {
-    klass = klass.replace(/\}\s*$/, `\n  CSS_GLOBAL = \`${globalCss}\`\n}`)
+  if (parsed.styleGlobal && parsed.styleGlobal.includes(':')) {
+    klass = klass.replace(/\}\s*$/, `\n  CSS_GLOBAL = \`${parsed.styleGlobal}\`\n}`)
   }
 
   // Add HTML if present

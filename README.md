@@ -8,7 +8,7 @@ FEZ is a small library (49KB minified, ~18KB gzipped) that allows writing of [Cu
 
 It uses
 
-- Native CSS nesting to enable SCSS-style component styles with no build step and no CSS dependency
+- A built-in CSS flattener to enable SCSS-style component styles with no build step and no CSS dependency
 - Custom component-aware DOM differ to morph DOM from one state to another (as React or Stimulus/Turbo does it), with hash-based render skipping for zero-cost no-op renders
 
 It uses minimal abstraction. You will learn to use it in 15 minutes, just look at examples, it includes all you need to know.
@@ -575,7 +575,7 @@ This example showcases:
 - **Semantic HTML Output** - Transforms custom elements to standard HTML nodes (e.g., `<ui-button>` → `<button class="fez fez-button">`), making components fully stylable with CSS
 - **Single-File Components** - Define CSS, HTML, and JavaScript in one file, no build step required
 - **No Framework Magic** - Plain vanilla JS classes with clear, documented methods. No hooks, runes, or complex abstractions
-- **SCSS-style Nesting, No Dependency** - Write nested rules and `&` as you would in SCSS; the browser resolves them via native CSS nesting. Fez adds the component scope and injects everything into one `<style id="fez-css">`
+- **SCSS-style Nesting, No Dependency** - Write nested rules and `&` as you would in SCSS. Fez flattens them to plain CSS itself rather than relying on native CSS nesting, so components work on browsers older than late-2023 (old Android WebViews included). Comma-separated parents expand cartesian (`.a, .b { &:hover }` → `.a:hover, .b:hover`), keeping each selector's own specificity and needing no `:is()` support. Everything lands in one `<style id="fez-css">`
 - **Smart Memory Management** - MutationObserver automatically cleans up disconnected components and their resources (intervals, event listeners, subscriptions)
 
 ### Advanced Templating & Styling

@@ -18,6 +18,7 @@
 // =============================================================================
 
 import { injectCss, extractCss, cssHash } from './utils/css_inject.js';
+import flattenCss from './utils/flatten_css.js';
 import attachMorph from './lib/fez-morph.js';
 import objectDump from './utils/dump.js';
 import highlightAll from './utils/highlight_all.js';
@@ -168,12 +169,12 @@ Fez.find = (onode, name) => {
 
 /**
  * Wrap CSS rules in a generated class and inject them
- * @param {string} text - CSS rules (nesting is resolved by the browser)
+ * @param {string} text - CSS rules, nested or flat
  * @returns {string} Generated class name
  */
 Fez.cssClass = (text) => {
   const name = cssHash(text);
-  injectCss(`.${name} { ${text} }`);
+  injectCss(flattenCss(`.${name} { ${text} }`));
   return name;
 };
 
@@ -207,7 +208,10 @@ Fez.globalCss = (cssClass, opts = {}) => {
   // occurrence past the first as a literal (invalid) pseudo-class.
   if (opts.name) text = text.replace(/:fez\b/g, `.fez.fez-${opts.name}`);
 
-  return injectCss(text);
+  // Flatten here, not in the compiler: this is the one path every stylesheet
+  // takes - both compile paths, component CSS() getters and public callers -
+  // and user mixins have already been expanded by this point.
+  return injectCss(flattenCss(text));
 };
 
 // =============================================================================

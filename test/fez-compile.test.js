@@ -91,7 +91,10 @@ describe("fez compile", () => {
       expect(stdout.split("CSS_GLOBAL")[1]).not.toContain(":fez");
     });
 
-    test("hoists :global(...) out of a scoped block", async () => {
+    test("passes :global() and at-rules through to the flattener", async () => {
+      // Relocating these is the flattener's job at injection time (see
+      // test/flatten-css.test.js), so the compiler must emit them untouched
+      // rather than doing its own half-parse.
       const result =
         await $`bin/fez-compile -o test/fixtures/valid/test-style-global-fn.fez`
           .quiet()
@@ -99,37 +102,12 @@ describe("fez compile", () => {
       const stdout = result.stdout.toString();
       expect(result.exitCode).toBe(0);
 
-      const [scoped, global] = stdout.split("CSS_GLOBAL");
-      // scoped keeps its own rules and loses the hoisted ones
-      expect(scoped).toContain(".card { color: red; }");
-      expect(scoped).not.toContain("third-party-widget");
-      // hoisted rules lose the wrapper but keep their nesting
-      expect(global).toContain(".third-party-widget {");
-      expect(global).toContain(".inner { color: blue; }");
-      expect(global).toContain(".one-liner { margin: 0; }");
-      expect(stdout).not.toContain(":global(");
-    });
-
-    test("hoists at-rules that cannot nest, keeps @media scoped", async () => {
-      const result =
-        await $`bin/fez-compile -o test/fixtures/valid/test-style-global-fn.fez`
-          .quiet()
-          .nothrow();
-      const stdout = result.stdout.toString();
-      expect(result.exitCode).toBe(0);
-
-      const [scoped, global] = stdout.split("CSS_GLOBAL");
-      // wrapping these in :fez { } buries them and the browser drops them
-      expect(scoped).not.toContain("@keyframes");
-      expect(scoped).not.toContain("@font-face");
-      expect(global).toContain("@keyframes fade-in {");
-      expect(global).toContain("@font-face {");
-      // a whole at-rule on one line is easy to miss when scanning for `{` EOL
-      expect(global).toContain("@keyframes spin-one-line {");
-      expect(scoped).not.toContain("spin-one-line");
-      // @media nests legally, so it must stay with the component
+      const scoped = stdout.split("CSS_GLOBAL")[0];
+      expect(scoped).toContain(":global(.third-party-widget)");
+      expect(scoped).toContain("@keyframes fade-in");
+      expect(scoped).toContain("@keyframes spin-one-line");
+      expect(scoped).toContain("@font-face");
       expect(scoped).toContain("@media (max-width: 500px)");
-      expect(global).not.toContain("@media");
     });
 
     test("keeps scoped and global blocks in the same file", async () => {

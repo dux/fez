@@ -41,8 +41,34 @@ describe("Fez.globalCss", () => {
 
   test("wraps in :fez when opts.wrap is set", () => {
     const out = rewrite("outline: 1px dotted;", { name: "ui-btn", wrap: true });
-    expect(out).toContain(".fez.fez-ui-btn {");
+    expect(out).toContain(".fez.fez-ui-btn{");
     expect(out).toContain("outline: 1px dotted;");
+  });
+
+  test("flattens nesting so old engines get plain rules", () => {
+    const out = rewrite(":fez { .card { &:hover { color: red; } } }", {
+      name: "ui-card",
+    });
+    expect(out).toContain(".fez.fez-ui-card .card:hover{color: red;}");
+    expect(out).not.toContain("&");
+  });
+
+  test("lifts @keyframes out of the component scope", () => {
+    const out = rewrite(
+      ":fez { .a { animation: kf 1s; } @keyframes kf { to { opacity: 1; } } }",
+      { name: "ui-anim" },
+    );
+    expect(out).toContain("@keyframes kf{to{opacity: 1;}}");
+    // must not end up nested under the component selector
+    expect(out).not.toMatch(/\.fez\.fez-ui-anim[^{]*\{\s*@keyframes/);
+  });
+
+  test("lets :global() escape the component scope", () => {
+    const out = rewrite(":fez { :global(.widget) { color: red; } }", {
+      name: "ui-esc",
+    });
+    expect(out).toContain(".widget{color: red;}");
+    expect(out).not.toContain(".fez.fez-ui-esc .widget");
   });
 
   test("injects identical CSS only once", () => {

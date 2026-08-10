@@ -16,7 +16,6 @@
 // Note: Uses Fez.index directly (set up in root.js)
 
 import closeCustomTags from "./lib/close-custom-tags.js";
-import hoistGlobals from "./utils/hoist_globals.js";
 
 const compileCache = new Map();
 
@@ -421,16 +420,17 @@ function generateClassCode(tagName, parts) {
   assertStyleScope(tagName, parts.style, false);
   assertStyleScope(tagName, parts.styleGlobal, true);
 
-  // :global(...) rules ride the global channel out of the scoped block
-  const { scoped, global: hoisted } = hoistGlobals(parts.style);
-  const globalCss = [parts.styleGlobal, hoisted].filter(Boolean).join("\n");
-
-  if (String(scoped).includes(":")) {
-    klass = klass.replace(/\}\s*$/, `\n  CSS = \`:fez {\n${scoped}\n}\`\n}`);
+  // :global(...) and non-nestable at-rules are lifted out by the flattener at
+  // injection time, so the compiler just labels the two channels.
+  if (String(parts.style).includes(":")) {
+    klass = klass.replace(/\}\s*$/, `\n  CSS = \`:fez {\n${parts.style}\n}\`\n}`);
   }
 
-  if (String(globalCss).includes(":")) {
-    klass = klass.replace(/\}\s*$/, `\n  CSS_GLOBAL = \`${globalCss}\`\n}`);
+  if (String(parts.styleGlobal).includes(":")) {
+    klass = klass.replace(
+      /\}\s*$/,
+      `\n  CSS_GLOBAL = \`${parts.styleGlobal}\`\n}`,
+    );
   }
 
   // Add HTML
