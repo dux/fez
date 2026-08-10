@@ -124,7 +124,7 @@
         <li>🧹 <i>Auto-Cleanup Magic:</i> Forget memory leaks! Timers, subscriptions, and event listeners are automatically cleaned up when components unmount. Focus on features, not housekeeping.</li>
         <li>🔄 <i>Smart DOM Morphing:</i> Uses <a href="https://github.com/bigskysoftware/idiomorph">Idiomorph</a> for surgical DOM updates that preserve form state, scroll position, and focus - no virtual DOM overhead.</li>
         <li>📜 <i>HTML-First Philosophy:</i> Components are defined in <code>.fez</code> HTML files, not JavaScript. Your markup stays readable and approachable for designers and backend developers.</li>
-        <li>🎨 <i>Runtime SCSS Support:</i> Write real SCSS without build tools! Powered by <a href="https://goober.js.org/">Goober</a> with scoped styles, global styles, and reactive CSS values.</li>
+        <li>🎨 <i>SCSS-Style Nesting, No Dependency:</i> Write nested rules and <code>&amp;</code> without build tools - the browser resolves them via native CSS nesting. Scope is declared on the tag: <code>&lt;style&gt;</code> is scoped to the component, <code>&lt;style global&gt;</code> is document-wide.</li>
         <li>📦 <i>Smart Component Loading:</i> Load components from URLs, inline templates, or <code>&lt;template&gt;</code> tags. Perfect for micro-frontends and progressive enhancement.</li>
         <li>🔔 <i>Built-in Communication:</i> Native pub/sub system for component messaging - no Redux, no context providers, just <code>Fez.pub()</code> and <code>Fez.sub()</code>.</li>
         <li>📝 <i>Form Superpowers:</i> Built-in form data handling with <code>getFormData()</code> - serialize forms to JSON in one line, no libraries needed.</li>

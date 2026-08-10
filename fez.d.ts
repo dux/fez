@@ -360,7 +360,12 @@ interface FezStatic {
   /** All CSS injected so far, in injection order */
   extractCss(): string;
 
-  /** Inject a stylesheet. With opts.name, :fez resolves to that component's root. */
+  /**
+   * Inject a stylesheet, deduped on its text. Without opts it goes in verbatim.
+   * opts.name scopes it to that component; opts.wrap wraps the whole sheet in
+   * the component root first. (Compiled components use this internally - in
+   * .fez sources, scope comes from <style> vs <style global>.)
+   */
   globalCss(cssClass: string | Function, opts?: { name?: string; wrap?: boolean }): string;
 
   /** Define custom CSS shortcuts */
