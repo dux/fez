@@ -19,11 +19,23 @@
 const NOT_NESTABLE =
   /^@(-\w+-)?(keyframes|font-face|property|counter-style|page|import|namespace|font-feature-values)\b/i
 
-const OPENS_RULE = /\{\s*$/
-const ONE_LINER = /^([^{}]*?):global\(([^)]*)\)([^{}]*)\{(.*)\}\s*$/
-
 const strip = (selector) =>
   selector.replace(/:global\(([^)]*)\)/g, '$1').replace(/\s+/g, ' ').trim()
+
+// drop the :global() wrapper from the selector, leave the body alone
+const stripHead = (line) => {
+  const i = line.indexOf('{')
+  return i < 0 ? strip(line) : `${strip(line.slice(0, i))} ${line.slice(i)}`
+}
+
+const braceDelta = (text) => {
+  let d = 0
+  for (const ch of text) {
+    if (ch === '{') d++
+    else if (ch === '}') d--
+  }
+  return d
+}
 
 /**
  * Split a scoped style block into what stays scoped and what gets hoisted.
@@ -48,15 +60,11 @@ export default function hoistGlobals(style) {
     const trimmed = bare.trim()
 
     if (capturing) {
-      for (const ch of bare) {
-        if (ch === '{') depth++
-        else if (ch === '}') depth--
-      }
+      depth += braceDelta(bare)
+      capturing.body.push(line)
       if (depth === 0) {
-        global.push(capturing.body.join('\n'), line.trim())
+        global.push(capturing.body.join('\n'))
         capturing = null
-      } else {
-        capturing.body.push(line)
       }
       continue
     }
@@ -65,32 +73,30 @@ export default function hoistGlobals(style) {
       const isGlobalFn = trimmed.includes(':global(')
       const isAtRule = NOT_NESTABLE.test(trimmed)
 
-      if (isGlobalFn) {
-        const one = trimmed.match(ONE_LINER)
-        if (one) {
-          global.push(`${strip(one[1] + ':global(' + one[2] + ')' + one[3])} {${one[4]}}`)
+      if (isGlobalFn || isAtRule) {
+        // statement at-rule with no block, e.g. `@import url(...);`
+        if (isAtRule && !trimmed.includes('{')) {
+          global.push(trimmed)
+          continue
+        }
+
+        const head = isGlobalFn ? stripHead(trimmed) : trimmed
+        const delta = braceDelta(bare)
+
+        // whole rule fits on one line, e.g. `@keyframes spin { to { ... } }`
+        if (delta === 0) {
+          global.push(head)
+          continue
+        }
+        if (delta > 0) {
+          capturing = { body: [head] }
+          depth = delta
           continue
         }
       }
-
-      if ((isGlobalFn || isAtRule) && OPENS_RULE.test(trimmed)) {
-        const head = isGlobalFn ? strip(trimmed.replace(/\{\s*$/, '')) + ' {' : trimmed
-        capturing = { body: [head] }
-        depth = 1
-        continue
-      }
-
-      // statement at-rule with no block, e.g. `@import url(...);`
-      if (isAtRule && /;\s*$/.test(trimmed)) {
-        global.push(trimmed)
-        continue
-      }
     }
 
-    for (const ch of bare) {
-      if (ch === '{') depth++
-      else if (ch === '}') depth--
-    }
+    depth += braceDelta(bare)
     scoped.push(line)
   }
 

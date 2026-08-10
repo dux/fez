@@ -124,6 +124,9 @@ describe("fez compile", () => {
       expect(scoped).not.toContain("@font-face");
       expect(global).toContain("@keyframes fade-in {");
       expect(global).toContain("@font-face {");
+      // a whole at-rule on one line is easy to miss when scanning for `{` EOL
+      expect(global).toContain("@keyframes spin-one-line {");
+      expect(scoped).not.toContain("spin-one-line");
       // @media nests legally, so it must stay with the component
       expect(scoped).toContain("@media (max-width: 500px)");
       expect(global).not.toContain("@media");

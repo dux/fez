@@ -22,6 +22,9 @@
     src: url(probe.woff2);
   }
 
+  /* whole at-rule on one line must hoist too */
+  @keyframes spin-one-line { to { transform: rotate(360deg); } }
+
   /* @media nests fine and stays scoped */
   @media (max-width: 500px) {
     .card { color: green; }
