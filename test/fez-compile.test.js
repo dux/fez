@@ -110,6 +110,25 @@ describe("fez compile", () => {
       expect(stdout).not.toContain(":global(");
     });
 
+    test("hoists at-rules that cannot nest, keeps @media scoped", async () => {
+      const result =
+        await $`bin/fez-compile -o test/fixtures/valid/test-style-global-fn.fez`
+          .quiet()
+          .nothrow();
+      const stdout = result.stdout.toString();
+      expect(result.exitCode).toBe(0);
+
+      const [scoped, global] = stdout.split("CSS_GLOBAL");
+      // wrapping these in :fez { } buries them and the browser drops them
+      expect(scoped).not.toContain("@keyframes");
+      expect(scoped).not.toContain("@font-face");
+      expect(global).toContain("@keyframes fade-in {");
+      expect(global).toContain("@font-face {");
+      // @media nests legally, so it must stay with the component
+      expect(scoped).toContain("@media (max-width: 500px)");
+      expect(global).not.toContain("@media");
+    });
+
     test("keeps scoped and global blocks in the same file", async () => {
       const result =
         await $`bin/fez-compile -o test/fixtures/valid/test-style-global.fez`

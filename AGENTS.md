@@ -176,6 +176,15 @@ The `<script>` block has two zones:
   :global(.third-party-widget) {
     z-index: 10;
   }
+
+  /* @keyframes / @font-face / @property and friends cannot legally sit
+     inside a style rule, so they are hoisted out for you - write them
+     here and they just work. @media/@supports/@container nest fine and
+     stay scoped to the component. */
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 </style>
 
 <!-- Global styles: emitted verbatim, no scoping. -->

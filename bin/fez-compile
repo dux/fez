@@ -204,8 +204,15 @@ const isGlobalStyleTag = (text) => {
 // Scope is declared on the <style> tag, so the selectors that used to smuggle
 // scope through the content are now errors. Messages mirror assertStyleScope()
 // in src/fez/compile.js.
-function validateStyleScope(style, filePath, isGlobal) {
+// Blank out comments while keeping length and line breaks, so scope checks
+// never fire on prose - "was :fez before" in a comment is not an error.
+const withoutComments = (style) => style
+  .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+  .replace(/^([ \t]*)\/\/[^\n]*/gm, (m, indent) => indent + ' '.repeat(m.length - indent.length))
+
+function validateStyleScope(rawStyle, filePath, isGlobal) {
   const errors = []
+  const style = withoutComments(rawStyle)
   const at = (re) => {
     const idx = style.search(re)
     return idx < 0 ? {} : { line: style.slice(0, idx).split('\n').length }

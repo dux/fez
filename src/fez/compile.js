@@ -64,8 +64,17 @@ const STYLE_SCOPE_ERRORS = {
     ":global() inside <style global>. These rules are already global - drop the wrapper.",
 };
 
-function assertStyleScope(tagName, style, isGlobal) {
-  if (!style) return;
+// Blank out comments while keeping length and line breaks, so scope checks
+// never fire on prose - "was :fez before" in a comment is not an error.
+function withoutComments(style) {
+  return style
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/^([ \t]*)\/\/[^\n]*/gm, (m, indent) => indent + " ".repeat(m.length - indent.length));
+}
+
+function assertStyleScope(tagName, rawStyle, isGlobal) {
+  if (!rawStyle) return;
+  const style = withoutComments(rawStyle);
 
   const fail = (message) => {
     throw new Error(`<${tagName}> style error: ${message}`);

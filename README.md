@@ -1014,6 +1014,8 @@ All parts are optional
     .child { font-weight: bold; }
     /* single escape hatch - hoisted out, wrapper stripped */
     :global(.third-party-widget) { z-index: 10; }
+    /* @keyframes/@font-face are hoisted too (they cannot nest); @media stays scoped */
+    @keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
   </style>
 
   <style global>
