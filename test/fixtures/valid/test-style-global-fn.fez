@@ -1,0 +1,15 @@
+<style>
+  padding: 10px;
+
+  .card { color: red; }
+
+  :global(.third-party-widget) {
+    position: fixed;
+
+    .inner { color: blue; }
+  }
+
+  :global(.one-liner) { margin: 0; }
+</style>
+
+<button>hi</button>

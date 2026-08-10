@@ -131,21 +131,22 @@
 </script>
 
 <style>
-  :fez {
-    display: inline-block;
+  display: inline-block;
 
-    &::after {
-      content: '|';
-      animation: blink 0.7s infinite;
-    }
-
-    i {
-      display: inline-block;
-      font-style: normal;
-      animation: bounce-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    }
+  &::after {
+    content: '|';
+    animation: blink 0.7s infinite;
   }
 
+  i {
+    display: inline-block;
+    font-style: normal;
+    animation: bounce-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+</style>
+
+<!-- @keyframes cannot be nested inside a scoped rule -->
+<style global>
   @keyframes blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }

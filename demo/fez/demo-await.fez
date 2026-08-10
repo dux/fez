@@ -42,79 +42,77 @@ class {
 </script>
 
 <style>
-:fez {
-  font-family: system-ui, sans-serif;
+font-family: system-ui, sans-serif;
 
-  .card {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    background: #fff;
-    max-width: 400px;
-  }
+.card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
+  max-width: 400px;
+}
 
-  .avatar {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background: #f0f0f0;
-  }
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #f0f0f0;
+}
 
-  .info h3 {
-    margin: 0 0 4px 0;
-    color: #333;
-  }
+.info h3 {
+  margin: 0 0 4px 0;
+  color: #333;
+}
 
-  .info p {
-    margin: 0;
-    color: #666;
-    font-size: 14px;
-  }
+.info p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
 
-  .loading {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 20px;
-    color: #666;
-  }
+.loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  color: #666;
+}
 
-  .spinner {
-    width: 24px;
-    height: 24px;
-    border: 3px solid #f0f0f0;
-    border-top-color: #3498db;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #f0f0f0;
+  border-top-color: #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
 
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
-  .error {
-    padding: 16px;
-    background: #fee;
-    border: 1px solid #fcc;
-    border-radius: 8px;
-    color: #c00;
-  }
+.error {
+  padding: 16px;
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  color: #c00;
+}
 
-  button {
-    margin-top: 12px;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    background: #3498db;
-    color: white;
-    cursor: pointer;
+button {
+  margin-top: 12px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  background: #3498db;
+  color: white;
+  cursor: pointer;
 
-    &:hover {
-      background: #2980b9;
-    }
+  &:hover {
+    background: #2980b9;
   }
 }
 </style>

@@ -9,12 +9,10 @@
 </script>
 
 <style>
-  :fez {
-    padding: 10px;
+  padding: 10px;
 
-    button {
-      background: blue;
-    }
+  button {
+    background: blue;
   }
 </style>
 

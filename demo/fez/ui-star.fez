@@ -165,22 +165,20 @@
 </script>
 
 <style>
-  :fez {
-    display: inline-block;
-    line-height: 0;
+  display: inline-block;
+  line-height: 0;
 
-    svg {
-      vertical-align: middle;
+  svg {
+    vertical-align: middle;
+  }
+
+  &.star-rating {
+    ui-star {
+      margin-right: 2px;
     }
 
-    &.star-rating {
-      ui-star {
-        margin-right: 2px;
-      }
-
-      ui-star:last-child {
-        margin-right: 0;
-      }
+    ui-star:last-child {
+      margin-right: 0;
     }
   }
 </style>

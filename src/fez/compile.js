@@ -16,6 +16,7 @@
 // Note: Uses Fez.index directly (set up in root.js)
 
 import closeCustomTags from "./lib/close-custom-tags.js";
+import hoistGlobals from "./utils/hoist_globals.js";
 
 const compileCache = new Map();
 
@@ -43,6 +44,45 @@ function dedent(text) {
 
 function startsWithTag(text, tagName) {
   return new RegExp(`^<${tagName}(?:\\s|>|$)`, "i").test(text);
+}
+
+// Bare `global`, or global="" / global="global" - but not an unrelated
+// attribute that merely contains the word (data-x="global-thing").
+const GLOBAL_ATTR = /(?:^|\s)global(?:\s*=\s*(?:""|''|"global"|'global'|global))?(?=\s|$)/i;
+
+function isGlobalStyleTag(text) {
+  const attrs = text.match(/^<style\b([^>]*?)\/?>/i);
+  return !!attrs && GLOBAL_ATTR.test(attrs[1]);
+}
+
+// Keep these messages in sync with validateStyle() in bin/fez-compile.
+const STYLE_SCOPE_ERRORS = {
+  body: "body { } in a scoped <style>. Move these rules to <style global>.",
+  host: ":host is not supported. <style> is already scoped - use `&` for the root node.",
+  fez: ":fez is no longer an author-facing selector. <style> is already scoped - use `&` for the root node.",
+  globalInGlobal:
+    ":global() inside <style global>. These rules are already global - drop the wrapper.",
+};
+
+function assertStyleScope(tagName, style, isGlobal) {
+  if (!style) return;
+
+  const fail = (message) => {
+    throw new Error(`<${tagName}> style error: ${message}`);
+  };
+
+  if (!isGlobal && /(?:^|\s)body\s*\{/.test(style)) {
+    fail(STYLE_SCOPE_ERRORS.body);
+  }
+  if (/:host\b/.test(style)) {
+    fail(STYLE_SCOPE_ERRORS.host);
+  }
+  if (/:fez\b/.test(style)) {
+    fail(STYLE_SCOPE_ERRORS.fez);
+  }
+  if (isGlobal && /:global\(/.test(style)) {
+    fail(STYLE_SCOPE_ERRORS.globalInGlobal);
+  }
 }
 
 // =============================================================================
@@ -226,12 +266,13 @@ export { compileFromUrl as compile_from_url };
 // =============================================================================
 
 /**
- * Parse component HTML into { script, style, html, head, demo, info }
+ * Parse component HTML into { script, style, styleGlobal, html, head, demo, info }
  */
 function compileToClass(html) {
   const result = {
     script: "",
     style: "",
+    styleGlobal: "",
     html: "",
     head: "",
     demo: "",
@@ -266,11 +307,13 @@ function compileToClass(html) {
     ) {
       type = "head";
     } else if (
-      trimmedLine.startsWith("<style") &&
+      startsWithTag(trimmedLine, "style") &&
       type !== "demo" &&
       type !== "info"
     ) {
-      type = "style";
+      // Scope is declared on the tag: <style> is component-scoped,
+      // <style global> is emitted verbatim.
+      type = isGlobalStyleTag(trimmedLine) ? "styleGlobal" : "style";
 
       // End blocks
     } else if (trimmedLine.endsWith("</demo>") && type === "demo") {
@@ -289,8 +332,13 @@ function compileToClass(html) {
       result.script = block.join("\n");
       block = [];
       type = "";
-    } else if (trimmedLine.endsWith("</style>") && type === "style") {
-      result.style = block.join("\n");
+    } else if (
+      trimmedLine.endsWith("</style>") &&
+      (type === "style" || type === "styleGlobal")
+    ) {
+      // Append - a file may carry both a scoped and a global block, and
+      // repeated blocks of the same kind concatenate instead of clobbering.
+      result[type] += (result[type] ? "\n" : "") + block.join("\n");
       block = [];
       type = "";
     } else if (trimmedLine.endsWith("</head>") && type === "head") {
@@ -358,15 +406,22 @@ function generateClassCode(tagName, parts) {
     klass = `class {\n${klass}\n}`;
   }
 
-  // Add CSS
-  if (String(parts.style).includes(":")) {
-    // Accept :host as alias for :fez (Shadow-DOM convention LLMs often emit)
-    let css = Fez.cssMixin(parts.style).replace(/:host\b/g, ":fez");
-    css =
-      css.includes(":fez") || /(?:^|\s)body\s*\{/.test(css)
-        ? css
-        : `:fez {\n${css}\n}`;
-    klass = klass.replace(/\}\s*$/, `\n  CSS = \`${css}\`\n}`);
+  // Add CSS. Scope comes from the tag, never from the content: <style> is
+  // always wrapped, <style global> is always passed through untouched.
+  // :fez is only the marker the runtime rewrites to .fez.fez-<name>.
+  assertStyleScope(tagName, parts.style, false);
+  assertStyleScope(tagName, parts.styleGlobal, true);
+
+  // :global(...) rules ride the global channel out of the scoped block
+  const { scoped, global: hoisted } = hoistGlobals(parts.style);
+  const globalCss = [parts.styleGlobal, hoisted].filter(Boolean).join("\n");
+
+  if (String(scoped).includes(":")) {
+    klass = klass.replace(/\}\s*$/, `\n  CSS = \`:fez {\n${scoped}\n}\`\n}`);
+  }
+
+  if (String(globalCss).includes(":")) {
+    klass = klass.replace(/\}\s*$/, `\n  CSS_GLOBAL = \`${globalCss}\`\n}`);
   }
 
   // Add HTML

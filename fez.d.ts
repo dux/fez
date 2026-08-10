@@ -65,8 +65,11 @@ interface FezComponentConfig {
     nodeName?: string;
   };
 
-  /** Component CSS styles (SCSS syntax) */
+  /** Component-scoped CSS styles (SCSS syntax), from <style> */
   CSS?: string | (() => string);
+
+  /** Document-global CSS styles (SCSS syntax), from <style global> */
+  CSS_GLOBAL?: string | (() => string);
 
   /** Component HTML template */
   HTML?: string | (() => string);
@@ -351,17 +354,17 @@ interface FezStatic {
   // CSS UTILITIES
   // ===================================================================
 
-  /** Generate unique CSS class from CSS text */
+  /** Wrap rules in a generated class, inject them, return the class name */
   cssClass(text: string): string;
 
-  /** Register global CSS styles */
+  /** All CSS injected so far, in injection order */
+  extractCss(): string;
+
+  /** Inject a stylesheet. With opts.name, :fez resolves to that component's root. */
   globalCss(cssClass: string | Function, opts?: { name?: string; wrap?: boolean }): string;
 
   /** Define custom CSS shortcuts */
   cssMixin(name: string, value: string): void;
-
-  /** Add global SCSS styles */
-  globalCss(scss: string): void;
 
   // ===================================================================
   // DOM UTILITIES

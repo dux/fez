@@ -5,6 +5,7 @@ import fs from 'fs'
 import path from 'path'
 import prettier from 'prettier'
 import createTemplate, { clearTemplateCache } from '../src/fez/lib/template.js'
+import hoistGlobals from '../src/fez/utils/hoist_globals.js'
 
 const INFO = 'Compile Fez components and report errors'
 
@@ -49,7 +50,7 @@ if (positionals.length > 1) {
 
 // Parse a .fez file into its components
 function parseFezFile(content) {
-  const result = { script: '', style: '', html: '', head: '', demo: '', info: '' }
+  const result = { script: '', style: '', styleGlobal: '', html: '', head: '', demo: '', info: '' }
   const lines = content.split('\n')
 
   let currentBlock = []
@@ -68,8 +69,10 @@ function parseFezFile(content) {
       currentType = 'script'
     } else if (startsWithTag(trimmedLine, 'head') && !result.head && currentType !== 'demo' && currentType !== 'info') {
       currentType = 'head'
-    } else if (trimmedLine.startsWith('<style') && currentType !== 'demo' && currentType !== 'info') {
-      currentType = 'style'
+    } else if (startsWithTag(trimmedLine, 'style') && currentType !== 'demo' && currentType !== 'info') {
+      // Scope is declared on the tag: <style> is component-scoped,
+      // <style global> is emitted verbatim.
+      currentType = isGlobalStyleTag(trimmedLine) ? 'styleGlobal' : 'style'
     } else if (trimmedLine.endsWith('</demo>') && currentType === 'demo') {
       result.demo = currentBlock.join('\n')
       currentBlock = []
@@ -82,8 +85,10 @@ function parseFezFile(content) {
       result.script = currentBlock.join('\n')
       currentBlock = []
       currentType = ''
-    } else if (trimmedLine.endsWith('</style>') && currentType === 'style') {
-      result.style = currentBlock.join('\n')
+    } else if (trimmedLine.endsWith('</style>') && (currentType === 'style' || currentType === 'styleGlobal')) {
+      // Append - a file may carry both a scoped and a global block, and
+      // repeated blocks of the same kind concatenate instead of clobbering.
+      result[currentType] += (result[currentType] ? '\n' : '') + currentBlock.join('\n')
       currentBlock = []
       currentType = ''
     } else if (trimmedLine.endsWith('</head>') && currentType === 'head') {
@@ -187,12 +192,47 @@ function validateScript(script, filePath) {
   return errors
 }
 
+// Bare `global`, or global="" / global="global" - but not an unrelated
+// attribute that merely contains the word (data-x="global-thing").
+const GLOBAL_ATTR = /(?:^|\s)global(?:\s*=\s*(?:""|''|"global"|'global'|global))?(?=\s|$)/i
+
+const isGlobalStyleTag = (text) => {
+  const attrs = text.match(/^<style\b([^>]*?)\/?>/i)
+  return !!attrs && GLOBAL_ATTR.test(attrs[1])
+}
+
+// Scope is declared on the <style> tag, so the selectors that used to smuggle
+// scope through the content are now errors. Messages mirror assertStyleScope()
+// in src/fez/compile.js.
+function validateStyleScope(style, filePath, isGlobal) {
+  const errors = []
+  const at = (re) => {
+    const idx = style.search(re)
+    return idx < 0 ? {} : { line: style.slice(0, idx).split('\n').length }
+  }
+  const add = (re, message) => {
+    if (re.test(style)) errors.push({ message, file: filePath, kind: 'Style', ...at(re) })
+  }
+
+  if (!isGlobal) {
+    add(/(?:^|\s)body\s*\{/, 'body { } in a scoped <style>. Move these rules to <style global>.')
+  } else {
+    add(/:global\(/, ':global() inside <style global>. These rules are already global - drop the wrapper.')
+  }
+  add(/:host\b/, ':host is not supported. <style> is already scoped - use `&` for the root node.')
+  add(/:fez\b/, ':fez is no longer an author-facing selector. <style> is already scoped - use `&` for the root node.')
+
+  return errors
+}
+
 // Validate <style> block - balanced braces/parens, terminated strings/comments.
 // Catches the silent-failure class of bug where one bad token breaks all
-// downstream rules in the goober blob (every component shares one stylesheet).
-function validateStyle(style, filePath) {
+// downstream rules (every component shares one stylesheet).
+function validateStyle(style, filePath, isGlobal = false) {
   const errors = []
   if (!style || !style.trim()) return errors
+
+  errors.push(...validateStyleScope(style, filePath, isGlobal))
 
   let braces = 0
   let parens = 0
@@ -413,15 +453,19 @@ function generateCompiledJS(parsed, componentName) {
     klass = `class {\n${klass}\n}`
   }
 
-  // Add CSS if present
-  if (parsed.style && parsed.style.includes(':')) {
-    // Accept :host as alias for :fez (Shadow-DOM convention LLMs often emit)
-    let style = parsed.style.replace(/:host\b/g, ':fez')
-    // Wrap in :fez if not already scoped
-    if (!style.includes(':fez') && !/(?:^|\s)body\s*\{/.test(style)) {
-      style = `:fez {\n${style}\n}`
-    }
-    klass = klass.replace(/\}\s*$/, `\n  CSS = \`${style}\`\n}`)
+  // Add CSS if present. Scope comes from the tag, never from the content:
+  // <style> is always wrapped, <style global> is always passed through.
+  // :fez is only the marker the runtime rewrites to .fez.fez-<name>.
+  // :global(...) rules ride the global channel out of the scoped block
+  const { scoped, global: hoisted } = hoistGlobals(parsed.style)
+  const globalCss = [parsed.styleGlobal, hoisted].filter(Boolean).join('\n')
+
+  if (scoped && scoped.includes(':')) {
+    klass = klass.replace(/\}\s*$/, `\n  CSS = \`:fez {\n${scoped}\n}\`\n}`)
+  }
+
+  if (globalCss && globalCss.includes(':')) {
+    klass = klass.replace(/\}\s*$/, `\n  CSS_GLOBAL = \`${globalCss}\`\n}`)
   }
 
   // Add HTML if present
@@ -494,6 +538,7 @@ async function compileFile(filePath, options = {}) {
 
   // Validate style
   errors.push(...validateStyle(parsed.style, filePath))
+  errors.push(...validateStyle(parsed.styleGlobal, filePath, true))
 
   // Validate template
   errors.push(...validateTemplate(parsed.html, filePath))

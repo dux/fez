@@ -23,10 +23,8 @@
 </script>
 
 <style>
-  :fez {
-    padding: 10px;
-    border: 1px solid #ccc;
-  }
+  padding: 10px;
+  border: 1px solid #ccc;
 </style>
 
 <div>{state.message}</div>

@@ -1,6 +1,0 @@
-<style>
-  :host { color: red; }
-  :host button { color: blue; }
-</style>
-
-<button>hi</button>

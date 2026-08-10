@@ -46,91 +46,89 @@
 </script>
 
 <style>
-  :fez {
-    .toggle-container {
-      display: inline-flex;
-      align-items: center;
-      position: relative;
-      cursor: pointer;
-    }
+  .toggle-container {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+  }
 
-    .toggle-container.disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
+  .toggle-container.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
-    .toggle-track {
-      width: 50px;
-      height: 26px;
-      background: #ccc;
-      border-radius: 26px;
-      transition: background 0.2s ease;
-      position: relative;
-    }
+  .toggle-track {
+    width: 50px;
+    height: 26px;
+    background: #ccc;
+    border-radius: 26px;
+    transition: background 0.2s ease;
+    position: relative;
+  }
 
-    .toggle-track.checked {
+  .toggle-track.checked {
+    background: #2196f3;
+  }
+
+  .toggle-circle {
+    width: 22px;
+    height: 22px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+
+  .toggle-circle.checked {
+    transform: translateX(24px);
+  }
+
+  .hidden-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .toggle-label {
+    display: inline-block;
+    margin-left: 10px;
+    vertical-align: middle;
+    color: #333;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+    user-select: none;
+  }
+
+  /* Classic checkbox styles */
+  .classic-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    background: white;
+    position: relative;
+    transition: all 0.2s ease;
+
+    &.checked {
       background: #2196f3;
+      border-color: #2196f3;
     }
 
-    .toggle-circle {
-      width: 22px;
-      height: 22px;
-      background: white;
-      border-radius: 50%;
+    &.checked::after {
+      content: '';
       position: absolute;
+      left: 6px;
       top: 2px;
-      left: 2px;
-      transition: transform 0.2s ease;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-
-    .toggle-circle.checked {
-      transform: translateX(24px);
-    }
-
-    .hidden-input {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .toggle-label {
-      display: inline-block;
-      margin-left: 10px;
-      vertical-align: middle;
-      color: #333;
-      font-size: 14px;
-      font-weight: 400;
-      line-height: 1.5;
-      user-select: none;
-    }
-
-    /* Classic checkbox styles */
-    .classic-checkbox {
-      width: 20px;
-      height: 20px;
-      border: 2px solid #ccc;
-      border-radius: 4px;
-      background: white;
-      position: relative;
-      transition: all 0.2s ease;
-
-      &.checked {
-        background: #2196f3;
-        border-color: #2196f3;
-      }
-
-      &.checked::after {
-        content: '';
-        position: absolute;
-        left: 6px;
-        top: 2px;
-        width: 5px;
-        height: 10px;
-        border: solid white;
-        border-width: 0 2px 2px 0;
-        transform: rotate(45deg);
-      }
+      width: 5px;
+      height: 10px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
     }
   }
 </style>

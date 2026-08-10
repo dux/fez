@@ -68,26 +68,59 @@ describe("fez compile", () => {
       expect(stdout).toContain("<div>Body</div>");
     });
 
-    test("normalizes :host to :fez in style block", async () => {
+    test("wraps a plain <style> block in :fez", async () => {
       const result =
-        await $`bin/fez-compile -o test/fixtures/valid/test-style-host-alias.fez`
+        await $`bin/fez-compile -o test/fixtures/valid/test-basic.fez`
           .quiet()
           .nothrow();
       const stdout = result.stdout.toString();
       expect(result.exitCode).toBe(0);
-      expect(stdout).toContain(":fez");
-      expect(stdout).not.toContain(":host");
+      expect(stdout).toContain("CSS = `:fez {");
+      expect(stdout).not.toContain("CSS_GLOBAL");
     });
 
-    test("normalizes multiple :host occurrences", async () => {
+    test("emits <style global> verbatim as CSS_GLOBAL", async () => {
       const result =
-        await $`bin/fez-compile -o test/fixtures/valid/test-style-host-mixed.fez`
+        await $`bin/fez-compile -o test/fixtures/valid/test-style-global.fez`
           .quiet()
           .nothrow();
       const stdout = result.stdout.toString();
       expect(result.exitCode).toBe(0);
-      expect(stdout).not.toContain(":host");
-      expect((stdout.match(/:fez/g) || []).length).toBeGreaterThanOrEqual(2);
+      expect(stdout).toContain("CSS_GLOBAL = `.app-card {");
+      // the global block must not pick up the component wrapper
+      expect(stdout.split("CSS_GLOBAL")[1]).not.toContain(":fez");
+    });
+
+    test("hoists :global(...) out of a scoped block", async () => {
+      const result =
+        await $`bin/fez-compile -o test/fixtures/valid/test-style-global-fn.fez`
+          .quiet()
+          .nothrow();
+      const stdout = result.stdout.toString();
+      expect(result.exitCode).toBe(0);
+
+      const [scoped, global] = stdout.split("CSS_GLOBAL");
+      // scoped keeps its own rules and loses the hoisted ones
+      expect(scoped).toContain(".card { color: red; }");
+      expect(scoped).not.toContain("third-party-widget");
+      // hoisted rules lose the wrapper but keep their nesting
+      expect(global).toContain(".third-party-widget {");
+      expect(global).toContain(".inner { color: blue; }");
+      expect(global).toContain(".one-liner { margin: 0; }");
+      expect(stdout).not.toContain(":global(");
+    });
+
+    test("keeps scoped and global blocks in the same file", async () => {
+      const result =
+        await $`bin/fez-compile -o test/fixtures/valid/test-style-global.fez`
+          .quiet()
+          .nothrow();
+      const stdout = result.stdout.toString();
+      expect(result.exitCode).toBe(0);
+      expect(stdout).toContain("CSS = `:fez {");
+      expect(stdout).toContain("background: gold;");
+      expect(stdout).toContain("CSS_GLOBAL = `");
+      expect(stdout).toContain("border: 1px solid #ddd;");
     });
   });
 
@@ -131,6 +164,36 @@ describe("fez compile", () => {
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain("Unterminated");
       expect(result.stderr).toContain("comment");
+    });
+
+    test("rejects body { } in a scoped <style>", async () => {
+      const result = await compile(
+        "test/fixtures/invalid/test-style-body-scoped.fez",
+      );
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("<style global>");
+    });
+
+    test("rejects :host", async () => {
+      const result = await compile("test/fixtures/invalid/test-style-host.fez");
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain(":host is not supported");
+    });
+
+    test("rejects :global() inside <style global>", async () => {
+      const result = await compile(
+        "test/fixtures/invalid/test-style-global-in-global.fez",
+      );
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("already global");
+    });
+
+    test("rejects an author-written :fez selector", async () => {
+      const result = await compile(
+        "test/fixtures/invalid/test-style-fez-selector.fez",
+      );
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("no longer an author-facing selector");
     });
   });
 

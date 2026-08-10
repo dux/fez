@@ -17,7 +17,7 @@
 // IMPORTS
 // =============================================================================
 
-import Gobber from './vendor/gobber.js';
+import { injectCss, extractCss, cssHash } from './utils/css_inject.js';
 import attachMorph from './lib/fez-morph.js';
 import objectDump from './utils/dump.js';
 import highlightAll from './utils/highlight_all.js';
@@ -167,24 +167,21 @@ Fez.find = (onode, name) => {
 // =============================================================================
 
 /**
- * Generate unique CSS class from CSS text (via Goober)
- * @param {string} text - CSS rules
+ * Wrap CSS rules in a generated class and inject them
+ * @param {string} text - CSS rules (nesting is resolved by the browser)
  * @returns {string} Generated class name
  */
 Fez.cssClass = (text) => {
-  // In test environments without proper DOM, goober may fail
-  // Return a placeholder class name based on hash
-  try {
-    return Gobber.css(text);
-  } catch {
-    // Fallback: generate simple hash-based class name
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
-    }
-    return 'fez-' + Math.abs(hash).toString(36);
-  }
+  const name = cssHash(text);
+  injectCss(`.${name} { ${text} }`);
+  return name;
 };
+
+/**
+ * All CSS injected so far, in injection order
+ * @returns {string}
+ */
+Fez.extractCss = extractCss;
 
 /**
  * Register global CSS styles
@@ -195,19 +192,22 @@ Fez.cssClass = (text) => {
 Fez.globalCss = (cssClass, opts = {}) => {
   if (typeof cssClass === 'function') cssClass = cssClass();
 
-  if (cssClass.includes(':')) {
-    let text = cssClass
-      .split('\n')
-      .filter((line) => !/^\s*\/\//.test(line))
-      .join('\n');
+  let text = cssClass
+    .split('\n')
+    .filter((line) => !/^\s*\/\//.test(line))
+    .join('\n');
 
-    if (opts.wrap) text = `:fez { ${text} }`;
-    text = text.replace(/\:fez|\:host/, `.fez.fez-${opts.name}`);
-    cssClass = Fez.cssClass(text);
-  }
+  if (opts.wrap) text = `:fez { ${text} }`;
 
-  Fez.onReady(() => document.body.parentElement.classList.add(cssClass));
-  return cssClass;
+  // Expand style macros here rather than at compile time - user mixins are
+  // registered at runtime, so a build-time pass could never see them.
+  text = Fez.cssMixin(text);
+
+  // /g matters: a block with more than one :fez rule used to keep every
+  // occurrence past the first as a literal (invalid) pseudo-class.
+  if (opts.name) text = text.replace(/:fez\b/g, `.fez.fez-${opts.name}`);
+
+  return injectCss(text);
 };
 
 // =============================================================================

@@ -121,59 +121,57 @@
 </script>
 
 <style>
-  :fez {
-    .button-nav {
-      display: inline-flex;
-      position: relative;
-      background: #e2e8f0;
-      border-radius: 12px;
-      padding: 4px;
+  .button-nav {
+    display: inline-flex;
+    position: relative;
+    background: #e2e8f0;
+    border-radius: 12px;
+    padding: 4px;
 
-      .nav-mask {
-        position: absolute;
-        left: var(--mask-left, 0);
-        top: var(--mask-top, 6px);
-        width: var(--mask-width, 0);
-        height: var(--mask-height, 0);
-        opacity: var(--mask-opacity, 0);
-        background: #ffffff;
-        border-radius: 8px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 1;
+    .nav-mask {
+      position: absolute;
+      left: var(--mask-left, 0);
+      top: var(--mask-top, 6px);
+      width: var(--mask-width, 0);
+      height: var(--mask-height, 0);
+      opacity: var(--mask-opacity, 0);
+      background: #ffffff;
+      border-radius: 8px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1;
+    }
+
+    .nav-button {
+      position: relative;
+      z-index: 2;
+      padding: 2px 18px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-weight: 500;
+      font-size: 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: color 0.2s ease;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      min-height: 40px;
+
+      &:hover {
+        color: #475569;
       }
 
-      .nav-button {
-        position: relative;
-        z-index: 2;
-        padding: 2px 18px;
-        border: none;
-        background: transparent;
-        color: #64748b;
-        font-weight: 500;
-        font-size: 15px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: color 0.2s ease;
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        white-space: nowrap;
-        min-height: 40px;
+      &.active {
+        color: #1e293b;
+      }
 
-        &:hover {
-          color: #475569;
-        }
-
-        &.active {
-          color: #1e293b;
-        }
-
-        &.disabled {
-          color: #999;
-          cursor: not-allowed;
-          pointer-events: none;
-          opacity: 0.6;
-        }
+      &.disabled {
+        color: #999;
+        cursor: not-allowed;
+        pointer-events: none;
+        opacity: 0.6;
       }
     }
   }

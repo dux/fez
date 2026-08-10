@@ -2,7 +2,7 @@
   <ul>
     <li>Digital time display with timezone support</li>
     <li>Pure Fez, no external dependencies</li>
-    <li>Demonstrates slots and scoped CSS with <code>:fez</code> selector</li>
+    <li>Demonstrates slots, scoped <code>&lt;style&gt;</code> and <code>&lt;style global&gt;</code></li>
   </ul>
 </info>
 
@@ -55,20 +55,22 @@
   }
 </script>
 
+<style global>
+  /* document-wide, emitted verbatim */
+  body {
+    background-color: #f7f7f7;
+  }
+</style>
+
 <style>
-  /* styles are applied to body, so this becomes body background color */
-  background-color: #f7f7f7;
+  /* scoped to the mounted component root */
+  border: 10px solid green;
+  border-radius: 10px;
+  padding: 10px;
+  background-color: #fff;
 
-  /* local component style applied to mounted component root */
-  :fez {
-    border: 10px solid green;
-    border-radius: 10px;
-    padding: 10px;
-    background-color: #fff;
-
-    button {
-      font-size: 16px;
-    }
+  button {
+    font-size: 16px;
   }
 </style>
 

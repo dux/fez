@@ -45,7 +45,7 @@ fez template --debug path/to/component.fez
 1. **ALWAYS** use Fez-specific Svelte-like syntax (NO React/Vue conventions)
 2. **ALWAYS** use 2-space indentation inside template blocks (`{#if}`, `{#each}`, `{#for}`, `{#await}`, etc.) - content inside blocks must be indented by 2 spaces relative to the block tag
 3. **NEVER** use hooks - `this.state` replaces useState/useEffect
-4. `<style>` content is locally scoped by default: when the block contains no top-level `:fez` or `body` rule, the compiler wraps the **whole style block** in `:fez { ... }`. `:fez` represents the generated outer wrapper node with the `fez` class, not the first template child. If the first element is `<nav>` and it needs `display: flex`, write `nav { display: flex; }`, not root-level `display: flex`. For global styles use `body { ... }`. **IMPORTANT:** if `:fez { }` or `body { }` appears anywhere in the style block, auto-scoping is disabled for the entire block - you MUST wrap local styles in `:fez { ... }` explicitly. *Note:* `:host { ... }` is accepted as an alias for `:fez { ... }` (auto-normalized at compile time). Prefer `:fez` in new code.
+4. **Style scope is declared on the tag, never inferred from the CSS.** `<style>` is component-scoped - the compiler wraps the **whole block**, always, no exceptions. `<style global>` is emitted verbatim, document-wide. A file may contain both. Inside `<style>`, root-level declarations style the generated outer wrapper node (the one with the `fez` class), *not* the first template child - so if the first element is `<nav>` and it needs `display: flex`, write `nav { display: flex; }`. Address the wrapper itself with `&` (`&:hover`, `& > div`). For a one-off rule that must escape the component, wrap its selector in `:global(...)` and it is hoisted to the global channel. `:fez` and `:host` are **not** valid in source and are compile errors.
 5. **ALWAYS** initialize state in `init()`, put reactive/derived state in `beforeRender()`
 6. **ALWAYS** use kebab-case component names (e.g., `user-profile`)
 7. **NEVER** use `{#if}` blocks inside HTML attributes - use ternary operators `{condition ? 'value' : ''}` instead
@@ -138,10 +138,15 @@ The `<script>` block has two zones:
 </script>
 
 <style>
-  /* All styles are locally scoped to the component */
-  /* Bare declarations are wrapped around the whole block as :fez { ... } */
-  /* :fez is the generated outer wrapper node, not the first template child */
+  /* The whole block is scoped to the component - always */
+  /* Root-level declarations style the generated wrapper node, */
+  /* not the first template child */
   padding: 20px;
+
+  /* Use & to address the wrapper itself */
+  &:hover {
+    background: #fafafa;
+  }
 
   /* Style the actual first template child when it needs layout */
   nav {
@@ -164,17 +169,27 @@ The `<script>` block has two zones:
       background: orange;
     }
   }
+
+  /* single rule that must escape the component - hoisted to the global
+     channel with the wrapper stripped. Use <style global> for more than
+     a rule or two. */
+  :global(.third-party-widget) {
+    z-index: 10;
+  }
 </style>
 
-<!-- Mixing local + global styles -->
-<style>
-  body {
-    .some-external-class { color: blue; }
+<!-- Global styles: emitted verbatim, no scoping. -->
+<!-- Use for rules that must escape the component: third-party widgets -->
+<!-- mounted on document.body, :root variables, @font-face, app-wide classes. -->
+<style global>
+  :root {
+    --brand: #c60;
+  }
 
-    :fez {
-      .card { border: 1px solid #ddd; }
-      button { background: gold; }
-    }
+  .some-external-class { color: blue; }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 </style>
 
@@ -763,7 +778,7 @@ Use `<slot unwrap />` when children must be inserted without a wrapper div. By d
 
 - **Putting `META` or other class properties outside `class {}`** - they MUST be inside the class body. Module-level code (imports, `Fez.head()`) goes before the class, everything else goes inside it.
 - Using React hooks (useState, useEffect)
-- **Misunderstanding style scoping and the `:fez` wrapper** - if a `<style>` block has no top-level `:fez` or `body` rule, the compiler auto-wraps the whole block in `:fez { ... }`. `:fez` is the generated outer wrapper node with the `fez` class, not the first template child. Root-level declarations style that wrapper; styles for the first child must target that child selector. If your `<style>` has a `:fez { }` or `body { }` block, the compiler disables auto-scoping for the entire block, so all other styles leak globally unless you wrap local styles in `:fez { ... }`:
+- **Confusing the wrapper with the first template child** - root-level declarations in a `<style>` block style the generated outer wrapper node, not the first element of your template:
   ```html
   <style>
     /* WRONG - this styles the generated wrapper, not a first-child <nav> */
@@ -772,19 +787,19 @@ Use `<slot unwrap />` when children must be inserted without a wrapper div. By d
     /* CORRECT - style the actual first template child */
     nav { display: flex; }
   </style>
-
+  ```
+- **Reaching for `:fez`, `:host`, or `body { }` to control scope** - none of them work any more; all three are compile errors in a `<style>` block. Scope is the tag: `<style>` scopes, `<style global>` does not. Use `&` for the wrapper node:
+  ```html
   <style>
-    /* WRONG - .card leaks globally because body {} disables auto-scoping */
+    &:hover { background: #fafafa; }
     .card { padding: 10px; }
-    body { .global-thing { color: red; } }
+  </style>
 
-    /* CORRECT - wrap local styles in :fez */
-    :fez { .card { padding: 10px; } }
-    body { .global-thing { color: red; } }
+  <style global>
+    .global-thing { color: red; }
   </style>
   ```
-  Note: `:fez { }` is NOT needed if the style block has no top-level `:fez` or `body` rule - the compiler auto-scopes everything by wrapping the whole block.
-  Note: `:host { ... }` is auto-normalized to `:fez { ... }` at compile time, but `:fez` is canonical. Don't mix the two in one block.
+  A `<style global>` block is injected verbatim and deduped, so it lands once no matter how many instances mount. `:root { }`, `html { }`, `@font-face` and `@keyframes` all work normally in one. Don't wrap its rules in `:global(...)` - they are already global, and doing so is a compile error.
 - **Putting computed/derived state in `init()` instead of `beforeRender()`** - derived values that depend on state should go in `beforeRender()` so they update on every re-render (like Svelte's `$:`)
 - Using string interpolation in onclick instead of arrow functions
 - Direct DOM manipulation for simple reactive UI (use state instead) - BUT use direct DOM for external libraries (Three.js, charts, etc.) since DOM diffing doesn't handle them well

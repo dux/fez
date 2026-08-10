@@ -12,9 +12,7 @@
 </script>
 
 <style>
-  :fez {
-    padding: 10px;
-  }
+  padding: 10px;
 </style>
 
 <div>{state.message}</div>

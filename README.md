@@ -8,7 +8,7 @@ FEZ is a small library (49KB minified, ~18KB gzipped) that allows writing of [Cu
 
 It uses
 
-- [Goober](https://goober.js.org/) to enable runtime SCSS (similar to styled components)
+- Native CSS nesting to enable SCSS-style component styles with no build step and no CSS dependency
 - Custom component-aware DOM differ to morph DOM from one state to another (as React or Stimulus/Turbo does it), with hash-based render skipping for zero-cost no-op renders
 
 It uses minimal abstraction. You will learn to use it in 15 minutes, just look at examples, it includes all you need to know.
@@ -519,8 +519,8 @@ Here's a simple counter component that demonstrates Fez's core features:
 </script>
 
 <style>
-  /* All styles are locally scoped to the component */
-  /* Root-level styles apply to the component root node */
+  /* The whole block is scoped to the component */
+  /* Root-level declarations apply to the component root node */
   zoom: 2;
   margin: 10px 0;
 
@@ -563,7 +563,7 @@ This example showcases:
 - **Template syntax**: `{ }` for expressions, `{#if}`, `{#each}` for control flow
 - **Arrow function handlers**: `onclick={() => method()}` for clean event binding
 - **Conditional rendering**: `{#if}`, `{:else}` blocks for dynamic UI
-- **Scoped styling**: All styles locally scoped to the component, root-level styles apply to root node
+- **Scoped styling**: `<style>` is scoped to the component (root-level declarations apply to the root node), `<style global>` is document-wide
 - **Component lifecycle**: `init()` method called when component mounts
 
 ## What can it do and why is it great?
@@ -575,7 +575,7 @@ This example showcases:
 - **Semantic HTML Output** - Transforms custom elements to standard HTML nodes (e.g., `<ui-button>` → `<button class="fez fez-button">`), making components fully stylable with CSS
 - **Single-File Components** - Define CSS, HTML, and JavaScript in one file, no build step required
 - **No Framework Magic** - Plain vanilla JS classes with clear, documented methods. No hooks, runes, or complex abstractions
-- **Runtime SCSS** - Style components using SCSS syntax via [Goober](https://goober.js.org/), compiled at runtime
+- **SCSS-style Nesting, No Dependency** - Write nested rules and `&` as you would in SCSS; the browser resolves them via native CSS nesting. Fez adds the component scope and injects everything into one `<style id="fez-css">`
 - **Smart Memory Management** - MutationObserver automatically cleans up disconnected components and their resources (intervals, event listeners, subscriptions)
 
 ### Advanced Templating & Styling
@@ -590,7 +590,7 @@ This example showcases:
 - **Auto-ID for Form Inputs** - Elements with `fez:this` automatically get stable IDs, helping the differ preserve input state across re-renders
 - **Import Maps** - Use `Fez.head({importmap: {...}})` to map bare import specifiers to full URLs, avoiding duplicate library instances
 - **Style Macros** - Define custom CSS shortcuts like `Fez.cssMixin('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }`
-- **Locally Scoped Styles** - All `<style>` content is locally scoped by default. **Important:** if `body { }` appears in the style block, auto-scoping is disabled for the entire block - wrap local styles in `:fez { ... }` explicitly
+- **Scoped Styles** - `<style>` is always scoped to the component, `<style global>` is always document-wide. Scope is declared on the tag, never inferred from the CSS. `:global(...)` hoists a single rule out of a scoped block (using it inside `<style global>` is a compile error - those rules are already global)
 
 ### Developer Experience
 
@@ -810,11 +810,11 @@ Fez.domRoot(htmlData || htmlNode)
 // activates node by adding class to node, and removing it from siblings
 Fez.activateNode(node, className = 'active')
 
-// get generated css class name, from scss source string
-Fez.css(text)
-
-// get generated css class name without global attachment
+// wrap rules in a generated class, inject them, return the class name
 Fez.cssClass(text)
+
+// everything Fez has injected so far, in order (SSR, debugging)
+Fez.extractCss()
 
 // display information about registered components in console
 Fez.info()
@@ -1007,25 +1007,18 @@ All parts are optional
   </script>
 
   <style>
-    /* All styles auto-scoped when no body {} is present */
+    /* Always scoped to the component. & is the component root node. */
     color: red;
     padding: 10px;
+    &:hover { color: darkred; }
     .child { font-weight: bold; }
+    /* single escape hatch - hoisted out, wrapper stripped */
+    :global(.third-party-widget) { z-index: 10; }
   </style>
 
-  <!-- When mixing local + global styles: -->
-  <style>
-    /* Local styles MUST use :fez wrapper when body {} is present */
-    :fez {
-      color: red;
-      padding: 10px;
-      .child { font-weight: bold; }
-    }
-    /* Global styles */
-    body {
-      .some-global-class { color: blue; }
-      :fez { border: 1px solid red; }
-    }
+  <style global>
+    /* Always document-wide, emitted verbatim */
+    .some-global-class { color: blue; }
   </style>
 
   <div> ... <!-- any other html after head, script or style is considered template-->

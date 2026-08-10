@@ -1,0 +1,15 @@
+<style>
+  padding: 10px;
+
+  button {
+    background: gold;
+  }
+</style>
+
+<style global>
+  .app-card {
+    border: 1px solid #ddd;
+  }
+</style>
+
+<button>hi</button>

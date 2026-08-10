@@ -84,9 +84,15 @@ export default function connect(name, klass) {
     klass.fezHtmlFunc = createTemplate(klass.html, { name });
   }
 
-  // Register CSS
+  // Register CSS. Scoped block gets the component name so :fez resolves;
+  // the global block is injected verbatim. Injection dedupes on the text, so
+  // these stay the source CSS and re-registering is a no-op.
   if (klass.css) {
-    klass.css = Fez.globalCss(klass.css, { name });
+    Fez.globalCss(klass.css, { name });
+  }
+
+  if (klass.cssGlobal) {
+    Fez.globalCss(klass.cssGlobal);
   }
 
   // Store class in index
@@ -151,6 +157,13 @@ function ensureFezBase(Fez, name, klass) {
   if (instance.CSS) {
     newKlass.css =
       typeof instance.CSS === "function" ? instance.CSS() : instance.CSS;
+  }
+
+  if (instance.CSS_GLOBAL) {
+    newKlass.cssGlobal =
+      typeof instance.CSS_GLOBAL === "function"
+        ? instance.CSS_GLOBAL()
+        : instance.CSS_GLOBAL;
   }
 
   // Handle HTML (can be string or function)

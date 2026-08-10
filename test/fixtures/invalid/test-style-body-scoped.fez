@@ -1,0 +1,7 @@
+<style>
+  body {
+    .card { color: red; }
+  }
+</style>
+
+<button>hi</button>

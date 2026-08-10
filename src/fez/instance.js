@@ -527,11 +527,15 @@ export default class FezBase {
    */
   fezRegister() {
     if (this.css) {
-      this.css = Fez.globalCss(this.css, { name: this.fezName, wrap: true });
+      Fez.globalCss(this.css, { name: this.fezName, wrap: true });
     }
 
     if (this.class.css) {
-      this.class.css = Fez.globalCss(this.class.css, { name: this.fezName });
+      Fez.globalCss(this.class.css, { name: this.fezName });
+    }
+
+    if (this.class.cssGlobal) {
+      Fez.globalCss(this.class.cssGlobal);
     }
 
     if (this.class.fezSlotUnwrap) {

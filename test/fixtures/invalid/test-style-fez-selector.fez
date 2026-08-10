@@ -1,0 +1,7 @@
+<style>
+  :fez {
+    padding: 10px;
+  }
+</style>
+
+<button>hi</button>

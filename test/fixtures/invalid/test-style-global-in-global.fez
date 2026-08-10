@@ -1,0 +1,5 @@
+<style global>
+  :global(.already-global) { color: red; }
+</style>
+
+<button>hi</button>

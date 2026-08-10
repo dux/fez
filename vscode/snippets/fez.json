@@ -57,6 +57,24 @@
     ],
     "description": "Full Fez component with info, demo, lifecycle"
   },
+  "Fez Scoped Style Block": {
+    "prefix": "fez-style",
+    "body": [
+      "<style>",
+      "  $1",
+      "</style>"
+    ],
+    "description": "Component-scoped style block"
+  },
+  "Fez Global Style Block": {
+    "prefix": "fez-style-global",
+    "body": [
+      "<style global>",
+      "  $1",
+      "</style>"
+    ],
+    "description": "Document-global style block, emitted verbatim"
+  },
   "Fez Class Block": {
     "prefix": "fez-class",
     "body": [

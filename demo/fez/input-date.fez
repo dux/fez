@@ -127,31 +127,32 @@
 </script>
 
 <style>
-  :fez {
-    display: inline-block;
+  display: inline-block;
 
-    .date-picker-wrapper {
-      position: relative;
-    }
-
-    input[data-input] {
-      position: absolute;
-      opacity: 0;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0,0,0,0);
-      white-space: nowrap;
-      border: 0;
-    }
-
-    span.close {
-      margin-left: 5px;
-    }
+  .date-picker-wrapper {
+    position: relative;
   }
 
+  input[data-input] {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  span.close {
+    margin-left: 5px;
+  }
+</style>
+
+<!-- flatpickr appends its calendar to document.body, outside the component -->
+<style global>
   .flatpickr-calendar {
     &.arrowTop {
       margin-top: 40px !important;
