@@ -1159,6 +1159,68 @@ Fez.onError = (kind, error) => {
 };
 ```
 
+## Pjax Navigation
+
+Fez bundles Pjax (PushState + AJAX) navigation, formerly the standalone `dux-pjax` package.
+Pjax renders a server HTML response into the current page instead of performing a hard navigation: browser history is preserved, assets are not re-parsed, and page swaps go through `Fez.nodeMorph`, so fez components on the page survive navigation (see "Component Identity" above).
+
+The API lives on `window.Pjax`; apps migrating from `dux-pjax` can drop the package and keep their code unchanged.
+
+### Boot gating
+
+`window.Pjax` is always available, but the navigation handlers (link hijacking, popstate, `data-pjax` forms) bind only when the initial page contains a pjax container - a `<pjax>` tag or an element with the `pjax` class, carrying an `id`:
+
+```html
+<main id="pjax" class="pjax">
+  ... server rendered content swapped on navigation ...
+</main>
+```
+
+Pages without a container keep native browser navigation.
+If your app injects the container after DOMContentLoaded, call `Pjax.start()` manually.
+If the standalone `dux-pjax` package is still loaded, fez leaves its `window.Pjax` alone and binds nothing - remove the package when upgrading, or you get no fez integration.
+
+### Navigation API
+
+```js
+Pjax.load('/users')          // navigate, swap the pjax container, push history
+Pjax.refresh()               // re-fetch the current page in place (no scroll)
+Pjax.refresh('#sidebar')     // re-fetch and swap only #sidebar (no history entry)
+Pjax.reload()                // re-fetch bypassing cache
+Pjax.qs('page', '2')         // update a query param and navigate
+Pjax.path()                  // current pathname + search
+```
+
+### Link and form attributes
+
+```html
+<a href="/users">                                <!-- hijacked automatically -->
+<a href="/users" class="no-pjax">                <!-- opt out, native navigation (also: direct) -->
+<a href="/users" pjax-target="#panel">           <!-- swap only #panel -->
+<button pjax-refresh="#panel">                   <!-- re-fetch current page into #panel -->
+<a href="/del" pjax-confirm="Are you sure?">     <!-- confirm before navigating -->
+<a href="/tab2" pjax-replace>                    <!-- replaceState instead of pushState -->
+<form data-pjax="true">                          <!-- GET submit via pjax, full swap -->
+<form data-pjax="#panel">                        <!-- GET submit via pjax into #panel -->
+```
+
+Override `Pjax.confirm = (message, node) => ...` to use a custom dialog; returning a Promise defers navigation until it resolves.
+
+### Events and hooks
+
+```js
+document.addEventListener('pjax:start', e => ...)   // navigation started (cancelable)
+document.addEventListener('pjax:render', e => ...)  // new content rendered; detail: from, to, status, error, duration, mode
+
+Pjax.before = (href, opts) => true   // return false to cancel a navigation
+Pjax.after  = (href) => ...          // after a full page swap
+```
+
+Inside a fez component, `this.on('pjax:render', () => this.refresh())` is the usual pattern for data that must follow navigation.
+
+Inline `<script>` tags in the response run after history is committed but before the new HTML is morphed in; tag a script with `pjax-delay` to defer it until after the swap.
+Configuration lives on `Pjax.config` (skip paths, no-scroll selectors, timeout, history cache size - see `src/fez/pjax/pjax.js`).
+
 ## Default Components
 
 Fez includes several built-in components available when you include `defaults.js`:

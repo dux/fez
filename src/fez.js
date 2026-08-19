@@ -13,6 +13,7 @@
 
 import FezBase from './fez/instance.js'
 import Fez from './fez/root.js'
+import bootPjax from './fez/pjax/boot.js'
 
 // Expose to window. Rollup inlines the fez dist IIFE into every app bundle that
 // contains a .fez component, so this module can run several times on one page.
@@ -27,6 +28,10 @@ if (fezPrimary) {
 
   // Load default components
   import('./fez/defaults.js')
+
+  // Pjax navigation - exposes window.Pjax, binds handlers only when the page
+  // has a pjax container (see fez/pjax/boot.js)
+  bootPjax()
 }
 
 // =============================================================================
