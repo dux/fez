@@ -6,6 +6,17 @@
 - use bun, not npm
 - ignore ./dist folder, all code is in ./src and demo is in ./demo
 
+## Bundled Pjax navigation (since 0.6.0)
+
+Fez ships the former `dux-pjax` package (ported to JS) in `src/fez/pjax/` and exposes it as `window.Pjax`.
+
+- `pjax.js` - the Pjax class (created per `createPjax()` call so tests get fresh static state); `onclick.js` - link click delegate; `boot.js` - boot, called from `src/fez.js` behind the `fezPrimary` guard.
+- Boot gating: `window.Pjax` is always set, but handlers (link hijack, popstate, `data-pjax` forms) bind only when the page has a `<pjax>` tag or `.pjax` class container; `Pjax.start()` for late-injected containers. If another lib already set `window.Pjax`, fez backs off.
+- `morphInto` converts HTML strings to a DocumentFragment before `Fez.nodeMorph` - never hand it raw strings; nodeMorph's "unwrap single matching-tag root" heuristic would swallow a legitimate lone wrapper child.
+- Components follow navigation via `this.on('pjax:render', () => this.refresh())`.
+- Tests: `test/pjax-core.test.js`, `test/pjax-onclick.test.js`, `test/pjax-events.test.js` (shared env in `test/pjax-env.js`). Types in `fez.d.ts` (`PjaxStatic`).
+- The old `~/dev/gems/dux-pjax` repo is deprecated reference only - changes happen here.
+
 ---
 
 # Fez JS lib Quick Reference for AI Assistants (files ending in .fez or .html.fez)

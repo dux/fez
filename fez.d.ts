@@ -516,6 +516,139 @@ interface FezStatic {
 }
 
 // =============================================================================
+// PJAX NAVIGATION (bundled since 0.6.0)
+// =============================================================================
+
+/** Options accepted by Pjax.load / refresh / reload */
+interface PjaxLoadOptions {
+  /** Target path (alias: href) */
+  path?: string;
+  href?: string;
+  /** Swap only this node (selector or element with an id) instead of the pjax container */
+  target?: string | Element;
+  /** Resolve the closest .ajax region of this node and swap only it */
+  ajax?: Element;
+  /** false skips history push and the pjax:render history href */
+  history?: boolean;
+  /** Use replaceState instead of pushState */
+  replace?: boolean;
+  /** Commit this path to history instead of the fetched one ('?q=1' is resolved against pathname) */
+  replacePath?: string;
+  /** false skips the smooth scroll-to-top after a swap */
+  scroll?: boolean;
+  /** false sends cache-control: no-cache */
+  cache?: boolean;
+  /** Bypass the 2s same-href debounce */
+  force?: boolean;
+  /** Serialize this form into the query string */
+  form?: HTMLFormElement;
+  /** Called after a successful swap */
+  done?: () => void;
+}
+
+interface PjaxConfig {
+  /** Suppress Pjax.console logging (defaults to true unless location.port >= 1000) */
+  is_silent: boolean;
+  /** Selectors that opt a trigger node out of scroll-to-top */
+  no_scroll_selector: string[];
+  /** Paths handled with a full browser navigation (string prefix, RegExp, or predicate) */
+  paths_to_skip: Array<string | RegExp | ((href: string) => boolean)>;
+  /** Class names that opt a link (or ancestor) out of pjax */
+  no_pjax_class: string[];
+  /** Class names that opt a node out of .ajax region resolution */
+  no_ajax_class: string[];
+  /** Selector for scoped ajax regions */
+  ajax_selector: string;
+  /** XHR timeout in ms */
+  timeout: number;
+  /** Max cached pages for back-button restores */
+  history_max: number;
+}
+
+/** detail of the pjax:render CustomEvent */
+interface PjaxRenderDetail {
+  from: string | null;
+  to: string;
+  status: number | null;
+  error: 'network' | 'abort' | 'timeout' | 'status' | 'apply' | null;
+  duration: number;
+  mode: 'full' | 'target' | 'ajax';
+  opts: PjaxLoadOptions;
+}
+
+/** detail of the pjax:start CustomEvent */
+interface PjaxStartDetail {
+  from: string | null;
+  to: string;
+  mode: 'full' | 'target' | 'ajax';
+  opts: PjaxLoadOptions;
+}
+
+/**
+ * PushState + AJAX navigation, exposed as window.Pjax.
+ * Handlers bind automatically when the page has a <pjax> or .pjax container;
+ * call Pjax.start() manually when the container is injected after load.
+ */
+interface PjaxStatic {
+  config: PjaxConfig;
+  /** Force Pjax.console logging regardless of config.is_silent */
+  DEV?: boolean;
+  /** Wrap full swaps in document.startViewTransition when available */
+  useViewTransition?: boolean;
+  /** Last href navigated to */
+  lastHref?: string;
+  /** Href navigated to before lastHref */
+  pastHref?: string;
+
+  /** Bind document/window handlers (idempotent; done automatically when a pjax container exists) */
+  start(): void;
+  /** Bind only the link click hijack (idempotent, called by start) */
+  onDocumentClick(): void;
+
+  /** Navigate and swap the pjax container */
+  load(href?: string | PjaxLoadOptions | (() => void), opts?: PjaxLoadOptions | string): false | void;
+  /** Re-fetch the current page in place; '#selector' refreshes only that node without history */
+  refresh(selectorOrPath?: string | (() => void), opts?: PjaxLoadOptions): false | void;
+  /** Re-fetch bypassing cache */
+  reload(opts?: PjaxLoadOptions): false | void;
+  /** true when the last navigation hit the same href twice */
+  refreshed(): boolean;
+
+  /** Current pathname + search */
+  path(): string;
+  /** Last navigated href, or current path */
+  last(): string;
+  /** The pjax container element (<pjax> tag or .pjax class) */
+  node(): Element | undefined;
+
+  /** Hook: return false to cancel a navigation */
+  before(href: string, opts: PjaxLoadOptions): boolean | void;
+  /** Hook: called after a full page swap */
+  after(href: string): void;
+  /** Hook: pjax-confirm dialogs; may return a Promise to defer the navigation */
+  confirm(message: string, node: Element): boolean | Promise<boolean>;
+  /** Log an error (override to route into app toasts) */
+  error(msg: string): void;
+  /** Log when not silenced (config.is_silent / DEV) */
+  console(msg: string): void;
+
+  /** history.pushState wrapper */
+  pushState(href: string): void;
+  /** Alias for pushState */
+  push(href: string): void;
+  /** history.replaceState wrapper */
+  replace(href: string): void;
+
+  /** Dispatch a cancelable pjax:<name> event; false when preventDefault was called */
+  emit(name: string, detail?: any): boolean;
+
+  /** Read a query-string param */
+  qs(key: string): string | undefined;
+  /** Set (or remove with null/false) a param, then navigate - or push / return the href */
+  qs(key: string, value: string | number | null | false, opts?: { push?: boolean; href?: boolean }): string | false | void;
+}
+
+// =============================================================================
 // GLOBAL DECLARATIONS
 // =============================================================================
 
@@ -526,9 +659,21 @@ declare global {
   /** FezBase class */
   const FezBase: typeof FezBase;
 
+  /** Bundled pjax navigation (fez 0.6.0+) */
+  const Pjax: PjaxStatic;
+
+  interface Window {
+    Pjax: PjaxStatic;
+  }
+
   interface HTMLElement {
     /** Fez instance attached to element */
     fez?: FezBase;
+  }
+
+  interface DocumentEventMap {
+    'pjax:start': CustomEvent<PjaxStartDetail>;
+    'pjax:render': CustomEvent<PjaxRenderDetail>;
   }
 }
 
