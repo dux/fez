@@ -63,6 +63,17 @@ const loadDefaults = () => {
         this.state.open = false;
         this.state.loaded = false;
         this.state.selectedName = "";
+        this.state.filter = "";
+        this.state.visible = [];
+      }
+
+      // list rendered by the panel - keeps the original index so data-index,
+      // the marker and activeIndex stay valid while filtered
+      beforeRender() {
+        const query = String(this.state.filter || "").trim().toLowerCase();
+        this.state.visible = (this.state.items || [])
+          .map((name, index) => ({ name, index }))
+          .filter(item => !query || item.name.toLowerCase().includes(query));
       }
 
       onMount() {
@@ -108,9 +119,47 @@ const loadDefaults = () => {
 
       toggle() {
         this.state.open = !this.state.open;
+        this.state.filter = "";
         if (this.state.open) {
-          this.setTimeout(() => this.sync(), 0);
+          this.setTimeout(() => {
+            this.sync();
+            this.find(".fez-demo-nav-filter")?.focus();
+          }, 0);
         }
+      }
+
+      onFilter(value) {
+        this.state.filter = value;
+        this.setTimeout(() => this.updateMarker(), 0);
+      }
+
+      onFilterKey(event) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          if (this.state.filter) {
+            this.clearFilter();
+          } else {
+            this.state.open = false;
+          }
+          return;
+        }
+
+        if (event.key === "Enter") {
+          event.preventDefault();
+          const first = this.state.visible[0];
+          if (first) this.scrollToComponent(first.name);
+        }
+      }
+
+      clearFilter() {
+        this.state.filter = "";
+        // morph skips value sync on the focused input, so clear it by hand
+        const input = this.find(".fez-demo-nav-filter");
+        if (input) {
+          input.value = "";
+          input.focus();
+        }
+        this.setTimeout(() => this.sync(), 0);
       }
 
       syncToHash() {
@@ -134,6 +183,10 @@ const loadDefaults = () => {
         const link = event.target?.closest?.(".fez-demo-nav-link");
         if (!link) return;
 
+        // scroll by hand instead of letting the href jump - the native hash
+        // scroll ignores the fixed control and would land on top of the title
+        event.preventDefault();
+
         const index = Number(link.dataset.index);
         if (Number.isFinite(index)) {
           this.state.activeIndex = index;
@@ -141,6 +194,7 @@ const loadDefaults = () => {
           this.setTimeout(() => this.scrollToComponent(this.state.items[index]), 0);
         }
         this.state.open = false;
+        this.state.filter = "";
         this.setTimeout(() => this.sync(), 0);
       }
 
@@ -160,13 +214,23 @@ const loadDefaults = () => {
         }
       }
 
+      // clearance the fixed control needs so the section title stays visible
+      scrollOffset() {
+        const control = this.find(".fez-demo-nav-control");
+        const bottom = control?.getBoundingClientRect
+          ? control.getBoundingClientRect().bottom
+          : 56;
+        return Math.round(bottom) + 16;
+      }
+
       scrollToComponent(name) {
         const target = document.getElementById(this.sectionId(name));
         if (!target) return;
 
-        target.scrollIntoView({ behavior: "auto", block: "start" });
-        window.scrollBy(0, -12);
+        const top = target.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: Math.max(top - this.scrollOffset(), 0), behavior: "auto" });
         this.state.open = false;
+        this.state.filter = "";
         this.state.selectedName = name;
         const index = this.state.items.indexOf(name);
         if (index >= 0) this.state.activeIndex = index;
@@ -214,8 +278,12 @@ const loadDefaults = () => {
         }
 
         const list = this.find(".fez-demo-nav-list");
+        if (!list?.getBoundingClientRect) return;
+
         const activeLink = this.find(`[data-index="${index}"]`);
-        if (!list?.getBoundingClientRect || !activeLink?.getBoundingClientRect) {
+        if (!activeLink?.getBoundingClientRect) {
+          // active item filtered out of the list - collapse the marker
+          if (this.state.markerHeight !== 0) this.state.markerHeight = 0;
           return;
         }
 
@@ -333,6 +401,56 @@ const loadDefaults = () => {
         background: #fff;
         box-shadow: 0 16px 42px rgba(0, 0, 0, 0.16);
       }
+      .fez-demo-nav-filter-wrap {
+        position: sticky;
+        top: -14px;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        margin: -14px -16px 12px -14px;
+        padding: 14px 16px 10px 14px;
+        background: #fff;
+      }
+      .fez-demo-nav-filter {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 9px 32px 9px 12px;
+        border: 1px solid #dedede;
+        border-radius: 8px;
+        background: #fff;
+        color: #20242c;
+        font: inherit;
+        font-size: 14px;
+        line-height: 1.2;
+        outline: none;
+      }
+      .fez-demo-nav-filter:focus {
+        border-color: #20242c;
+      }
+      .fez-demo-nav-filter-clear {
+        flex: 0 0 auto;
+        margin-left: -30px;
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: #8a8a8a;
+        font: inherit;
+        font-size: 15px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .fez-demo-nav-filter-clear:hover {
+        background: #f0f0f0;
+        color: #222;
+      }
+      .fez-demo-nav-empty {
+        padding: 9px 0 9px 28px;
+        color: #9a9a9a;
+        font-size: 15px;
+      }
       .fez-demo-nav-list {
         position: relative;
         display: flex;
@@ -389,19 +507,38 @@ const loadDefaults = () => {
         </div>
         {#if state.open}
           <div class="fez-demo-nav-panel" fez:transition="fly, from=top, distance=8, duration=160">
+            <div class="fez-demo-nav-filter-wrap">
+              <input
+                class="fez-demo-nav-filter"
+                type="text"
+                placeholder="Filter components..."
+                aria-label="Filter components"
+                autocomplete="off"
+                spellcheck="false"
+                value={state.filter}
+                oninput="fez.onFilter(this.value)"
+                onkeydown="fez.onFilterKey(event)"
+              />
+              {#if state.filter}
+                <button class="fez-demo-nav-filter-clear" aria-label="Clear filter" onclick="fez.clearFilter()">X</button>
+              {/if}
+            </div>
             <div
               class="fez-demo-nav-list"
               style="--marker-top: {state.markerTop}px; --marker-height: {state.markerHeight}px;"
             >
               <span class="fez-demo-nav-marker" aria-hidden="true"></span>
-              {#each state.items as name, index}
+              {#each state.visible as item}
                 <a
-                  class="fez-demo-nav-link {state.activeIndex === index ? 'active' : ''}"
-                  href="#{fez.sectionId(name)}"
-                  data-index={index}
-                  aria-current={state.activeIndex === index && state.activeIndex >= 0 ? 'page' : 'false'}
-                >{name}</a>
+                  class="fez-demo-nav-link {state.activeIndex === item.index ? 'active' : ''}"
+                  href="#{fez.sectionId(item.name)}"
+                  data-index={item.index}
+                  aria-current={state.activeIndex === item.index && state.activeIndex >= 0 ? 'page' : 'false'}
+                >{item.name}</a>
               {/each}
+              {#if !state.visible.length}
+                <div class="fez-demo-nav-empty">No components match.</div>
+              {/if}
             </div>
           </div>
         {/if}
@@ -442,12 +579,18 @@ const loadDefaults = () => {
         const notFez = n => !n.startsWith('fez-');
         let lastCount = 0;
         let stableTicks = 0;
+        let nameTicks = 0;
 
         const checkReady = () => {
           if (name) {
-            if (Fez.index[name]?.class) {
-              this.state.components = Fez.index[name]?.demo ? [name] : [];
-              this.state.ready = true;
+            // a name can be registered before its <demo> lands (built-in
+            // shadowed by a later .fez), so wait for the demo, then give up
+            if (Fez.index[name]?.demo) {
+              this.state.components = [name];
+              this.markReady();
+            } else if (Fez.index[name]?.class && ++nameTicks > 20) {
+              this.state.components = [];
+              this.markReady();
             } else {
               setTimeout(checkReady, 100);
             }
@@ -463,13 +606,24 @@ const loadDefaults = () => {
             if (stableTicks >= 2) {
               this.state.components = Fez.index.withDemo().filter(notFez).sort();
               this.state.undocumented = all.filter(n => !Fez.index[n]?.demo).sort();
-              this.state.ready = true;
+              this.markReady();
             } else {
               setTimeout(checkReady, 100);
             }
           }
         };
         checkReady();
+      }
+
+      markReady() {
+        this.state.ready = true;
+        // the browser handled #fez-demo-x long before these anchors existed,
+        // so honour the hash once they are on the page
+        this.setTimeout(() => {
+          const id = window.location.hash.slice(1);
+          const target = id && document.getElementById(id);
+          if (target) target.scrollIntoView({ block: "start" });
+        }, 50);
       }
 
       showHtml(name) {
@@ -558,7 +712,10 @@ const loadDefaults = () => {
         justify-content: flex-start;
         padding: 24px 0 18px;
         margin: 0 auto;
-        max-width: 1180px;
+        max-width: 980px;
+      }
+      .fez-demo-header.is-single {
+        max-width: 1560px;
       }
       .fez-demo-brand {
         display: flex;
@@ -584,6 +741,13 @@ const loadDefaults = () => {
         max-width: 980px;
         margin: 0 auto;
       }
+      /* single component view has the whole page to itself, let it breathe */
+      .fez-demo-shell.is-single {
+        max-width: 1560px;
+      }
+      .fez-demo-shell.is-single .fez-demo-item {
+        margin-bottom: 0;
+      }
       .fez-demo-main {
         min-width: 0;
       }
@@ -603,12 +767,12 @@ const loadDefaults = () => {
       }
       .fez-demo-item {
         margin-bottom: 40px;
-        scroll-margin-top: 28px;
+        scroll-margin-top: 72px;
       }
       .fez-demo-anchor {
         display: block;
         height: 0;
-        scroll-margin-top: 12px;
+        scroll-margin-top: 72px;
       }
       .fez-demo-title {
         display: flex;
@@ -695,13 +859,13 @@ const loadDefaults = () => {
 
       HTML() {
         return `{#if state.ready}
-        <header class="fez-demo-header">
+        <header class="fez-demo-header {state.filtered ? 'is-single' : ''}">
           <a class="fez-demo-brand" href="{state.allComponentsUrl}">
             <span class="fez-demo-logo">Fez</span>
             <span class="fez-demo-subtitle">Component demos</span>
           </a>
         </header>
-        <div class="fez-demo-shell">
+        <div class="fez-demo-shell {state.filtered ? 'is-single' : ''}">
           <main class="fez-demo-main">
             {#each state.components as name}
               <div class="fez-demo-item" data-demo-name={name}>
