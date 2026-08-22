@@ -69,7 +69,7 @@
     "test": "bun test test/*.test.js && bun test test/browser/*.test.js",
     "test:coverage": "bun test --coverage",
     "prepublishOnly": "bun run build && bun run test",
-    "publish": "npm publish --access public",
+    "release": "npm publish --access public",
     "index": "ls demo/fez/*.fez | xargs -n1 basename | sed 's/\\.fez$//' | sort | sed 's/^/fez\\//' > demo/fez.txt",
     "vscode:lint": "node --check vscode/src/extension.js",
     "vscode:test": "node --check vscode/src/extension.js",
