@@ -470,6 +470,64 @@ test('global state - cross-component reactivity', async () => {
   }
 });
 
+test(':attr props - parent re-render with identical HTML still delivers new objects to children', async () => {
+  const page = await createTestPage('<slot-parent></slot-parent>');
+
+  try {
+    await page.evaluate(() => {
+      window.testResults.childInits = 0;
+      window.testResults.childChanges = [];
+
+      window.Fez('slot-child', class {
+        init(props) {
+          window.testResults.childInits++;
+        }
+        onPropsChange(name, value) {
+          window.testResults.childChanges.push([name, value.name]);
+        }
+        HTML = '<span class="child-name">{props.user.name}</span>';
+      });
+
+      // Parent HTML carries only the slot key, never the user data, so two
+      // renders with different user objects produce byte-identical HTML
+      window.Fez('slot-parent', class {
+        init() { this.state.users = [{ name: 'Ann' }]; }
+        HTML = '{#each state.users as u}<slot-child key="u" :user="u"></slot-child>{/each}';
+      });
+    });
+
+    await page.waitForFunction(
+      () => document.querySelector('.child-name')?.textContent === 'Ann',
+      { timeout: 3000 },
+    );
+
+    // Same shape, new object: must reach the child through onPropsChange
+    await page.evaluate(() => {
+      document.querySelector('.fez-slot-parent').fez.state.users = [{ name: 'Bob' }];
+    });
+    await page.waitForFunction(
+      () => document.querySelector('.child-name')?.textContent === 'Bob',
+      { timeout: 3000 },
+    );
+
+    // In-place mutation of the passed object must still reach the child:
+    // the reactive store hands out a fresh proxy per read, so the slot value
+    // differs by identity and the morph runs even though the HTML is identical
+    await page.evaluate(() => {
+      document.querySelector('.fez-slot-parent').fez.state.users[0].name = 'Cid';
+    });
+    await page.waitForFunction(
+      () => document.querySelector('.child-name')?.textContent === 'Cid',
+      { timeout: 3000 },
+    );
+
+    const r = await page.evaluate(() => window.testResults);
+    expect(r.childInits).toBe(1);
+  } finally {
+    await closePage(page);
+  }
+});
+
 // =============================================================================
 // TEMPLATE TESTS
 // =============================================================================

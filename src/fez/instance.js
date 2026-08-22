@@ -6,6 +6,7 @@
 
 import parseNode from "./lib/n.js";
 import createTemplate from "./lib/template.js";
+import RenderSlots from "./lib/render-slots.js";
 import { componentSubscribe, componentPublish } from "./lib/pubsub.js";
 import {
   parseTransition,
@@ -285,50 +286,9 @@ export default class FezBase {
   fezBlocks = {};
   local = {};
 
-  // Store for passing values to child components (e.g., loop vars)
-  fezGlobals = {
-    _data: new Map(),
-    _counter: 0,
-    _handlerCounter: 0,
-    _handlerKeys: new Set(),
-    _nextHandlerKeys: null,
-    set(value) {
-      const key = this._counter++;
-      this._data.set(key, value);
-      return key;
-    },
-    setHandler(value) {
-      const key = `h${this._handlerCounter++}`;
-      this._data.set(key, value);
-      this._nextHandlerKeys?.add(key);
-      return `'${key}'`;
-    },
-    get(key) {
-      return this._data.get(key);
-    },
-    delete(key) {
-      const value = this._data.get(key);
-      this._data.delete(key);
-      return value;
-    },
-    beginRender() {
-      this._handlerCounter = 0;
-      this._nextHandlerKeys = new Set();
-    },
-    commitRender() {
-      if (!this._nextHandlerKeys) return;
-      for (const key of this._handlerKeys) {
-        if (!this._nextHandlerKeys.has(key)) this._data.delete(key);
-      }
-      this._handlerKeys = this._nextHandlerKeys;
-      this._nextHandlerKeys = null;
-    },
-    clear() {
-      this._data.clear();
-      this._handlerKeys.clear();
-      this._nextHandlerKeys = null;
-    },
-  };
+  // Slots for passing live values (:attr props, loop handlers) through
+  // rendered HTML, see lib/render-slots.js
+  fezGlobals = new RenderSlots();
 
   /**
    * Report error with component name always included
@@ -407,7 +367,7 @@ export default class FezBase {
     this.onDestroy = () => {};
     this.local = {};
 
-    // Clean up fezGlobals (orphaned entries from conditional children that never mounted)
+    // Drop parked :attr values and loop handlers
     this.fezGlobals.clear();
 
     // Clean up root references
@@ -516,9 +476,11 @@ export default class FezBase {
         renderedTpl = renderedTpl.replace(/\s\w+="undefined"/g, "");
         const parsedHtml = this.fezParseHtml(renderedTpl);
 
-        // Hash-skip: if template output is identical, skip the morph entirely
+        // Hash-skip: identical template output means nothing to morph, unless
+        // a :attr slot now holds a different object - the HTML only carries
+        // the slot key, so children need the morph to receive new props.
         const newHash = Fez.fnv1(parsedHtml);
-        if (newHash === this._fezHash) {
+        if (newHash === this._fezHash && !this.fezGlobals.valuesChanged) {
           this.fezGlobals.commitRender();
           this._isRendering = false;
           return;

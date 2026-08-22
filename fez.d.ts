@@ -327,10 +327,19 @@ declare abstract class FezBase {
   // INTERNAL PROPERTIES
   // ===================================================================
 
-  /** Store for passing values to child components (e.g., loop vars) */
+  /**
+   * Render slots for passing live values through rendered HTML
+   * (`:attr="expr"` props and loop handlers). Keys are positional per render.
+   */
   fezGlobals: {
     set(value: any): number;
-    delete(key: number): any;
+    value(key: number): any;
+    setHandler(fn: Function): number;
+    handler(key: number): Function | undefined;
+    beginRender(): void;
+    commitRender(): void;
+    clear(): void;
+    readonly valuesChanged: boolean;
   };
 
   /** Block template functions */

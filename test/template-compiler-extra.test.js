@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Window } from "happy-dom";
 import createTemplateCompiler from "../src/fez/lib/template-compiler.js";
+import RenderSlots from "../src/fez/lib/render-slots.js";
 
 // Setup happy-dom globals (scoped to this test file)
 let window, document;
@@ -27,47 +28,8 @@ const MockFez = {
   },
 };
 
-// Mock fezGlobals for arrow function tests
-function createMockFezGlobals() {
-  return {
-    _data: new Map(),
-    _counter: 0,
-    _handlerCounter: 0,
-    _handlerKeys: new Set(),
-    _nextHandlerKeys: null,
-    set(value) {
-      const key = this._counter++;
-      this._data.set(key, value);
-      return key;
-    },
-    setHandler(value) {
-      const key = `h${this._handlerCounter++}`;
-      this._data.set(key, value);
-      this._nextHandlerKeys?.add(key);
-      return `'${key}'`;
-    },
-    get(key) {
-      return this._data.get(key);
-    },
-    delete(key) {
-      const value = this._data.get(key);
-      this._data.delete(key);
-      return value;
-    },
-    beginRender() {
-      this._handlerCounter = 0;
-      this._nextHandlerKeys = new Set();
-    },
-    commitRender() {
-      if (!this._nextHandlerKeys) return;
-      for (const key of this._handlerKeys) {
-        if (!this._nextHandlerKeys.has(key)) this._data.delete(key);
-      }
-      this._handlerKeys = this._nextHandlerKeys;
-      this._nextHandlerKeys = null;
-    },
-  };
-}
+// Render slots for loop handlers, same class the instance uses
+const createMockFezGlobals = () => new RenderSlots();
 
 // Save original globals
 let originalWindow, originalDocument, originalFez;
@@ -542,7 +504,7 @@ describe("template compiler", () => {
       // When arrow uses item vars (not just indices), it stores handler in fezGlobals
       // This ensures the item reference is captured at render time
       expect(html).toBe(
-        '<button onclick="Fez(999).fezGlobals.get(\'h0\')(event)">Edit</button><button onclick="Fez(999).fezGlobals.get(\'h1\')(event)">Edit</button>',
+        '<button onclick="Fez(999).fezGlobals.handler(0)(event)">Edit</button><button onclick="Fez(999).fezGlobals.handler(1)(event)">Edit</button>',
       );
     });
 
@@ -559,7 +521,7 @@ describe("template compiler", () => {
       );
       // Each button should reference fezGlobals with a unique key
       expect(html).toBe(
-        '<span onclick="Fez(999).fezGlobals.get(\'h0\')(event)">js</span><span onclick="Fez(999).fezGlobals.get(\'h1\')(event)">css</span>',
+        '<span onclick="Fez(999).fezGlobals.handler(0)(event)">js</span><span onclick="Fez(999).fezGlobals.handler(1)(event)">css</span>',
       );
     });
 
@@ -578,15 +540,15 @@ describe("template compiler", () => {
       );
 
       expect(html).toBe(
-        '<button onclick="Fez(999).fezGlobals.get(\'h0\')(event)">Edit</button>',
+        '<button onclick="Fez(999).fezGlobals.handler(0)(event)">Edit</button>',
       );
 
-      const handler = fezGlobals.get("h0");
+      const handler = fezGlobals.handler(0);
       handler(new Event("click"));
       handler(new Event("click"));
 
       expect(calls).toEqual([task, task]);
-      expect(fezGlobals.get("h0")).toBe(handler);
+      expect(fezGlobals.handler(0)).toBe(handler);
     });
 
     test("captured handler keys are stable and stale handlers are cleaned up", () => {
@@ -621,14 +583,14 @@ describe("template compiler", () => {
         fezGlobals,
       );
 
-      expect(firstRender.html).toContain("get('h0')");
-      expect(firstRender.html).toContain("get('h1')");
+      expect(firstRender.html).toContain("handler(0)");
+      expect(firstRender.html).toContain("handler(1)");
       expect(secondRender.html).toBe(
-        '<button onclick="Fez(999).fezGlobals.get(\'h0\')(event)">Edit</button>',
+        '<button onclick="Fez(999).fezGlobals.handler(0)(event)">Edit</button>',
       );
-      expect(fezGlobals.get("h1")).toBeUndefined();
+      expect(fezGlobals.handler(1)).toBeUndefined();
 
-      fezGlobals.get("h0")(new Event("click"));
+      fezGlobals.handler(0)(new Event("click"));
       expect(calls).toEqual([second]);
     });
 

@@ -747,6 +747,9 @@ Fez.state.subscribe('key', (value, oldValue) => {}) // subscribe to specific key
 Fez.state.subscribe((key, value, oldValue) => {})   // subscribe to ALL changes
 ```
 
+Components that read `this.globalState.key` get `onGlobalStateChange(key, value, oldValue)` synchronously on change and re-render on the next frame, batched with local `this.state` changes (one render per frame).
+A component's own write during `init` or render does not schedule an extra render.
+
 ### DOM / `addEventListener` listeners
 
 For events fired on `document`, `window`, or arbitrary DOM nodes (custom `pjax:render`, `keydown`, `resize`, third-party `CustomEvent`s, etc.), `this.subscribe` does not apply — those go through native `addEventListener`. Use **`this.on`** — it binds `this`, guards on `isConnected`, and auto-removes on destroy.
@@ -938,7 +941,8 @@ Use `<slot unwrap />` when children must be inserted without a wrapper div. By d
   ></child-component>
   ```
 
-  Note: `:attr="expr"` syntax uses component's `fezGlobals` to pass values to child components - automatically cleaned up when component destroys.
+  Note: `:attr="expr"` parks the value in the parent's render slots (`fezGlobals`, see `./src/fez/lib/render-slots.js`) and the HTML carries only a positional key.
+  Slots are reset on every parent render, and a parent render whose HTML is unchanged is still morphed when a slot now holds a different object, so children get `onPropsChange`.
 
 ## External Libraries & Modules
 

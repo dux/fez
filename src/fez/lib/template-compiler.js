@@ -121,14 +121,14 @@ export default function createTemplateCompiler(text, opts = {}) {
     );
     text = text.replace(/\{@block:(\w+)\}/g, (_, name) => blocks[name] || "");
 
-    // Convert :attr="expr" to use Fez(UID).fezGlobals for passing values through DOM
-    // This allows loop variables to be passed as props to child components
-    // :file="el.file" -> :file={`Fez(${UID}).fezGlobals.delete(${fez.fezGlobals.set(el.file)})`}
-    // Uses Fez(UID) so child component can find parent's fezGlobals
+    // Convert :attr="expr" to a render slot lookup (see lib/render-slots.js).
+    // The value is parked on the parent at render time and the HTML carries
+    // only the slot key, so loop variables and objects can be passed as props.
+    // :file="el.file" -> :file={`Fez(${UID}).fezGlobals.value(${fez.fezGlobals.set(el.file)})`}
     // Supports variable access, method calls, ternaries, arrow funcs, etc.
     text = text.replace(/:(\w+)="([^"{}]+)"/g, (match, attr, expr) => {
       if (/^\d+$/.test(expr.trim())) return match;
-      return `:${attr}={\`Fez(\${UID}).fezGlobals.delete(\${fez.fezGlobals.set(${expr})})\`}`;
+      return `:${attr}={\`Fez(\${UID}).fezGlobals.value(\${fez.fezGlobals.set(${expr})})\`}`;
     });
 
     // Remove HTML comments

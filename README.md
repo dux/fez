@@ -1369,7 +1369,7 @@ Fez includes a built-in global state manager that automatically tracks component
 
 - Components access global state via `this.globalState` proxy
 - Reading a value by key automatically subscribes the component to changes to that key.
-- Setting a value notifies all subscribed components to that key.
+- Setting a value notifies all subscribed components to that key: `onGlobalStateChange` fires right away, the re-render is batched into the next frame together with local state changes.
 - Components are automatically cleaned up when disconnected
 
 ### Basic Usage

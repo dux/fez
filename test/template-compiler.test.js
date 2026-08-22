@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { Window } from "happy-dom";
 import createTemplateCompiler from "../src/fez/lib/template-compiler.js";
+import RenderSlots from "../src/fez/lib/render-slots.js";
 
 // Setup happy-dom for DOM APIs
 const window = new Window();
@@ -77,21 +78,8 @@ globalThis.Fez = {
   },
 };
 
-// Create fezGlobals store for component context
-const createFezGlobals = () => ({
-  _data: new Map(),
-  _counter: 0,
-  set(value) {
-    const key = this._counter++;
-    this._data.set(key, value);
-    return key;
-  },
-  delete(key) {
-    const value = this._data.get(key);
-    this._data.delete(key);
-    return value;
-  },
-});
+// Render slots for :attr values, same class the instance uses
+const createFezGlobals = () => new RenderSlots();
 
 // Helper to render template and get HTML string (strips auto-generated internal keys)
 const render = (template, ctx) => {
@@ -995,9 +983,9 @@ describe("Fez template compiler", () => {
         '<child-component :data="state.items"></child-component>',
         ctx,
       );
-      // Value is stored and attribute contains Fez(UID).fezGlobals.delete(id) for child to retrieve
-      expect(html).toContain(":data=Fez(123).fezGlobals.delete(");
-      expect(ctx.fezGlobals._counter).toBeGreaterThan(0);
+      // Value is parked in a slot and the attribute carries Fez(UID).fezGlobals.value(key)
+      expect(html).toContain(":data=Fez(123).fezGlobals.value(0)");
+      expect(ctx.fezGlobals.value(0)).toBe(ctx.state.items);
     });
 
     test(':attr="expr" works with nested object paths', () => {
@@ -1008,7 +996,7 @@ describe("Fez template compiler", () => {
           UID: 456,
         },
       );
-      expect(html).toContain(":user=Fez(456).fezGlobals.delete(");
+      expect(html).toContain(":user=Fez(456).fezGlobals.value(");
     });
 
     test(':attr="expr" works in loops', () => {
@@ -1021,7 +1009,7 @@ describe("Fez template compiler", () => {
       );
       // Each loop iteration stores a value
       expect(html).toMatch(
-        /:item=Fez\(789\)\.fezGlobals\.delete\(\d+\).*:item=Fez\(789\)\.fezGlobals\.delete\(\d+\)/,
+        /:item=Fez\(789\)\.fezGlobals\.value\(\d+\).*:item=Fez\(789\)\.fezGlobals\.value\(\d+\)/,
       );
     });
 
@@ -1033,7 +1021,7 @@ describe("Fez template compiler", () => {
           UID: 999,
         },
       );
-      expect(html).toContain(":data=Fez(999).fezGlobals.delete(");
+      expect(html).toContain(":data=Fez(999).fezGlobals.value(");
     });
   });
 
