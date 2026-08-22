@@ -1,0 +1,115 @@
+<info>
+  <ul>
+    <li>Svelte-style enter/leave transitions with <code>fez:in</code> / <code>fez:out</code> (or <code>fez:transition</code> for both) attributes</li>
+    <li>Params as <code>name, key=value</code> or <code>name; key: value</code></li>
+    <li>Built-ins: fade, fly, slide, scale, pop, blur, flip, rotate, draw - plus custom <code>Fez.transitions</code> and CSS <code>@keyframes</code></li>
+    <li>Outro finishes before the node leaves the DOM</li>
+    <li><code>fez:animate="flip"</code> glides kept list items to their new position on reorder (shuffle / remove)</li>
+  </ul>
+</info>
+
+<demo>
+  <ui-transition></ui-transition>
+</demo>
+
+<script>
+  init() {
+    this.state.effect = 'fly'
+    this.state.items = [1, 2, 3]
+    this.state.panel = true
+    this.local.next = 4
+
+    // custom transition, registered once
+    Fez.transitions.jelly ||= (node, params) => ({
+      keyframes: [
+        { transform: 'scale(0.6, 1.4)', opacity: 0 },
+        { transform: 'scale(1.2, 0.8)', opacity: 1, offset: 0.6 },
+        { transform: 'none', opacity: 1 },
+      ],
+      duration: params.duration || 350,
+      easing: 'cubicOut',
+    })
+  }
+
+  add() {
+    this.state.items.push(this.local.next++)
+  }
+
+  remove(id) {
+    this.state.items = this.state.items.filter(i => i !== id)
+  }
+
+  shuffle() {
+    this.state.items = [...this.state.items].sort(() => Math.random() - 0.5)
+  }
+</script>
+
+<style>
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .list { display: flex; gap: 8px; flex-wrap: wrap; min-height: 44px; margin: 10px 0; }
+  .chip {
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: #4a7bd0;
+    color: #fff;
+    cursor: pointer;
+    user-select: none;
+  }
+  .panel {
+    padding: 12px;
+    border: 1px solid #ccd;
+    border-radius: 6px;
+    background: #f6f7fb;
+    margin-top: 10px;
+  }
+  .wiggle { display: inline-block; padding: 6px 10px; background: #ffe9a8; border-radius: 6px; }
+
+  @keyframes wiggle {
+    0%   { transform: rotate(-8deg) scale(0.8); opacity: 0; }
+    60%  { transform: rotate(6deg)  scale(1.05); }
+    100% { transform: none; opacity: 1; }
+  }
+</style>
+
+<div class="row">
+  <label>intro effect</label>
+  <select fez:bind="state.effect">
+    <option>fade</option>
+    <option>fly</option>
+    <option>slide</option>
+    <option>scale</option>
+    <option>pop</option>
+    <option>blur</option>
+    <option>flip</option>
+    <option>rotate</option>
+    <option>jelly</option>
+  </select>
+  <button onclick="fez.add()">add</button>
+  <button onclick="fez.shuffle()">shuffle</button>
+  <button onclick="fez.state.panel = !fez.state.panel">toggle panel</button>
+</div>
+
+<div class="list">
+  {#each state.items as id}
+    <span
+      key="{id}"
+      class="chip"
+      fez:in="{state.effect}, from=bottom, duration=300"
+      fez:out="fade, duration=150"
+      fez:animate="flip, duration=250"
+      onclick="fez.remove({id})"
+      title="click to remove">
+      item {id}
+    </span>
+  {/each}
+</div>
+
+{#if state.panel}
+  <div class="panel" fez:transition="slide, duration=300">
+    <b>slide</b> panel - collapses height on the way out.
+    <span class="wiggle" fez:in="wiggle, duration=500">CSS @keyframes</span>
+    <svg width="120" height="40" viewBox="0 0 120 40" fill="none" stroke="#4a7bd0" stroke-width="3" stroke-linecap="round">
+      <path fez:in="draw, duration=900" d="M5 30 C 30 5, 50 5, 60 20 S 90 35, 115 10" />
+    </svg>
+  </div>
+{/if}

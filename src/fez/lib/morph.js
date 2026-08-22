@@ -28,6 +28,9 @@
  * @param {Function} [opts.skipNode(oldNode)]    - return true to preserve subtree as-is
  * @param {Function} [opts.shouldPreserve(oldNode, newNode)] - return false to force rewrite of a preserve match
  * @param {Function} [opts.beforeRemove(node)]   - called before removing a node
+ * @param {Function} [opts.removeNode(parent, node)] - performs the actual removal (default parent.removeChild).
+ *   A hook may defer it (outro animation); while deferred it must flag the node with `_fezLeaving = true`
+ *   so later diffs treat it as already gone.
  * @param {Function} [opts.onPreserve(oldNode, newNode)] - called when a keyed node is matched and preserved
  */
 export function nodeMorph(target, newNode, opts = {}) {
@@ -203,7 +206,9 @@ function describeNewKey(node, opts) {
 // ---------------------------------------------------------------------------
 
 function diffChildren(target, newParent, opts) {
-  const oldChildren = Array.from(target.childNodes);
+  // Nodes mid-outro (see opts.removeNode) are still attached but already
+  // "removed" from the diff's point of view.
+  const oldChildren = Array.from(target.childNodes).filter(isLive);
   const newChildren = Array.from(newParent.childNodes);
 
   if (oldChildren.length === 0 && newChildren.length === 0) return;
@@ -219,10 +224,7 @@ function diffChildren(target, newParent, opts) {
   // Fast path: no new children, remove all old
   if (newChildren.length === 0) {
     for (const child of oldChildren) {
-      if (opts.beforeRemove && child.nodeType === 1) {
-        callBeforeRemoveDeep(child, opts);
-      }
-      target.removeChild(child);
+      removeChild(target, child, opts);
     }
     return;
   }
@@ -333,15 +335,12 @@ function diffChildren(target, newParent, opts) {
   // Phase 2: Remove unmatched old children
   for (const child of oldChildren) {
     if (!usedOld.has(child)) {
-      if (child.nodeType === 1) {
-        callBeforeRemoveDeep(child, opts);
-      }
-      target.removeChild(child);
+      removeChild(target, child, opts);
     }
   }
 
   // Phase 3: Apply matches in order (morph + position)
-  let cursor = target.firstChild;
+  let cursor = nextLive(target.firstChild);
 
   for (const match of matches) {
     if (match.old) {
@@ -353,12 +352,9 @@ function diffChildren(target, newParent, opts) {
         // Allow callers (Fez) to reject preserve when source content changed
         // (e.g. slot text STEP → PDF) even if the key still matches.
         if (opts.shouldPreserve && !opts.shouldPreserve(oldChild, newChild)) {
-          if (oldChild.nodeType === 1) {
-            callBeforeRemoveDeep(oldChild, opts);
-          }
           target.insertBefore(newChild, oldChild);
-          target.removeChild(oldChild);
-          cursor = newChild.nextSibling;
+          removeChild(target, oldChild, opts);
+          cursor = nextLive(newChild.nextSibling);
           continue;
         }
         if (opts.onPreserve) opts.onPreserve(oldChild, newChild);
@@ -367,7 +363,7 @@ function diffChildren(target, newParent, opts) {
         if (oldChild !== cursor) {
           target.insertBefore(oldChild, cursor);
         } else {
-          cursor = cursor.nextSibling;
+          cursor = nextLive(cursor.nextSibling);
         }
         continue;
       }
@@ -395,21 +391,17 @@ function diffChildren(target, newParent, opts) {
           syncDomProperties(oldChild, newChild);
         } else {
           // Different tag: replace
-          callBeforeRemoveDeep(oldChild, opts);
           const replacement = newChild;
           target.insertBefore(replacement, oldChild);
-          target.removeChild(oldChild);
-          cursor = replacement.nextSibling;
+          removeChild(target, oldChild, opts);
+          cursor = nextLive(replacement.nextSibling);
           continue;
         }
       } else {
         // Different node types: replace
-        if (oldChild.nodeType === 1) {
-          callBeforeRemoveDeep(oldChild, opts);
-        }
         target.insertBefore(newChild, oldChild);
-        target.removeChild(oldChild);
-        cursor = newChild.nextSibling;
+        removeChild(target, oldChild, opts);
+        cursor = nextLive(newChild.nextSibling);
         continue;
       }
 
@@ -417,7 +409,7 @@ function diffChildren(target, newParent, opts) {
       if (oldChild !== cursor) {
         target.insertBefore(oldChild, cursor);
       } else {
-        cursor = cursor.nextSibling;
+        cursor = nextLive(cursor.nextSibling);
       }
     } else {
       // No old match: insert new node
@@ -523,6 +515,32 @@ function callBeforeRemoveDeep(node, opts) {
       opts.beforeRemove(child);
     });
   }
+}
+
+/**
+ * Remove an old child: run beforeRemove hooks (elements only) and detach.
+ * opts.removeNode may defer the detach (outro animation) - the node then
+ * stays in the DOM flagged `_fezLeaving` and is invisible to the diff.
+ */
+function removeChild(target, child, opts) {
+  if (child.nodeType === 1) {
+    callBeforeRemoveDeep(child, opts);
+  }
+  if (opts.removeNode) {
+    opts.removeNode(target, child);
+  } else {
+    target.removeChild(child);
+  }
+}
+
+function isLive(node) {
+  return !node._fezLeaving;
+}
+
+/** First node at or after `node` that is not mid-outro. */
+function nextLive(node) {
+  while (node && node._fezLeaving) node = node.nextSibling;
+  return node;
 }
 
 // Export for testing

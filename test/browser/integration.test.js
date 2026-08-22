@@ -667,3 +667,184 @@ test('fez:bind - two-way input binding', async () => {
     await closePage(page);
   }
 });
+
+// =============================================================================
+// TRANSITIONS (fez:in / fez:out)
+// =============================================================================
+
+test('transitions - fez:in plays once on mount, fez:out defers removal', async () => {
+  const page = await createTestPage('<test-transition></test-transition>');
+
+  try {
+    await page.evaluate(() => {
+      window.Fez('test-transition', class {
+        init() {
+          this.state.show = true;
+          this.state.tick = 0;
+        }
+
+        HTML = `
+          <div class="wrap">
+            {#if state.show}
+              <p class="box" fez:in="fade, duration=100" fez:out="fade; duration: 100">hello</p>
+            {/if}
+            <span class="tick">{state.tick}</span>
+          </div>`;
+      });
+    });
+
+    await page.waitForSelector('.box', { timeout: 2000 });
+
+    // intro running, attribute consumed
+    expect(await page.evaluate(() => document.querySelector('.box').getAnimations().length)).toBe(1);
+    expect(await page.evaluate(() => document.querySelector('.box').hasAttribute('fez-in'))).toBe(false);
+    await page.waitForFunction(() => document.querySelector('.box').getAnimations().length === 0, { timeout: 2000 });
+
+    // re-render without toggling: kept node gets no second intro
+    await page.evaluate(() => { document.querySelector('.fez-test-transition').fez.state.tick = 1; });
+    await page.waitForFunction(() => document.querySelector('.tick').textContent === '1', { timeout: 2000 });
+    expect(await page.evaluate(() => document.querySelector('.box').getAnimations().length)).toBe(0);
+
+    // hide: node stays (flagged leaving) while the outro runs, then is detached
+    await page.evaluate(() => { document.querySelector('.fez-test-transition').fez.state.show = false; });
+    await page.waitForFunction(() => document.querySelector('.box')?._fezLeaving === true, { timeout: 2000 });
+    expect(await page.evaluate(() => document.querySelector('.box').getAnimations().length)).toBe(1);
+    await page.waitForFunction(() => !document.querySelector('.box'), { timeout: 2000 });
+
+    // show again: fresh node, fresh intro
+    await page.evaluate(() => { document.querySelector('.fez-test-transition').fez.state.show = true; });
+    await page.waitForSelector('.box', { timeout: 2000 });
+    expect(await page.evaluate(() => document.querySelector('.box').getAnimations().length)).toBe(1);
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('transitions - custom Fez.transitions entry and CSS @keyframes fallback', async () => {
+  const page = await createTestPage(`
+    <style>@keyframes spin-test { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }</style>
+    <test-custom-transition></test-custom-transition>
+  `);
+
+  try {
+    await page.evaluate(() => {
+      window.Fez.transitions.pop = (node, params) => ({
+        keyframes: [{ transform: 'scale(0)' }, { transform: 'none' }],
+        duration: params.duration,
+      });
+
+      window.Fez('test-custom-transition', class {
+        HTML = `
+          <div>
+            <i class="pop" fez:in="pop, duration=100">pop</i>
+            <i class="spin" fez:in="spin-test, duration=100, easing=ease-out">spin</i>
+          </div>`;
+      });
+    });
+
+    await page.waitForSelector('.spin', { timeout: 2000 });
+
+    const state = await page.evaluate(() => ({
+      popAnims: document.querySelector('.pop').getAnimations().length,
+      spinStyle: document.querySelector('.spin').style.animation,
+    }));
+    expect(state.popAnims).toBe(1);
+    expect(state.spinStyle).toContain('spin-test');
+    expect(state.spinStyle).toContain('100ms');
+
+    // CSS fallback clears the inline animation once finished
+    await page.waitForFunction(() => document.querySelector('.spin').style.animation === '', { timeout: 2000 });
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('transitions - fez:transition sets both directions, explicit fez:in/out override', async () => {
+  const page = await createTestPage('<test-both-transition></test-both-transition>');
+
+  try {
+    await page.evaluate(() => {
+      window.Fez.transitions.markerA = () => ({ keyframes: [{ opacity: 0 }, { opacity: 1 }], duration: 100 });
+      window.Fez.transitions.markerB = () => ({ keyframes: [{ opacity: 0 }, { opacity: 1 }], duration: 100 });
+
+      window.Fez('test-both-transition', class {
+        init() { this.state.show = true; }
+        HTML = `
+          <div>
+            {#if state.show}
+              <p class="both" fez:transition="markerA, duration=100">both</p>
+              <p class="mixed" fez:transition="markerA, duration=100" fez:out="markerB, duration=100">mixed</p>
+            {/if}
+          </div>`;
+      });
+    });
+
+    await page.waitForSelector('.mixed', { timeout: 2000 });
+
+    const state = await page.evaluate(() => {
+      const both = document.querySelector('.both');
+      const mixed = document.querySelector('.mixed');
+      return {
+        bothIntro: both.getAnimations().length,
+        bothOut: both._fezOut?.name,
+        bothAttrs: both.hasAttribute('fez-transition'),
+        mixedIntro: mixed.getAnimations().length,
+        mixedOut: mixed._fezOut?.name,
+      };
+    });
+    expect(state.bothIntro).toBe(1);
+    expect(state.bothOut).toBe('markerA');
+    expect(state.bothAttrs).toBe(false);
+    expect(state.mixedIntro).toBe(1);
+    expect(state.mixedOut).toBe('markerB'); // explicit fez:out wins
+
+    // outro runs for the shorthand too
+    await page.evaluate(() => { document.querySelector('.fez-test-both-transition').fez.state.show = false; });
+    await page.waitForFunction(() => document.querySelector('.both')?._fezLeaving === true, { timeout: 2000 });
+    await page.waitForFunction(() => !document.querySelector('.both') && !document.querySelector('.mixed'), { timeout: 2000 });
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('transitions - fez:animate="flip" glides kept items to their new position on reorder', async () => {
+  const page = await createTestPage('<test-flip></test-flip>');
+
+  try {
+    await page.evaluate(() => {
+      window.Fez('test-flip', class {
+        init() { this.state.items = [1, 2, 3]; }
+        HTML = `
+          <ul style="display:flex; gap:10px; list-style:none; padding:0">
+            {#each state.items as id}
+              <li key="{id}" class="it it-{id}" fez:animate="flip, duration=150" style="width:40px">{id}</li>
+            {/each}
+          </ul>`;
+      });
+    });
+
+    await page.waitForSelector('.it-3', { timeout: 2000 });
+    const before = await page.evaluate(() => document.querySelector('.it-3').getBoundingClientRect().left);
+
+    await page.evaluate(() => { document.querySelector('.fez-test-flip').fez.state.items = [3, 2, 1]; });
+    await page.waitForFunction(() => document.querySelector('.it').textContent === '3', { timeout: 2000 });
+
+    const state = await page.evaluate(() => {
+      const three = document.querySelector('.it-3');
+      const two = document.querySelector('.it-2');
+      const anim = three.getAnimations()[0];
+      return {
+        threeAnims: three.getAnimations().length,
+        twoAnims: two.getAnimations().length,
+        firstFrame: anim?.effect.getKeyframes()[0].transform,
+        layoutLeft: three.getBoundingClientRect().left,
+      };
+    });
+    expect(state.threeAnims).toBe(1);          // moved -> animated
+    expect(state.twoAnims).toBe(0);            // middle item did not move
+    expect(state.firstFrame).toMatch(/translate\(\d+(\.\d+)?px, 0px\)/); // starts from old (right) position
+    await page.waitForFunction(() => document.querySelector('.it-3').getAnimations().length === 0, { timeout: 2000 });
+  } finally {
+    await closePage(page);
+  }
+});

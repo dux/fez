@@ -261,12 +261,35 @@ export function getAttributeContext(text, pos) {
     if (
       attrName &&
       /^[a-zA-Z]/.test(attrName) &&
-      (j < 0 || /\s/.test(text[j]))
+      (j < 0 || /\s/.test(text[j])) &&
+      !insideQuotedAttrValue(text, j)
     ) {
       return attrName.toLowerCase();
     }
   }
   return null;
+}
+
+/**
+ * True when `pos` sits inside an already-quoted attribute value of the
+ * enclosing tag, e.g. the `y={...}` in fez:in="fly, y={state.y}". Such a
+ * match is plain text, not an unquoted attr={expr}.
+ */
+function insideQuotedAttrValue(text, pos) {
+  const tagStart = text.lastIndexOf("<", pos);
+  if (tagStart < 0) return false;
+  let quote = null;
+  for (let k = tagStart; k <= pos; k++) {
+    const ch = text[k];
+    if (quote) {
+      if (ch === quote) quote = null;
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === ">") {
+      return false; // tag closed before pos - we are in text content
+    }
+  }
+  return quote !== null;
 }
 
 /**

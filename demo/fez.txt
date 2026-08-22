@@ -41,4 +41,5 @@ fez/ui-time
 fez/ui-tippy
 fez/ui-toast
 fez/ui-todo
+fez/ui-transition
 fez/ui-typeit

@@ -1151,6 +1151,31 @@ describe("Fez template compiler", () => {
       expect(html).toContain('fez-keep="foo"');
     });
 
+    test("fez:in / fez:out are converted to fez-in / fez-out", () => {
+      const html = render(
+        '<div fez:in="fly, y=20, duration=300" fez:out="fade; duration: 150">x</div>',
+        { state: {} },
+      );
+      expect(html).toContain('fez-in="fly, y=20, duration=300"');
+      expect(html).toContain('fez-out="fade; duration: 150"');
+    });
+
+    test("fez:transition is converted to fez-transition", () => {
+      const html = render('<div fez:transition="fade, duration=200">x</div>', { state: {} });
+      expect(html).toContain('fez-transition="fade, duration=200"');
+    });
+
+    test("fez: names may contain dashes and digits", () => {
+      const html = render('<div fez:some-attr2="v">x</div>', { state: {} });
+      expect(html).toContain('fez-some-attr2="v"');
+      expect(html).not.toContain("fez:some-attr2");
+    });
+
+    test("fez: values can be interpolated", () => {
+      const html = render('<div fez:in="fly, y={state.y}">x</div>', { state: { y: 42 } });
+      expect(html).toContain('fez-in="fly, y=42"');
+    });
+
     test("fez:bind is converted to fez-bind", () => {
       const html = render('<input fez:bind="state.name" />', {
         state: { name: "test" },

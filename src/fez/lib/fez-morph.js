@@ -7,6 +7,7 @@
  */
 
 import { nodeMorph } from './morph.js';
+import { runTransition } from './transitions.js';
 
 /**
  * Content signature for component identity and rewrite checks.
@@ -218,6 +219,18 @@ export default function attachMorph(Fez) {
     beforeRemove: (node) => {
       if (node.classList?.contains('fez') && node.fez) {
         node.fez.fezOnDestroy?.();
+      }
+    },
+
+    // fez:out - play the outro, detach when done. The node stays in the DOM
+    // flagged _fezLeaving so the differ ignores it (see morph.js).
+    removeNode: (parent, node) => {
+      if (node.nodeType === 1 && node._fezOut && node.isConnected && !node._fezLeaving) {
+        node._fezLeaving = true;
+        node.style.pointerEvents = 'none';
+        runTransition(node, node._fezOut, 'out').then(() => node.remove());
+      } else {
+        parent.removeChild(node);
       }
     },
 

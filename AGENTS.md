@@ -496,11 +496,15 @@ Numbers and `true`/`false` are coerced; `{...}` interpolation works inside the v
 
 Built-ins (all accept `duration` ms, `delay` ms, `easing`):
 
-* `fade`
-* `fly` - `x`, `y` (px), `opacity` (start, default 0)
-* `scale` - `start` (default 0), `opacity`
-* `blur` - `amount` (px, default 5), `opacity`
-* `slide` - `axis` (`y` default, or `x`)
+* `fade` - opacity 0 -> 1. Default 300ms linear.
+* `fly` - slide in from an offset while fading. `from=left|right|top|bottom` + `distance` (px, default 40), or explicit `x`, `y` (px); `opacity` start (default 0). 400ms.
+* `slide` - collapse/expand height (or width with `axis=x`) incl. padding/margin/border, like an accordion. Add `opacity=0` to fade too. 400ms.
+* `scale` - grow from `start` (default 0) while fading; `opacity`. 300ms.
+* `pop` - subtle scale from `start` (default 0.8) with `backOut` overshoot + fade. The dialog / popover / toast / dropdown default. 250ms.
+* `blur` - unblur from `amount` px (default 5) while fading; `opacity`. 300ms.
+* `flip` - 3D card flip; `axis=y` (default) or `x`, `angle` (default 90), `perspective` (px, default 600), `opacity`. 400ms.
+* `rotate` - spin in from `angle` deg (default -90) with optional `start` scale, + fade. 300ms.
+* `draw` - SVG stroke drawing via stroke-dashoffset on anything with `getTotalLength()` (`<path>`, `<circle>`, `<line>`...); `duration` (800ms) or `speed` px/ms. Non-SVG nodes fall back to `fade`.
 
 `easing` accepts any CSS timing function (`ease-out`, `cubic-bezier(...)`) or a Svelte-style name (`cubicOut`, `quintOut`, `expoOut`, `backOut`, ...).
 Animations run through the Web Animations API; the outro is the same keyframes played in reverse. `prefers-reduced-motion: reduce` skips the animation.
@@ -516,6 +520,18 @@ Fez.transitions.pop = (node, params) => ({
 ```
 
 A name that is not registered is used as a CSS `@keyframes` name (`<div fez:in="wiggle, duration=400">` + `@keyframes wiggle { ... }` in the component `<style>`).
+
+#### List reordering: `fez:animate="flip"`
+
+FLIP animation for elements the differ keeps but moves (sort, shuffle, remove-from-middle) - items glide to their new position instead of jumping. Requires stable identity (`key=` / `fez:keep`) so the differ reuses the node. Params: `duration` (300), `delay`, `easing` (cubicOut).
+
+```html
+{#each state.items as item}
+  <li key="{item.id}" fez:animate="flip, duration=250" fez:in="fly, from=left" fez:out="fade">{item.name}</li>
+{/each}
+```
+
+Implementation: positions are measured right before the morph (`measureFlip` in `src/fez/lib/transitions.js`), the translate delta is played after (`playFlip`). Newly inserted nodes have no old position (their `fez:in` covers that); leaving nodes are skipped.
 
 Caveats:
 

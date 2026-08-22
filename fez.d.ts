@@ -513,7 +513,52 @@ interface FezStatic {
     then?: Function;
     catch?: Function;
   }): any;
+
+  // ===================================================================
+  // ELEMENT TRANSITIONS (fez:in / fez:out)
+  // ===================================================================
+
+  /**
+   * Named transitions used by the `fez:in` / `fez:out` template attributes:
+   *
+   *   <div fez:in="fade">
+   *   <div fez:in="fly, y=20, duration=300" fez:out="fade; duration: 150">
+   *   <div fez:transition="fade">   (both directions; fez:in / fez:out override)
+   *
+   * Built-ins (all take duration, delay, easing):
+   *   fade, fly (from=left|right|top|bottom, distance | x, y; opacity),
+   *   slide (axis, opacity), scale (start, opacity), pop (start, opacity),
+   *   blur (amount, opacity), flip (axis, angle, perspective, opacity),
+   *   rotate (angle, start, opacity), draw (SVG; duration | speed).
+   * List reorder: <li key=".." fez:animate="flip, duration=250"> (FLIP on kept nodes).
+   * Register your own: `Fez.transitions.pop = (node, params) => ({ keyframes, duration })`.
+   * Names not in the registry are treated as CSS @keyframes names.
+   */
+  transitions: Record<string, FezTransitionFn>;
 }
+
+// =============================================================================
+// ELEMENT TRANSITIONS
+// =============================================================================
+
+/** Parsed `fez:in` / `fez:out` params: "fly, y=20, flag" -> { y: 20, flag: true } */
+type FezTransitionParams = Record<string, string | number | boolean>;
+
+/** What a transition function returns. Keyframes describe the INTRO; outro is played in reverse. */
+interface FezTransitionSpec {
+  /** Web Animations API keyframes, first = hidden state, last = natural state */
+  keyframes?: Keyframe[];
+  /** Milliseconds (default 300, or params.duration) */
+  duration?: number;
+  /** Milliseconds (default 0, or params.delay) */
+  delay?: number;
+  /** CSS timing function or a Svelte-style name (cubicOut, quintOut, backOut, ...) */
+  easing?: string;
+  /** Called once the animation has finished (or was skipped) */
+  cleanup?: () => void;
+}
+
+type FezTransitionFn = (node: HTMLElement, params: FezTransitionParams) => FezTransitionSpec;
 
 // =============================================================================
 // PJAX NAVIGATION (bundled since 0.6.0)

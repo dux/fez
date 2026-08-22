@@ -45,7 +45,7 @@ export default function createTemplateCompiler(text, opts = {}) {
       .replaceAll("&amp;", "&");
 
     // Allow Fez namespace syntax as alias for fez-attr
-    text = text.replace(/\bfez:([a-z]+)=/gi, "fez-$1=");
+    text = text.replace(/\bfez:([a-z][a-z0-9-]*)=/gi, "fez-$1=");
 
     // Strict event handlers: `on<event>!="body"` runs the body only when the
     // element itself is the target (no child captured the event) and swallows

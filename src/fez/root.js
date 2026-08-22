@@ -28,6 +28,7 @@ import { WINDOW_EVENTS } from './instance.js';
 import state from './lib/global-state.js';
 import createTemplate from './lib/template.js';
 import { subscribe, publish } from './lib/pubsub.js';
+import { transitions } from './lib/transitions.js';
 import fezLocalStorage from './lib/localstorage.js';
 import fezAwait from './lib/await-helper.js';
 import index from './lib/index.js';
@@ -232,6 +233,12 @@ Fez.publish = publish;
 // =============================================================================
 
 Fez.localStorage = fezLocalStorage;
+
+// =============================================================================
+// ELEMENT TRANSITIONS - fez:in / fez:out (see lib/transitions.js)
+// =============================================================================
+
+Fez.transitions = transitions;
 
 // =============================================================================
 // ASYNC AWAIT HELPER (see lib/await-helper.js)

@@ -501,3 +501,100 @@ describe("Fez.nodeMorph - validation", () => {
     target.remove();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Deferred removal (fez:out) - opts.removeNode and _fezLeaving ghosts
+// ---------------------------------------------------------------------------
+
+describe("nodeMorph - removeNode hook and leaving nodes", () => {
+  test("removeNode is called instead of removeChild for dropped children", () => {
+    const target = makeTarget("ul", "<li>a</li><li>b</li><li>c</li>");
+    const removed = [];
+    Fez.nodeMorph(target, "<li>a</li>", {
+      removeNode: (parent, node) => {
+        removed.push(node.textContent);
+        parent.removeChild(node);
+      },
+    });
+    expect(removed).toEqual(["b", "c"]);
+    expect(target.innerHTML).toBe("<li>a</li>");
+    target.remove();
+  });
+
+  test("removeNode still runs beforeRemove first", () => {
+    const target = makeTarget("div", '<p class="fez">x</p><span>y</span>');
+    const order = [];
+    Fez.nodeMorph(target, "<span>y</span>", {
+      beforeRemove: (n) => order.push("before:" + n.tagName),
+      removeNode: (parent, n) => {
+        order.push("remove:" + n.tagName);
+        parent.removeChild(n);
+      },
+    });
+    expect(order).toEqual(["before:P", "remove:P"]);
+    target.remove();
+  });
+
+  test("a deferred (leaving) node is ignored by the next diff and removed later", () => {
+    const target = makeTarget("ul", "<li>a</li><li>b</li>");
+    const liB = target.children[1];
+    const pending = [];
+    const defer = (parent, node) => {
+      node._fezLeaving = true;
+      pending.push(() => node.remove());
+    };
+
+    Fez.nodeMorph(target, "<li>a</li>", { removeNode: defer });
+    // ghost still attached, flagged
+    expect(target.children.length).toBe(2);
+    expect(liB._fezLeaving).toBe(true);
+
+    // next render: ghost is not matched or re-used, new node inserted normally
+    Fez.nodeMorph(target, "<li>a</li><li>c</li>", { removeNode: defer });
+    const texts = Array.from(target.children).map((c) => c.textContent);
+    expect(texts).toContain("c");
+    expect(texts).toContain("b"); // still animating out
+    expect(liB._fezLeaving).toBe(true);
+    expect(pending.length).toBe(1); // ghost was NOT removed a second time
+
+    pending.forEach((fn) => fn());
+    expect(Array.from(target.children).map((c) => c.textContent)).toEqual(["a", "c"]);
+    target.remove();
+  });
+
+  test("leaving nodes do not break keyed matching or ordering", () => {
+    const target = makeTarget(
+      "ul",
+      '<li key="1">one</li><li key="2">two</li><li key="3">three</li>',
+    );
+    const two = target.children[1];
+    const defer = (parent, node) => {
+      node._fezLeaving = true;
+    };
+
+    // drop "two" (deferred), reverse the others
+    Fez.nodeMorph(target, '<li key="3">three</li><li key="1">one</li>', { removeNode: defer });
+    const live = Array.from(target.children).filter((c) => !c._fezLeaving);
+    expect(live.map((c) => c.getAttribute("key"))).toEqual(["3", "1"]);
+    expect(two._fezLeaving).toBe(true);
+    expect(two.isConnected).toBe(true);
+
+    // bring "two" back: ghost is not revived, a fresh node is inserted
+    Fez.nodeMorph(
+      target,
+      '<li key="1">one</li><li key="2">two</li><li key="3">three</li>',
+      { removeNode: defer },
+    );
+    const live2 = Array.from(target.children).filter((c) => !c._fezLeaving);
+    expect(live2.map((c) => c.getAttribute("key"))).toEqual(["1", "2", "3"]);
+    expect(live2[1]).not.toBe(two);
+    target.remove();
+  });
+
+  test("default behaviour without removeNode is unchanged", () => {
+    const target = makeTarget("ul", "<li>a</li><li>b</li>");
+    Fez.nodeMorph(target, "<li>b</li>");
+    expect(target.innerHTML).toBe("<li>b</li>");
+    target.remove();
+  });
+});

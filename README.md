@@ -1028,7 +1028,7 @@ All parts are optional
   </style>
 
   <div> ... <!-- any other html after head, script or style is considered template-->
-    <!-- All fez: attributes use namespace syntax (fez:keep, fez:this, fez:bind, fez:use, fez:class, fez:in, fez:out, fez:transition) -->
+    <!-- All fez: attributes use namespace syntax (fez:keep, fez:this, fez:bind, fez:use, fez:class, fez:in, fez:out, fez:transition, fez:animate) -->
     <!-- fez-keep also works (fez: is converted to fez- at compile time) -->
 
     <!-- Conditionals -->
@@ -1074,12 +1074,27 @@ All parts are optional
 
     <!--
       fez:in / fez:out - Svelte-style enter/leave transitions (Web Animations API).
-      "name, key=value, ..." or "name; key: value; ...". Built-ins: fade, fly, scale, blur, slide.
-      Outro finishes before the node is detached. Custom: Fez.transitions.pop = (node, params) => ({ keyframes, duration }).
-      Unknown names are used as CSS @keyframes names.
+      "name, key=value, ..." or "name; key: value; ...". All take duration, delay, easing.
+      Outro finishes before the node is detached. Unknown names are used as CSS @keyframes names.
+      Custom: Fez.transitions.wobble = (node, params) => ({ keyframes, duration }).
+      Built-ins:
+        fade   - opacity 0 -> 1
+        fly    - slide in from an offset + fade: from=left|right|top|bottom, distance=40 (or x, y px), opacity
+        slide  - accordion collapse/expand of height (axis=x for width), opacity=0 to fade too
+        scale  - grow from start=0 + fade
+        pop    - scale from start=0.8 with backOut overshoot + fade (dialogs, popovers, toasts)
+        blur   - unblur from amount=5 px + fade
+        flip   - 3D card flip: axis=y|x, angle=90, perspective=600
+        rotate - spin in from angle=-90 deg (+ start scale) + fade
+        draw   - SVG stroke drawing (stroke-dashoffset), duration or speed px/ms
     -->
-    <div fez:in="fly, y=20, duration=300" fez:out="fade; duration: 150">Animated</div>
-    <div fez:transition="fade, duration=200">Same in and out (fez:in / fez:out override per direction)</div>
+    <div fez:in="fly, from=left, duration=300" fez:out="fade; duration: 150">Animated</div>
+    <div fez:transition="pop">Same in and out (fez:in / fez:out override per direction)</div>
+
+    <!-- fez:animate="flip" - kept list items glide to their new position on reorder (needs key=) -->
+    {#each state.items as item}
+      <li key="{item.id}" fez:animate="flip, duration=250" fez:out="fade">{item.name}</li>
+    {/each}
 
     <!-- preserve element across re-renders (recreates only when key changes) -->
     <p fez:keep="unique-key">...</p>

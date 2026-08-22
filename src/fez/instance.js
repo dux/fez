@@ -7,6 +7,12 @@
 import parseNode from "./lib/n.js";
 import createTemplate from "./lib/template.js";
 import { componentSubscribe, componentPublish } from "./lib/pubsub.js";
+import {
+  parseTransition,
+  runTransition,
+  measureFlip,
+  playFlip,
+} from "./lib/transitions.js";
 
 /**
  * Event names that default to `window` in `this.on('event', handler)`.
@@ -385,6 +391,9 @@ export default class FezBase {
       }
     });
 
+    // fez-animate: where were the kept nodes before the morph moved them
+    const flip = measureFlip(this._fezFlipNodes);
+
     Fez.morphdom(this.root, newNode);
 
     // Restore input values after morph
@@ -399,6 +408,7 @@ export default class FezBase {
     }
 
     this.fezRenderPostProcess();
+    playFlip(flip);
     this.fezGlobals.commitRender();
     this.afterRender();
 
@@ -444,6 +454,41 @@ export default class FezBase {
           n.classList.add(lastClass);
         }, 1);
       }
+    });
+
+    // fez-animate="flip, duration=300" -> FLIP when the differ moves the node
+    // (list reorder). Rebuilt every render - the attribute is re-synced from
+    // the template - so removed items drop out of the list on their own.
+    this._fezFlipNodes = [];
+    fetchAttr("fez-animate", (value, n) => {
+      n._fezAnimate = parseTransition(value);
+      this._fezFlipNodes.push(n);
+    });
+
+    // fez-transition="fade" -> shorthand for fez-in + fez-out with the same
+    // spec. Runs before the explicit handlers so their attributes are still on
+    // the node: an explicit fez-in / fez-out wins for its direction.
+    fetchAttr("fez-transition", (value, n) => {
+      const spec = parseTransition(value);
+      if (!n.hasAttribute("fez-out")) n._fezOut = spec;
+      if (n.hasAttribute("fez-in") || n._fezIn) return;
+      n._fezIn = true;
+      runTransition(n, spec, "in");
+    });
+
+    // fez-in="fade, duration=200" -> intro once, when the node first appears.
+    // The morph re-syncs the attribute from the template on every render, so
+    // a kept node sees it again - the flag stops a second intro.
+    fetchAttr("fez-in", (value, n) => {
+      if (n._fezIn) return;
+      n._fezIn = true;
+      runTransition(n, parseTransition(value), "in");
+    });
+
+    // fez-out="fade" -> remembered on the node; the morph's removeNode hook
+    // plays it before detaching (see lib/fez-morph.js)
+    fetchAttr("fez-out", (value, n) => {
+      n._fezOut = parseTransition(value);
     });
 
     // fez-bind="state.inputNode" -> two-way binding
