@@ -174,16 +174,30 @@ const LOG = (() => {
         '<div style="display:flex;flex-wrap:wrap;gap:4px;flex:1;margin-right:10px">' +
         buttons +
         "</div>" +
-        '<button style="padding:4px 8px;cursor:pointer;flex-shrink:0">&times;</button>' +
+        '<div style="display:flex;gap:4px;flex-shrink:0">' +
+        '<button data-action="clear" style="padding:4px 8px;cursor:pointer">clear all</button>' +
+        '<button data-action="close" style="padding:4px 8px;cursor:pointer">&times;</button>' +
+        "</div>" +
         "</div>" +
         '<xmp style="font-family:monospace;flex:1;overflow:auto;margin:0;padding:0;color:#000;background:#fff;font-size:14px;line-height:22px">' +
         logs[currentIndex] +
         "</xmp>" +
         "</div>";
 
-      d.querySelector('button[style*="flex-shrink:0"]').onclick = () => {
+      d.querySelector('button[data-action="close"]').onclick = () => {
         d.remove();
         createLogButton();
+      };
+
+      d.querySelector('button[data-action="clear"]').onclick = () => {
+        logs.length = 0;
+        logTypes.length = 0;
+        currentIndex = 0;
+        localStorage.removeItem("_LOG_INDEX");
+        // nothing left to reopen, so drop the dialog and the LOG button
+        d.remove();
+        const btn = document.getElementById("log-reopen-button");
+        if (btn) btn.remove();
       };
 
       d.querySelectorAll("button[data-index]").forEach((btn) => {
@@ -246,19 +260,15 @@ const LOG = (() => {
     logs.push(o + `\n\ntype: ${originalType}`);
     logTypes.push(originalType);
 
-    // Check if log dialog is open by checking for element
-    const isOpen = !!document.getElementById("dump-dialog");
+    // A new entry always wins over whatever was last viewed. Persist it first
+    // so the restore in showLogDialog() picks it up instead of a stale index.
+    currentIndex = logs.length - 1;
+    localStorage.setItem("_LOG_INDEX", currentIndex);
 
-    if (!isOpen) {
-      // Show log dialog by default
-      showLogDialog();
+    if (document.getElementById("dump-dialog")) {
+      if (renderContent) renderContent();
     } else {
-      // Update current index to the new log and refresh
-      currentIndex = logs.length - 1;
-      localStorage.setItem("_LOG_INDEX", currentIndex);
-      if (renderContent) {
-        renderContent();
-      }
+      showLogDialog();
     }
   };
 })();
