@@ -1106,6 +1106,9 @@ All parts are optional
       <li key="{item.id}" fez:animate="flip, duration=250" fez:out="fade">{item.name}</li>
     {/each}
 
+    <!-- fez:animate="height" - box animates old -> new height whenever its content changes (also width, size) -->
+    <div fez:animate="height, duration=250">{#if state.open}<p>...</p>{/if}</div>
+
     <!-- preserve element across re-renders (recreates only when key changes) -->
     <p fez:keep="unique-key">...</p>
 

@@ -440,3 +440,114 @@ export function playFlip(entries) {
       });
   }
 }
+
+// ---------------------------------------------------------------------------
+// fez:animate="height" | "width" | "size" - animate the box when content
+// changes (accordion body, growing list, swapped text). A ResizeObserver sees
+// the new size after layout but before paint, so the node is animated from its
+// previous size to the new one with no visible jump. Catches re-renders of
+// this or any nested component and outside DOM changes alike, and leaves no
+// inline size behind once the animation ends.
+//
+// The node is unobserved while its own size animation plays - a node that
+// changes its size inside its own observer callback trips the browser's
+// "ResizeObserver loop" guard - and observed again when it finishes.
+// ---------------------------------------------------------------------------
+
+const SIZE_AXES = { height: ['height'], width: ['width'], size: ['width', 'height'] };
+
+/**
+ * Attach a size animation to node, or update its params when already attached.
+ * spec: parsed transition or its string form ("height, duration=250").
+ * Returns true when the spec names a size animation, false otherwise.
+ */
+export function animateSize(node, spec) {
+  if (typeof spec === 'string') {
+    spec = parseTransition(spec);
+  }
+  const axes = SIZE_AXES[spec?.name];
+  if (!axes || !node || node.nodeType !== 1) {
+    return false;
+  }
+
+  // params may change between renders - the next animation takes the latest
+  node._fezSize = { axes, params: spec.params || {} };
+  if (node._fezSizeObserver || typeof ResizeObserver !== 'function') {
+    return true;
+  }
+
+  let last = null;
+  const observer = new ResizeObserver(() => {
+    const rect = node.getBoundingClientRect();
+    const prev = last;
+    last = { width: rect.width, height: rect.height };
+    // first delivery after observe() only records the baseline
+    if (prev) {
+      playSize(node, prev, last, observer);
+    }
+  });
+  node._fezSizeObserver = observer;
+  observer.observe(node);
+  return true;
+}
+
+function playSize(node, prev, next, observer) {
+  if (!node.isConnected || node._fezLeaving || reducedMotion()) {
+    return;
+  }
+  if (typeof node.animate !== 'function') {
+    return;
+  }
+
+  // measured sizes are border-box; the animated width/height property is
+  // content-box unless the element says otherwise - shave padding and border
+  // off or the box overshoots and snaps back when the animation releases
+  const cs = computed(node);
+  const px = (v) => parseFloat(v) || 0;
+  const inset =
+    cs.boxSizing === 'border-box'
+      ? { width: 0, height: 0 }
+      : {
+          width: px(cs.paddingLeft) + px(cs.paddingRight) + px(cs.borderLeftWidth) + px(cs.borderRightWidth),
+          height: px(cs.paddingTop) + px(cs.paddingBottom) + px(cs.borderTopWidth) + px(cs.borderBottomWidth),
+        };
+
+  const { axes, params } = node._fezSize;
+  const from = {};
+  const to = {};
+  let changed = false;
+  for (const axis of axes) {
+    if (Math.abs(prev[axis] - next[axis]) < 0.5) {
+      continue;
+    }
+    from[axis] = `${Math.max(0, prev[axis] - inset[axis])}px`;
+    to[axis] = `${Math.max(0, next[axis] - inset[axis])}px`;
+    changed = true;
+  }
+  if (!changed) {
+    return;
+  }
+
+  observer.unobserve(node);
+  // content overflows the box while it is smaller than natural - clip it
+  const prevOverflow = node.style.overflow;
+  node.style.overflow = 'hidden';
+
+  const anim = node.animate([from, to], {
+    duration: num(params.duration, DEFAULT_DURATION),
+    delay: num(params.delay, 0),
+    easing: resolveEasing(params.easing, 'cubicOut'),
+    fill: 'backwards',
+  });
+  node._fezSizeAnim = anim;
+  anim.finished
+    .catch(() => {})
+    .then(() => {
+      if (node._fezSizeAnim === anim) {
+        node._fezSizeAnim = null;
+      }
+      node.style.overflow = prevOverflow;
+      // re-baseline; a change that happened meanwhile animates from here
+      observer.observe(node);
+    });
+}

@@ -254,3 +254,154 @@ describe("FLIP (fez:animate)", () => {
     expect(still._calls).toBeUndefined();
   });
 });
+
+describe("animateSize (fez:animate=height|size)", () => {
+  // Fake ResizeObserver: records targets, lets the test fire deliveries
+  let observers;
+  let savedRO;
+  beforeAll(() => {
+    savedRO = globalThis.ResizeObserver;
+    globalThis.ResizeObserver = class {
+      constructor(cb) {
+        this.cb = cb;
+        this.targets = new Set();
+        observers.push(this);
+      }
+      observe(n) {
+        this.targets.add(n);
+      }
+      unobserve(n) {
+        this.targets.delete(n);
+      }
+      disconnect() {
+        this.targets.clear();
+      }
+      fire() {
+        this.cb([]);
+      }
+    };
+  });
+  afterAll(() => {
+    globalThis.ResizeObserver = savedRO;
+  });
+
+  const mk = (height) => {
+    const n = document.createElement("div");
+    document.body.appendChild(n);
+    n._h = height;
+    n.getBoundingClientRect = () => ({ width: 100, height: n._h });
+    n.animate = (keyframes, opts) => {
+      n._calls = (n._calls || 0) + 1;
+      n._last = { keyframes, opts };
+      const anim = { cancel() {} };
+      anim.finished = new Promise((r) => (n._finish = r));
+      return anim;
+    };
+    return n;
+  };
+
+  test("returns false for non-size specs, true and attaches once for height", async () => {
+    observers = [];
+    const { animateSize } = await import("../src/fez/lib/transitions.js");
+    const n = mk(40);
+    expect(animateSize(n, { name: "flip", params: {} })).toBe(false);
+    expect(n._fezSizeObserver).toBeUndefined();
+
+    expect(animateSize(n, "height, duration=150")).toBe(true);
+    expect(animateSize(n, "height, duration=250, easing=linear")).toBe(true);
+    expect(observers.length).toBe(1);
+    expect(n._fezSize.params).toEqual({ duration: 250, easing: "linear" });
+  });
+
+  test("first delivery is the baseline, later height change animates old -> new and re-observes after", async () => {
+    observers = [];
+    const { animateSize } = await import("../src/fez/lib/transitions.js");
+    const n = mk(40);
+    animateSize(n, "height, duration=200, easing=linear");
+    const ro = observers[0];
+
+    ro.fire(); // baseline
+    expect(n._calls).toBeUndefined();
+
+    n._h = 90;
+    ro.fire();
+    expect(n._calls).toBe(1);
+    expect(n._last.keyframes).toEqual([{ height: "40px" }, { height: "90px" }]);
+    expect(n._last.opts).toMatchObject({ duration: 200, easing: "linear", fill: "backwards" });
+    expect(n.style.overflow).toBe("hidden");
+    expect(ro.targets.has(n)).toBe(false); // not observed while animating
+
+    n._finish();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(n.style.overflow).toBe("");
+    expect(ro.targets.has(n)).toBe(true);
+  });
+
+  test("unchanged height, width-only change for 'height', and leaving nodes do not animate", async () => {
+    observers = [];
+    const { animateSize } = await import("../src/fez/lib/transitions.js");
+    const n = mk(40);
+    animateSize(n, "height");
+    const ro = observers[0];
+    ro.fire();
+    ro.fire();
+    expect(n._calls).toBeUndefined();
+
+    n.getBoundingClientRect = () => ({ width: 300, height: 40 });
+    ro.fire();
+    expect(n._calls).toBeUndefined();
+
+    n._fezLeaving = true;
+    n.getBoundingClientRect = () => ({ width: 300, height: 80 });
+    ro.fire();
+    expect(n._calls).toBeUndefined();
+  });
+
+  test("content-box elements animate the box minus padding and border", async () => {
+    observers = [];
+    const { animateSize } = await import("../src/fez/lib/transitions.js");
+    const n = mk(40);
+    const win = document.defaultView;
+    const orig = win.getComputedStyle;
+    win.getComputedStyle = (el) =>
+      el === n
+        ? { boxSizing: "content-box", paddingTop: "4px", paddingBottom: "4px", borderTopWidth: "2px", borderBottomWidth: "2px" }
+        : orig.call(win, el);
+    try {
+      animateSize(n, "height");
+      const ro = observers[0];
+      ro.fire();
+      n._h = 90;
+      ro.fire();
+      expect(n._last.keyframes).toEqual([{ height: "28px" }, { height: "78px" }]);
+
+      // border-box: measured size is the animated size
+      const b = mk(40);
+      win.getComputedStyle = (el) =>
+        el === b ? { boxSizing: "border-box", paddingTop: "4px", borderTopWidth: "2px" } : orig.call(win, el);
+      animateSize(b, "height");
+      const rb = observers[1];
+      rb.fire();
+      b._h = 90;
+      rb.fire();
+      expect(b._last.keyframes).toEqual([{ height: "40px" }, { height: "90px" }]);
+    } finally {
+      win.getComputedStyle = orig;
+    }
+  });
+
+  test("'size' animates both axes", async () => {
+    observers = [];
+    const { animateSize } = await import("../src/fez/lib/transitions.js");
+    const n = mk(40);
+    animateSize(n, "size");
+    const ro = observers[0];
+    ro.fire();
+    n.getBoundingClientRect = () => ({ width: 200, height: 60 });
+    ro.fire();
+    expect(n._last.keyframes).toEqual([
+      { width: "100px", height: "40px" },
+      { width: "200px", height: "60px" },
+    ]);
+  });
+});

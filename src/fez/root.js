@@ -28,7 +28,7 @@ import { WINDOW_EVENTS } from './instance.js';
 import state from './lib/global-state.js';
 import createTemplate from './lib/template.js';
 import { subscribe, publish } from './lib/pubsub.js';
-import { transitions } from './lib/transitions.js';
+import { transitions, animateSize } from './lib/transitions.js';
 import fezLocalStorage from './lib/localstorage.js';
 import fezAwait from './lib/await-helper.js';
 import index from './lib/index.js';
@@ -239,6 +239,13 @@ Fez.localStorage = fezLocalStorage;
 // =============================================================================
 
 Fez.transitions = transitions;
+
+/**
+ * Animate an element's box when its content changes - what fez:animate="height"
+ * does, for plain DOM outside templates:
+ *   Fez.animateSize(node, 'height, duration=250, easing=cubicOut')
+ */
+Fez.animateSize = animateSize;
 
 // =============================================================================
 // ASYNC AWAIT HELPER (see lib/await-helper.js)

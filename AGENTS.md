@@ -540,6 +540,23 @@ FLIP animation for elements the differ keeps but moves (sort, shuffle, remove-fr
 
 Implementation: positions are measured right before the morph (`measureFlip` in `src/fez/lib/transitions.js`), the translate delta is played after (`playFlip`). Newly inserted nodes have no old position (their `fez:in` covers that); leaving nodes are skipped.
 
+#### Content size: `fez:animate="height"`
+
+The element animates from its old to its new height whenever its content changes (accordion body, growing list, swapped text) - no wrapper component, no inline height left behind.
+`width` and `size` (both axes) work the same; `fez:animate="flip, height"` combines with list reorder.
+Params: `duration` (300), `delay`, `easing` (cubicOut).
+
+```html
+<div fez:animate="height, duration=250">
+  {#each state.items as item}<p key="{item.id}">{item.text}</p>{/each}
+</div>
+```
+
+Implementation (`animateSize` in `src/fez/lib/transitions.js`): a `ResizeObserver` on the element reports the new size after layout but before paint, the box is animated from the previous size with WAAPI (`overflow: hidden` for the duration).
+The node is unobserved while its own animation plays (a self-observing node that resizes in its callback trips the browser's ResizeObserver loop guard) and observed again when it finishes.
+Because it observes rather than hooks the morph, it catches nested component renders and outside DOM changes too.
+For plain DOM outside templates: `Fez.animateSize(node, 'height, duration=250')`.
+
 Caveats:
 
 * Identity matters. The differ only fires `fez:in` / `fez:out` when it actually inserts/removes the node; an unkeyed sibling may be morphed in place instead. Use `key=` / `fez:keep` on list items you want to animate.

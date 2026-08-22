@@ -610,10 +610,20 @@ interface FezStatic {
    *   blur (amount, opacity), flip (axis, angle, perspective, opacity),
    *   rotate (angle, start, opacity), draw (SVG; duration | speed).
    * List reorder: <li key=".." fez:animate="flip, duration=250"> (FLIP on kept nodes).
+   * Content size: <div fez:animate="height"> (height | width | size; "flip, height" does both).
    * Register your own: `Fez.transitions.pop = (node, params) => ({ keyframes, duration })`.
    * Names not in the registry are treated as CSS @keyframes names.
    */
   transitions: Record<string, FezTransitionFn>;
+
+  /**
+   * Animate an element's box when its content changes - what
+   * `fez:animate="height"` does, for plain DOM outside templates.
+   * spec: "height" | "width" | "size" plus duration / delay / easing params,
+   * as a string ("height, duration=250") or a parsed { name, params }.
+   * Calling again only updates the params. Returns true when spec is a size animation.
+   */
+  animateSize(node: HTMLElement, spec: string | { name: string; params?: FezTransitionParams }): boolean;
 }
 
 // =============================================================================

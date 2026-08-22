@@ -13,6 +13,7 @@ import {
   runTransition,
   measureFlip,
   playFlip,
+  animateSize,
 } from "./lib/transitions.js";
 
 /**
@@ -570,12 +571,21 @@ export default class FezBase {
       }
     });
 
+    // fez-animate="height|width|size" -> animate the box when content changes
     // fez-animate="flip, duration=300" -> FLIP when the differ moves the node
-    // (list reorder). Rebuilt every render - the attribute is re-synced from
-    // the template - so removed items drop out of the list on their own.
+    // (list reorder); "flip, height" does both. Flip nodes are rebuilt every
+    // render - the attribute is re-synced from the template - so removed items
+    // drop out of the list on their own.
     this._fezFlipNodes = [];
     fetchAttr("fez-animate", (value, n) => {
-      n._fezAnimate = parseTransition(value);
+      const spec = parseTransition(value);
+      if (animateSize(n, spec)) return;
+      for (const axis of ["height", "width", "size"]) {
+        if (spec.params[axis] === true) {
+          animateSize(n, { name: axis, params: spec.params });
+        }
+      }
+      n._fezAnimate = spec;
       this._fezFlipNodes.push(n);
     });
 
