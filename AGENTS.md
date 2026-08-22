@@ -38,8 +38,13 @@ All documentation and demos go INSIDE the .fez file (no separate .html files) us
 ## CLI Tools
 
 ```bash
+# Print this reference (run `fez --help` for all commands, source path and repo)
+fez agents
+# Add a pointer to ./AGENTS.md / ./CLAUDE.md of a project so agents know to run `fez agents`
+fez agents --init
+
 # Compile and validate components - catches JS syntax errors and template issues
-bunx fez-compile path/to/component.fez
+fez compile path/to/component.fez
 
 # Validate only the .fez template block with the Fez template compiler
 fez template path/to/component.fez
@@ -470,6 +475,54 @@ All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is con
   >
 </div>
 ```
+
+### Transitions: `fez:in` / `fez:out`
+
+Svelte-style enter/leave animations on plain HTML elements inside templates (`src/fez/lib/transitions.js`).
+`fez:in` plays when the element first appears (initial render included); `fez:out` plays when a re-render drops the element, and the node is detached only after the outro finishes.
+`fez:transition` is shorthand for both with the same spec.
+
+```html
+<div fez:in="fade">...</div>
+<div fez:in="fly, y=20, duration=300" fez:out="fade, duration=150">...</div>
+<div fez:in="fly; y: 20; duration: 300; easing: quintOut">...</div>
+<div fez:in="slide, axis=x, delay={index * 50}">...</div>
+<!-- same animation both ways (Svelte transition:) - explicit fez:in / fez:out override per direction -->
+<div fez:transition="fade, duration=200">...</div>
+```
+
+Syntax: first token is the transition name, the rest are `key=value` or `key: value` pairs separated by `,` or `;`.
+Numbers and `true`/`false` are coerced; `{...}` interpolation works inside the value.
+
+Built-ins (all accept `duration` ms, `delay` ms, `easing`):
+
+* `fade`
+* `fly` - `x`, `y` (px), `opacity` (start, default 0)
+* `scale` - `start` (default 0), `opacity`
+* `blur` - `amount` (px, default 5), `opacity`
+* `slide` - `axis` (`y` default, or `x`)
+
+`easing` accepts any CSS timing function (`ease-out`, `cubic-bezier(...)`) or a Svelte-style name (`cubicOut`, `quintOut`, `expoOut`, `backOut`, ...).
+Animations run through the Web Animations API; the outro is the same keyframes played in reverse. `prefers-reduced-motion: reduce` skips the animation.
+
+Custom transitions: register on `Fez.transitions` (returns intro keyframes, first frame = hidden, last = natural state):
+
+```js
+Fez.transitions.pop = (node, params) => ({
+  keyframes: [{ transform: 'scale(0.8)', opacity: 0 }, { transform: 'none', opacity: 1 }],
+  duration: params.duration || 200,
+  easing: 'backOut',
+})
+```
+
+A name that is not registered is used as a CSS `@keyframes` name (`<div fez:in="wiggle, duration=400">` + `@keyframes wiggle { ... }` in the component `<style>`).
+
+Caveats:
+
+* Identity matters. The differ only fires `fez:in` / `fez:out` when it actually inserts/removes the node; an unkeyed sibling may be morphed in place instead. Use `key=` / `fez:keep` on list items you want to animate.
+* Outro is not nested: only the node the differ removes animates, descendants go with it. Child fez components inside are destroyed immediately and just stay visible while the parent fades.
+* While an outro runs the old node stays in the DOM flagged `_fezLeaving` (pointer-events disabled) and is invisible to the differ; re-adding the same element meanwhile inserts a fresh node.
+* Not supported on fez component tags (`<my-comp fez:in>`), only on plain elements inside templates.
 
 ## Best Practices
 

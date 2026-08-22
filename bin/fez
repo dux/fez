@@ -23,6 +23,10 @@ if command.nil? || command == '--help' || command == '-h'
     puts "  %-#{max}s  %s" % [name, info]
   end
   puts ""
+  puts "Source: #{bin_dir.parent}"
+  puts "Repo:   https://github.com/dux/fez"
+  puts "Docs:   fez agents   (LLM reference, AGENTS.md)"
+  puts ""
   puts "Run 'fez <command> --help' for details on a specific command."
   exit 0
 end

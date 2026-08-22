@@ -22,6 +22,10 @@ It uses minimal abstraction. You will learn to use it in 15 minutes, just look a
 Fez provides command-line tools for development:
 
 ```bash
+# Print the LLM/agent reference (AGENTS.md); --init adds a pointer to your project's AGENTS.md
+bunx @dinoreic/fez agents
+bunx @dinoreic/fez agents --init
+
 # Compile and validate a Fez component
 bunx @dinoreic/fez compile demo/fez/ui-counter.fez
 
@@ -37,7 +41,7 @@ fez compile my-component.fez
 fez template my-component.fez
 ```
 
-`fez compile` validates both JavaScript and Fez template syntax. Use `--debug-template` when a template compile error needs the generated render function:
+`fez --help` lists all commands plus the source path and GitHub repo. `fez compile` validates both JavaScript and Fez template syntax. Use `--debug-template` when a template compile error needs the generated render function:
 
 ```bash
 fez compile --debug-template my-component.fez
@@ -1024,7 +1028,7 @@ All parts are optional
   </style>
 
   <div> ... <!-- any other html after head, script or style is considered template-->
-    <!-- All fez: attributes use namespace syntax (fez:keep, fez:this, fez:bind, fez:use, fez:class) -->
+    <!-- All fez: attributes use namespace syntax (fez:keep, fez:this, fez:bind, fez:use, fez:class, fez:in, fez:out, fez:transition) -->
     <!-- fez-keep also works (fez: is converted to fez- at compile time) -->
 
     <!-- Conditionals -->
@@ -1067,6 +1071,15 @@ All parts are optional
       class will be added to SPAN element, 100ms after dom mount (to trigger animations)
     -->
     <span fez:class="active:100">Delayed class</span>
+
+    <!--
+      fez:in / fez:out - Svelte-style enter/leave transitions (Web Animations API).
+      "name, key=value, ..." or "name; key: value; ...". Built-ins: fade, fly, scale, blur, slide.
+      Outro finishes before the node is detached. Custom: Fez.transitions.pop = (node, params) => ({ keyframes, duration }).
+      Unknown names are used as CSS @keyframes names.
+    -->
+    <div fez:in="fly, y=20, duration=300" fez:out="fade; duration: 150">Animated</div>
+    <div fez:transition="fade, duration=200">Same in and out (fez:in / fez:out override per direction)</div>
 
     <!-- preserve element across re-renders (recreates only when key changes) -->
     <p fez:keep="unique-key">...</p>

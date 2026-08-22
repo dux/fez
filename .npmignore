@@ -2,7 +2,6 @@
 demo/
 lib/server.js
 build.js
-AGENTS.md
 
 # Test files
 test/
