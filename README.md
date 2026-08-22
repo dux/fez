@@ -311,6 +311,7 @@ Fez uses a Svelte-inspired template syntax with single braces `{ }` for expressi
 - **Brackets optional** - `{#for key, val in obj}` same as `{#for [key, val] in obj}`
 
 **Note on passing props:** Use `:prop="expr"` syntax to pass JavaScript objects, arrays, or functions as props. Regular `prop={expr}` will stringify the value.
+Declare a `PROPS` schema (see [Typed props](#typed-props-props)) and stringified numbers, booleans and JSON are coerced back for you.
 
 **Component Isolation:** Child components in loops are automatically preserved during parent re-renders. They only re-render when their props actually change - making loops with many items very efficient.
 
@@ -578,6 +579,7 @@ This example showcases:
 - **Server-Side Friendly** - Works seamlessly with server-generated HTML, any routing library, and progressive enhancement strategies
 - **Semantic HTML Output** - Transforms custom elements to standard HTML nodes (e.g., `<ui-button>` → `<button class="fez fez-button">`), making components fully stylable with CSS
 - **Single-File Components** - Define CSS, HTML, and JavaScript in one file, no build step required
+- **Typed Props** - Opt-in `PROPS` schema validates and coerces attribute strings into numbers, booleans, arrays, dates... with defaults, `required` and `enum`, straight into `this.props`
 - **No Framework Magic** - Plain vanilla JS classes with clear, documented methods. No hooks, runes, or complex abstractions
 - **SCSS-style Nesting, No Dependency** - Write nested rules and `&` as you would in SCSS. Fez flattens them to plain CSS itself rather than relying on native CSS nesting, so components work on browsers older than late-2023 (old Android WebViews included). Comma-separated parents expand cartesian (`.a, .b { &:hover }` → `.a:hover, .b:hover`), keeping each selector's own specificity and needing no `:is()` support. Everything lands in one `<style id="fez-css">`
 - **Smart Memory Management** - MutationObserver automatically cleans up disconnected components and their resources (intervals, event listeners, subscriptions)
@@ -655,6 +657,14 @@ Fez('foo-bar', class {
   // The component is automatically appended to the document body as a singleton. See `demo/fez/ui-dialog.fez` for a complete example.
   GLOBAL = 'Dialog'
   GLOBAL = true // just append node to document, do not create window reference
+
+  // optional props schema - validates and coerces attribute values into this.props
+  // shorthand `name: String` or full `{ type, default, required, enum }`, see "Typed props" below
+  PROPS = {
+    name: String,
+    count: { type: Number, default: 0 },
+    open: Boolean,
+  }
 
   // called when fez element is connected to dom, before first render
   // here you still have your slot available in this.root
@@ -1117,6 +1127,68 @@ All parts are optional
 </xmp>
 ```
 
+## Typed props (PROPS)
+
+HTML attributes are strings. Declare a `PROPS` schema on the class and Fez validates and coerces them before `init(props)` runs, so `this.props`, templates (`{props.count}`), `onPropsChange` and `onRefresh` all see typed values, defaults included.
+Props without a schema entry pass through untouched; components without `PROPS` behave exactly as before.
+
+```html
+<xmp tag="ui-pager">
+  <script>
+    class {
+      PROPS = {
+        title:   String,                                     // shorthand, same as { type: String }
+        page:    { type: Number, default: 1 },
+        open:    Boolean,                                    // <ui-pager open> -> true, missing -> false
+        size:    { type: String, default: 'md', enum: ['sm', 'md', 'lg'] },
+        items:   { type: Array, default: () => [] },          // JSON string is parsed
+        user:    { type: Object, required: true },
+        on_pick: { type: Function },                         // only reachable via :on_pick="..."
+        since:   { type: Date },
+        tags:    (raw) => String(raw).split(','),             // any other function = custom caster
+      }
+
+      init(props) {
+        props.page + 1        // number, no parseInt
+        props.open            // boolean
+      }
+    }
+  </script>
+  ...
+</xmp>
+
+<ui-pager page="3" open :user="{id: 1}" items='["a","b"]' since="2024-05-01"></ui-pager>
+```
+
+Works as an instance field (`PROPS = {...}`) or as `static PROPS = {...}` on a plain/`FezBase` class.
+
+Entry fields:
+
+| field      | meaning                                                                     |
+|------------|-----------------------------------------------------------------------------|
+| `type`     | `String`, `Number`, `Boolean`, `Array`, `Object`, `Function`, `Date`, or a custom `(raw, name) => value` function |
+| `default`  | used when the prop is missing or failed coercion; a function is called (`() => []`) |
+| `required` | missing value reports a `props` error                                       |
+| `enum`     | allowed values, checked after coercion                                      |
+
+Coercion rules (idempotent - values that already have the right type pass through, so `data-props` JSON and `:prop` expressions are fine):
+
+- `String` - `String(v)`
+- `Number` - `Number(v)`; `NaN` is an error
+- `Boolean` - attribute present with no value (`<x open>`) and `open="open"` are `true`; `"false"`, `"0"`, `"off"`, `"no"`, `"null"` are `false`; a declared Boolean with no attribute is `false`
+- `Array` / `Object` - strings are `JSON.parse`d; wrong shape is an error
+- `Function` - must already be a function, pass it with `:on_pick="..."` or `Fez.pointer()`
+- `Date` - ISO string or epoch number -> `Date`; invalid is an error
+- Order per key: coerce, `required`, `enum`, then `default`
+
+Errors never throw. They are reported through `Fez.onError('props', '<ui-pager> prop "page": expected Number, got "abc"')` (console by default, see [Custom Error Handler](#custom-error-handler)), the offending value is dropped and the `default` applies if there is one.
+
+Attribute changes observed by `onPropsChange(name, value)` and prop refreshes of keyed/preserved components run through the same schema, so `value` is already coerced there too.
+
+Note: an `Array`/`Object` given as a JSON **string** is re-parsed on every parent render and therefore counts as changed (a fresh object each time), same as an inline `:items="[...]"` literal. Pass a stable reference (`:items="state.items"`) if you rely on the "re-render only when props change" optimization.
+
+The schema is also exposed on `Fez.index[name].props` for tooling and docs.
+
 ### how to call custom FEZ node from the outside, anywhere in HTML
 
 Inside `init()`, you have pointer to `this`. Pass it anywhere you need, even store in window.
@@ -1398,8 +1470,10 @@ document.getElementById('lang-select').addEventListener('change', (e) => {
 ```js
 // Multiple counter components sharing max count
 class Counter extends FezBase {
+  static PROPS = { start: { type: Number, default: 0 } }
+
   init(props) {
-    this.state.count = parseInt(props.start || 0);
+    this.state.count = props.start;
   }
 
   beforeRender() {

@@ -67,6 +67,7 @@ fez template --debug path/to/component.fez
 7. **NEVER** use `{#if}` blocks inside HTML attributes - use ternary operators `{condition ? 'value' : ''}` instead
 8. **Attribute expressions** are automatically quoted - write `attr={value}` (quotes added automatically)
 9. **ALWAYS** use lowercase with underscores for props (e.g., `fill_color`, `read_only`, `stroke_width`)
+   * Declare a `PROPS` schema for any prop that is not a plain string (`PROPS = { count: { type: Number, default: 0 }, open: Boolean }`) - never `parseInt`/`=== 'true'` props by hand when a schema entry does it
 10. **PREFER `onclick="fez.func({value})"`** for event handlers with inline template values - use function pointers only when passing complex data (objects, arrays)
 
 ## Component Structure
@@ -111,11 +112,17 @@ The `<script>` block has two zones:
     // Class properties go here, INSIDE class - NEVER outside
     META = {}     // component metadata
 
+    // optional props schema: validated + coerced into this.props before init()
+    PROPS = {
+      count: { type: Number, default: 0 },
+      title: { type: String, default: 'Default' },
+      open: Boolean,   // <my-tag open> -> true, missing -> false
+    }
+
     init(props) {
       // runs BEFORE template render - props available, DOM refs are not
       // do not rewrite state, just add to it
-      this.state.count = props.count || 0
-      this.state.title = props.title || 'Default'
+      this.state.count = props.count   // already a Number (PROPS)
     }
 
     beforeRender() {
@@ -564,7 +571,26 @@ Caveats:
   - In templates: use `props.name`
   - In JS methods: use `this.props.name`
 
-- **Props are ALWAYS strings** - use `parseInt()` for numbers: `parseInt(props.speed) || 50`
+- **Props from HTML attributes are strings** unless declared in `PROPS`. Prefer the schema over hand-parsing:
+
+  ```javascript
+  PROPS = {
+    name:    String,                                    // shorthand == { type: String }
+    speed:   { type: Number, default: 50 },             // "50" -> 50, "abc" -> error + default
+    open:    Boolean,                                   // <x open> -> true, "false"/"0" -> false, missing -> false
+    size:    { type: String, default: 'md', enum: ['sm', 'md', 'lg'] },
+    items:   { type: Array, default: () => [] },         // JSON string parsed, or pass :items="..."
+    user:    { type: Object, required: true },          // missing -> Fez.onError('props', ...)
+    on_pick: { type: Function },                        // must come via :on_pick="..."
+    since:   { type: Date },
+  }
+  ```
+
+  - Types: `String`, `Number`, `Boolean`, `Array`, `Object`, `Function`, `Date`, or a custom `(raw, name) => value` function
+  - Fields: `type`, `default` (value or fn), `required`, `enum`; order: coerce -> required -> enum -> default
+  - Errors go to `Fez.onError('props', ...)`, never throw; bad value is dropped and `default` applies
+  - Keys not in `PROPS` pass through as strings; `onPropsChange(name, value)` receives the coerced value
+  - Also works as `static PROPS = {...}`; schema is exposed on `Fez.index[name].props`
 - **ALWAYS** use lowercase with underscores for prop names (e.g., `fill_color`, `read_only`)
 - **Use colon prefix (`:`) for evaluated attributes** - functions, objects, booleans:
 

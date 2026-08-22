@@ -23,7 +23,11 @@ const attrObserver = new MutationObserver((mutations) => {
       const fez = mutation.target.fez;
       if (fez) {
         const name = mutation.attributeName;
-        const value = mutation.target.getAttribute(name);
+        const raw = mutation.target.getAttribute(name);
+        // run through PROPS schema so onPropsChange sees the same typed value as init()
+        const value = fez.class?.castProp
+          ? fez.class.castProp(name, raw, fez.fezName)
+          : raw;
         fez.props[name] = value;
         fez.onPropsChange(name, value);
       }
@@ -127,6 +131,7 @@ function ensureFezBase(Fez, name, klass) {
   // Already a FezBase subclass
   if (klass.prototype instanceof FezBase) {
     if (klass.html) klass.html = closeCustomTags(klass.html);
+    if (klass.PROPS) Fez.index.ensure(name).props = klass.PROPS;
     return klass;
   }
 
@@ -148,9 +153,12 @@ function ensureFezBase(Fez, name, klass) {
   const configMap = {
     GLOBAL: "GLOBAL",
     NAME: "nodeName",
+    PROPS: "PROPS",
   };
   for (const [from, to] of Object.entries(configMap)) {
-    if (instance[from]) newKlass[to] = instance[from];
+    // instance field (`PROPS = {...}`) or static (`static PROPS = {...}`) on a plain class
+    const value = instance[from] || klass[from];
+    if (value) newKlass[to] = value;
   }
 
   // Handle CSS (can be string or function)
@@ -177,6 +185,11 @@ function ensureFezBase(Fez, name, klass) {
   if (instance.META) {
     newKlass.META = instance.META;
     Fez.index.ensure(name).meta = instance.META;
+  }
+
+  // Expose PROPS schema on the index for introspection (docs, inspect, tooling)
+  if (newKlass.PROPS) {
+    Fez.index.ensure(name).props = newKlass.PROPS;
   }
 
   // Auto-mount global components

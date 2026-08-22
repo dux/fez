@@ -37,15 +37,19 @@ export default class FezBase {
 
   /**
    * Extract props from a DOM node's attributes
-   * Handles :attr syntax for evaluated expressions and data-props JSON
+   * Handles :attr syntax for evaluated expressions and data-props JSON.
+   * Every path runs through castProps() so PROPS schema coercion and defaults
+   * apply on connect, keyed refresh and <fez-component> passthrough alike.
    */
   static getProps(node, newNode) {
-    let attrs = {};
+    const tagName = node.tagName?.toLowerCase();
 
     // Direct props attachment
     if (node.props) {
-      return node.props;
+      return this.castProps(node.props, tagName);
     }
+
+    let attrs = {};
 
     // Collect attributes
     for (const attr of node.attributes) {
@@ -62,7 +66,7 @@ export default class FezBase {
         } catch (e) {
           Fez.onError(
             "attr",
-            `<${node.tagName.toLowerCase()}> Error evaluating ${key}="${val}": ${e.message}`,
+            `<${tagName}> Error evaluating ${key}="${val}": ${e.message}`,
           );
         }
       }
@@ -72,7 +76,7 @@ export default class FezBase {
     if (attrs["data-props"]) {
       let data = attrs["data-props"];
       if (typeof data == "object") {
-        return data;
+        attrs = data;
       } else {
         if (data[0] != "{") {
           data = decodeURIComponent(data);
@@ -82,7 +86,7 @@ export default class FezBase {
         } catch (e) {
           Fez.onError(
             "props",
-            `<${node.tagName.toLowerCase()}> Invalid JSON in data-props: ${e.message}`,
+            `<${tagName}> Invalid JSON in data-props: ${e.message}`,
           );
         }
       }
@@ -97,13 +101,161 @@ export default class FezBase {
         } catch (e) {
           Fez.onError(
             "props",
-            `<${node.tagName.toLowerCase()}> Invalid JSON in template: ${e.message}`,
+            `<${tagName}> Invalid JSON in template: ${e.message}`,
           );
         }
       }
     }
 
-    return attrs;
+    return this.castProps(attrs, tagName);
+  }
+
+  /**
+   * Normalized PROPS schema for this class: shorthand `name: String` becomes
+   * `{ type: String }`. Memoized per class (own property, so subclasses with
+   * their own PROPS do not inherit a parent's cache).
+   */
+  static propsSchema() {
+    if (Object.prototype.hasOwnProperty.call(this, "_propsSchema")) {
+      return this._propsSchema;
+    }
+    const raw = this.PROPS;
+    let schema = null;
+    if (raw && typeof raw === "object") {
+      schema = {};
+      for (const [name, spec] of Object.entries(raw)) {
+        schema[name] =
+          spec && typeof spec === "object" && !Array.isArray(spec)
+            ? spec
+            : { type: spec };
+      }
+    }
+    Object.defineProperty(this, "_propsSchema", {
+      value: schema,
+      writable: true,
+      configurable: true,
+    });
+    return schema;
+  }
+
+  /**
+   * Cast a single prop through its PROPS entry. Unknown keys pass through
+   * untouched. Errors are reported via Fez.onError("props", ...) and never
+   * thrown - a bad attribute must not kill the page.
+   */
+  static castProp(name, value, tagName) {
+    const spec = this.propsSchema()?.[name];
+    if (!spec) return value;
+
+    const fail = (msg) => {
+      Fez.onError("props", `<${tagName || "fez"}> prop "${name}": ${msg}`);
+      return undefined;
+    };
+    const show = (v) => (typeof v === "string" ? JSON.stringify(v) : String(v));
+
+    let v = value;
+    const type = spec.type;
+
+    if (v === null || v === undefined) {
+      v = undefined;
+    } else if (type === String) {
+      v = String(v);
+    } else if (type === Number) {
+      const n = typeof v === "number" ? v : Number(String(v).trim());
+      v = Number.isNaN(n) || String(v).trim() === "" ? fail(`expected Number, got ${show(v)}`) : n;
+    } else if (type === Boolean) {
+      v = FezBase.toBoolean(v, name);
+    } else if (type === Array || type === Object) {
+      if (typeof v === "string") {
+        const str = v.trim();
+        try {
+          v = str === "" ? undefined : JSON.parse(str);
+        } catch (e) {
+          v = fail(`invalid JSON ${show(v)}: ${e.message}`);
+        }
+      }
+      if (v !== undefined) {
+        const ok =
+          type === Array
+            ? Array.isArray(v)
+            : typeof v === "object" && !Array.isArray(v);
+        if (!ok) v = fail(`expected ${type.name}, got ${show(value)}`);
+      }
+    } else if (type === Function) {
+      if (typeof v !== "function") {
+        v = fail(`expected Function (pass it with :${name}="..."), got ${show(v)}`);
+      }
+    } else if (type === Date) {
+      if (!(v instanceof Date)) {
+        const str = String(v).trim();
+        const d = new Date(/^-?\d+(\.\d+)?$/.test(str) ? Number(str) : str);
+        v = Number.isNaN(d.getTime()) ? fail(`expected Date, got ${show(v)}`) : d;
+      } else if (Number.isNaN(v.getTime())) {
+        v = fail(`expected Date, got Invalid Date`);
+      }
+    } else if (typeof type === "function") {
+      // custom caster
+      try {
+        v = type(v, name);
+      } catch (e) {
+        v = fail(e.message);
+      }
+    }
+
+    if (v === undefined && spec.required) {
+      fail(`is required`);
+    }
+
+    if (v !== undefined && Array.isArray(spec.enum) && !spec.enum.includes(v)) {
+      v = fail(`expected one of ${spec.enum.map(show).join(", ")}, got ${show(v)}`);
+    }
+
+    if (v === undefined && spec.default !== undefined) {
+      v = typeof spec.default === "function" && type !== Function
+        ? spec.default()
+        : spec.default;
+    }
+
+    // declared Boolean with no attribute and no default reads as false
+    if (v === undefined && type === Boolean) {
+      v = false;
+    }
+
+    return v;
+  }
+
+  /**
+   * Cast a props object through the PROPS schema. Schema keys are walked
+   * first so defaults and Boolean=false land even for absent attributes;
+   * everything else is copied through as is. Returns a new object.
+   */
+  static castProps(props, tagName) {
+    const schema = this.propsSchema();
+    if (!schema) return props;
+
+    const out = {};
+    for (const name of Object.keys(schema)) {
+      const v = this.castProp(name, props?.[name], tagName);
+      if (v !== undefined) out[name] = v;
+    }
+    for (const [name, value] of Object.entries(props || {})) {
+      if (!(name in schema)) out[name] = value;
+    }
+    return out;
+  }
+
+  /**
+   * HTML-ish boolean parsing for attribute values. Presence ("") and the
+   * attribute's own name (`disabled="disabled"`) are true; the usual
+   * negative words are false; anything else falls back to Fez.isTrue.
+   */
+  static toBoolean(value, name) {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") return value !== 0;
+    const s = String(value).trim().toLowerCase();
+    if (s === "" || s === name) return true;
+    if (["false", "0", "off", "no", "null", "undefined"].includes(s)) return false;
+    return Fez.isTrue ? Fez.isTrue(s) : ["1", "true", "on"].includes(s);
   }
 
   /**

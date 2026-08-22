@@ -18,11 +18,61 @@ type GlobalState = Record<string, any>;
 /** Non-reactive per-instance storage */
 type LocalStore = Record<string, any>;
 
-/** Component props (always strings from HTML attributes) */
-type ComponentProps = Record<string, string>;
+/**
+ * Component props. Plain HTML attributes arrive as strings unless the
+ * component declares a PROPS schema entry for them (then they are coerced).
+ */
+type ComponentProps = Record<string, any>;
 
 /** Evaluated props (when using :prop syntax) */
 type EvaluatedProps = Record<string, any>;
+
+// =============================================================================
+// PROPS SCHEMA (PROPS = { ... })
+// =============================================================================
+
+/** Built-in prop types. Any other function is a custom caster `(raw, name) => value`. */
+type PropType =
+  | StringConstructor
+  | NumberConstructor
+  | BooleanConstructor
+  | ArrayConstructor
+  | ObjectConstructor
+  | FunctionConstructor
+  | DateConstructor
+  | ((raw: any, name: string) => any);
+
+/** Full form of a PROPS entry */
+interface PropSpec<T = any> {
+  type?: PropType;
+  /** Applied when the prop is missing or failed coercion; functions are called */
+  default?: T | (() => T);
+  /** Report a `props` error via Fez.onError when missing */
+  required?: boolean;
+  /** Allowed values, checked after coercion */
+  enum?: readonly T[];
+}
+
+/** `PROPS = { name: String, count: { type: Number, default: 0 } }` */
+type PropsSchema = Record<string, PropType | PropSpec>;
+
+type PropTypeOf<T> =
+  T extends StringConstructor ? string :
+  T extends NumberConstructor ? number :
+  T extends BooleanConstructor ? boolean :
+  T extends ArrayConstructor ? any[] :
+  T extends ObjectConstructor ? Record<string, any> :
+  T extends FunctionConstructor ? Function :
+  T extends DateConstructor ? Date :
+  T extends (raw: any, name: string) => infer R ? R :
+  any;
+
+/** Derive a typed props object from a PROPS schema: `PropsOf<typeof PROPS>` */
+type PropsOf<S extends PropsSchema> = {
+  [K in keyof S]: S[K] extends PropSpec<any>
+    ? PropTypeOf<S[K]['type']>
+    : PropTypeOf<S[K]>;
+} & Record<string, any>;
 
 // =============================================================================
 // LIFECYCLE HOOK TYPES
@@ -79,6 +129,9 @@ interface FezComponentConfig {
 
   /** Component metadata */
   META?: Record<string, any>;
+
+  /** Runtime props schema - validates and coerces values into this.props */
+  PROPS?: PropsSchema;
 }
 
 // =============================================================================
@@ -103,8 +156,8 @@ declare abstract class FezBase {
   /** Execute after every render */
   afterRender?(): void;
 
-  /** Monitor new or changed node attributes */
-  onPropsChange?(attrName: string, attrValue: string): void;
+  /** Monitor new or changed node attributes (value is coerced when declared in PROPS) */
+  onPropsChange?(attrName: string, attrValue: any): void;
 
   /** Called when local component state changes */
   onStateChange?(key: string, value: any, oldValue: any): void;
@@ -128,8 +181,23 @@ declare abstract class FezBase {
   /** Non-reactive per-instance storage - changes do not trigger re-renders */
   local: LocalStore;
 
-  /** Component props from HTML attributes */
+  /** Component props from HTML attributes (coerced through PROPS when declared) */
   props: ComponentProps & EvaluatedProps;
+
+  /** Runtime props schema (instance-field form; `static PROPS` also works) */
+  PROPS?: PropsSchema;
+
+  /** Normalized PROPS schema for this class */
+  static propsSchema(): Record<string, PropSpec> | null;
+
+  /** Cast a single prop through the PROPS schema */
+  static castProp(name: string, value: any, tagName?: string): any;
+
+  /** Cast a props object through the PROPS schema (returns a new object) */
+  static castProps(props: Record<string, any>, tagName?: string): Record<string, any>;
+
+  /** HTML-ish boolean parsing used for Boolean props */
+  static toBoolean(value: any, name?: string): boolean;
 
   /** Unique component instance ID */
   UID: number;
@@ -304,6 +372,7 @@ interface FezStatic {
     [name: string]: {
       class?: typeof FezBase;
       meta?: Record<string, any>;
+      props?: PropsSchema;
       demo?: string | HTMLElement;
       info?: string | HTMLElement;
       source?: string;
@@ -313,6 +382,7 @@ interface FezStatic {
     get(name: string): {
       class?: typeof FezBase;
       meta?: Record<string, any>;
+      props?: PropsSchema;
       demo?: HTMLElement;
       info?: HTMLElement;
       source?: string;
@@ -727,4 +797,5 @@ declare global {
 // =============================================================================
 
 export { FezBase };
+export type { PropsSchema, PropSpec, PropType, PropsOf };
 export default FezStatic;
