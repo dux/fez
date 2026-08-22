@@ -51,6 +51,36 @@ const loadDefaults = () => {
     },
   );
 
+  // Inline reactive template. Children are compiled as this instance's template,
+  // so they can read state / globalState / props and re-render on change like
+  // any component - handy for dropping a global value into static HTML.
+  // <fez-inline>global max: {globalState.maxCount || 0}</fez-inline>
+  // <fez-inline :state="{n: 0}"><button onclick="fez.state.n++">{state.n}</button></fez-inline>
+  Fez(
+    "fez-inline",
+    class {
+      // renders inline so it can sit inside running text
+      NAME = "span";
+
+      init(props) {
+        const template = this.root.innerHTML.trim();
+        this.root.innerHTML = "";
+        // children are the template, not slot content
+        this._fezSlotNodes = this._fezChildNodes = undefined;
+
+        if (template) {
+          this.fezHtmlFunc = Fez.createTemplate(template, {
+            name: "fez-inline",
+          });
+        }
+
+        if (props.state) {
+          Object.assign(this.state, props.state);
+        }
+      }
+    },
+  );
+
   // Sticky component index for <fez-demo>
   Fez(
     "fez-demo-nav",

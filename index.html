@@ -245,6 +245,7 @@
           Place ui-counter anywhere in BODY
           <ui-editor id="demo-counter">
             <xmp>
+  <p>Global max: <fez-inline>{globalState.maxCount || 0}</fez-inline></p>
   <div id="counters">
     <ui-counter></ui-counter>
     <ui-counter start="1"></ui-counter>
@@ -254,7 +255,10 @@
           </ui-editor>
         </li>
         <li>
-          <p>That is it! Add then as regular DOM nodes.</p>
+          <p>
+            That is it! Add them as regular DOM nodes.
+            Global max across all counters: <b><fez-inline>{globalState.maxCount || 0}</fez-inline></b>
+          </p>
           <div id="counters">
             <ui-counter></ui-counter>
             <ui-counter start="1"></ui-counter>

@@ -767,6 +767,8 @@ Fez.state.subscribe((key, value, oldValue) => {})   // subscribe to ALL changes
 Components that read `this.globalState.key` get `onGlobalStateChange(key, value, oldValue)` synchronously on change and re-render on the next frame, batched with local `this.state` changes (one render per frame).
 A component's own write during `init` or render does not schedule an extra render.
 
+To show a global value in static HTML without writing a component, use `<fez-inline>{globalState.key}</fez-inline>`: children are compiled as the template, it re-renders on change and accepts `:state="{...}"` for local state.
+
 ### DOM / `addEventListener` listeners
 
 For events fired on `document`, `window`, or arbitrary DOM nodes (custom `pjax:render`, `keydown`, `resize`, third-party `CustomEvent`s, etc.), `this.subscribe` does not apply — those go through native `addEventListener`. Use **`this.on`** — it binds `this`, guards on `isConnected`, and auto-removes on destroy.

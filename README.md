@@ -1344,6 +1344,19 @@ Loads remote HTML content via URL:
 <fez-include src="./demo/fez/ui-slider.html"></fez-include>
 ```
 
+### fez-inline
+
+Renders its children as a reactive template, without writing a component.
+Expressions see `state`, `globalState` and `props`, and the node re-renders when any of them change - the easy way to drop a global value into static HTML:
+
+```html
+<p>Global max: <fez-inline>{globalState.maxCount || 0}</fez-inline></p>
+
+<fez-inline :state="{n: 0}">
+  <button onclick="fez.state.n++">clicked {state.n}x</button>
+</fez-inline>
+```
+
 ### fez-demo
 
 Renders all components with their demos. Perfect for component documentation pages:
