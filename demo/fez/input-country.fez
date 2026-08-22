@@ -160,25 +160,13 @@
 
     selectCountry(code) {
       if (this.state.is_array) {
-        const el = this.find(`.dropdown-item[data-code="${code}"]`)
-        if (el) {
-          el.classList.add('removing')
-          el.addEventListener('transitionend', () => {
-            if (!this.state.selected.includes(code)) {
-              this.state.selected.push(code)
-              this.state.selected.sort()
-            }
-            this.state.search = ''
-            this.state.highlight = -1
-          }, { once: true })
-        } else {
-          if (!this.state.selected.includes(code)) {
-            this.state.selected.push(code)
-            this.state.selected.sort()
-          }
-          this.state.search = ''
-          this.state.highlight = -1
+        // the picked row leaves the list on re-render - fez:out on .dropdown-item animates it
+        if (!this.state.selected.includes(code)) {
+          this.state.selected.push(code)
+          this.state.selected.sort()
         }
+        this.state.search = ''
+        this.state.highlight = -1
       } else {
         this.state.selected = [code]
         this.state.show_dropdown = false
@@ -283,19 +271,9 @@
       padding: 6px 10px;
       cursor: pointer;
       font-size: 16px;
-      max-height: 200px;
-      overflow: hidden;
-      transition: max-height 0.2s ease, opacity 0.2s ease, padding 0.2s ease;
 
       &:hover, &.highlighted {
         background: #f5f0fa;
-      }
-
-      &.removing {
-        max-height: 0;
-        opacity: 0;
-        padding-top: 0;
-        padding-bottom: 0;
       }
 
       img.flag {
@@ -364,7 +342,7 @@
     </div>
 
     {#if state.show_dropdown}
-      <div class="dropdown">
+      <div class="dropdown" fez:transition="fly, from=top, distance=6, duration=150">
         <input class="search-input" type="text" placeholder="Search..." oninput="fez.onSearchInput()" onkeydown="fez.onSearchKeydown(event)" onclick="event.stopPropagation()" />
         {#each fez.filteredCountries() as item, i}
           <div class="dropdown-item {i === state.highlight ? 'highlighted' : ''}" onclick="fez.selectCountry('{item[0]}')">
@@ -399,10 +377,10 @@
       </div>
 
       {#if state.show_dropdown}
-        <div class="dropdown">
+        <div class="dropdown" fez:transition="fly, from=top, distance=6, duration=150">
           <input class="search-input" type="text" placeholder="Search..." oninput="fez.onSearchInput()" onkeydown="fez.onSearchKeydown(event)" onclick="event.stopPropagation()" />
           {#each fez.filteredCountryOptions() as item, i}
-            <div key={item[0]} class="dropdown-item" class:highlighted={i === state.highlight} data-code={item[0]} onclick="fez.selectCountry('{item[0]}')">
+            <div key={item[0]} class="dropdown-item" class:highlighted={i === state.highlight} data-code={item[0]} fez:out="slide, opacity=0, duration=200" onclick="fez.selectCountry('{item[0]}')">
               <img class="flag" src={fez.flagUrl(item[0])} alt="" onerror="this.style.display='none'" />
               <span>{item[1]}</span>
             </div>

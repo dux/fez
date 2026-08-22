@@ -354,7 +354,7 @@
   </span>
   {#if state.isOpen}
     <div class="overlay" onclick="fez.state.isOpen = false"></div>
-    <div class="emoji-picker-dialog" tabindex="-1">
+    <div class="emoji-picker-dialog" tabindex="-1" fez:transition="pop, duration=150">
       <div class="emoji-search">
         <input
           type="text"

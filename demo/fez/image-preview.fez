@@ -293,10 +293,10 @@
 
 <div class="image-preview-overlay" class:hidden={!state.open} onclick="fez.close()">
   {#if state.open}
-    <div class="image-preview-main" class:expanded={state.expanded}>
+    <div class="image-preview-main" class:expanded={state.expanded} fez:in="pop, start=0.92, duration=200">
       <img src={state.urls[state.index]} onclick="event.stopPropagation(); fez.toggleExpand()" />
       {#if state.descs[state.index]}
-        <div class="image-preview-caption">{state.descs[state.index]}</div>
+        <div class="image-preview-caption" fez:in="fade, duration=150">{state.descs[state.index]}</div>
       {/if}
     </div>
     {#if state.urls.length > 1}

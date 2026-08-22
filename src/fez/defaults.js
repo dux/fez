@@ -332,17 +332,6 @@ const loadDefaults = () => {
         border-radius: 10px;
         background: #fff;
         box-shadow: 0 16px 42px rgba(0, 0, 0, 0.16);
-        animation: fezDemoNavPop 160ms ease-out;
-      }
-      @keyframes fezDemoNavPop {
-        from {
-          opacity: 0;
-          transform: translateY(-8px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
       }
       .fez-demo-nav-list {
         position: relative;
@@ -399,7 +388,7 @@ const loadDefaults = () => {
           {/if}
         </div>
         {#if state.open}
-          <div class="fez-demo-nav-panel">
+          <div class="fez-demo-nav-panel" fez:transition="fly, from=top, distance=8, duration=160">
             <div
               class="fez-demo-nav-list"
               style="--marker-top: {state.markerTop}px; --marker-height: {state.markerHeight}px;"

@@ -3,6 +3,7 @@
     <li>Classic Todo app demo - add, complete, clear tasks</li>
     <li>Pure Fez, no external dependencies</li>
     <li>Showcases reactive state, <code>fez:bind</code>, and template loops</li>
+    <li>Rows slide in/out with <code>fez:in</code> / <code>fez:out</code>, remaining rows glide via <code>fez:animate="flip"</code></li>
   </ul>
 </info>
 
@@ -21,50 +22,36 @@
 
   addTask() {
     // no need to force update template, this is automatic because we are using reactiveStore()
-    this.counter ||= 0
+    // the new row animates in on its own (fez:in on the <p>)
     this.state.tasks.push({
-      name: `new task ${++this.counter}`,
+      id: ++this.local.uid,
+      name: `new task ${this.local.uid}`,
       done: false,
-      animate: true
     })
   }
 
-  animate(node) {
-    // same as in Svelte, if you define fez:use="methodName", method will be called when node is added to dom.
-    // in this case, we animate show new node
-
-    node.style.display = 'block'
-    node.style.transition = 'height 200ms, opacity 200ms'
-    node.style.height = '33px'
-    node.style.opacity = '1'
-
-    setTimeout(() => {
-      delete this.state.tasks[this.state.tasks.length-1].animate
-      node.style.height = 'auto'
-      node.style.transition = ''
-    }, 200)
-  }
-
   init() {
+    this.local.uid = 3
     this.state.tasks = [
-      {name: 'First task', done: false},
-      {name: 'Second task', done: false},
-      {name: 'Third task', done: true },
+      {id: 1, name: 'First task', done: false},
+      {id: 2, name: 'Second task', done: false},
+      {id: 3, name: 'Third task', done: true },
     ]
   }
 </script>
 
 <h3>Tasks</h3>
 {#if !state.tasks[0]}
-  <p>No tasks found</p>
+  <p fez:in="fade">No tasks found</p>
 {/if}
 
 {#for task, index in state.tasks}
-  {#if task.animate}
-    <p fez:use="animate" style="display: none; height: 0px; opacity: 0;">
-  {:else}
-    <p>
-  {/if}
+  <p
+    key="{task.id}"
+    fez:in="slide, opacity=0, duration=200"
+    fez:out="slide, opacity=0, duration=200"
+    fez:animate="flip, duration=200"
+  >
     <input
       type="text"
       fez:bind="state.tasks[{index}].name"

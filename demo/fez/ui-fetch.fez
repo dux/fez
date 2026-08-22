@@ -146,7 +146,7 @@
 </div>
 
 {#if state.results.promise || state.results.callback || state.results.post}
-  <div class="results">
+  <div class="results" fez:in="fade, duration=200">
     {#if state.results.promise}
       <h3>Promise-based GET:</h3>
       <pre>{state.results.promise}</pre>
