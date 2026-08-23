@@ -1,5 +1,9 @@
 const vscode = require("vscode");
 
+function shellQuote(value) {
+  return "'" + String(value).replace(/'/g, "'\\''") + "'";
+}
+
 function getComponentAtPosition(document, position) {
   const line = document.lineAt(position.line).text;
   const lang = document.languageId;
@@ -126,7 +130,7 @@ function activate(context) {
 
     const terminal = vscode.window.createTerminal("Fez Compile");
     terminal.show();
-    terminal.sendText(`bunx fez-compile "${filePath}"`);
+    terminal.sendText(`bunx @dinoreic/fez compile ${shellQuote(filePath)}`);
   });
 
   const foldingProvider = vscode.languages.registerFoldingRangeProvider("fez", {

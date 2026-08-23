@@ -1,29 +1,37 @@
 #!/usr/bin/env bun
 
-import { parseArgs } from 'util'
-import fs from 'fs'
-import path from 'path'
-import createTemplate, { clearTemplateCache } from '../src/fez/lib/template.js'
+import { parseArgs } from 'util';
+import fs from 'fs';
+import path from 'path';
+import { globSync } from 'glob';
+import createTemplate, { clearTemplateCache } from '../src/fez/lib/template.js';
+import { extractFezDefinitions, parseFezSource } from '../src/fez/lib/source-parser.js';
 
-const INFO = 'Validate and debug Fez template blocks'
+const INFO = 'Validate and debug Fez template blocks';
 
-const { values, positionals } = parseArgs({
-  args: Bun.argv.slice(2),
-  options: {
-    help: { type: 'boolean', short: 'h' },
-    debug: { type: 'boolean', short: 'd' },
-    info: { type: 'boolean' },
-  },
-  allowPositionals: true,
-})
+let values, positionals;
+try {
+  ({ values, positionals } = parseArgs({
+    args: Bun.argv.slice(2),
+    options: {
+      help: { type: 'boolean', short: 'h' },
+      debug: { type: 'boolean', short: 'd' },
+      info: { type: 'boolean' },
+    },
+    allowPositionals: true,
+  }));
+} catch (error) {
+  console.error(`fez template: ${firstLine(error.message)}. See 'fez template --help'.`);
+  process.exit(1);
+}
 
 if (values.info) {
-  console.log(INFO)
-  process.exit(0)
+  console.log(INFO);
+  process.exit(0);
 }
 
 if (values.help || positionals.length === 0) {
-  console.log(`Usage: fez template <file.fez> [file2.fez ...]
+  console.log(`Usage: fez template <file-or-glob> [file2.fez ...]
 
 ${INFO}
 
@@ -33,138 +41,178 @@ Options:
 
 Examples:
   fez template demo/fez/ui-counter.fez
+  fez template 'demo/fez/*.fez'
   fez template --debug app/assets/auto/fez/js/input-currency-code.fez
-`)
-  process.exit(0)
+`);
+  process.exit(0);
 }
 
-let exitCode = 0
-
-for (const filePath of positionals) {
-  const absolutePath = path.resolve(filePath)
-
-  if (!fs.existsSync(absolutePath)) {
-    console.error(`${filePath}: File error: File not found`)
-    exitCode = 1
-    continue
+let exitCode = 0;
+for (const filePath of expandInputs(positionals)) {
+  const source = readSource(filePath);
+  if (source.error) {
+    printError(source.error);
+    exitCode = 1;
+    continue;
   }
 
-  const html = extractTemplate(fs.readFileSync(absolutePath, 'utf-8'))
-  const componentName = path.basename(filePath, '.fez')
-  const errors = validateTemplate(html, componentName, values.debug)
+  const extracted = extractFezDefinitions(source.content);
+  if (extracted.errors.length) {
+    extracted.errors.forEach((error) => printError({ ...error, file: filePath }));
+    exitCode = 1;
+    continue;
+  }
 
-  if (errors.length) {
-    exitCode = 1
-    for (const error of errors) {
-      console.error(`${filePath}: Template compiler error: ${error.message}`)
-      if (error.detail) console.error(`  Template: ${error.detail}`)
-      if (error.debug) console.error(`\n${error.debug}`)
+  const units = extracted.definitions.map((definition) => ({
+    name: definition.name,
+    source: definition.source,
+    lineOffset: definition.contentLine - 1,
+  }));
+  if (!units.length) {
+    units.push({ name: path.basename(filePath, '.fez'), source: source.content, lineOffset: 0 });
+  }
+
+  let fileOk = true;
+  for (const unit of units) {
+    const parsed = parseFezSource(unit.source);
+    if (parsed.errors.length) {
+      parsed.errors.forEach((error) =>
+        printError({
+          ...error,
+          file: filePath,
+          line: error.line + unit.lineOffset,
+        }),
+      );
+      fileOk = false;
+      continue;
     }
+
+    const errors = validateTemplate(parsed.html, unit.name, values.debug);
+    if (errors.length) {
+      fileOk = false;
+      errors.forEach((error) => printError({ ...error, file: filePath }));
+    }
+  }
+
+  if (fileOk) {
+    const detail = units.length === 1 ? '' : ` (${units.length} components)`;
+    console.log(`${filePath}: template ok${detail}`);
   } else {
-    console.log(`${filePath}: template ok`)
+    exitCode = 1;
   }
 }
 
-process.exit(exitCode)
+process.exit(exitCode);
 
-function extractTemplate(source) {
-  const result = []
-  const lines = source.split('\n')
-  let currentBlock = ''
+function firstLine(message) {
+  return String(message || 'Unknown error').split('\n')[0];
+}
 
-  for (const line of lines) {
-    const trimmedLine = line.trim()
-
-    if (!currentBlock && /^<(demo|info|script|head|header|style)\b/i.test(trimmedLine)) {
-      currentBlock = trimmedLine.match(/^<(\w+)/i)[1].toLowerCase()
-      continue
-    }
-
-    if (currentBlock) {
-      if (
-        trimmedLine.endsWith(`</${currentBlock}>`) ||
-        (currentBlock === 'head' && trimmedLine.endsWith('</header>'))
-      ) {
-        currentBlock = ''
+function expandInputs(inputs) {
+  const files = [];
+  for (const input of inputs) {
+    if (/[*?\[\]{}]/.test(input)) {
+      const matches = globSync(input, { nodir: true }).filter(
+        (file) => !path.basename(file).includes('.tmp.'),
+      );
+      if (matches.length) {
+        files.push(...matches);
+      } else {
+        files.push(input);
       }
-      continue
+    } else {
+      files.push(input);
     }
-
-    result.push(line)
   }
+  return files;
+}
 
-  return result.join('\n').trim()
+function readSource(filePath) {
+  const absolutePath = path.resolve(filePath);
+  try {
+    const stat = fs.statSync(absolutePath);
+    if (!stat.isFile()) {
+      throw new Error('Not a file');
+    }
+    return { content: fs.readFileSync(absolutePath, 'utf-8') };
+  } catch (error) {
+    const message = error.code === 'ENOENT' ? 'File not found' : firstLine(error.message);
+    return { error: { file: filePath, kind: 'File', message } };
+  }
 }
 
 function validateTemplate(html, componentName, debug) {
   const logs = captureConsoleErrors(() => {
-    clearTemplateCache()
-    createTemplate(html, { name: componentName })
-    clearTemplateCache()
-  })
+    clearTemplateCache();
+    createTemplate(html, { name: componentName });
+    clearTemplateCache();
+  });
 
-  const errors = []
-  for (let i = 0; i < logs.length; i++) {
-    const log = logs[i]
-    const match = log.match(/^FEZ template compile error in <([^>]+)>:\s*(.*)$/)
-    if (!match) continue
-
+  const errors = [];
+  for (let index = 0; index < logs.length; index++) {
+    const match = logs[index].match(/^FEZ template compile error in <([^>]+)>:\s*(.*)$/);
+    if (!match) {
+      continue;
+    }
     errors.push({
       message: match[2] || 'Template compiler failed',
-      detail: (logs[i + 1] || '').replace(/^Template:\s*/, ''),
+      kind: 'Template compiler',
+      detail: (logs[index + 1] || '').replace(/^Template:\s*/, ''),
       debug: debug ? debugTemplateFunction(html, componentName) : '',
-    })
+    });
   }
-
-  return errors
+  return errors;
 }
 
-function captureConsoleErrors(fn) {
-  const oldError = console.error
-  const logs = []
-
-  console.error = (...args) => {
-    logs.push(args.map(String).join(' '))
-  }
-
+function captureConsoleErrors(callback) {
+  const oldError = console.error;
+  const logs = [];
+  console.error = (...args) => logs.push(args.map(String).join(' '));
   try {
-    fn()
+    callback();
   } finally {
-    clearTemplateCache()
-    console.error = oldError
+    clearTemplateCache();
+    console.error = oldError;
   }
-
-  return logs
+  return logs;
 }
 
 function debugTemplateFunction(html, componentName) {
-  const RealFunction = globalThis.Function
-  const oldError = console.error
-  let debug = ''
-
+  const RealFunction = globalThis.Function;
+  const oldError = console.error;
+  let debug = '';
   globalThis.Function = function (...args) {
     try {
-      return RealFunction(...args)
+      return RealFunction(...args);
     } catch (error) {
       debug = [
         `Generated template function for <${componentName}> failed: ${error.message}`,
         '',
         args.join('\n---ARG---\n'),
-      ].join('\n')
-      throw error
+      ].join('\n');
+      throw error;
     }
-  }
-
-  console.error = () => {}
-
+  };
+  console.error = () => {};
   try {
-    clearTemplateCache()
-    createTemplate(html, { name: componentName })
+    clearTemplateCache();
+    createTemplate(html, { name: componentName });
   } finally {
-    console.error = oldError
-    globalThis.Function = RealFunction
-    clearTemplateCache()
+    console.error = oldError;
+    globalThis.Function = RealFunction;
+    clearTemplateCache();
   }
+  return debug;
+}
 
-  return debug
+function printError(error) {
+  const location = error.line ? `:${error.line}${error.column ? ':' + error.column : ''}` : '';
+  const kind = error.kind ? `${error.kind} error: ` : '';
+  console.error(`${error.file}${location}: ${kind}${error.message}`);
+  if (error.detail) {
+    console.error(`  Template: ${error.detail}`);
+  }
+  if (error.debug) {
+    console.error(`\n${error.debug}`);
+  }
 }

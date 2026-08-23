@@ -16,43 +16,13 @@
 // Note: Uses Fez.index directly (set up in root.js)
 
 import closeCustomTags from "./lib/close-custom-tags.js";
+import { hasFezDefinitions, parseFezSource } from "./lib/source-parser.js";
 
 const compileCache = new Map();
 
 // =============================================================================
 // HELPERS
 // =============================================================================
-
-/**
- * Remove common leading whitespace from all lines
- */
-function dedent(text) {
-  const lines = text.split("\n");
-  // Find minimum indentation (ignoring empty lines)
-  const nonEmptyLines = lines.filter((l) => l.trim());
-  if (!nonEmptyLines.length) return text;
-
-  const minIndent = Math.min(
-    ...nonEmptyLines.map((l) => l.match(/^(\s*)/)[1].length),
-  );
-  if (minIndent === 0) return text;
-
-  // Remove common indentation
-  return lines.map((l) => l.slice(minIndent)).join("\n");
-}
-
-function startsWithTag(text, tagName) {
-  return new RegExp(`^<${tagName}(?:\\s|>|$)`, "i").test(text);
-}
-
-// Bare `global`, or global="" / global="global" - but not an unrelated
-// attribute that merely contains the word (data-x="global-thing").
-const GLOBAL_ATTR = /(?:^|\s)global(?:\s*=\s*(?:""|''|"global"|'global'|global))?(?=\s|$)/i;
-
-function isGlobalStyleTag(text) {
-  const attrs = text.match(/^<style\b([^>]*?)\/?>/i);
-  return !!attrs && GLOBAL_ATTR.test(attrs[1]);
-}
 
 // Keep these messages in sync with validateStyle() in bin/fez-compile.
 const STYLE_SCOPE_ERRORS = {
@@ -102,13 +72,7 @@ function assertStyleScope(tagName, rawStyle, isGlobal) {
  * (not ones inside <demo> blocks)
  */
 function hasTopLevelFezElements(html) {
-  if (!html) return false;
-
-  // Remove content inside <demo>...</demo> to avoid false positives
-  const withoutDemo = html.replace(/<demo>[\s\S]*?<\/demo>/gi, "");
-
-  // Check for <xmp fez= or <template fez= at top level
-  return /<(xmp|template)\s+fez\s*=/i.test(withoutDemo);
+  return !!html && hasFezDefinitions(html);
 }
 
 /**
@@ -277,90 +241,12 @@ export { compileFromUrl as compile_from_url };
  * Parse component HTML into { script, style, styleGlobal, html, head, demo, info }
  */
 function compileToClass(html) {
-  const result = {
-    script: "",
-    style: "",
-    styleGlobal: "",
-    html: "",
-    head: "",
-    demo: "",
-    info: "",
-  };
-  const lines = html.split("\n");
-
-  let block = [];
-  let type = "";
-
-  for (let line of lines) {
-    const trimmedLine = line.trim();
-
-    // Start blocks - demo/info can contain other tags, so skip nested detection
-    if (trimmedLine.startsWith("<demo") && !result.demo && !type) {
-      type = "demo";
-    } else if (trimmedLine.startsWith("<info") && !result.info && !type) {
-      type = "info";
-    } else if (
-      trimmedLine.startsWith("<script") &&
-      !result.script &&
-      type !== "head" &&
-      type !== "demo" &&
-      type !== "info"
-    ) {
-      type = "script";
-    } else if (
-      startsWithTag(trimmedLine, "head") &&
-      !result.head &&
-      type !== "demo" &&
-      type !== "info"
-    ) {
-      type = "head";
-    } else if (
-      startsWithTag(trimmedLine, "style") &&
-      type !== "demo" &&
-      type !== "info"
-    ) {
-      // Scope is declared on the tag: <style> is component-scoped,
-      // <style global> is emitted verbatim.
-      type = isGlobalStyleTag(trimmedLine) ? "styleGlobal" : "style";
-
-      // End blocks
-    } else if (trimmedLine.endsWith("</demo>") && type === "demo") {
-      result.demo = dedent(block.join("\n"));
-      block = [];
-      type = "";
-    } else if (trimmedLine.endsWith("</info>") && type === "info") {
-      result.info = dedent(block.join("\n"));
-      block = [];
-      type = "";
-    } else if (
-      trimmedLine.endsWith("</script>") &&
-      type === "script" &&
-      !result.script
-    ) {
-      result.script = block.join("\n");
-      block = [];
-      type = "";
-    } else if (
-      trimmedLine.endsWith("</style>") &&
-      (type === "style" || type === "styleGlobal")
-    ) {
-      // Append - a file may carry both a scoped and a global block, and
-      // repeated blocks of the same kind concatenate instead of clobbering.
-      result[type] += (result[type] ? "\n" : "") + block.join("\n");
-      block = [];
-      type = "";
-    } else if (trimmedLine.endsWith("</head>") && type === "head") {
-      result.head = block.join("\n");
-      block = [];
-      type = "";
-
-      // Collect content - preserve original indentation for demo and info
-    } else if (type) {
-      block.push(type === "demo" || type === "info" ? line : trimmedLine);
-    } else {
-      result.html += trimmedLine + "\n";
-    }
-  }
+  const result = parseFezSource(html, { dedentDocs: true });
+  if (result.errors.length) throw new Error(result.errors[0].message);
+  result.html = result.html
+    .split("\n")
+    .map((line) => line.trim())
+    .join("\n");
 
   // Process head elements (scripts, links, etc.)
   if (result.head) {

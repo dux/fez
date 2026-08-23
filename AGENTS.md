@@ -45,6 +45,8 @@ fez agents --init
 
 # Compile and validate components - catches JS syntax errors and template issues
 fez compile path/to/component.fez
+fez compile path/to/one.fez path/to/two.fez
+fez compile 'path/to/**/*.fez'
 
 # Validate only the .fez template block with the Fez template compiler
 fez template path/to/component.fez
@@ -52,6 +54,13 @@ fez template path/to/component.fez
 # Print generated template function body when template compilation fails
 fez compile --debug-template path/to/component.fez
 fez template --debug path/to/component.fez
+
+# Report legacy syntax and modernization candidates (never changes files)
+fez refactor [path-or-glob]
+
+# Index files as JSON, or open an interactive Playwright debugging REPL
+fez index path/to/files
+fez debug http://localhost:3333
 ```
 
 `.fez` files use Fez's own template compiler (`src/fez/lib/template-compiler.js`), not the Svelte compiler. Use the Svelte compiler only for `.svelte` files.

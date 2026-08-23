@@ -1,41 +1,65 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env bun
 
-require 'pathname'
+import fs from 'fs';
+import path from 'path';
 
-bin_dir = Pathname.new(__FILE__).realpath.dirname
+const binDir = path.dirname(fs.realpathSync(Bun.argv[1]));
+const [command, ...args] = Bun.argv.slice(2);
 
-command = ARGV[0]
-args = ARGV[1..-1]
+if (!command || command === '--help' || command === '-h') {
+  const subcommands = fs
+    .readdirSync(binDir)
+    .filter((name) => /^fez-[a-z0-9-]+$/.test(name) && !name.includes('.tmp.'))
+    .map((file) => {
+      const executable = path.join(binDir, file);
+      if (!fs.statSync(executable).isFile()) {
+        return null;
+      }
+      const result = Bun.spawnSync({
+        cmd: [executable, '--info'],
+        stdout: 'pipe',
+        stderr: 'ignore',
+      });
+      return [file.slice(4), result.stdout.toString().trim()];
+    })
+    .filter(Boolean)
+    .sort(([left], [right]) => left.localeCompare(right));
 
-if command.nil? || command == '--help' || command == '-h'
-  subcommands = Dir[bin_dir.join("fez-*")].map do |path|
-    name = File.basename(path).sub(/^fez-/, '')
-    info = `#{path} --info 2>/dev/null`.strip
-    [name, info]
-  end.sort_by(&:first)
+  const width = Math.max(...subcommands.map(([name]) => name.length));
+  console.log('Usage: fez <command> [options]');
+  console.log('');
+  console.log('Commands:');
+  for (const [name, info] of subcommands) {
+    console.log(`  ${name.padEnd(width)}  ${info}`);
+  }
+  console.log('');
+  console.log(`Source: ${path.dirname(binDir)}`);
+  console.log('Repo:   https://github.com/dux/fez');
+  console.log('Docs:   fez agents   (LLM reference, AGENTS.md)');
+  console.log('');
+  console.log("Run 'fez <command> --help' for details on a specific command.");
+  process.exit(0);
+}
 
-  max = subcommands.map { |name, _| name.length }.max
+if (!/^[a-z0-9][a-z0-9-]*$/.test(command)) {
+  fail(command);
+}
 
-  puts "Usage: fez <command> [options]"
-  puts ""
-  puts "Commands:"
-  subcommands.each do |name, info|
-    puts "  %-#{max}s  %s" % [name, info]
-  end
-  puts ""
-  puts "Source: #{bin_dir.parent}"
-  puts "Repo:   https://github.com/dux/fez"
-  puts "Docs:   fez agents   (LLM reference, AGENTS.md)"
-  puts ""
-  puts "Run 'fez <command> --help' for details on a specific command."
-  exit 0
-end
+const subcommand = path.join(binDir, `fez-${command}`);
+if (!fs.existsSync(subcommand) || !fs.statSync(subcommand).isFile()) {
+  fail(command);
+}
 
-subcommand_path = bin_dir.join("fez-#{command}")
+const child = Bun.spawn({
+  cmd: [subcommand, ...args],
+  stdin: 'inherit',
+  stdout: 'inherit',
+  stderr: 'inherit',
+});
+process.on('SIGTERM', () => child.kill('SIGTERM'));
+process.exit(await child.exited);
 
-if File.exist?(subcommand_path) && File.executable?(subcommand_path)
-  exec(subcommand_path.to_s, *args)
-else
-  $stderr.puts "fez: '#{command}' is not a fez command. See 'fez --help'."
-  exit 1
-end
+function fail(name) {
+  console.error(`fez: '${name}' is not a fez command. See 'fez --help'.`);
+  process.exit(1);
+}

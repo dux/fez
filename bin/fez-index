@@ -1,56 +1,104 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env bun
 
-require 'pathname'
-require 'json'
+import { parseArgs } from 'util';
+import fs from 'fs';
+import path from 'path';
+import { globSync } from 'glob';
 
-INFO = 'Generate JSON index of files in a directory'
+const INFO = 'Generate JSON index of files in directories, paths, or globs';
 
-if ARGV[0] == '--info'
-  puts INFO
-  exit 0
-end
+let values, positionals;
+try {
+  ({ values, positionals } = parseArgs({
+    args: Bun.argv.slice(2),
+    options: {
+      help: { type: 'boolean', short: 'h' },
+      info: { type: 'boolean' },
+    },
+    allowPositionals: true,
+  }));
+} catch (error) {
+  console.error(`fez index: ${firstLine(error.message)}. See 'fez index --help'.`);
+  process.exit(1);
+}
 
-if ARGV.empty? || ARGV[0] == '-h' || ARGV[0] == '--help'
-  puts "Usage: fez index <directory>"
-  puts ""
-  puts INFO
-  puts ""
-  puts "Examples:"
-  puts "  fez index demo/fez"
-  puts "  fez index assets/*"
-  exit 0
-end
+if (values.info) {
+  console.log(INFO);
+  process.exit(0);
+}
 
-dir = ARGV[0]
+if (values.help || positionals.length === 0) {
+  console.log(`Usage: fez index <directory-or-path> [more-paths ...]
 
-# If no * in argument, append /*
-pattern = dir.include?('*') ? dir : File.join(dir, '*')
+${INFO}
 
-# Check if base directory exists (for error message)
-base_dir = dir.split('*').first.chomp('/')
-if !base_dir.empty? && !File.directory?(base_dir)
-  puts "Error: Directory '#{base_dir}' does not exist"
-  exit 1
-end
+Examples:
+  fez index demo/fez
+  fez index demo/fez/*.fez
+  fez index 'assets/**/*.{js,css}'`);
+  process.exit(0);
+}
 
-# Get files using glob
-files = Dir.glob(pattern).select { |f| File.file?(f) }
-
-# Create index for each file
-file_index = []
-files.each do |path|
-  stat = File.stat(path)
-
-  file_info = {
-    base: File.basename(path, File.extname(path)),
-    path: path,
-    size: stat.size.to_i,
-    modified: stat.mtime.to_i,
-    created: stat.birthtime.to_i
+const files = [];
+const errors = [];
+for (const input of positionals) {
+  if (/[*?\[\]{}]/.test(input)) {
+    const matches = globSync(input, { nodir: true });
+    if (!matches.length) {
+      errors.push(`${input}: no files matched`);
+    }
+    files.push(...matches);
+    continue;
   }
 
-  file_index << {file: file_info}
-end
+  try {
+    const stat = fs.statSync(input);
+    if (stat.isDirectory()) {
+      files.push(...fs.readdirSync(input).map((name) => path.join(input, name)));
+    } else if (stat.isFile()) {
+      files.push(input);
+    }
+  } catch (error) {
+    errors.push(
+      `${input}: ${error.code === 'ENOENT' ? 'path not found' : firstLine(error.message)}`,
+    );
+  }
+}
 
-# Output as JSON to screen
-puts JSON.pretty_generate(file_index)
+if (errors.length) {
+  errors.forEach((error) => console.error(`fez index: ${error}`));
+  process.exit(1);
+}
+
+const index = [];
+for (const file of [...new Set(files)].sort()) {
+  if (path.basename(file).includes('.tmp.')) {
+    continue;
+  }
+  let stat;
+  try {
+    stat = fs.statSync(file);
+  } catch {
+    continue;
+  }
+  if (!stat.isFile()) {
+    continue;
+  }
+
+  const created = stat.birthtimeMs > 0 ? stat.birthtimeMs : stat.ctimeMs;
+  index.push({
+    file: {
+      base: path.basename(file, path.extname(file)),
+      path: file,
+      size: stat.size,
+      modified: Math.floor(stat.mtimeMs / 1000),
+      created: Math.floor(created / 1000),
+    },
+  });
+}
+
+console.log(JSON.stringify(index, null, 2));
+
+function firstLine(message) {
+  return String(message || 'Unknown error').split('\n')[0];
+}

@@ -1,0 +1,138 @@
+#!/usr/bin/env bun
+
+import { parseArgs } from 'util';
+import fs from 'fs';
+import path from 'path';
+import { globSync } from 'glob';
+
+const INFO = 'Report legacy Fez syntax and JavaScript modernization candidates';
+const DEFAULT_PATHS = ['demo/fez', 'src', 'test'];
+
+let values, positionals;
+try {
+  ({ values, positionals } = parseArgs({
+    args: Bun.argv.slice(2),
+    options: {
+      help: { type: 'boolean', short: 'h' },
+      info: { type: 'boolean' },
+    },
+    allowPositionals: true,
+  }));
+} catch (error) {
+  console.error(
+    `fez refactor: ${firstLine(error.message)}. Automatic fixes are intentionally unavailable.`,
+  );
+  process.exit(1);
+}
+
+if (values.info) {
+  console.log(INFO);
+  process.exit(0);
+}
+
+if (values.help) {
+  console.log(`Usage: fez refactor [path-or-glob ...]
+
+${INFO}
+
+This command is report-only. It never changes files.
+Without paths it scans: ${DEFAULT_PATHS.join(', ')}`);
+  process.exit(0);
+}
+
+const collection = collectFiles(positionals.length ? positionals : DEFAULT_PATHS);
+if (collection.errors.length) {
+  collection.errors.forEach((error) => console.error(`fez refactor: ${error}`));
+  process.exit(1);
+}
+
+const issues = collection.files.flatMap(auditFile);
+if (!issues.length) {
+  console.log(`Scanned ${collection.files.length} files: no refactor candidates found`);
+  process.exit(0);
+}
+
+for (const issue of issues) {
+  console.log(`${issue.file}:${issue.line}: ${issue.message}`);
+  console.log(`  ${issue.suggestion}`);
+}
+console.log(`Found ${issues.length} refactor candidates in ${collection.files.length} files`);
+process.exit(1);
+
+function collectFiles(inputs) {
+  const files = [];
+  const errors = [];
+
+  for (const input of inputs) {
+    if (/[*?\[\]{}]/.test(input)) {
+      const matches = globSync(input, { nodir: true });
+      if (!matches.length) {
+        errors.push(`${input}: no files matched`);
+      }
+      files.push(...matches);
+      continue;
+    }
+
+    try {
+      const stat = fs.statSync(input);
+      if (stat.isDirectory()) {
+        files.push(...globSync('**/*.{fez,js,ts}', { cwd: input, absolute: true, nodir: true }));
+      } else if (stat.isFile()) {
+        files.push(path.resolve(input));
+      }
+    } catch (error) {
+      errors.push(
+        `${input}: ${error.code === 'ENOENT' ? 'path not found' : firstLine(error.message)}`,
+      );
+    }
+  }
+
+  return {
+    files: [...new Set(files)]
+      .filter((file) => /\.(fez|js|ts)$/.test(file))
+      .filter((file) => !path.basename(file).includes('.tmp.'))
+      .sort(),
+    errors,
+  };
+}
+
+function auditFile(file) {
+  const content = fs.readFileSync(file, 'utf-8');
+  const lines = content.split('\n');
+  const issues = [];
+
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
+    if (file.endsWith('.fez') && /\{\{[\s#/]*/.test(line)) {
+      issues.push({
+        file: displayPath(file),
+        line: index + 1,
+        message: 'Legacy {{ ... }} Fez syntax',
+        suggestion: 'Migrate this expression or block to the documented single-brace syntax.',
+      });
+    }
+    if (/\bvar\s+[A-Za-z_$]/.test(stripLineComment(line))) {
+      issues.push({
+        file: displayPath(file),
+        line: index + 1,
+        message: 'Legacy var declaration',
+        suggestion: 'Review assignments and choose const or let manually.',
+      });
+    }
+  }
+
+  return issues;
+}
+
+function stripLineComment(line) {
+  return line.replace(/\/\/.*$/, '');
+}
+
+function displayPath(file) {
+  const relative = path.relative(process.cwd(), file);
+  return relative.startsWith('..') ? file : relative;
+}
+
+function firstLine(message) {
+  return String(message || 'Unknown error').split('\n')[0];
+}

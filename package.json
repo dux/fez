@@ -18,6 +18,9 @@
   "bin": {
     "fez": "bin/fez"
   },
+  "engines": {
+    "bun": ">=1.2.0"
+  },
   "files": [
     "bin",
     "dist",
@@ -53,8 +56,7 @@
     "glob-cli": "^1.0.0",
     "happy-dom": "^18.0.1",
     "jsdom": "^26.1.0",
-    "mime": "^4.0.7",
-    "playwright": "^1.57.0"
+    "mime": "^4.0.7"
   },
   "scripts": {
     "build": "bun build.js b",
@@ -69,15 +71,17 @@
     "test": "bun test test/*.test.js && bun test test/browser/*.test.js",
     "test:coverage": "bun test --coverage",
     "prepublishOnly": "bun run build && bun run test",
-    "release": "npm publish --access public",
+    "release": "bun publish --access public",
+    "refactor": "bun bin/fez-refactor",
     "index": "ls demo/fez/*.fez | xargs -n1 basename | sed 's/\\.fez$//' | sort | sed 's/^/fez\\//' > demo/fez.txt",
     "vscode:lint": "node --check vscode/src/extension.js",
     "vscode:test": "node --check vscode/src/extension.js",
-    "vscode:package": "cd vscode && npx @vscode/vsce package --no-dependencies",
-    "vscode:install": "cd vscode && npx @vscode/vsce package --allow-missing-repository --no-dependencies && code --install-extension fez-vscode-tools-0.1.0.vsix"
+    "vscode:package": "cd vscode && bunx @vscode/vsce package --no-dependencies",
+    "vscode:install": "cd vscode && bunx @vscode/vsce package --allow-missing-repository --no-dependencies && code --install-extension fez-vscode-tools-0.1.0.vsix"
   },
   "dependencies": {
     "glob": "^13.0.0",
+    "playwright": "^1.57.0",
     "prettier": "^3.8.1"
   }
 }
