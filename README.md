@@ -85,17 +85,70 @@ The whole mental model:
 2. Component-aware differ updates only what changed (child components preserved automatically)
 3. Hash-based skip avoids DOM work entirely when template output is identical
 
-## Little more details
+## Fez does not own the page
 
-Uses DOM as a source of truth and tries to be as close to vanilla JS as possible. There is nothing to learn or "fight", or overload or "monkey patch" or anything. It just works.
+This is the part that separates Fez from React, Svelte and Vue, and it is worth being explicit about.
 
-Although fastest, Modifying DOM state directly in React / Vue / etc. is considered an anti-pattern. For `Fez` this is just fine if you want to do it. `Fez` basically modifies DOM, you just have a few helpers to help you do it.
+Fez is a **DOM node helper**. It is not a page owner and it has no internal representation of your UI that magically gets reflected somewhere. Every method Fez uses to touch the DOM is a thin helper around the native DOM interface. The live document is the source of truth, and it is always yours to write to directly.
 
-It replaces modern JS frameworks by using native Autonomous Custom Elements to create new HTML tags. This has been supported for years in [all major browsers](https://caniuse.com/custom-elementsv1).
+In React or Vue, reaching for `element.textContent = x` is an anti-pattern - you are lying to the framework about what it owns. In Fez it is just JavaScript. You can work on raw DOM, use the built-in [node builder](https://github.com/dux/fez/blob/main/src/lib/n.js) via `this.n(...)`, or use full template mapping with DOM morphing. Mix all three in the same component.
+
+It creates new HTML tags using native Autonomous Custom Elements, supported for years in [all major browsers](https://caniuse.com/custom-elementsv1). There is nothing to "fight", overload or monkey-patch.
+
+### `this.state` is opt-in, not mandatory
+
+A render rebuilds the component's whole template and morphs it, so the cost is proportional to the **template size**, not to how much actually changed. That is a deliberate trade: one mental model - *change `this.state`, the component re-renders* - that is correct and fast enough for ~99% of components, with no hooks, no runes, no dependency arrays and no memo tuning.
+
+It is **not** a ceiling. If you hit a component that genuinely needs raw DOM throughput - a 10k-row table, a live log, a canvas overlay, a spreadsheet - the answer is never "don't use Fez". The answer is "this one component should not use `this.state`". You drop out of state and diffing for that component alone, and every other component on the page is unaffected.
+
+Three escape hatches, in order of how much of the reactive model you give up:
+
+**1. Keep the template, protect one subtree with `fez:keep`**
+
+The rest of the component stays reactive. The marked node is never touched by the differ, so whatever you build inside it survives every parent render.
+
+```html
+<h3>{state.title}</h3>
+<div fez:keep="grid" fez:this="grid"></div>
+```
+
+```javascript
+onMount() {
+  this.cells = []
+  for (const row of this.props.rows) this.grid.append(this.buildRow(row))
+}
+
+patch(i, value) {
+  this.cells[i].textContent = value   // no render, no diff, no hash
+}
+```
+
+**2. Plain instance fields instead of `this.state`**
+
+Only `this.state` schedules a render. `this.rows = []` does not. Use plain fields for anything you intend to paint by hand, and keep `this.state` for the parts you actually want re-rendered.
+
+**3. No template at all - the component is a pure controller**
+
+Omit the template block and no render ever runs. The tag's original children are left alone and `this.root` is yours.
+
+```javascript
+class {
+  onMount() {
+    this.cells = []
+    const tbody = document.createElement('tbody')
+    for (let i = 0; i < 10000; i++) tbody.append(this.buildRow(i))
+    this.root.append(this.n('table', tbody))
+  }
+
+  patch(i, value) { this.cells[i].textContent = value }
+}
+```
+
+10k rows build in roughly 9ms and a cell update is a plain `textContent` write - the same speed as vanilla JS, because it *is* vanilla JS. You keep everything else: lifecycle hooks, typed `PROPS`, scoped `<style>`, auto-cleanup of timers and listeners, pub/sub and `globalState`.
+
+Rule of thumb: reach for a hatch when a single component owns more than ~500 live nodes **and** updates them frequently. Below that, use `this.state` and do not think about it.
 
 This article, [Web Components Will Replace Your Frontend Framework](https://www.dannymoerkerke.com/blog/web-components-will-replace-your-frontend-framework/), is from 2019. Join the future, ditch React, Angular and other never defined, always "evolving" monstrosities. Vanilla is the way :)
-
-There is no some "internal state" that is by some magic reflected to DOM. No! All methods Fez use to manipulate DOM are just helpers around native DOM interface. Work on DOM raw, use built in [node builder](https://github.com/dux/fez/blob/main/src/lib/n.js) or full template mapping with DOM morphing.
 
 ## How it works
 

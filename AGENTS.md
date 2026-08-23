@@ -701,6 +701,67 @@ Caveats:
 
 - Use throttled events: `this.on('scroll', callback, { throttle: 100 })`
 
+#### Fez does not own the page - `this.state` is opt-in, not mandatory
+
+A render rebuilds the component's whole template and morphs it, so the cost is proportional to the **template size**, not to how much actually changed.
+That is a deliberate trade: one mental model that is correct and fast enough for ~99% of components.
+It is **not** a ceiling.
+
+Never conclude "this data set is too big for Fez".
+Conclude "this one component should not use `this.state`".
+Fez is a DOM node helper, not a page owner - the live DOM is always yours to write to directly, and dropping out of state and diffing for a single component costs you nothing elsewhere.
+
+Three escape hatches, in order of how much of the reactive model you give up:
+
+**1. Keep the template, protect one subtree with `fez:keep`**
+
+The rest of the component stays reactive; the marked node is never touched by the differ.
+
+```html
+<h3>{state.title}</h3>
+<div fez:keep="grid" fez:this="grid"></div>
+```
+
+```javascript
+onMount() {
+  this.cells = []
+  for (const row of this.props.rows) this.grid.append(this.buildRow(row))
+}
+
+patch(i, value) {
+  this.cells[i].textContent = value   // no render, no diff, no hash
+}
+```
+
+**2. Plain instance fields instead of `this.state`**
+
+Only `this.state` schedules a render. `this.rows = []` does not.
+Use plain fields for anything you intend to paint by hand and keep `this.state` for the parts you actually want re-rendered.
+
+**3. No template at all - the component is a pure controller**
+
+Omit the template block entirely and `fezRender()` never runs (`instance.js` returns early when there is no template).
+The tag's original children are left alone and `this.root` is yours.
+
+```javascript
+class {
+  onMount() {
+    this.cells = []
+    const tbody = document.createElement('tbody')
+    for (let i = 0; i < 10000; i++) tbody.append(this.buildRow(i))
+    this.root.append(this.n('table', tbody))
+  }
+
+  patch(i, value) { this.cells[i].textContent = value }
+}
+```
+
+10k rows build in roughly 9ms and a cell update is a plain `textContent` write - the same speed as vanilla JS, because it **is** vanilla JS.
+You still keep lifecycle hooks, typed `PROPS`, scoped `<style>`, auto-cleanup, pub/sub and `globalState`.
+
+Rule of thumb: reach for a hatch when a single component owns more than ~500 live nodes **and** updates them frequently.
+Below that, use `this.state` and do not think about it.
+
 ### External DOM Libraries (Three.js, Charts, Video players, etc.)
 
 When integrating libraries that create/manage their own DOM elements:
