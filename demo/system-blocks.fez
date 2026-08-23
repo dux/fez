@@ -69,9 +69,28 @@
 
 <xmp fez="block-promo">
   <script>
+    // editor text with the real dots back - the parent template would rewrite
+    // `fez.` into Fez(UID). so the source is shown with U+2024 instead.
+    // Takes the name because applyChanges runs as a detached function pointer (no `this`).
+    componentSource(name) {
+      return Fez(`#code-${name}`).getSource().replaceAll('fez․', 'fez.')
+    }
+
+    openPlayground(name) {
+      // hand the (possibly edited) source over through localStorage, the playground reads the same key
+      Fez.localStorage.set(`fez-playground:${name}`, {
+        name: name,
+        source: this.componentSource(name),
+        demo: Fez(`#html-${name}`).getSource(),
+        from: 'examples',
+        at: Date.now(),
+      })
+      window.open(`./playground.html?fez=${name}`, '_blank')
+    }
+
     openCodePen(name) {
       let demo = Fez.index[name]?.demo || ''
-      let code = Fez(`#code-${name}`).getSource()
+      let code = this.componentSource(name)
       const body = [
         '<link rel="stylesheet" href="//cdn.simplecss.org/simple.css" />\n<scr'+'ipt src="https://raw.githubusercontent.com/dux/fez/main/dist/fez.js"></scr'+'ipt>',
         `<!-- FEZ code start -->\n<x`+`mp fez="${name}">\n${code}\n</xm`+`p>\n<!-- FEZ code end -->`,
@@ -105,8 +124,9 @@
     }
 
     applyChanges(name) {
-      let htmlString = Fez(`#code-${name}`).getSource()
-      Fez.compile(name, htmlString)
+      // called through ui-editor's :action pointer, so `this` is not the component here
+      const source = Fez(`#code-${name}`).getSource().replaceAll('fez․', 'fez.')
+      Fez.compile(name, source)
 
       // Re-render demo from updated component
       const target = document.querySelector(`#body-${name}`)
@@ -158,6 +178,31 @@
         background: #ddd;
       }
     }
+
+    .promo-links {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 14px;
+      margin-top: 10px;
+
+      small, button { cursor: pointer; }
+
+      button.playground {
+        font-family: inherit;
+        font-size: 12.5px;
+        font-weight: 600;
+        line-height: 1;
+        padding: 7px 12px;
+        border-radius: 999px;
+        border: 1px solid #d2d4d9;
+        background: #fff;
+        color: #17181c;
+
+        &::before { content: '▶ '; font-size: 9px; color: #c8102e; }
+        &:hover { border-color: #c8102e; color: #c8102e; }
+      }
+    }
   </style>
 
   {#if state.ready}
@@ -195,8 +240,9 @@
               </ui-editor>
             </div>
           </ui-tabs>
-          <div style="margin-top: 10px; text-align: right;">
-            <small onclick="fez.openCodePen('{name}')" style="cursor: pointer;">open in CodePen</small>
+          <div class="promo-links">
+            <button class="playground" onclick="fez.openPlayground('{name}')" title="Edit with live recompile in a full-width split view">open in playground</button>
+            <small onclick="fez.openCodePen('{name}')">open in CodePen</small>
           </div>
         </div>
       </div>

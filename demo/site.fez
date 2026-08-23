@@ -8,6 +8,8 @@
         this.state.links = [
           { href: './index.html',     name: 'index.html',    label: 'Home' },
           { href: './examples.html',  name: 'examples.html', label: 'Examples' },
+          // the playground is a full-viewport app without a pjax container - plain navigation
+          { href: './playground.html', label: 'Playground', full: true },
           { href: './docs.html',      name: 'docs.html',     label: 'Docs' },
           { href: './electron.html',  name: 'electron.html', label: 'Electron' },
           { href: '../benchmark.html', label: 'Benchmark', ext: true },
@@ -42,6 +44,8 @@
         <li>
           {#if link.ext}
             <a href="{link.href}" class="ext no-pjax" target="_blank">{link.label}</a>
+          {:else if link.full}
+            <a href="{link.href}" class="no-pjax">{link.label}</a>
           {:else}
             <a href="{link.href}" class="{link.name == state.path ? 'active' : ''}">{link.label}</a>
           {/if}
