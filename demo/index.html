@@ -66,79 +66,6 @@
         </div>
       </section>
 
-      <section class="site-section site-claim">
-        <div class="site-wrap">
-          <p class="site-eyebrow">the-one-thing</p>
-          <h2 class="site-h2">Real components in the app you already have</h2>
-
-          <p class="site-claim-quote">
-            Fez is strongly better than Svelte and Vue at exactly one thing, and it is a real thing:
-            <b>adding real components to a server-rendered app</b> - with no build step, no ownership war
-            over the DOM, and no framework rewrite.
-          </p>
-          <p class="site-lead">
-            For that job it beats Turbo + Stimulus outright, and Svelte and Vue cannot compete -
-            because they assume they own the page.
-          </p>
-
-          <div class="site-features">
-            <div class="site-feature">
-              <span class="glyph">&lt;script src="fez.js"&gt;</span>
-              <h4>No build step</h4>
-              <p>The template compiler, the differ and the SCSS flattener all run in the browser. Drop one script tag next to the HTML your server already returns and <code>&lt;ui-tag&gt;</code> starts working. No bundler, no dev server, no <code>node_modules</code> for the UI.</p>
-            </div>
-            <div class="site-feature">
-              <span class="glyph">morph, not mount</span>
-              <h4>No ownership war over the DOM</h4>
-              <p>Real-DOM morphing, no virtual tree. Server HTML stays the source of truth, components read and write live nodes without it being an anti-pattern, and third-party widgets survive a render behind <code>fez:keep</code>.</p>
-            </div>
-            <div class="site-feature">
-              <span class="glyph">one tag at a time</span>
-              <h4>No framework rewrite</h4>
-              <p>Adopt a single component and stop there if you like. Native custom elements sit next to Rails, Django, Laravel, PHP or plain HTML, and pjax keeps them alive across navigation.</p>
-            </div>
-          </div>
-
-          <div class="site-versus">
-            <section>
-              <h4>vs. <b>Turbo + Stimulus</b></h4>
-              <ul>
-                <li><b>Templates, not just controllers.</b> Stimulus hands you a controller and you write every DOM mutation by hand. Fez gives you <code>{#if}</code>, <code>{#each}</code>, <code>{#await}</code>, scoped <code>&lt;style&gt;</code>, transitions and typed props in the same file.</li>
-                <li><b>The differ knows what a component is.</b> Turbo swaps a frame. Fez morphs: a keyed component survives the page swap with its state intact, while one whose server markup actually changed gets a clean <code>init()</code>. No manual re-syncing.</li>
-                <li><b>One script instead of a stack.</b> Turbo plus Stimulus plus an import map plus a build pipeline - or <code>fez.js</code>.</li>
-              </ul>
-            </section>
-            <section>
-              <h4>vs. <b>Svelte + Vue</b></h4>
-              <ul>
-                <li><b>Svelte ships no runtime compiler.</b> The compiler <em>is</em> the framework, so "add a script tag to the page you already have" is not on the menu. Every component goes through a build.</li>
-                <li><b>Vue can run from a CDN, but not as itself.</b> The in-DOM template build gives up the single-file component: no scoped <code>&lt;style&gt;</code> block, no <code>.vue</code> file.</li>
-                <li><b>Both want a mount point.</b> They render the tree beneath it and expect to own it. On a server-rendered page that means porting your templates first. Fez enhances the markup that is already there.</li>
-              </ul>
-            </section>
-          </div>
-
-          <div class="site-claim-note">
-            <h4>Not owning the page means it is never a dead end</h4>
-            <p>
-              A render rebuilds the component's whole template, so its cost tracks template size rather than
-              how much changed. That is the deliberate trade for one mental model that is right about 99% of
-              the time - <em>change <code>this.state</code>, the component re-renders</em>. No hooks, no runes,
-              no dependency arrays, no memo tuning.
-            </p>
-            <p>
-              And when a component genuinely needs raw DOM throughput - a 10k-row table, a live log, a
-              spreadsheet - the answer is never "don't use Fez". It is "this one component should not use
-              <code>this.state</code>". Because Fez does not own the page, the live DOM is still yours:
-              wall off a subtree with <code>fez:keep</code>, use plain instance fields instead of state, or
-              skip the template entirely and paint the DOM by hand in <code>onMount()</code>. 10k rows in
-              ~9ms, cell updates at vanilla speed - and you keep lifecycle, typed props, scoped style and
-              auto-cleanup. Nothing else on the page changes.
-            </p>
-          </div>
-        </div>
-      </section>
-
       <section class="site-section alt">
         <div class="site-wrap">
           <p class="site-eyebrow">the-good-parts</p>
@@ -287,7 +214,82 @@
         </div>
       </section>
 
-      <section class="site-section">
+      <section class="site-section site-claim">
+        <div class="site-wrap">
+          <p class="site-eyebrow">where-it-fits</p>
+          <h2 class="site-h2">Real components in the app you already have</h2>
+
+          <p class="site-claim-quote">
+            Fez is designed for one specific job: <b>adding real components to a server-rendered
+            application</b> - without a build step, without taking ownership of the DOM, and without
+            rewriting the application around a framework.
+          </p>
+          <p class="site-lead">
+            Svelte and Vue are excellent at building applications that they render end to end; that is
+            a different job, and their design assumes they own the page. Turbo + Stimulus address the same
+            server-rendered case as Fez, but with a different split between what the framework provides
+            and what you write by hand. The comparison below is limited to that one scenario.
+          </p>
+
+          <div class="site-features">
+            <div class="site-feature">
+              <span class="glyph">&lt;script src="fez.js"&gt;</span>
+              <h4>No build step</h4>
+              <p>The template compiler, the differ and the SCSS flattener all run in the browser. Drop one script tag next to the HTML your server already returns and <code>&lt;ui-tag&gt;</code> starts working. No bundler, no dev server, no <code>node_modules</code> for the UI.</p>
+            </div>
+            <div class="site-feature">
+              <span class="glyph">morph, not mount</span>
+              <h4>No ownership of the DOM</h4>
+              <p>Real-DOM morphing, no virtual tree. Server HTML stays the source of truth, components may read and write live nodes directly, and third-party widgets survive a render behind <code>fez:keep</code>.</p>
+            </div>
+            <div class="site-feature">
+              <span class="glyph">one tag at a time</span>
+              <h4>No framework rewrite</h4>
+              <p>Adoption can stop at a single component. Native custom elements sit next to Rails, Django, Laravel, PHP or plain HTML, and pjax keeps them alive across navigation.</p>
+            </div>
+          </div>
+
+          <div class="site-versus">
+            <section>
+              <h4>Compared with <b>Turbo + Stimulus</b></h4>
+              <ul>
+                <li><b>Templates in addition to controllers.</b> Stimulus provides a controller and leaves DOM updates to hand-written code. Fez adds <code>{#if}</code>, <code>{#each}</code>, <code>{#await}</code>, scoped <code>&lt;style&gt;</code>, transitions and typed props in the same file.</li>
+                <li><b>A component-aware differ.</b> Turbo replaces a frame. Fez morphs: a keyed component survives the page swap with its state intact, while one whose server markup changed gets a clean <code>init()</code>, so there is no manual re-syncing step.</li>
+                <li><b>A single script.</b> Turbo, Stimulus, an import map and a build pipeline are separate pieces; <code>fez.js</code> covers the same ground in one file.</li>
+              </ul>
+            </section>
+            <section>
+              <h4>Compared with <b>Svelte + Vue</b></h4>
+              <ul>
+                <li><b>Svelte has no runtime compiler.</b> Its compiler is an essential part of the framework, so every component goes through a build; adding a script tag to an existing page is not a supported mode.</li>
+                <li><b>Vue can run from a CDN, with trade-offs.</b> The in-DOM template build does not support the single-file component: no scoped <code>&lt;style&gt;</code> block, no <code>.vue</code> file.</li>
+                <li><b>Both render from a mount point.</b> They build the tree beneath it and expect to own it, so on a server-rendered page the templates are ported first. Fez enhances the markup that is already there.</li>
+              </ul>
+            </section>
+          </div>
+
+          <div class="site-claim-note">
+            <h4>The trade-off, and where it stops applying</h4>
+            <p>
+              A render rebuilds the component's whole template, so its cost tracks template size rather than
+              how much changed. That is a deliberate trade for a single mental model that holds for the large
+              majority of components - <em>change <code>this.state</code>, the component re-renders</em> - with
+              no hooks, runes, dependency arrays or memo tuning.
+            </p>
+            <p>
+              When a component genuinely needs raw DOM throughput - a 10k-row table, a live log, a
+              spreadsheet - that one component can opt out of <code>this.state</code> rather than out of Fez.
+              Because Fez does not own the page, the live DOM remains available: wall off a subtree with
+              <code>fez:keep</code>, keep data in plain instance fields, or skip the template and paint the DOM
+              directly in <code>onMount()</code>. 10k rows render in roughly 9ms and cell updates run at vanilla
+              speed, while lifecycle, typed props, scoped style and auto-cleanup still apply. Nothing else on
+              the page changes.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="site-section alt">
         <div class="site-wrap">
           <p class="site-eyebrow">ui-counter</p>
           <h2 class="site-h2">A counter in three steps</h2>
