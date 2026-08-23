@@ -20,6 +20,16 @@ const fixture = (name, content) => {
   return file;
 };
 
+const compileOutput = async (name, content) => {
+  const file = fixture(name, content);
+  const result = await $`bin/fez-compile -o ${file}`.quiet().nothrow();
+  return {
+    exitCode: result.exitCode,
+    stdout: result.stdout.toString(),
+    stderr: result.stderr.toString(),
+  };
+};
+
 describe('fez compile', () => {
   describe('valid files', () => {
     test('compiles basic component', async () => {
@@ -132,6 +142,64 @@ describe('fez compile', () => {
       expect(stdout).toContain('background: gold;');
       expect(stdout).toContain('CSS_GLOBAL = `');
       expect(stdout).toContain('border: 1px solid #ddd;');
+    });
+
+    test('escapes backticks in scoped styles', async () => {
+      const result = await compileOutput(
+        'test-css-scoped-backtick.fez',
+        '<style>\n/* why it is `bg` */\n.x { color: red; }\n</style>\n<div class="x">x</div>',
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('why it is \\`bg\\`');
+    });
+
+    test('escapes backticks in global styles', async () => {
+      const result = await compileOutput(
+        'test-css-global-backtick.fez',
+        '<style global>\n/* why it is `bg` */\n.x { color: red; }\n</style>\n<div class="x">x</div>',
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('why it is \\`bg\\`');
+    });
+
+    test('keeps CSS interpolation syntax literal', async () => {
+      const result = await compileOutput(
+        'test-css-interpolation.fez',
+        '<style>\n/* ${accent} */\n.x { color: red; }\n</style>\n<div class="x">x</div>',
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('\\${accent}');
+    });
+
+    test('preserves CSS backslashes through generated JavaScript', async () => {
+      const result = await compileOutput(
+        'test-css-backslash.fez',
+        '<style>\n.quote::before { content: "\\201C"; }\n</style>\n<div class="quote">x</div>',
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('content: "\\\\201C";');
+    });
+
+    test('escapes template literal characters in the runtime compiler', () => {
+      const Fez = globalThis.window.Fez;
+      const oldGlobalFez = globalThis.Fez;
+
+      try {
+        globalThis.Fez = Fez;
+        Fez.compile(
+          'test-css-runtime-escaping',
+          '<style>\n/* `bg` ${accent} */\n.quote::before { content: "\\201C"; }\n</style>',
+        );
+
+        expect(Fez.index['test-css-runtime-escaping'].class.css).toContain('`bg` ${accent}');
+        expect(Fez.index['test-css-runtime-escaping'].class.css).toContain('content: "\\201C";');
+      } finally {
+        globalThis.Fez = oldGlobalFez;
+      }
     });
   });
 

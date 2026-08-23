@@ -536,6 +536,10 @@ function debugTemplateFunction(html, componentName) {
   return debug;
 }
 
+function escapeTemplateLiteral(value) {
+  return String(value).replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('$', '\\$');
+}
+
 function generateCompiledJS(parsed, componentName) {
   let klass = parsed.script;
   if (!/class\s+\{/.test(klass)) {
@@ -543,10 +547,12 @@ function generateCompiledJS(parsed, componentName) {
   }
 
   if (parsed.style && parsed.style.includes(':')) {
-    klass = klass.replace(/\}\s*$/, `\n  CSS = \`:fez {\n${parsed.style}\n}\`\n}`);
+    const css = escapeTemplateLiteral(parsed.style);
+    klass = klass.replace(/\}\s*$/, `\n  CSS = \`:fez {\n${css}\n}\`\n}`);
   }
   if (parsed.styleGlobal && parsed.styleGlobal.includes(':')) {
-    klass = klass.replace(/\}\s*$/, `\n  CSS_GLOBAL = \`${parsed.styleGlobal}\`\n}`);
+    const cssGlobal = escapeTemplateLiteral(parsed.styleGlobal);
+    klass = klass.replace(/\}\s*$/, `\n  CSS_GLOBAL = \`${cssGlobal}\`\n}`);
   }
   if (parsed.html && /\w/.test(parsed.html)) {
     const html = parsed.html.trim().replaceAll('`', '&#x60;').replaceAll('$', '\\$');

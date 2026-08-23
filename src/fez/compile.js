@@ -45,6 +45,13 @@ function withoutComments(style) {
     .replace(/^([ \t]*)\/\/[^\n]*/gm, (m, indent) => indent + " ".repeat(m.length - indent.length));
 }
 
+function escapeTemplateLiteral(value) {
+  return String(value)
+    .replaceAll("\\", "\\\\")
+    .replaceAll("`", "\\`")
+    .replaceAll("$", "\\$");
+}
+
 function assertStyleScope(tagName, rawStyle, isGlobal) {
   if (!rawStyle) return;
   const style = withoutComments(rawStyle);
@@ -320,14 +327,13 @@ function generateClassCode(tagName, parts) {
   // :global(...) and non-nestable at-rules are lifted out by the flattener at
   // injection time, so the compiler just labels the two channels.
   if (String(parts.style).includes(":")) {
-    klass = klass.replace(/\}\s*$/, `\n  CSS = \`:fez {\n${parts.style}\n}\`\n}`);
+    const css = escapeTemplateLiteral(parts.style);
+    klass = klass.replace(/\}\s*$/, `\n  CSS = \`:fez {\n${css}\n}\`\n}`);
   }
 
   if (String(parts.styleGlobal).includes(":")) {
-    klass = klass.replace(
-      /\}\s*$/,
-      `\n  CSS_GLOBAL = \`${parts.styleGlobal}\`\n}`,
-    );
+    const cssGlobal = escapeTemplateLiteral(parts.styleGlobal);
+    klass = klass.replace(/\}\s*$/, `\n  CSS_GLOBAL = \`${cssGlobal}\`\n}`);
   }
 
   // Add HTML
