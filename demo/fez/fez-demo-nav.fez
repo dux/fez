@@ -1,10 +1,13 @@
 <info>
   <ul>
-    <li>Fixed demo component navigator for <code>fez-demo</code>.</li>
+    <li>In-flow component picker for the demo pages - a pill control with a dropdown list of every demo component.</li>
+    <li>The selection lives in <code>globalState.demoSelected</code>, so the page decides where to render the picker:
+      centered before the list when nothing is selected, directly above the selected component otherwise.
+      Pass <code>for="name"</code> on the instance placed above a section and it scrolls itself into view on mount
+      (<code>offset</code> = px kept free above it, default 16).</li>
     <li>Highlights the active demo while scrolling.</li>
     <li>Loads all demo components from <code>Fez.index.withDemo()</code> after page load.</li>
-    <li>Opens a compact fixed top-left menu with a smooth marker.</li>
-    <li>Filter input narrows the list as you type - <code>Enter</code> jumps to the first match, <code>Esc</code> clears.</li>
+    <li>Filter input narrows the list as you type - <code>Enter</code> jumps to the first match, <code>Esc</code> clears, then closes.</li>
   </ul>
 </info>
 
@@ -15,13 +18,13 @@
 <script>
   class {
     init(props) {
+      this.for = props.for || ""
+      this.offset = Number(props.offset ?? 16)
       this.state.items = []
       this.state.activeIndex = -1
       this.state.markerTop = 0
       this.state.markerHeight = 0
       this.state.open = false
-      this.state.loaded = false
-      this.state.selectedName = ""
       this.state.filter = ""
       this.state.visible = []
     }
@@ -36,54 +39,71 @@
     }
 
     onMount() {
-      this.setTimeout(() => this.loadComponents(), 1000)
-      if (typeof window !== "undefined" && window.addEventListener) {
-        this.on("scroll", this.updateActive, { throttle: 50 })
-        this.on("resize", this.sync, { throttle: 100 })
-        this.on("hashchange", this.syncToHash)
-      }
+      this.loadComponents()
+      this.on("scroll", this.updateActive, { throttle: 50 })
+      this.on("resize", this.updateMarker, { throttle: 100 })
+      this.on("hashchange", this.syncToHash)
       this.on(this.root, "click", this.handleClick)
+      this.on(document, "click", this.closeOnOutsideClick)
+
+      // the page renders a fresh picker wherever the selection moves - the one
+      // placed above the selected section brings itself into view, the one at
+      // the top does so only after a clear (flag set by clearSelection)
+      if (this.for) {
+        if (this.for === this.globalState.demoSelected) {
+          this.whenSectionsReady(() => this.reveal())
+        }
+      } else if (Fez.state.get("demoNavReveal")) {
+        Fez.state.set("demoNavReveal", false)
+        this.reveal()
+      }
     }
 
-    onRefresh() {
+    // marker tracks the active link, so re-measure after every render
+    afterRender() {
       this.setTimeout(() => this.updateMarker(), 0)
     }
 
-    loadComponents() {
-      const items = this.loadedComponents()
-      if (!items.length) {
-        this.setTimeout(() => this.loadComponents(), 250)
+    // components keep registering while the demo list loads - wait until the
+    // count is stable between two polls before trusting it
+    loadComponents(lastCount = -1) {
+      const names = Fez.index.withDemo().sort()
+      if (!names.length || names.length !== lastCount) {
+        this.setTimeout(() => this.loadComponents(names.length), 200)
         return
       }
 
-      this.state.items = items
-      this.state.loaded = true
-      this.setTimeout(() => this.syncToHash() || this.sync(), 0)
+      this.state.items = names
+      this.setTimeout(() => this.syncToHash() || this.updateActive(), 0)
     }
 
-    loadedComponents() {
-      const names = Fez.index.withDemo().sort()
-      const rendered = names.filter(name => document.getElementById(this.sectionId(name)))
-      return rendered.length ? rendered : names
+    // sections render async, one fetch per component - poll until every demo
+    // component has its anchor on the page (or give up after ~3s)
+    whenSectionsReady(callback, tries = 0) {
+      const names = Fez.index.withDemo()
+      const ready = names.length && names.every(name => document.getElementById(this.sectionId(name)))
+      if (ready || tries > 30) {
+        this.setTimeout(callback, 0)
+      } else {
+        this.setTimeout(() => this.whenSectionsReady(callback, tries + 1), 100)
+      }
     }
 
     sectionId(name) {
       return `fez-demo-${String(name).replace(/[^a-z0-9_-]/gi, "-")}`
     }
 
-    sync() {
-      this.updateActive()
-      this.updateMarker()
-    }
-
     toggle() {
       this.state.open = !this.state.open
       this.state.filter = ""
       if (this.state.open) {
-        this.setTimeout(() => {
-          this.sync()
-          this.find(".fez-demo-nav-filter")?.focus()
-        }, 0)
+        this.setTimeout(() => this.updateMarker(), 0)
+      }
+    }
+
+    closeOnOutsideClick(event) {
+      if (this.state.open && !this.root.contains(event.target)) {
+        this.state.open = false
       }
     }
 
@@ -106,7 +126,7 @@
       if (event.key === "Enter") {
         event.preventDefault()
         const first = this.state.visible[0]
-        if (first) this.scrollToComponent(first.name)
+        if (first) this.select(first.name)
       }
     }
 
@@ -118,93 +138,86 @@
         input.value = ""
         input.focus()
       }
-      this.setTimeout(() => this.sync(), 0)
+      this.setTimeout(() => this.updateMarker(), 0)
     }
 
     syncToHash() {
-      if (!window.location.hash) {
-        this.state.selectedName = ""
-        this.state.activeIndex = -1
-        return false
+      const id = window.location.hash.slice(1)
+      const name = id && this.state.items.find(item => this.sectionId(item) === id)
+
+      if (name) {
+        if (this.globalState.demoSelected !== name) this.globalState.demoSelected = name
+        return true
       }
 
-      const id = window.location.hash.slice(1)
-      const index = this.state.items.findIndex(name => this.sectionId(name) === id)
-      if (index < 0) return false
-
-      this.state.activeIndex = index
-      this.state.selectedName = this.state.items[index]
-      this.scrollToComponent(this.state.items[index])
-      return true
+      if (!id && this.globalState.demoSelected) this.globalState.demoSelected = ""
+      return false
     }
 
     handleClick(event) {
       const link = event.target?.closest?.(".fez-demo-nav-link")
       if (!link) return
 
-      // scroll by hand instead of letting the href jump - the native hash
-      // scroll ignores the fixed control and would land on top of the title
+      // scroll by hand instead of letting the href jump - pjax and the native
+      // hash scroll would both land the title under the sticky site nav
       event.preventDefault()
-
       const index = Number(link.dataset.index)
-      if (Number.isFinite(index)) {
-        this.state.activeIndex = index
-        this.state.selectedName = this.state.items[index] || ""
-        this.setTimeout(() => this.scrollToComponent(this.state.items[index]), 0)
+      if (Number.isFinite(index) && this.state.items[index]) {
+        this.select(this.state.items[index])
       }
+    }
+
+    select(name) {
       this.state.open = false
       this.state.filter = ""
-      this.setTimeout(() => this.sync(), 0)
+
+      if (window.history?.replaceState) {
+        window.history.replaceState(null, "", `#${this.sectionId(name)}`)
+      }
+
+      if (this.globalState.demoSelected === name) {
+        // already placed above this section - just bring it back into view
+        this.revealSection(name)
+      } else {
+        // the page re-renders the picker above the section, that instance reveals itself
+        this.globalState.demoSelected = name
+      }
     }
 
     clearSelection(event) {
       event?.preventDefault?.()
       event?.stopPropagation?.()
-      this.state.selectedName = ""
       this.state.open = false
-      this.setTimeout(() => {
-        const current = this.find(".fez-demo-nav-current")
-        if (current) current.textContent = "quick select"
-      }, 0)
-      this.setTimeout(() => this.sync(), 0)
 
       if (window.history?.replaceState) {
         window.history.replaceState(null, "", window.location.pathname + window.location.search)
       }
+
+      // the picker moves back to the top of the list - follow it there
+      Fez.state.set("demoNavReveal", true)
+      this.globalState.demoSelected = ""
     }
 
-    // clearance the fixed control needs so the section title stays visible
-    scrollOffset() {
-      const control = this.find(".fez-demo-nav-control")
-      const bottom = control?.getBoundingClientRect
-        ? control.getBoundingClientRect().bottom
-        : 56
-      return Math.round(bottom) + 16
+    scrollTo(node) {
+      if (!node?.getBoundingClientRect) return
+      const top = node.getBoundingClientRect().top + window.scrollY - this.offset
+      window.scrollTo({ top: Math.max(top, 0), behavior: "auto" })
     }
 
-    scrollToComponent(name) {
-      const target = document.getElementById(this.sectionId(name))
-      if (!target) return
+    reveal() {
+      this.scrollTo(this.root)
+    }
 
-      const top = target.getBoundingClientRect().top + window.scrollY
-      window.scrollTo({ top: Math.max(top - this.scrollOffset(), 0), behavior: "auto" })
-      this.state.open = false
-      this.state.filter = ""
-      this.state.selectedName = name
-      const index = this.state.items.indexOf(name)
-      if (index >= 0) this.state.activeIndex = index
-      this.updateMarker()
-
-      if (window.history?.replaceState) {
-        window.history.replaceState(null, "", `#${this.sectionId(name)}`)
-      }
+    revealSection(name) {
+      const picker = document.querySelector(`.fez-demo-nav-box[data-for="${name}"]`)
+      this.scrollTo(picker || document.getElementById(this.sectionId(name)))
     }
 
     updateActive() {
       const items = this.state.items
       if (!items.length) return
 
-      if (!this.state.selectedName && !window.location.hash && window.scrollY < 20) {
+      if (!this.globalState.demoSelected && !window.location.hash && window.scrollY < 20) {
         this.state.activeIndex = -1
         this.updateMarker(-1)
         return
@@ -262,14 +275,13 @@
 </script>
 
 <style>
-  .fez-demo-side-nav {
-    position: fixed;
-    top: 10px;
-    left: 12px;
-    z-index: 1000;
-    width: min(340px, calc(100vw - 32px));
+  .fez-demo-nav-box {
+    position: relative;
+    z-index: 20;
+    box-sizing: border-box;
+    width: min(420px, 100%);
+    margin: 0 auto;
     text-align: left;
-    transform: none;
   }
 
   .fez-demo-nav-control {
@@ -359,11 +371,13 @@
   }
 
   .fez-demo-nav-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
     box-sizing: border-box;
-    height: calc(100vh - 76px);
-    max-height: calc(100vh - 76px);
+    max-height: min(60vh, 520px);
     overflow: auto;
-    margin-top: 10px;
     padding: 14px 16px 14px 14px;
     border: 1px solid #e3e3e3;
     border-radius: 10px;
@@ -469,7 +483,7 @@
   }
 </style>
 
-<nav class="fez-demo-side-nav" aria-label="Demo components">
+<nav class="fez-demo-nav-box {globalState.demoSelected ? 'is-selected' : ''}" data-for="{fez.for}" aria-label="Demo components">
   <div class="fez-demo-nav-control">
     <button
       class="fez-demo-nav-toggle"
@@ -478,9 +492,9 @@
       onclick="fez.toggle()"
     >
       <span class="fez-demo-nav-icon" aria-hidden="true">F</span>
-      <span class="fez-demo-nav-current {state.selectedName ? '' : 'placeholder'}">{state.selectedName ? state.selectedName : 'quick select'}</span>
+      <span class="fez-demo-nav-current {globalState.demoSelected ? '' : 'placeholder'}">{globalState.demoSelected || 'quick select'}</span>
     </button>
-    {#if state.selectedName}
+    {#if globalState.demoSelected}
       <button class="fez-demo-nav-clear" aria-label="Clear selection" onclick="fez.clearSelection(event)">X</button>
     {/if}
   </div>
@@ -494,6 +508,7 @@
           aria-label="Filter components"
           autocomplete="off"
           spellcheck="false"
+          fez:use="el => el.focus()"
           value={state.filter}
           oninput="fez.onFilter(this.value)"
           onkeydown="fez.onFilterKey(event)"
