@@ -194,3 +194,218 @@ test('PROPS - static PROPS on plain class and keyed refresh from parent re-rende
     await closePage(page);
   }
 });
+
+test('PROPS - props are reactive, writing this.props re-renders', async () => {
+  const page = await createTestPage('<x-write label="start" count="1"></x-write>');
+  try {
+    await page.evaluate(() => {
+      window.Fez('x-write', class {
+        PROPS = { count: { type: Number, default: 0 } };
+        bump() { this.props.count = this.props.count + 1; }
+        rename() { this.props.label = 'changed'; }
+        HTML = '<b class="out">{props.label}</b><i class="n">{props.count}</i>';
+      });
+    });
+    await page.waitForSelector('.out');
+    expect(await page.textContent('.out')).toBe('start');
+    expect(await page.textContent('.n')).toBe('1');
+
+    await page.evaluate(() => document.querySelector('.fez-x-write').fez.bump());
+    await page.waitForFunction(() => document.querySelector('.n').textContent === '2', { timeout: 3000 });
+
+    await page.evaluate(() => document.querySelector('.fez-x-write').fez.rename());
+    await page.waitForFunction(() => document.querySelector('.out').textContent === 'changed', { timeout: 3000 });
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('PROPS - { state: true } seeds this.state before init, transform splits the raw value', async () => {
+  const page = await createTestPage('<x-seed tags="a, b ,c"></x-seed>');
+  try {
+    await page.evaluate(() => {
+      window.Fez('x-seed', class {
+        PROPS = {
+          tags: {
+            type: Array,
+            state: true,
+            default: (raw) => (raw || '').split(/\s*,\s*/).filter(Boolean),
+          },
+        };
+        init() { window.testResults.seenInInit = [...this.state.tags]; }
+        add(tag) { this.state.tags = [...this.state.tags, tag]; }
+        push(tag) { this.state.tags.push(tag); }
+        HTML = '<ul>{#each state.tags as tag}<li>{tag}</li>{/each}</ul>';
+      });
+    });
+    await page.waitForSelector('li');
+    expect(await page.$$eval('li', (els) => els.map((e) => e.textContent))).toEqual(['a', 'b', 'c']);
+    expect(await page.evaluate(() => window.testResults.seenInInit)).toEqual(['a', 'b', 'c']);
+
+    // state owns the list from here - props keep the value they were seeded from,
+    // in place mutation included (state is seeded with a copy)
+    await page.evaluate(() => document.querySelector('.fez-x-seed').fez.add('d'));
+    await page.waitForFunction(() => document.querySelectorAll('li').length === 4, { timeout: 3000 });
+    expect(await page.evaluate(() => document.querySelector('.fez-x-seed').fez.props.tags)).toEqual(['a', 'b', 'c']);
+
+    await page.evaluate(() => document.querySelector('.fez-x-seed').fez.state.tags.push('e'));
+    await page.waitForFunction(() => document.querySelectorAll('li').length === 5, { timeout: 3000 });
+    expect(await page.evaluate(() => document.querySelector('.fez-x-seed').fez.props.tags)).toEqual(['a', 'b', 'c']);
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('PROPS - { state: "name" } renames the state key, no flag means no copy', async () => {
+  const page = await createTestPage('<x-alias items=\'["x","y"]\'></x-alias><x-nocopy items=\'["x"]\'></x-nocopy>');
+  try {
+    await page.evaluate(() => {
+      window.Fez('x-alias', class {
+        PROPS = { items: { type: Array, state: 'list', default: () => [] } };
+        HTML = '<b class="alias">{state.list.length} / {props.items.length}</b>';
+      });
+      window.Fez('x-nocopy', class {
+        PROPS = { items: { type: Array, default: () => [] } };
+        HTML = '<b class="nocopy">{state.items ? "copied" : "clean"}</b>';
+      });
+    });
+    await page.waitForSelector('.alias');
+    expect(await page.textContent('.alias')).toBe('2 / 2');
+    expect(await page.textContent('.nocopy')).toBe('clean');
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('PROPS - a prop write does not re-render a <slot unwrap /> component', async () => {
+  const page = await createTestPage('<x-unwrap label="a"><b class="kid">slotted</b></x-unwrap>');
+  try {
+    await page.evaluate(() => {
+      window.Fez('x-unwrap', class {
+        poke() { this.props.label = 'b'; }
+        HTML = '<i class="lbl">{props.label}</i><slot unwrap />';
+      });
+    });
+    await page.waitForSelector('.kid');
+
+    // unwrap dissolves the slot wrapper, so a re-render would drop the children
+    await page.evaluate(() => document.querySelector('.fez-x-unwrap').fez.poke());
+    await page.waitForTimeout(200);
+
+    expect(await page.evaluate(() => document.querySelector('.kid')?.textContent)).toBe('slotted');
+    expect(await page.evaluate(() => document.querySelector('.lbl').textContent)).toBe('a');
+    expect(await page.evaluate(() => document.querySelector('.fez-x-unwrap').fez.props.label)).toBe('b');
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('PROPS - object props keep their identity across reads', async () => {
+  const page = await createTestPage('<x-ident></x-ident>');
+  try {
+    await page.evaluate(() => {
+      window.Fez('x-ident', class {
+        PROPS = { items: { type: Array, default: () => [] } };
+        HTML = '<b class="n">{props.items.length}</b>';
+      });
+    });
+    await page.waitForSelector('.n');
+
+    const r = await page.evaluate(() => {
+      const fez = document.querySelector('.fez-x-ident').fez;
+      fez.props.items = [{ id: 1 }];
+      const a = fez.props.items;
+      const b = fez.props.items;
+      const first = fez.props.items[0];
+      return {
+        sameArray: a === b,
+        sameItem: first === fez.props.items[0],
+        includes: fez.props.items.includes(first),
+      };
+    });
+    expect(r).toEqual({ sameArray: true, sameItem: true, includes: true });
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('PROPS - object props keep plain identity across component boundaries', async () => {
+  const page = await createTestPage('<x-parent></x-parent>');
+  try {
+    await page.evaluate(() => {
+      window.Fez('x-kid', class {
+        PROPS = { item: Object };
+        pick() { window.testResults.picked = this.props.item; }
+        HTML = '<span class="kid-name">{props.item.name}</span>';
+      });
+      window.Fez('x-parent', class {
+        PROPS = { items: { type: Array, default: () => [{ name: 'Ann' }] } };
+        HTML = '<x-kid key="one" :item="props.items[0]"></x-kid>';
+      });
+    });
+    await page.waitForSelector('.kid-name');
+
+    // the object the child holds is the very object in the parent's array
+    const r = await page.evaluate(() => {
+      const parent = document.querySelector('.fez-x-parent').fez;
+      const kid = document.querySelector('.fez-x-kid').fez;
+      kid.pick();
+      return {
+        same: window.testResults.picked === parent.props.items[0],
+        includes: parent.props.items.includes(window.testResults.picked),
+      };
+    });
+    expect(r).toEqual({ same: true, includes: true });
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('PROPS - assigning a container prop re-renders and reaches the child', async () => {
+  const page = await createTestPage('<x-owner></x-owner>');
+  try {
+    await page.evaluate(() => {
+      window.Fez('x-owned', class {
+        HTML = '<span class="owned-name">{props.user.name}</span>';
+      });
+      window.Fez('x-owner', class {
+        PROPS = { user: { type: Object, default: () => ({ name: 'Ann' }) } };
+        rename() { this.props.user = { ...this.props.user, name: 'Bob' }; }
+        HTML = '<x-owned key="one" :user="props.user"></x-owned>';
+      });
+    });
+    await page.waitForSelector('.owned-name');
+    expect(await page.textContent('.owned-name')).toBe('Ann');
+
+    await page.evaluate(() => document.querySelector('.fez-x-owner').fez.rename());
+    await page.waitForFunction(() => document.querySelector('.owned-name').textContent === 'Bob', { timeout: 3000 });
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('PROPS - { state: true } seeds without firing onStateChange before init()', async () => {
+  const page = await createTestPage('<x-hooks tags=\'["a","b"]\'></x-hooks>');
+  try {
+    await page.evaluate(() => {
+      window.Fez('x-hooks', class {
+        PROPS = { tags: { type: Array, state: true, default: () => [] } };
+        init() { this.local.events = []; }
+        // would throw if it ran before init() created this.local.events
+        onStateChange(name) { this.local.events.push(name); }
+        add(tag) { this.state.tags = [...this.state.tags, tag]; }
+        HTML = '<b class="n">{state.tags.length}</b>';
+      });
+    });
+    await page.waitForSelector('.n');
+    expect(await page.textContent('.n')).toBe('2');
+    expect(await page.evaluate(() => document.querySelector('.fez-x-hooks').fez.local.events)).toEqual([]);
+
+    // hooks work normally once mounted
+    await page.evaluate(() => document.querySelector('.fez-x-hooks').fez.add('c'));
+    await page.waitForFunction(() => document.querySelector('.n').textContent === '3', { timeout: 3000 });
+    expect(await page.evaluate(() => document.querySelector('.fez-x-hooks').fez.local.events)).toEqual(['tags']);
+  } finally {
+    await closePage(page);
+  }
+});

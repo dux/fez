@@ -290,6 +290,9 @@ function connectNode(name, node) {
   // Prevent state changes during init/mount from scheduling extra renders
   fez._isInitializing = true;
 
+  // PROPS entries flagged { state: true } land in this.state before init()
+  fez.fezSeedStateProps();
+
   // Init (supports multiple naming conventions)
   const initMethod = fez.onInit || fez.init || fez.created || fez.connect;
   initMethod.call(fez, fez.props);

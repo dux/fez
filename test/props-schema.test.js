@@ -305,3 +305,89 @@ describe("FezBase.getProps - cast applied on every path", () => {
     expect(out).toEqual({ count: "2" });
   });
 });
+
+// `default` declaring a parameter doubles as a transform: it receives the raw
+// attribute value (undefined when missing) and its result is type checked.
+describe("default as transform", () => {
+  test("splits a comma separated attribute into an Array", () => {
+    const K = klass({
+      tags: {
+        type: Array,
+        default: (raw) => (raw || "").split(/\s*,\s*/).filter(Boolean),
+      },
+    });
+    expect(K.castProp("tags", "a, b ,c", "x")).toEqual(["a", "b", "c"]);
+    expect(errors).toEqual([]);
+  });
+
+  test("runs for a missing attribute too, so it doubles as the default", () => {
+    const K = klass({
+      tags: {
+        type: Array,
+        default: (raw) => (raw || "").split(/\s*,\s*/).filter(Boolean),
+      },
+    });
+    expect(K.castProp("tags", undefined, "x")).toEqual([]);
+  });
+
+  test("result is still type checked", () => {
+    const K = klass({ tags: { type: Array, default: (raw) => Number(raw) } });
+    expect(K.castProp("tags", "2", "x")).toBe(undefined);
+    expect(errors[0].message).toContain("expected Array");
+  });
+
+  test("a throwing transform reports and drops the value", () => {
+    const K = klass({
+      tags: { type: Array, default: () => { throw new Error("boom") } },
+    });
+    // zero-arg default stays a lazy default, it is not called with the raw value
+    expect(K.castProp("tags", '["a"]', "x")).toEqual(["a"]);
+
+    const T = klass({
+      tags: { type: Array, default: (raw) => raw.nope.nope },
+    });
+    expect(T.castProp("tags", "a", "x")).toBe(undefined);
+    expect(errors[0].message).toContain("failed");
+  });
+
+  test("zero-arg default is untouched - lazy, only when nothing came in", () => {
+    let calls = 0;
+    const K = klass({ items: { type: Array, default: () => { calls++; return [] } } });
+    expect(K.castProp("items", '["a"]', "x")).toEqual(["a"]);
+    expect(calls).toBe(0);
+    expect(K.castProp("items", undefined, "x")).toEqual([]);
+    expect(calls).toBe(1);
+  });
+
+  test("Function props keep default as a plain value", () => {
+    const fn = (a) => a;
+    const K = klass({ on_pick: { type: Function, default: fn } });
+    expect(K.castProp("on_pick", undefined, "x")).toBe(fn);
+  });
+});
+
+describe("transform vs already typed values", () => {
+  const K = () =>
+    klass({
+      tags: {
+        type: Array,
+        default: (raw) => (raw || "").split(/\s*,\s*/).filter(Boolean),
+      },
+    });
+
+  test("skips the transform when the value already is the declared type", () => {
+    // :tags="someArray" / data-props JSON - a string parser must not see it
+    const arr = ["a", "b"];
+    expect(K().castProp("tags", arr, "x")).toEqual(["a", "b"]);
+    expect(errors).toEqual([]);
+  });
+
+  test("still transforms strings", () => {
+    expect(K().castProp("tags", "a, b", "x")).toEqual(["a", "b"]);
+  });
+
+  test("String transforms keep running on strings", () => {
+    const T = klass({ name: { type: String, default: (raw) => String(raw || "").trim() } });
+    expect(T.castProp("name", "  hi  ", "x")).toBe("hi");
+  });
+});

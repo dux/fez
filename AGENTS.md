@@ -394,8 +394,9 @@ class {
 
 ```html
 <!-- Function pointers - only when passing objects/arrays from loops -->
+<!-- Unquoted {..}: quoting it turns the arrow into a plain string attribute -->
 {#each state.tasks as task, index}
-<button onclick="{() => editTask(task)}">Edit</button>
+<button onclick={() => editTask(task)}>Edit</button>
 {/each}
 ```
 
@@ -597,6 +598,18 @@ Caveats:
   - In templates: use `props.name`
   - In JS methods: use `this.props.name`
 
+- **Props are reactive** - `this.props.x = y` schedules a render exactly like `this.state.x = y`, so a component
+  that owns a list can keep it in props and mutate it there instead of copying it into state.
+  Reactivity is one level deep, unlike `this.state`: nested values come back exactly as they went in, so
+  `props.item === props.item`, `props.items.includes(props.item)` and identity comparisons against objects a
+  parent or child holds all work. The trade is that a nested write does not re-render - assign the container:
+  `this.props.user = { ...this.props.user, name }` (that also delivers the change to a child holding it through
+  `:user="props.user"`).
+  Components using `<slot unwrap />` render once by design, so a prop write lands but schedules no render.
+  A parent re-render still replaces the whole props object (and fires `onPropsChange`), so anything the component
+  wrote is overwritten by the parent's value - when the component owns the data for good, seed state with
+  `{ state: true }` below.
+
 - **Props from HTML attributes are strings** unless declared in `PROPS`. Prefer the schema over hand-parsing:
 
   ```javascript
@@ -609,11 +622,26 @@ Caveats:
     user:    { type: Object, required: true },          // missing -> Fez.onError('props', ...)
     on_pick: { type: Function },                        // must come via :on_pick="..."
     since:   { type: Date },
+    tags:    { type: Array, state: true,                // seeds this.state.tags before init()
+               default: (raw) => (raw || '').split(/\s*,\s*/) },   // tags="a, b" -> ['a', 'b']
   }
   ```
 
   - Types: `String`, `Number`, `Boolean`, `Array`, `Object`, `Function`, `Date`, or a custom `(raw, name) => value` function
-  - Fields: `type`, `default` (value or fn), `required`, `enum`; order: coerce -> required -> enum -> default
+  - Fields: `type`, `default` (value or fn), `state`, `required`, `enum`; order: transform -> coerce -> required -> enum -> default
+  - **`default` as a transform**: a `default` function that *declares a parameter* receives the raw attribute value
+    (`undefined` when the attribute is missing) and its result is what gets type checked - the way to accept
+    `tags="a, b, c"` and hand the component an Array. A zero-arg `default` stays a lazy default, called only
+    when nothing came in. Two things to know: arity is read from `Function.length`, so write `(raw) => ...` -
+    a default or rest parameter (`(raw = '') => ...`) counts as zero and stays a plain default; and a value that
+    already arrived as the declared type (`:tags="someArray"`, `data-props` JSON) skips the transform, so a
+    string parser never has to guard against an Array.
+  - **`state`**: `state: true` copies the coerced value into `this.state[name]` before `init()` runs,
+    `state: 'other_key'` copies it under that key. Use it when the component owns the value from then on
+    (a list it adds to, a draft it edits) - it replaces the `init(props) { this.state.x = props.x }` line.
+    Seeding happens once, on connect; later parent renders update `props`, not the seeded state key.
+    Arrays and plain objects are seeded as a shallow copy, so `this.state.list.push(...)` does not write back
+    into `props` or into the object a parent passed with `:prop="..."` - nested objects are still shared.
   - Errors go to `Fez.onError('props', ...)`, never throw; bad value is dropped and `default` applies
   - Keys not in `PROPS` pass through as strings; `onPropsChange(name, value)` receives the coerced value
   - Also works as `static PROPS = {...}`; schema is exposed on `Fez.index[name].props`

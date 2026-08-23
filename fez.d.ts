@@ -45,8 +45,18 @@ type PropType =
 /** Full form of a PROPS entry */
 interface PropSpec<T = any> {
   type?: PropType;
-  /** Applied when the prop is missing or failed coercion; functions are called */
-  default?: T | (() => T);
+  /**
+   * Applied when the prop is missing or failed coercion; functions are called.
+   * A function that declares a parameter runs first instead, as a transform:
+   * it receives the raw attribute value (undefined when missing) and its
+   * result is type checked - `default: (raw) => (raw || '').split(',')`.
+   */
+  default?: T | (() => T) | ((raw: any, name: string) => T);
+  /**
+   * Copy the coerced value into this.state before init(): `true` keeps the
+   * prop name, a string renames the state key.
+   */
+  state?: boolean | string;
   /** Report a `props` error via Fez.onError when missing */
   required?: boolean;
   /** Allowed values, checked after coercion */
@@ -181,7 +191,12 @@ declare abstract class FezBase {
   /** Non-reactive per-instance storage - changes do not trigger re-renders */
   local: LocalStore;
 
-  /** Component props from HTML attributes (coerced through PROPS when declared) */
+  /**
+   * Component props from HTML attributes (coerced through PROPS when declared).
+   * Reactive one level deep: writing this.props.x schedules a render, same as
+   * this.state.x. Nested values are handed back raw (identity preserved), so
+   * assign the container rather than mutating inside it.
+   */
   props: ComponentProps & EvaluatedProps;
 
   /** Runtime props schema (instance-field form; `static PROPS` also works) */

@@ -141,6 +141,22 @@ export default class FezBase {
   }
 
   /**
+   * True when a value already is what the PROPS entry declares, so coercion
+   * (and the transform in castProp) has nothing left to do.
+   */
+  static matchesType(value, type) {
+    if (value === null || value === undefined) return false;
+    if (type === Array) return Array.isArray(value);
+    if (type === Object) return typeof value === "object" && !Array.isArray(value);
+    if (type === Number) return typeof value === "number";
+    if (type === Boolean) return typeof value === "boolean";
+    if (type === String) return typeof value === "string";
+    if (type === Date) return value instanceof Date;
+    if (type === Function) return typeof value === "function";
+    return false;
+  }
+
+  /**
    * Cast a single prop through its PROPS entry. Unknown keys pass through
    * untouched. Errors are reported via Fez.onError("props", ...) and never
    * thrown - a bad attribute must not kill the page.
@@ -157,6 +173,30 @@ export default class FezBase {
 
     let v = value;
     const type = spec.type;
+
+    // A `default` function that declares a parameter doubles as a transform:
+    // it gets the raw attribute value (undefined when the attribute is
+    // missing) and its result is what gets type checked. Zero-arg functions
+    // stay lazy defaults, applied at the end only when nothing came in.
+    const transform =
+      typeof spec.default === "function" &&
+      type !== Function &&
+      spec.default.length > 0
+        ? spec.default
+        : null;
+
+    // A transform parses raw attribute text. A value that already arrived as
+    // the declared type - `:tags="someArray"`, data-props JSON, a parent
+    // passing a real object - is handed through untouched, so a string parser
+    // never sees an Array. Strings still go through it (String transforms are
+    // the point of `{ type: String, default: raw => raw.trim() }`).
+    if (transform && !(typeof v !== "string" && FezBase.matchesType(v, type))) {
+      try {
+        v = transform(v === null ? undefined : v, name);
+      } catch (e) {
+        v = fail(`default(${show(value)}) failed: ${e.message}`);
+      }
+    }
 
     if (v === null || v === undefined) {
       v = undefined;
@@ -212,7 +252,8 @@ export default class FezBase {
       v = fail(`expected one of ${spec.enum.map(show).join(", ")}, got ${show(v)}`);
     }
 
-    if (v === undefined && spec.default !== undefined) {
+    // transform already had its say - calling it again would just repeat it
+    if (v === undefined && spec.default !== undefined && !transform) {
       v = typeof spec.default === "function" && type !== Function
         ? spec.default()
         : spec.default;
@@ -286,6 +327,38 @@ export default class FezBase {
   n = parseNode;
   fezBlocks = {};
   local = {};
+
+  /**
+   * Props are reactive: writing this.props.x schedules a render, exactly like
+   * this.state.x. A component that owns a list can render props.items straight
+   * from the template instead of copying it into state first.
+   *
+   * Assigning the whole object (connect, parent re-render) re-wraps it. The raw
+   * object stays on _propsRaw - the proxy hands out a fresh wrapper on every
+   * object read, so proxied values never compare equal by identity and prop
+   * change detection has to run against the raw object.
+   */
+  get props() {
+    return this._props;
+  }
+
+  set props(value) {
+    this._propsRaw = value || {};
+    // shallow - nested values come back raw, so props keep the plain object
+    // identity they had before they became reactive (including across
+    // component boundaries). Writing a nested field does not re-render,
+    // assign the container instead: this.props.user = { ...this.props.user }
+    this._props = this.fezReactiveStore(this._propsRaw, (_t, _k, next, prev) => {
+      if (next === prev) return;
+      if (this._isRendering || this._isInitializing) return;
+      // <slot unwrap /> dissolves the slot wrapper on first render and the
+      // children can never be re-inserted, so those components render once -
+      // the same reason this.state is disabled for them. The write lands,
+      // it just does not schedule a render.
+      if (this._fezStateDisabled) return;
+      this.fezNextTick(this.fezRender, "fezRender");
+    }, { shallow: true });
+  }
 
   // Slots for passing live values (:attr props, loop handlers) through
   // rendered HTML, see lib/render-slots.js
@@ -716,8 +789,11 @@ export default class FezBase {
         },
         get: (t, k) => undefined,
       });
-    } else {
-      this.state ||= this.fezReactiveStore();
+    } else if (!this.state) {
+      // _stateRaw is the object behind the store - writes that must not fire
+      // onStateChange or schedule a render (prop seeding) go straight to it
+      this._stateRaw = {};
+      this.state = this.fezReactiveStore(this._stateRaw);
     }
     this.globalState = Fez.state.createProxy(this);
     this.fezRegisterBindMethods();
@@ -741,9 +817,42 @@ export default class FezBase {
   }
 
   /**
+   * Seed this.state from PROPS entries flagged with `state`.
+   * `state: true` uses the prop name, `state: 'other_key'` renames it.
+   * Runs once before init(), so a component that owns a list can declare it
+   * as a prop and mutate this.state from there - no copy line in init().
+   */
+  fezSeedStateProps() {
+    const schema = this.class?.propsSchema?.();
+    if (!schema) return;
+    // <slot unwrap /> components have no usable state
+    if (this._fezStateDisabled) return;
+
+    for (const [name, spec] of Object.entries(schema)) {
+      if (!spec.state) continue;
+      // _propsRaw, not this.props - a value read through the props proxy
+      // would land in state still wrapped in the props store
+      let value = this._propsRaw?.[name];
+      if (value === undefined) continue;
+      // Seed with a copy: state owns the value from here, and an in place
+      // this.state.list.push() must not write through to props (or to the
+      // object the parent passed in with :prop="...").
+      if (Array.isArray(value)) {
+        value = [...value];
+      } else if (value && typeof value === "object" && [Object.prototype, null].includes(Object.getPrototypeOf(value))) {
+        value = { ...value };
+      }
+      // straight into the raw object: seeding happens before init(), so
+      // onStateChange must not fire on setup the component has not done yet
+      const target = this._stateRaw || this.state;
+      target[typeof spec.state === "string" ? spec.state : name] = value;
+    }
+  }
+
+  /**
    * Create a reactive store that triggers re-renders on changes
    */
-  fezReactiveStore(obj, handler) {
+  fezReactiveStore(obj, handler, options = {}) {
     obj ||= {};
 
     handler ||= (o, k, v, oldValue) => {
@@ -758,15 +867,26 @@ export default class FezBase {
 
     handler.bind(this);
 
+    // Only plain objects and arrays are wrapped. Everything with internal
+    // slots (Date, Map, Set, RegExp, Promise, class instances, DOM nodes)
+    // breaks when its methods run with a Proxy as `this` - a Date prop would
+    // throw on .getFullYear() the moment it was read through the store.
     function shouldProxy(obj) {
-      return (
-        typeof obj === "object" &&
-        obj !== null &&
-        !(obj instanceof Promise) &&
-        !obj.nodeType
-      );
+      if (typeof obj !== "object" || obj === null) return false;
+      if (obj.nodeType) return false;
+      if (Array.isArray(obj)) return true;
+      const proto = Object.getPrototypeOf(obj);
+      return proto === Object.prototype || proto === null;
     }
 
+    // `shallow` wraps only the object itself and hands nested values back raw
+    // (this.props). Deep wrapping (this.state) makes nested writes reactive,
+    // at the price of identity: a fresh wrapper per read is what lets
+    // fezRender spot an in place mutation behind an unchanged render hash
+    // (fezGlobals.valuesChanged, see lib/render-slots.js), but it also means
+    // no value read out of the store ever compares equal to anything.
+    // Props are values the parent owns and hands over whole, and they cross
+    // component boundaries, so they keep plain identity instead.
     function createReactive(obj, handler) {
       if (!shouldProxy(obj)) {
         return obj;
@@ -777,10 +897,6 @@ export default class FezBase {
           const currentValue = Reflect.get(target, property, receiver);
 
           if (currentValue !== value) {
-            if (shouldProxy(value)) {
-              value = createReactive(value, handler);
-            }
-
             const result = Reflect.set(target, property, value, receiver);
             handler(target, property, value, currentValue);
             return result;
@@ -790,7 +906,7 @@ export default class FezBase {
         },
         get(target, property, receiver) {
           const value = Reflect.get(target, property, receiver);
-          if (shouldProxy(value)) {
+          if (!options.shallow && shouldProxy(value)) {
             return createReactive(value, handler);
           }
           return value;
