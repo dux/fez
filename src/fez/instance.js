@@ -809,8 +809,9 @@ export default class FezBase {
    * Find element by selector
    */
   find(selector) {
+    // root is cleared on destroy; a late timer/await calling find() gets null, not a TypeError
     return typeof selector == "string"
-      ? this.root.querySelector(selector)
+      ? (this.root ? this.root.querySelector(selector) : null)
       : selector;
   }
 
