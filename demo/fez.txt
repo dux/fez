@@ -28,6 +28,7 @@ fez/ui-emoji
 fez/ui-fa
 fez/ui-fetch
 fez/ui-ficon
+fez/ui-filter
 fez/ui-form
 fez/ui-label
 fez/ui-map-route
@@ -37,6 +38,7 @@ fez/ui-slider
 fez/ui-star
 fez/ui-style
 fez/ui-tabs
+fez/ui-tags
 fez/ui-time
 fez/ui-tippy
 fez/ui-toast

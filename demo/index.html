@@ -17,6 +17,8 @@
     <script fez="./fez/ui-toast.fez"></script>
     <script fez="./fez/ui-clock.fez"></script>
     <script fez="./fez/ui-counter.fez"></script>
+    <script fez="./fez/ui-tags.fez"></script>
+    <script fez="./fez/ui-filter.fez"></script>
     <link rel="stylesheet" href="./css/full.css" />
     <link rel="stylesheet" href="./css/site.css" />
   </head>
@@ -46,8 +48,7 @@
             </div>
           </div>
 
-          <div class="site-live">
-            <div class="bar"><i></i><i></i><i></i> index.html <span class="tag">fez.js · ~35KB gzip</span></div>
+          <site-live title="index.html" right-title="fez.js · ~35KB gzip">
             <div class="src">
               <ui-editor>
                 <xmp>
@@ -62,6 +63,107 @@
               <ui-clock city="My place"></ui-clock>
             </div>
             <div class="out-label">what the browser shows - live, no bundler between the two</div>
+          </site-live>
+        </div>
+      </section>
+
+      <section class="site-section">
+        <div class="site-wrap">
+          <p class="site-eyebrow">two-more-examples</p>
+          <h2 class="site-h2">Two more examples, featuring most of Fez</h2>
+          <p class="site-lead">
+            Same setup - one script tag, one <code>.fez</code> file, no build step. Between them:
+            state, form handling, derived values, two-way binding, loops, conditionals and enter / leave / reorder
+            animations. Every line below is the whole component.
+          </p>
+
+          <div class="site-live-grid">
+            <site-live title="ui-tags.fez" right-title="state · form · transitions">
+              <div class="src">
+                <ui-editor>
+                  <xmp>
+<script>
+  PROPS = {
+    tags: {
+      type: Array,
+      state: true,
+      default: (raw) => (raw || '').split(/\s*,\s*/).filter(Boolean),
+    },
+  }
+
+  onSubmit({ tag }) {
+    this.state.tags = [tag, ...this.state.tags]
+    this.find('form').reset()
+  }
+
+  remove(tag) {
+    this.state.tags = this.state.tags.filter(t => t != tag)
+  }
+</script>
+
+<form><input name="tag" placeholder="add a tag" required /></form>
+
+<ul>
+  {#each state.tags as tag}
+    <li key="{tag}" fez:animate="flip"
+        fez:in="fly, from=left" fez:out="scale, duration=150">
+      {tag} <button onclick={() => remove(tag)}>&times;</button>
+    </li>
+  {:else}
+    <li class="empty">no tags - add one</li>
+  {/each}
+</ul>
+
+<!-- in the page -->
+<ui-tags tags="state, transitions, no build"></ui-tags>
+                  </xmp>
+                </ui-editor>
+              </div>
+              <div class="out">
+                <ui-tags tags="state, transitions, no build"></ui-tags>
+              </div>
+              <div class="out-label">add and remove - rows fly in, fade out and glide to place</div>
+            </site-live>
+
+            <site-live title="ui-filter.fez" right-title="bind · derived · loops">
+              <div class="src">
+                <ui-editor>
+                  <xmp>
+<script>
+  init() {
+    this.state.q = ''
+    this.state.all = ['pjax', 'differ', 'fetch', 'transitions']
+  }
+
+  beforeRender() {
+    const q = this.state.q
+    this.state.hits = this.state.all.filter(n => n.includes(q))
+  }
+</script>
+
+<input fez:bind="state.q" placeholder="filter features" />
+
+{#if !state.q}
+  <small>{state.all.length} features</small>
+{:else if state.hits.length}
+  <small>{state.hits.length} of {state.all.length}</small>
+{:else}
+  <small>nothing matches "{state.q}"</small>
+{/if}
+
+<div class="hits">
+  {#for name in state.hits}
+    <p key="{name}" fez:transition="slide, opacity=0">{name}</p>
+  {/for}
+</div>
+                  </xmp>
+                </ui-editor>
+              </div>
+              <div class="out">
+                <ui-filter></ui-filter>
+              </div>
+              <div class="out-label">type to filter - the input writes state, the list follows</div>
+            </site-live>
           </div>
         </div>
       </section>
