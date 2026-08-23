@@ -112,6 +112,15 @@
 
     .out { padding: 22px 18px 18px 18px; border-top: 1px dashed var(--line-2); display: flex; align-items: center; justify-content: center; }
 
+    /* how the tag is used in the page - sits above the live output, not in the code */
+    .out-usage {
+      font: 12px var(--font-mono); color: var(--ink-3);
+      border-top: 1px dashed var(--line-2);
+      padding: 12px 18px 0 18px;
+    }
+
+    .out-usage + .out { border-top: none; padding-top: 14px; }
+
     .out-label {
       font: 12px var(--font-mono); color: var(--ink-3); text-transform: none;
       padding: 0 18px 12px 18px;

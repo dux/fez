@@ -154,7 +154,7 @@ body.site code.hljs { font-family: var(--font-mono); border-radius: 10px; }
 .site-hero .install button:hover { border-color: var(--ink); }
 
 /* two site-live cards side by side (home page examples) */
-.site-live-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 34px; }
+.site-live-grid { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 22px; margin-top: 34px; }
 .site-live-grid > * { min-width: 0; }
 
 /* ---------- comparison tables ---------- */

@@ -33,6 +33,7 @@ fez/ui-form
 fez/ui-label
 fez/ui-map-route
 fez/ui-markdown
+fez/ui-mixer
 fez/ui-pub-sub
 fez/ui-slider
 fez/ui-star

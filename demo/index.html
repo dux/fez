@@ -18,7 +18,7 @@
     <script fez="./fez/ui-clock.fez"></script>
     <script fez="./fez/ui-counter.fez"></script>
     <script fez="./fez/ui-tags.fez"></script>
-    <script fez="./fez/ui-filter.fez"></script>
+    <script fez="./fez/ui-mixer.fez"></script>
     <link rel="stylesheet" href="./css/full.css" />
     <link rel="stylesheet" href="./css/site.css" />
   </head>
@@ -73,8 +73,8 @@
           <h2 class="site-h2">Two more examples, featuring most of Fez</h2>
           <p class="site-lead">
             Same setup - one script tag, one <code>.fez</code> file, no build step. Between them:
-            state, form handling, derived values, two-way binding, loops, conditionals and enter / leave / reorder
-            animations. Every line below is the whole component.
+            state, form handling, typed props, derived values, two-way binding, loops, conditionals and
+            enter / leave / reorder animations. Every line below is the whole component.
           </p>
 
           <div class="site-live-grid">
@@ -105,7 +105,7 @@
 
 <ul>
   {#each state.tags as tag}
-    <li key="{tag}" fez:animate="flip"
+    <li key={tag} fez:animate="flip"
         fez:in="fly, from=left" fez:out="scale, duration=150">
       {tag} <button onclick={() => remove(tag)}>&times;</button>
     </li>
@@ -113,56 +113,70 @@
     <li class="empty">no tags - add one</li>
   {/each}
 </ul>
-
-<!-- in the page -->
-<ui-tags tags="state, transitions, no build"></ui-tags>
                   </xmp>
                 </ui-editor>
               </div>
+              <div class="out-usage">&lt;ui-tags tags="state, transitions, no build"&gt;&lt;/ui-tags&gt;</div>
               <div class="out">
                 <ui-tags tags="state, transitions, no build"></ui-tags>
               </div>
               <div class="out-label">add and remove - rows fly in, fade out and glide to place</div>
             </site-live>
 
-            <site-live title="ui-filter.fez" right-title="bind · derived · loops">
+            <site-live title="ui-mixer.fez" right-title="bind · derived · props">
               <div class="src">
                 <ui-editor>
                   <xmp>
 <script>
-  init() {
-    this.state.q = ''
-    this.state.all = ['pjax', 'differ', 'fetch', 'transitions']
-  }
+  const hex = (r, g, b) =>
+    '#' + [r, g, b].map(n => (+n).toString(16).padStart(2, '0')).join('')
 
-  beforeRender() {
-    const q = this.state.q
-    this.state.hits = this.state.all.filter(n => n.includes(q))
+  class {
+    PROPS = { color: { type: String, default: '#0ea5e9' } }
+
+    init({ color }) {
+      const [r, g, b] = color.match(/\w\w/g).map(h => parseInt(h, 16))
+      Object.assign(this.state, { r, g, b })
+    }
+
+    beforeRender() {
+      const { r, g, b } = this.state
+      this.state.hex = hex(r, g, b)
+      // each track shows what this channel does, given the other two
+      this.state.track = {
+        r: [hex(0, g, b), hex(255, g, b)],
+        g: [hex(r, 0, b), hex(r, 255, b)],
+        b: [hex(r, g, 0), hex(r, g, 255)],
+      }
+      this.state.light = (r * 299 + g * 587 + b * 114) / 1000 > 140
+    }
+
+    copy() {
+      navigator.clipboard?.writeText(this.state.hex)
+      this.state.copied = true
+      setTimeout(() => (this.state.copied = false), 1200)
+    }
   }
 </script>
 
-<input fez:bind="state.q" placeholder="filter features" />
-
-{#if !state.q}
-  <small>{state.all.length} features</small>
-{:else if state.hits.length}
-  <small>{state.hits.length} of {state.all.length}</small>
-{:else}
-  <small>nothing matches "{state.q}"</small>
-{/if}
-
-<div class="hits">
-  {#for name in state.hits}
-    <p key="{name}" fez:transition="slide, opacity=0">{name}</p>
-  {/for}
+<div class="swatch {state.light ? 'is-light' : ''}"
+     style="--c: {state.hex}" onclick="fez.copy()">
+  <b>{state.hex}</b>
+  <small>{state.copied ? 'copied' : 'click to copy'}</small>
 </div>
+
+{#each ['r', 'g', 'b'] as ch}
+  <input key={ch} type="range" min="0" max="255"
+         fez:bind="state.{ch}" style="--track: {state.track[ch]}" />
+{/each}
                   </xmp>
                 </ui-editor>
               </div>
+              <div class="out-usage">&lt;ui-mixer color="#0ea5e9"&gt;&lt;/ui-mixer&gt;</div>
               <div class="out">
-                <ui-filter></ui-filter>
+                <ui-mixer color="#0ea5e9"></ui-mixer>
               </div>
-              <div class="out-label">type to filter - the input writes state, the list follows</div>
+              <div class="out-label">drag one slider - the other two tracks repaint, all derived state</div>
             </site-live>
           </div>
         </div>
