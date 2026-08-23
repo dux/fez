@@ -92,7 +92,7 @@
 <div class="list">
   {#each state.items as id}
     <span
-      key="{id}"
+      key={id}
       class="chip"
       fez:in="{state.effect}, from=bottom, duration=300"
       fez:out="fade, duration=150"

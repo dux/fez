@@ -35,7 +35,7 @@
 
 <ul>
   {#each state.tags as tag}
-    <li key="{tag}" fez:animate="flip"
+    <li key={tag} fez:animate="flip"
         fez:in="fly, from=left" fez:out="scale, duration=150">
       {tag} <button onclick={() => remove(tag)}>&times;</button>
     </li>

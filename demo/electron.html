@@ -144,7 +144,7 @@ contextBridge.exposeInMainWorld('api', {
 {#if state.files}
   <ul>
     {#each state.files as file}
-      <li key="{file.name}" fez:in="fade, duration=150">{file.name}</li>
+      <li key={file.name} fez:in="fade, duration=150">{file.name}</li>
     {:else}
       <li>Empty folder</li>
     {/each}
@@ -179,7 +179,7 @@ contextBridge.exposeInMainWorld('api', {
 </aside>
 <main>
   <!-- key = dir: a new folder gets a fresh file-list instance, same folder keeps it -->
-  <file-list key="{state.dir}" dir="{state.dir}"></file-list>
+  <file-list key={state.dir} dir="{state.dir}"></file-list>
 </main>
               </xmp>
             </ui-editor>

@@ -35,7 +35,7 @@
 
 <div class="hits">
   {#for name in state.hits}
-    <p key="{name}" fez:transition="slide, opacity=0">{name}</p>
+    <p key={name} fez:transition="slide, opacity=0">{name}</p>
   {/for}
 </div>
 

@@ -47,7 +47,7 @@
 
 {#for task, index in state.tasks}
   <p
-    key="{task.id}"
+    key={task.id}
     fez:in="slide, opacity=0, duration=200"
     fez:out="slide, opacity=0, duration=200"
     fez:animate="flip, duration=200"
