@@ -2,9 +2,9 @@
 
 # FEZ - Custom DOM Elements
 
-Check the Demo site https://dux.github.io/fez/
+Check the Demo site https://dux.github.io/fez/demo/
 
-FEZ is a small library (49KB minified, ~18KB gzipped) that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
+FEZ is a small library (110KB minified, ~35KB gzipped) that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
 
 It uses
 
@@ -623,7 +623,7 @@ This example showcases:
 ### Why It's Great
 
 - **Zero Build Step** - Just include the script and start coding
-- **49KB Minified (~18KB gzipped)** - Tiny footprint with powerful features
+- **110KB Minified (~35KB gzipped)** - Tiny footprint with powerful features
 - **Framework Agnostic** - Use alongside React, Vue, or any other framework
 - **Progressive Enhancement** - Perfect for modernizing legacy applications one component at a time
 - **Native Performance** - Leverages browser's native Custom Elements API

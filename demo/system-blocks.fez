@@ -1,7 +1,7 @@
 <xmp fez="promo-blocks">
   <script>
     init() {
-      const src = './demo/fez.txt'
+      const src = './fez.txt'
 
       // Get component names for rendering
       Fez.fetch(src, (text) => {
@@ -10,6 +10,12 @@
         const names = paths.map(p => p.split('/').pop().replace('.fez', ''))
         this.state.names = names
         this.globalState.fezComponents = names
+
+        // the picker renders above the selected block, so honour #fez-demo-x
+        // before the blocks land instead of flashing it at the top first
+        const hash = window.location.hash.slice(1)
+        const selected = names.find(name => `fez-demo-${name}` === hash)
+        if (selected) this.globalState.demoSelected = selected
       })
 
       // Load all components using txt list feature
@@ -38,6 +44,8 @@
       })
     }
 
+    // quick select sits before the list until something is picked, then the
+    // template moves it right above that component (offset clears the sticky site nav)
     onMount() {
       // Save scroll position before page unload
       this.on('beforeunload', () => {
@@ -46,8 +54,14 @@
     }
   </script>
 
+  {#if !globalState.demoSelected}
+    <fez-demo-nav offset="76" />
+  {/if}
   {#for name in state.names}
-     <block-promo name={name} />
+    {#if globalState.demoSelected === name}
+      <fez-demo-nav for={name} offset="76" />
+    {/if}
+    <block-promo name={name} />
   {/for}
 
   <div id="undocumented"></div>
@@ -103,13 +117,13 @@
     }
 
     openDemo() {
-      window.open(`./demo/raw.html?fez=${this.name}`, '_blank')
+      window.open(`./raw.html?fez=${this.name}`, '_blank')
     }
 
     init(props) {
       if (!props.name) return
       this.name = props.name
-      Fez.fetch(`./demo/fez/${props.name}.fez`, (res) => {
+      Fez.fetch(`./fez/${props.name}.fez`, (res) => {
         Fez.compile(props.name, res)
         this.state.code = res
           .replaceAll('fez.', 'fez․') // hack to hide dot

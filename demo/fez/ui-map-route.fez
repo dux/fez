@@ -558,25 +558,27 @@
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+</style>
 
+<style global>
   /* Leaflet overrides */
-  :global(.custom-marker) {
+  .custom-marker {
     background: transparent !important;
     border: none !important;
   }
 
-  :global(.plane-marker) {
+  .plane-marker {
     background: transparent !important;
     border: none !important;
   }
 
-  :global(.plane-icon) {
+  .plane-icon {
     color: white;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
     transition: transform 0.1s ease-out;
   }
 
-  :global(.leaflet-tooltip) {
+  .leaflet-tooltip {
     background: rgba(0, 0, 0, 0.8);
     border: none;
     border-radius: 6px;
@@ -586,43 +588,43 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
-  :global(.leaflet-tooltip-top:before) {
+  .leaflet-tooltip-top:before {
     border-top-color: rgba(0, 0, 0, 0.8);
   }
 
   /* Rich popup styles */
-  :global(.custom-popup .leaflet-popup-content-wrapper) {
+  .custom-popup .leaflet-popup-content-wrapper {
     padding: 0;
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
   }
 
-  :global(.custom-popup .leaflet-popup-content) {
+  .custom-popup .leaflet-popup-content {
     margin: 0;
     min-width: 200px;
   }
 
-  :global(.custom-popup .leaflet-popup-tip) {
+  .custom-popup .leaflet-popup-tip {
     background: white;
   }
 
-  :global(.rich-popup) {
+  .rich-popup {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
-  :global(.rich-popup .popup-image) {
+  .rich-popup .popup-image {
     width: 100%;
     height: 120px;
     object-fit: cover;
     display: block;
   }
 
-  :global(.rich-popup .popup-content) {
+  .rich-popup .popup-content {
     padding: 12px 14px;
   }
 
-  :global(.rich-popup .popup-title) {
+  .rich-popup .popup-title {
     font-size: 14px;
     font-weight: 600;
     color: #1a1a2e;
@@ -630,7 +632,7 @@
     margin-bottom: 4px;
   }
 
-  :global(.rich-popup .popup-desc) {
+  .rich-popup .popup-desc {
     font-size: 12px;
     color: #666;
     margin: 0;
@@ -638,11 +640,11 @@
   }
 
   /* Marker icon hover effect */
-  :global(.marker-icon) {
+  .marker-icon {
     transition: transform 0.2s ease;
   }
 
-  :global(.marker-icon:hover) {
+  .marker-icon:hover {
     transform: scale(1.15);
   }
 </style>

@@ -31,7 +31,7 @@
     </div>
     <div title="Baz">
       <h4>image tab</h4>
-      <img src="./demo/fez.png" />
+      <img src="./fez.png" />
     </div>
     <div title="Foo">
       Third tab

@@ -34,7 +34,7 @@
       <h2>The magician</h2>
       <p>Click to flip!</p>
     </div>
-    <div class="back"  style="background: url('./demo/img/m1.webp') no-repeat center/cover;">
+    <div class="back"  style="background: url('./img/m1.webp') no-repeat center/cover;">
     </div>
   </ui-card>
 
@@ -43,7 +43,7 @@
       <h2>The high<br />priestess</h2>
       <p>Click to flip!</p>
     </div>
-    <div class="back"  style="background: url('./demo/img/m2.webp') no-repeat center/cover;">
+    <div class="back"  style="background: url('./img/m2.webp') no-repeat center/cover;">
     </div>
   </ui-card>
 
@@ -52,7 +52,7 @@
       <h2>The empress</h2>
       <p>Click to flip!</p>
     </div>
-    <div class="back"  style="background: url('./demo/img/m3.webp') no-repeat center/cover;">
+    <div class="back"  style="background: url('./img/m3.webp') no-repeat center/cover;">
     </div>
   </ui-card>
 

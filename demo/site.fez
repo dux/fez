@@ -1,0 +1,160 @@
+<xmp fez="site-nav">
+  <script>
+    class {
+      NAME = 'nav'
+
+      init() {
+        this.state.path = this.currentPage()
+        this.state.links = [
+          { href: './index.html',     name: 'index.html',    label: 'Home' },
+          { href: './examples.html',  name: 'examples.html', label: 'Examples' },
+          { href: './docs.html',      name: 'docs.html',     label: 'Docs' },
+          { href: './electron.html',  name: 'electron.html', label: 'Electron' },
+          { href: '../benchmark.html', label: 'Benchmark', ext: true },
+          { href: 'https://github.com/dux/fez', label: 'GitHub', ext: true },
+        ]
+      }
+
+      onMount() {
+        // pjax swaps only <main>; the nav lives outside it and follows the url
+        this.on('pjax:render', () => {
+          this.state.path = this.currentPage()
+        })
+      }
+
+      currentPage() {
+        const last = location.pathname.split('/').pop()
+        return last || 'index.html'
+      }
+    }
+  </script>
+
+  <div class="site-wrap">
+    <a class="brand" href="./index.html">
+      <img src="./fez.png" alt="" />
+      <span class="brand-copy">
+        <strong>Fez</strong>
+        <small>DOM / single-page / no-compile components</small>
+      </span>
+    </a>
+    <ul>
+      {#each state.links as link}
+        <li>
+          {#if link.ext}
+            <a href="{link.href}" class="ext no-pjax" target="_blank">{link.label}</a>
+          {:else}
+            <a href="{link.href}" class="{link.name == state.path ? 'active' : ''}">{link.label}</a>
+          {/if}
+        </li>
+      {/each}
+    </ul>
+  </div>
+</xmp>
+
+<xmp fez="site-footer">
+  <script>
+    class {
+      NAME = 'footer'
+    }
+  </script>
+
+  <div class="site-wrap">
+    <span>Fez - jQuery simplicity for the component era. One script tag, no build step.</span>
+    <span class="spacer"></span>
+    <a href="https://github.com/dux/fez">GitHub</a>
+    <a href="https://www.npmjs.com/package/@dinoreic/fez">npm</a>
+    <a href="https://github.com/dux/fez/blob/main/AGENTS.md">AGENTS.md</a>
+    <a href="../benchmark.html" class="no-pjax">Benchmark</a>
+    <span>Made by <a href="https://github.com/dux/">@dux</a></span>
+  </div>
+</xmp>
+
+<xmp fez="site-copy">
+  <script>
+    class {
+      copy() {
+        const text = this.props.text || this.root.previousElementSibling?.innerText || ''
+        navigator.clipboard?.writeText(text).then(
+          () => Toast.info('Copied.'),
+          () => Toast.error('Could not copy.')
+        )
+      }
+    }
+  </script>
+
+  <button onclick="fez.copy()"><slot /></button>
+</xmp>
+
+<xmp fez="site-toc">
+  <script>
+    class {
+      NAME = 'nav'
+
+      init() {
+        this.state.items = []
+      }
+
+      onMount() {
+        // the markdown next to us renders async (marked is an ESM import), poll until headings exist
+        const poll = this.setInterval(() => {
+          const root = document.querySelector(this.props.for)
+          const heads = root ? [...root.querySelectorAll('h2, h3')] : []
+          if (!heads.length) return
+          clearInterval(poll)
+          this.state.items = heads.map(h => {
+            if (!h.id) h.id = 'h-' + h.textContent.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+            return { id: h.id, text: h.textContent, level: h.tagName.toLowerCase() }
+          })
+          this.on('scroll', this.updateActive, { throttle: 80 })
+          this.updateActive()
+        }, 150)
+      }
+
+      updateActive() {
+        const top = window.scrollY + 100
+        let active = null
+        for (const item of this.state.items) {
+          const node = document.getElementById(item.id)
+          if (node && node.offsetTop <= top) active = item.id
+        }
+        if (active !== this.state.active) this.state.active = active
+      }
+    }
+  </script>
+
+  <div class="site-toc">
+    {#each state.items as item}
+      <a href="#{item.id}" class="{item.level} {item.id == state.active ? 'active' : ''}">{item.text}</a>
+    {/each}
+  </div>
+</xmp>
+
+<xmp fez="site-markdown">
+  <script>
+    import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
+    import hljs from 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/es/highlight.min.js'
+
+
+    class {
+      NAME = 'article'
+
+      init(props) {
+        this.root.classList.add('markdown')
+        Fez.fetch(props.src, (text) => {
+          // README paths are repo-root relative; this page lives in ./demo
+          text = text
+            .replaceAll('src="demo/', 'src="./')
+            .replaceAll('](demo/', '](./')
+            .replaceAll('](./demo/', '](./')
+          this.root.innerHTML = marked.parse(text)
+          this.root.querySelectorAll('pre code').forEach(node => hljs.highlightElement(node))
+          // stable ids for the toc / deep links
+          this.root.querySelectorAll('h1, h2, h3, h4').forEach(h => {
+            h.id ||= 'h-' + h.textContent.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+          })
+          if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView()
+        })
+      }
+    }
+  </script>
+</xmp>
