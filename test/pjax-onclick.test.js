@@ -58,6 +58,24 @@ describe('PjaxOnClick', () => {
     expect(loadedArgs.opts.ajax).toBe(link);
   });
 
+  test('leaves same-page hash links to native browser navigation', () => {
+    document.body.innerHTML = `
+      <main class="pjax" id="pjax">
+        <a href="#section" id="link">Section</a>
+        <h2 id="section">Section</h2>
+      </main>
+    `;
+    let loadCalled = false;
+    Pjax.load = () => (loadCalled = true);
+
+    const link = document.getElementById('link');
+    const e = createClickEvent({ target: link });
+    PjaxOnClick.main(e);
+
+    expect(e.defaultPrevented).toBe(false);
+    expect(loadCalled).toBe(false);
+  });
+
   test('uses pjax-target to load into a specific element', () => {
     document.body.innerHTML = `
       <main class="pjax" id="pjax">

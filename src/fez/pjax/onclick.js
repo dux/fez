@@ -10,6 +10,18 @@ export default function createOnClick(Pjax) {
       );
       if (!node) return;
 
+      const href = node.getAttribute('href');
+      if (
+        node.tagName === 'A' &&
+        href?.startsWith('#') &&
+        !node.hasAttribute('click') &&
+        !node.hasAttribute('pjax-target') &&
+        !node.hasAttribute('pjax-refresh') &&
+        !node.hasAttribute('pjax-confirm')
+      ) {
+        return;
+      }
+
       event.stopPropagation();
       event.preventDefault();
 
