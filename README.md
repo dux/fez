@@ -648,7 +648,8 @@ This example showcases:
 - **Preserve DOM Elements** - Use `fez:keep="unique-key"` attribute to preserve DOM elements across re-renders (useful for child components, animations, form inputs, or stateful elements)
 - **Auto-ID for Form Inputs** - Elements with `fez:this` automatically get stable IDs, helping the differ preserve input state across re-renders
 - **Import Maps** - Use `Fez.head({importmap: {...}})` to map bare import specifiers to full URLs, avoiding duplicate library instances
-- **Style Macros** - Define custom CSS shortcuts like `Fez.cssMixin('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }`
+- **Style Macros** - Define custom CSS shortcuts like `Fez.cssMixin('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }` or `@include mobile { ... }`. A macro expands to a selector or an at-rule, so it can also encode a theme
+- **Dark Theme** - Built-in `:dark { ... }` macro expands to `&:where(.dark, .dark *)`, styling any component under a `dark` class on `<html>`. Zero added specificity; re-register it as `@media (prefers-color-scheme: dark)` to follow the OS instead, with no component changes
 - **Scoped Styles** - `<style>` is always scoped to the component, `<style global>` is always document-wide. Scope is declared on the tag, never inferred from the CSS. `:global(...)` hoists a single rule out of a scoped block (using it inside `<style global>` is a compile error - those rules are already global)
 
 ### Developer Experience
@@ -844,9 +845,18 @@ Fez('foo-bar', class {
 
 /* Utility methods */
 
-// define custom style macro
+// define custom style macro - expands to a selector or an at-rule prelude
 // Fez.cssMixin('mobile', '@media (max-width:  768px)')
 // :mobile { ... } -> @media (max-width:  768px) { ... }
+// @include mobile { ... } -> same thing, both spellings work
+// note: the trailing space is required, `:mobile{` is not expanded
+//
+// built in: mobile, tablet, desktop, dark
+// :dark { ... } -> &:where(.dark, .dark *) { ... }
+// styles the component when <html> carries a `dark` class:
+//   document.documentElement.classList.toggle('dark', isDark)
+// to follow the OS instead, re-register it (no component CSS changes):
+//   Fez.cssMixin('dark', '@media (prefers-color-scheme: dark)')
 Fez.cssMixin(name, value)
 
 // add global scss

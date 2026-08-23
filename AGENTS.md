@@ -238,6 +238,64 @@ The `<script>` block has two zones:
 <button onclick="fez.increment()" name="{state.buttonName}">Count: {state.count}</button>
 ```
 
+## Style Macros (mixins)
+
+`Fez.cssMixin(name, value)` registers a CSS shortcut usable in any `<style>` or `<style global>` block.
+A macro expands to a selector or an at-rule prelude, and `flattenCss` resolves whichever it gets - at-rules hoist outward, `&` binds to the parent.
+Expansion happens at runtime in `Fez.globalCss`, so a macro registered in a `<head>` block is available to every component.
+
+Built in: `mobile` (`max-width: 767px`), `tablet` (768-1023px), `desktop` (`min-width: 1200px`), `dark`.
+
+```html
+<style>
+  h1 {
+    font-size: 20px;
+    :mobile { font-size: 14px; }
+    :dark   { color: #eee; }
+  }
+
+  /* at block root, a macro applies to the component wrapper */
+  :dark { border-color: #444; }
+</style>
+```
+
+Both spellings work - `:mobile { ... }` and `@include mobile { ... }`.
+**The trailing space is required**: `:dark {` expands, `:dark{` does not and silently emits dead CSS.
+
+### Dark theme
+
+`:dark` expands to `&:where(.dark, .dark *)`, so it applies when `<html>` carries a `dark` class.
+Fez components are light DOM, so the class is a genuine ancestor and ordinary descendant matching reaches in - no shadow-boundary workaround needed.
+`:where()` contributes zero specificity, so a `:dark` block ties with the rule it overrides and wins on source order alone (nested blocks always serialize after their parent's declarations).
+
+Toggle it yourself - fez ships no theme runtime:
+
+```js
+document.documentElement.classList.toggle('dark', isDark)
+```
+
+Prefer defining tokens once in a `<style global>` and consuming them everywhere, so components carry no theme-specific rules at all:
+
+```html
+<style global>
+  :root {
+    --bg: #fff; --fg: #111; color-scheme: light;
+    :dark { --bg: #111; --fg: #eee; color-scheme: dark; }
+  }
+</style>
+```
+
+To follow the OS setting instead of a class, re-register the macro at boot - no component CSS changes:
+
+```js
+Fez.cssMixin('dark', '@media (prefers-color-scheme: dark)')
+```
+
+Two caveats:
+
+- **`<style global>` is not wrapped**, so a bare top-level `:dark { }` has no parent for `&` and emits invalid CSS. Nest it under `:root` (as above) or write `html:dark`.
+- **Put the class on `<html>`, not `<body>`** - otherwise the `:root` token block never matches, and the page gets light overscroll gutters.
+
 ## Template Syntax (Svelte-like)
 
 ### Expressions

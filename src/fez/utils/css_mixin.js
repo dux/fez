@@ -2,6 +2,13 @@
 // :mobile { ... } -> @media (max-width:  768px) { ... }
 // @include mobile { ... } -> @media (max-width:  768px) { ... }
 // demo/fez/ui-style.fez
+//
+// A mixin body is any selector or at-rule prelude, so a macro can expand to a
+// conditional group (:mobile) or to a selector (:dark). flattenCss resolves
+// whichever it gets - at-rules hoist outward, `&` binds to the parent.
+//
+// Substitution is textual and needs the trailing space: `:dark {` expands,
+// `:dark{` does not.
 
 const CssMixins = {}
 
@@ -22,4 +29,15 @@ export default (Fez) => {
   Fez.cssMixin('mobile', '@media (max-width: 767px)')
   Fez.cssMixin('tablet', '@media (min-width: 768px) and (max-width: 1023px)')
   Fez.cssMixin('desktop', '@media (min-width:  1200px)')
+
+  // Dark theme, driven by a .dark class on <html>. Selector-shaped rather than
+  // a media query so the app can flip themes at runtime; register
+  // '@media (prefers-color-scheme: dark)' at boot to follow the OS instead.
+  //
+  // Two branches: `.dark` for the element carrying the class (a :root token
+  // block), `.dark *` for everything under it. :where() contributes no
+  // specificity, so :dark ties with the rule it overrides and wins on source
+  // order alone - nested blocks always serialize after their parent's
+  // declarations. Without it every dark rule would outrank plain ones.
+  Fez.cssMixin('dark', '&:where(.dark, .dark *)')
 }
