@@ -710,8 +710,9 @@ test('fez:bind - two-way input binding', async () => {
     // Type into input
     await page.fill('.bound-input', 'updated');
 
-    // fez:bind uses onkeyup - dispatch keyup to trigger the binding
-    await page.dispatchEvent('.bound-input', 'keyup');
+    // fez:bind listens on input - page.fill already fired it, but a range
+    // slider or a paste would arrive the same way
+    await page.dispatchEvent('.bound-input', 'input');
 
     // Wait for value to update
     await page.waitForFunction(() => {

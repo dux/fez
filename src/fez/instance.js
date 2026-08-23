@@ -693,8 +693,10 @@ export default class FezBase {
       if (["INPUT", "SELECT", "TEXTAREA"].includes(n.nodeName)) {
         const value = new Function(`return this.${text}`).bind(this)();
         const isCb = n.type.toLowerCase() == "checkbox";
+        // "input" covers typing, paste, autofill and slider drags alike;
+        // select and checkbox have no meaningful intermediate state
         const eventName =
-          ["SELECT"].includes(n.nodeName) || isCb ? "onchange" : "onkeyup";
+          ["SELECT"].includes(n.nodeName) || isCb ? "onchange" : "oninput";
         n.setAttribute(
           eventName,
           `${this.fezHtmlRoot}${text} = this.${isCb ? "checked" : "value"}`,
