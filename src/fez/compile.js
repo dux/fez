@@ -16,7 +16,11 @@
 // Note: Uses Fez.index directly (set up in root.js)
 
 import closeCustomTags from "./lib/close-custom-tags.js";
-import { hasFezDefinitions, parseFezSource } from "./lib/source-parser.js";
+import {
+  hasFezDefinitions,
+  parseFezSource,
+  stripFezDefinitions,
+} from "./lib/source-parser.js";
 
 const compileCache = new Map();
 
@@ -97,13 +101,7 @@ export default function compile(tagName, html) {
   if (hasTopLevelFezElements(html)) {
     if (tagName) {
       Fez.index.ensure(tagName).source = html;
-      const parts = compileToClass(html);
-      if (parts.info?.trim()) {
-        Fez.index.ensure(tagName).info = parts.info;
-      }
-      if (parts.demo?.trim()) {
-        Fez.index.ensure(tagName).demo = parts.demo;
-      }
+      indexFileDocs(tagName, html);
     }
     return compileBulk(html);
   }
@@ -198,13 +196,7 @@ function compileFromUrl(url) {
       if (fezElements.length > 0) {
         // Extract top-level info/demo before the xmp elements (for multi-component files)
         const fileName = url.split("/").pop().split(".")[0];
-        const parts = compileToClass(content);
-        if (parts.info?.trim()) {
-          Fez.index.ensure(fileName).info = parts.info;
-        }
-        if (parts.demo?.trim()) {
-          Fez.index.ensure(fileName).demo = parts.demo;
-        }
+        indexFileDocs(fileName, content);
 
         // Multiple components in file
         fezElements.forEach((el) => {
@@ -254,6 +246,25 @@ function compileToClass(html) {
   }
 
   return result;
+}
+
+/**
+ * Index the file-level <info>/<demo> of a multi-component file.
+ *
+ * Only the source outside the <xmp fez>/<template fez> definitions is parsed -
+ * each definition is compiled on its own, and its <script>/<style> must not
+ * collide with its siblings here.
+ */
+function indexFileDocs(name, source) {
+  const parts = compileToClass(stripFezDefinitions(source));
+
+  if (parts.info?.trim()) {
+    Fez.index.ensure(name).info = parts.info;
+  }
+
+  if (parts.demo?.trim()) {
+    Fez.index.ensure(name).demo = parts.demo;
+  }
 }
 
 /**

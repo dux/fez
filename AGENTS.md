@@ -4,7 +4,7 @@
 
 - when you add new features, ensure related tests exists, demo and info in fez lib.
 - use bun, not npm
-- ignore ./dist folder, all code is in ./src and demo is in ./demo
+- ignore ./dist folder in local search, all code is in ./src and demo is in ./demo
 
 ## Bundled Pjax navigation (since 0.6.0)
 

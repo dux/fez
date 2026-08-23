@@ -176,11 +176,34 @@ export function extractFezDefinitions(source) {
       source: blockContent(raw),
       line: lineAt(source, openStart),
       contentLine: contentLine(source, rawStart, raw),
+      start: openStart,
+      end: close.index + close[0].length,
     });
     DEFINITION_TAG_RE.lastIndex = close.index + close[0].length;
   }
 
   return { definitions, errors };
+}
+
+// Everything outside the <xmp fez>/<template fez> definitions. Each definition
+// carries its own script/style/html, so a caller reading the file-level
+// <info>/<demo> must not see the per-component blocks - otherwise a file with
+// two components looks like it has duplicate <script> blocks.
+export function stripFezDefinitions(source) {
+  const { definitions } = extractFezDefinitions(source);
+  if (!definitions.length) {
+    return source;
+  }
+
+  let outer = '';
+  let cursor = 0;
+
+  for (const definition of definitions) {
+    outer += source.slice(cursor, definition.start);
+    cursor = definition.end;
+  }
+
+  return outer + source.slice(cursor);
 }
 
 export function hasFezDefinitions(source) {

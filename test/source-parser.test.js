@@ -3,6 +3,7 @@ import {
   extractFezDefinitions,
   hasFezDefinitions,
   parseFezSource,
+  stripFezDefinitions,
 } from '../src/fez/lib/source-parser.js';
 
 describe('Fez source parser', () => {
@@ -54,5 +55,32 @@ describe('Fez source parser', () => {
     expect(hasFezDefinitions('<div><template fez="inline-one"><p>One</p></template></div>')).toBe(
       true,
     );
+  });
+
+  test('strips definitions so a multi-component file keeps only its file-level docs', () => {
+    const source = `<info>
+  File level docs.
+</info>
+<xmp fez="one-block">
+  <script>
+    class {}
+  </script>
+</xmp>
+<xmp fez="two-block">
+  <script>
+    class {}
+  </script>
+</xmp>`;
+    const parsed = parseFezSource(stripFezDefinitions(source), { dedentDocs: true });
+
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.info.trim()).toBe('File level docs.');
+    expect(parsed.script).toBe('');
+  });
+
+  test('leaves a single-component file untouched', () => {
+    const source = '<script>\nclass {}\n</script>\n<p>Hello</p>';
+
+    expect(stripFezDefinitions(source)).toBe(source);
   });
 });
