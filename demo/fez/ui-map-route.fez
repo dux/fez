@@ -122,6 +122,9 @@
       // Small delay for CSS to load
       await new Promise(r => setTimeout(r, 200))
 
+      // component may have been destroyed (pjax / demo re-render) while leaflet loaded
+      if (!this.isConnected) return
+
       this.initMap()
       this.loadingOverlay.style.display = 'none'
     }
@@ -181,7 +184,7 @@
 
       if (this.animate) {
         // Start animation after a short delay
-        setTimeout(() => this.animatePath(), 500)
+        this.setTimeout(() => this.animatePath(), 500)
       } else if (this.points.length > 1) {
         // Draw full path immediately (only if we have route points)
         this.drawFullPath()
@@ -432,7 +435,7 @@
             this.trailLine.setLatLngs([])
             this.glowLine.setLatLngs([])
             lastSegment = -1
-            setTimeout(animate, 1000) // Pause before loop
+            this.setTimeout(animate, 1000) // Pause before loop
           }
           return
         }

@@ -71,7 +71,8 @@ anywhere in HTML code
         if (successful) {
           Toast.info('File data copied to clipboard.');
         } else {
-          throw new Error('Copy command failed');
+          // execCommand refuses outside a user gesture; report instead of rejecting the onclick promise
+          Toast.error('Could not copy.');
         }
       } finally {
         textArea.remove();

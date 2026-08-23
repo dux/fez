@@ -103,6 +103,9 @@
 
       await loadThree()
 
+      // component may have been destroyed (pjax / demo re-render) while three loaded
+      if (!this.isConnected) return
+
       if (this.editable) {
         this.textInput = this.find('.text-input')
         this.swatchContainer = this.find('.color-swatches')

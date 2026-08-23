@@ -113,8 +113,8 @@
       this.actionButton(val % 6 < 3)
     })
 
-    // Add global escape key listener to close dialog
-    document.addEventListener('keydown', (e) => {
+    // Global escape key listener to close dialog - this.on auto-removes it on destroy
+    this.on('keydown', (e) => {
       if (e.key === 'Escape' && this.state.data) {
         // Don't close if user is typing in a form element
         const activeElement = document.activeElement

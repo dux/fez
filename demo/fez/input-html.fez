@@ -190,6 +190,8 @@ Just a simple text area with **markdown** support.
             overlay.appendChild(edit)
 
             function positionOverlay() {
+              // hideEditor() may have run before the deferred call / observer fires
+              if (!overlay) return
               const rect = dom.getBoundingClientRect()
               Object.assign(overlay.style, {
                 position: 'absolute',

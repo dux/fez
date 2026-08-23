@@ -12,13 +12,14 @@
       let timeout = 150
       let current = 0
       document.querySelectorAll('.fez-ui-card').forEach(n => {
-        setTimeout(() => n.fez.flip(), current += timeout)
-        setTimeout(() => n.fez.flip(), current + 1300)
+        // n.fez is gone if the card was destroyed before the timer fires
+        setTimeout(() => n.fez?.flip(), current += timeout)
+        setTimeout(() => n.fez?.flip(), current + 1300)
       })
     }
 
     window.flipAllCards = () => {
-      document.querySelectorAll('.fez-ui-card').forEach(n => n.fez.flip())
+      document.querySelectorAll('.fez-ui-card').forEach(n => n.fez?.flip())
     }
   </script>
 

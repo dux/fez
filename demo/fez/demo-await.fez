@@ -19,6 +19,14 @@ class {
   }
 
   fetchUser() {
+    const promise = this.simulateFetch()
+    // {#await} attaches its own catch on render; this silences the "unhandled rejection"
+    // only for the case where the component is destroyed before that render happens
+    promise.catch(() => {})
+    return promise
+  }
+
+  simulateFetch() {
     // Simulate API call with delay
     return new Promise((resolve, reject) => {
       setTimeout(() => {

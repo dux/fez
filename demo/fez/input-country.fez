@@ -137,7 +137,7 @@
     }
 
     scrollToHighlighted() {
-      setTimeout(() => {
+      this.setTimeout(() => {
         const el = this.find('.dropdown-item.highlighted')
         if (el) el.scrollIntoView({ block: 'nearest' })
       }, 0)
@@ -148,7 +148,7 @@
       this.state.search = ''
       this.state.highlight = -1
       if (this.state.show_dropdown) {
-        setTimeout(() => this.find('.search-input')?.focus(), 0)
+        this.setTimeout(() => this.find('.search-input')?.focus(), 0)
       }
     }
 

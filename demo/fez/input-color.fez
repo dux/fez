@@ -98,11 +98,8 @@
     this.state.showPicker = false
     this.state.customColor = props.value || '#000000'
 
-    document.addEventListener('click', this.closePicker.bind(this))
-  }
-
-  onDestroy() {
-    document.removeEventListener('click', this.closePicker.bind(this))
+    // auto-removed on destroy; a manual .bind(this) pair never unregisters
+    this.on(document, 'click', this.closePicker)
   }
 </script>
 
