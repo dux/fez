@@ -8,12 +8,13 @@
         this.state.links = [
           { href: './index.html',     name: 'index.html',    label: 'Home' },
           { href: './features.html',  name: 'features.html', label: 'Features' },
+          // the blog loads its own page component, so enter it with a full navigation
+          { href: './blog.html',      name: 'blog.html',     label: 'Blog', full: true },
           { href: './examples.html',  name: 'examples.html', label: 'Examples' },
           // the playground is a full-viewport app without a pjax container - plain navigation
           { href: './playground.html', label: 'Playground', full: true },
           { href: './docs.html',      name: 'docs.html',     label: 'Docs' },
           { href: './electron.html',  name: 'electron.html', label: 'Electron' },
-          { href: '../benchmark.html', label: 'Benchmark', ext: true },
           { href: 'https://github.com/dux/fez', label: 'GitHub', ext: true },
         ]
       }
@@ -46,7 +47,7 @@
           {#if link.ext}
             <a href="{link.href}" class="ext no-pjax" target="_blank">{link.label}</a>
           {:else if link.full}
-            <a href="{link.href}" class="no-pjax">{link.label}</a>
+            <a href="{link.href}" class="no-pjax {link.name == state.path ? 'active' : ''}">{link.label}</a>
           {:else}
             <a href="{link.href}" class="{link.name == state.path ? 'active' : ''}">{link.label}</a>
           {/if}
@@ -66,10 +67,11 @@
   <div class="site-wrap">
     <span>Fez - jQuery simplicity for the component era. One script tag, no build step.</span>
     <span class="spacer"></span>
+    <a href="./features.html">Features</a>
+    <a href="./blog.html" class="no-pjax">Blog</a>
     <a href="https://github.com/dux/fez">GitHub</a>
     <a href="https://www.npmjs.com/package/@dinoreic/fez">npm</a>
     <a href="https://github.com/dux/fez/blob/main/AGENTS.md">AGENTS.md</a>
-    <a href="../benchmark.html" class="no-pjax">Benchmark</a>
     <span>Made by <a href="https://github.com/dux/">@dux</a></span>
   </div>
 </xmp>
@@ -201,6 +203,8 @@
       init(props) {
         this.root.classList.add('markdown')
         Fez.fetch(props.src, (text) => {
+          // Blog files keep portable YAML frontmatter; marked should render only the article body.
+          text = text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '')
           // README paths are repo-root relative; this page lives in ./demo
           text = text
             .replaceAll('src="demo/', 'src="./')

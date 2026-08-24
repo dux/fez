@@ -1,0 +1,302 @@
+<info>
+  <ul>
+    <li>Blog index and article reader backed by <code>blogs/index.json</code>.</li>
+    <li>Article routes use <code>blog.html?post=slug</code> and render the original Markdown file.</li>
+  </ul>
+</info>
+
+<script>
+  class {
+    init() {
+      this.state.slug = new URLSearchParams(location.search).get('post') || ''
+      this.state.blog = Fez.fetch('../blogs/index.json').then(posts => {
+        const post = this.state.slug
+          ? posts.find(item => item.slug === this.state.slug)
+          : null
+
+        if (post) document.title = `${post.title} - Fez Blog`
+
+        return { posts, post }
+      })
+    }
+
+    formatDate(value) {
+      return new Intl.DateTimeFormat('en', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC',
+      }).format(new Date(`${value}T00:00:00Z`))
+    }
+  }
+</script>
+
+<style>
+  display: block;
+  max-width: var(--w);
+  min-height: 64vh;
+  margin: 0 auto;
+  padding: 64px 24px 96px 24px;
+
+  .loading,
+  .error,
+  .missing {
+    max-width: 720px;
+    margin: 48px auto;
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    background: var(--paper-2);
+    color: var(--ink-2);
+  }
+
+  .blog-head {
+    max-width: 820px;
+    margin-bottom: 44px;
+
+    .site-lead {
+      max-width: 760px;
+      margin-top: 20px;
+    }
+  }
+
+  .post-count {
+    margin: 0 0 16px 0;
+    color: var(--ink-3);
+    font: 13px var(--font-mono);
+  }
+
+  .post-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .post-card {
+    box-sizing: border-box;
+    height: 100%;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    background: #fff;
+    box-shadow: var(--shadow);
+
+    &.has-image {
+      display: grid;
+      grid-template-columns: minmax(196px, 0.5fr) minmax(0, 1fr);
+    }
+
+    .post-card-image {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 168px;
+      object-fit: cover;
+      background: var(--paper-2);
+    }
+
+    .post-card-body {
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      min-width: 0;
+      height: 100%;
+      padding: 24px;
+    }
+
+    &.has-image .post-card-body {
+      align-self: start;
+      height: auto;
+    }
+
+    &:not(:has(.post-card-image)) .post-card-body {
+      margin-left: 33.333333%;
+    }
+
+    h2 {
+      margin: 8px 0 10px 0;
+      color: var(--ink);
+      font: 650 24px/1.2 var(--font-display);
+      letter-spacing: -0.02em;
+    }
+
+    p {
+      margin: 0;
+      color: var(--ink-2);
+      font-size: 15.5px;
+      line-height: 1.6;
+    }
+
+    .tags {
+      margin-top: auto;
+      padding-top: 20px;
+      color: var(--fez);
+      font: 12px var(--font-mono);
+    }
+  }
+
+  .post-card-link {
+    display: block;
+    height: 100%;
+    color: inherit;
+    text-decoration: none;
+
+    &:hover h2 {
+      color: var(--fez);
+    }
+  }
+
+  .post-date {
+    color: var(--ink-3);
+    font: 12px var(--font-mono);
+  }
+
+  .article-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 34px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+
+    a {
+      font-size: 14px;
+    }
+  }
+
+  .article-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    color: var(--ink-3);
+    font: 12px var(--font-mono);
+
+    a {
+      color: var(--ink-3);
+    }
+  }
+
+  .article-shell {
+    max-width: 820px;
+    margin: 0 auto;
+  }
+
+  .article-hero {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    margin: 28px 0 32px 0;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    object-fit: cover;
+    background: var(--paper-2);
+  }
+
+  .commit-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    a {
+      padding: 2px 7px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      text-decoration: none;
+    }
+  }
+
+  @media (max-width: 760px) {
+    padding: 48px 18px 72px 18px;
+
+    .post-card.has-image {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .post-card .post-card-image {
+      height: auto;
+      min-height: 0;
+      aspect-ratio: 16 / 9;
+    }
+
+    .post-card .post-card-body {
+      padding: 20px;
+    }
+
+    .post-card:not(:has(.post-card-image)) .post-card-body {
+      margin-left: 0;
+    }
+
+    .article-nav {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+</style>
+
+{#await state.blog}
+  <div class="loading">Loading the Fez history...</div>
+{:then blog}
+  {#if state.slug}
+    {#if blog.post}
+      <div class="article-shell site-md">
+        <nav class="article-nav" aria-label="Blog navigation">
+          <a href="./blog.html" class="no-pjax">Back to all posts</a>
+          <div class="article-meta">
+            <span>{fez.formatDate(blog.post.date)}</span>
+            <span>{blog.post.tags.join(' / ')}</span>
+          </div>
+        </nav>
+
+        <div class="commit-list" aria-label="Source commits">
+          {#each blog.post.commits as commit}
+            <a href="https://github.com/dux/fez/commit/{commit}" class="no-pjax" target="_blank">{commit}</a>
+          {/each}
+        </div>
+
+        {#if blog.post.image}
+          <img class="article-hero" src="../blogs/{blog.post.image}" alt={blog.post.image_alt} decoding="async" fetchpriority="high" />
+        {/if}
+
+        <site-markdown src="../blogs/{blog.post.file}"></site-markdown>
+      </div>
+    {:else}
+      <div class="missing">
+        <h1>Post not found</h1>
+        <p>The requested milestone is not in the blog index.</p>
+        <a href="./blog.html" class="no-pjax">View all posts</a>
+      </div>
+    {/if}
+  {:else}
+    <header class="blog-head">
+      <p class="site-eyebrow">engineering notes</p>
+      <h1 class="site-h1">Fez, one decision at a time</h1>
+      <p class="site-lead">Important milestones selected from the commit history, written from the engineering decisions behind them and updated with examples that run on current Fez.</p>
+    </header>
+
+    <p class="post-count">{blog.posts.length} posts / newest first</p>
+    <div class="post-list">
+      {#each blog.posts as post}
+        <a class="post-card-link no-pjax" href="./blog.html?post={post.slug}">
+          <article class={post.image ? 'post-card has-image' : 'post-card'}>
+            {#if post.image}
+              <img class="post-card-image" src="../blogs/{post.image}" alt={post.image_alt} loading="lazy" decoding="async" />
+            {/if}
+            <div class="post-card-body">
+              <time class="post-date" datetime={post.date}>{fez.formatDate(post.date)}</time>
+              <h2>{post.title}</h2>
+              <p>{post.description}</p>
+              <span class="tags">{post.tags.join(' / ')}</span>
+            </div>
+          </article>
+        </a>
+      {/each}
+    </div>
+  {/if}
+{:catch error}
+  <div class="error">
+    <h1>Could not load the blog</h1>
+    <p>{error.message}</p>
+  </div>
+{/await}
