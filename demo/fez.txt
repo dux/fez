@@ -41,6 +41,7 @@ fez/ui-style
 fez/ui-tabs
 fez/ui-tags
 fez/ui-time
+fez/ui-tip
 fez/ui-tippy
 fez/ui-toast
 fez/ui-todo

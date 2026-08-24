@@ -18,7 +18,7 @@
     <script fez="./fez/ui-clock.fez"></script>
     <script fez="./fez/ui-counter.fez"></script>
     <script fez="./fez/ui-tags.fez"></script>
-    <script fez="./fez/ui-mixer.fez"></script>
+    <script fez="./fez/ui-tip.fez"></script>
     <link rel="stylesheet" href="./css/full.css" />
     <link rel="stylesheet" href="./css/site.css" />
   </head>
@@ -73,7 +73,7 @@
           <h2 class="site-h2">Two more examples, featuring most of Fez</h2>
           <p class="site-lead">
             Same setup - one script tag, one <code>.fez</code> file, no build step. Between them:
-            state, form handling, typed props, derived values, two-way binding, loops, conditionals and
+            state, form handling, typed props, derived values, two-way binding, keyed loops and
             enter / leave / reorder animations. Every line below is the whole component.
           </p>
 
@@ -123,60 +123,44 @@
               <div class="out-label">add and remove - rows fly in, fade out and glide to place</div>
             </site-live>
 
-            <site-live title="ui-mixer.fez" right-title="bind · derived · props">
+            <site-live title="ui-tip.fez" right-title="bind · derived · props">
               <div class="src">
                 <ui-editor>
                   <xmp>
 <script>
-  const hex = (r, g, b) =>
-    '#' + [r, g, b].map(n => (+n).toString(16).padStart(2, '0')).join('')
+  PROPS = { bill: { type: Number, state: true, default: 48 } }
 
-  class {
-    PROPS = { color: { type: String, default: '#0ea5e9' } }
+  init() {
+    this.state.tip = 18
+  }
 
-    init({ color }) {
-      const [r, g, b] = color.match(/\w\w/g).map(h => parseInt(h, 16))
-      Object.assign(this.state, { r, g, b })
-    }
-
-    beforeRender() {
-      const { r, g, b } = this.state
-      this.state.hex = hex(r, g, b)
-      // each track shows what this channel does, given the other two
-      this.state.track = {
-        r: [hex(0, g, b), hex(255, g, b)],
-        g: [hex(r, 0, b), hex(r, 255, b)],
-        b: [hex(r, g, 0), hex(r, g, 255)],
-      }
-      this.state.light = (r * 299 + g * 587 + b * 114) / 1000 > 140
-    }
-
-    copy() {
-      navigator.clipboard?.writeText(this.state.hex)
-      this.state.copied = true
-      setTimeout(() => (this.state.copied = false), 1200)
-    }
+  beforeRender() {
+    const tip = this.state.bill * this.state.tip / 100
+    this.state.tip_sum = tip.toFixed(2)
+    this.state.total = (this.state.bill + tip).toFixed(2)
   }
 </script>
 
-<div class="swatch {state.light ? 'is-light' : ''}"
-     style="--c: {state.hex}" onclick="fez.copy()">
-  <b>{state.hex}</b>
-  <small>{state.copied ? 'copied' : 'click to copy'}</small>
-</div>
+<label>
+  bill
+  <input type="number" min="0" step="1" fez:bind="state.bill" />
+</label>
 
-{#each ['r', 'g', 'b'] as ch}
-  <input key={ch} type="range" min="0" max="255"
-         fez:bind="state.{ch}" style="--track: {state.track[ch]}" />
-{/each}
+<input type="range" min="0" max="30" fez:bind="state.tip"
+       style="--pct: {state.tip / 30 * 100}%" />
+
+<p class="out">
+  <span>{state.tip}% tip is <b>${state.tip_sum}</b></span>
+  <span class="total">total <b>${state.total}</b></span>
+</p>
                   </xmp>
                 </ui-editor>
               </div>
-              <div class="out-usage">&lt;ui-mixer color="#0ea5e9"&gt;&lt;/ui-mixer&gt;</div>
+              <div class="out-usage">&lt;ui-tip bill="48"&gt;&lt;/ui-tip&gt;</div>
               <div class="out">
-                <ui-mixer color="#0ea5e9"></ui-mixer>
+                <ui-tip bill="48"></ui-tip>
               </div>
-              <div class="out-label">drag one slider - the other two tracks repaint, all derived state</div>
+              <div class="out-label">type a bill or drag the slider - both totals recompute on the same pass</div>
             </site-live>
           </div>
         </div>
