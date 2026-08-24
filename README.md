@@ -50,6 +50,112 @@ fez template --debug my-component.fez
 
 `.fez` files are compiled with Fez's own template compiler (`src/fez/lib/template-compiler.js`). The Svelte compiler is only for `.svelte` files.
 
+## Static Site Builder
+
+Fez includes a convention-based static site builder for Markdown, HTML, layouts, includes, and browser-side `.fez` components.
+It requires Bun 1.3.8 or newer for the native Markdown renderer.
+Inside this repository, the same commands can be called directly through `./bin/fez-static`.
+
+```bash
+# Build ./fez-static/src into the configured target (./build by default)
+fez static
+fez static build
+
+# Build, watch, and serve during development
+fez static dev
+
+# Validate a complete build without publishing it
+fez static doctor
+
+# Serve the existing target, or remove it
+fez static serve
+fez static clean
+```
+
+A site uses this structure:
+
+```text
+my-site/
+|-- fez-static/
+|   |-- config.yaml
+|   |-- layouts/
+|   |   |-- default.html
+|   |   `-- post.html
+|   |-- parts/
+|   |   `-- header.html
+|   `-- src/
+|       |-- blog/
+|       |-- index.html
+|       `-- about.md
+`-- build/
+```
+
+Markdown and HTML pages share YAML front matter.
+Pages without `layout` use `fez-static/layouts/default.html` automatically.
+Use `layout: false` for an unwrapped page, or name another layout with `layout: post`.
+Layouts can declare parent layouts.
+
+```yaml
+---
+title: Hello, Fez
+layout: post
+date: 2026-08-24
+permalink: /blog/hello-fez/
+---
+```
+
+HTML pages, layouts, and includes use Fez template expressions, conditionals, and loops.
+Markdown is converted without evaluating braces, so Fez examples and other code remain unchanged.
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <title>{page.title} | {site.title}</title>
+  </head>
+  <body>
+    {@include "header.html"}
+    <main>
+      {@content}
+    </main>
+  </body>
+</html>
+```
+
+`{@content}` inserts the current page or child layout.
+`{@include "name.html"}` resolves from `fez-static/parts` and may be used in pages, layouts, or other parts.
+Use `./name.html` for a part relative to another part.
+Pass one parameters object; its values are available through `include`:
+
+```html
+{@include "badge.html", { label: page.title, kind: "note" }}
+```
+
+```html
+<strong class={include.kind}>{include.label}</strong>
+```
+
+Templates receive `site`, `page`, `collections.posts`, and `include`.
+Files under `blog/` are exposed as `collections.posts` and sorted newest first.
+Non-page files under `src` are copied with their source-relative paths.
+Use `permalink` to override a page route.
+For an existing complete HTML document that must pass through unchanged, set both `layout: false` and `render: false` in its front matter.
+
+`fez-static/config.yaml` is optional. `target` is relative to the project root and defaults to `build`; values under `site` are exposed to templates:
+
+```yaml
+target: demo
+
+site:
+  title: Fez
+  description: JavaScript DOM components framework
+```
+
+The builder writes through a staging directory and replaces the target only after every page renders successfully.
+Missing layouts or parts, output collisions, recursive includes, recursive layouts, dynamic include paths, and source-escaping paths fail the build.
+
+This repository uses root `fez-static/` as its source and generates `demo/`.
+
 ## Why Fez is Simpler
 
 | Concept           | React                    | Svelte 5        | Vue 3                  | **Fez**            |

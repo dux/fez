@@ -6,7 +6,7 @@ const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 const loadPosts = async () => {
   const posts = [];
 
-  for await (const path of new Glob("blogs/*.md").scan(".")) {
+  for await (const path of new Glob("fez-static/src/blog/*.md").scan(".")) {
     if (path.includes(".tmp.")) continue;
 
     const text = await Bun.file(path).text();
@@ -17,7 +17,7 @@ const loadPosts = async () => {
     posts.push({
       path,
       text,
-      data: { ...frontmatter, file: path.replace("blogs/", "") },
+      data: { ...frontmatter, file: path.replace("fez-static/src/blog/", "") },
     });
   }
 
@@ -50,7 +50,7 @@ describe("blog posts", () => {
         expect(data.image).toMatch(/^assets\/[a-z0-9-]+\.webp$/);
         expect(data.image_alt).toBeString();
         expect(data.image_alt.length).toBeGreaterThan(20);
-        expect(await Bun.file(`blogs/${data.image}`).exists()).toBeTrue();
+        expect(await Bun.file(`fez-static/src/blog/${data.image}`).exists()).toBeTrue();
       } else {
         expect(data.image_alt).toBeUndefined();
       }
@@ -68,9 +68,9 @@ describe("blog posts", () => {
       .sort();
     const assets = [];
 
-    for await (const path of new Glob("blogs/assets/*.webp").scan(".")) {
+    for await (const path of new Glob("fez-static/src/blog/assets/*.webp").scan(".")) {
       if (path.includes(".tmp.")) continue;
-      assets.push(path.replace("blogs/", ""));
+      assets.push(path.replace("fez-static/src/blog/", ""));
     }
 
     expect(referenced).toHaveLength(6);
@@ -101,7 +101,7 @@ describe("blog posts", () => {
 
   test("keep index.json synchronized with frontmatter", async () => {
     const posts = await loadPosts();
-    const index = await Bun.file("blogs/index.json").json();
+    const index = await Bun.file("fez-static/src/blog/index.json").json();
 
     expect(index).toEqual(posts.map(({ data }) => data));
   });
@@ -109,9 +109,9 @@ describe("blog posts", () => {
 
 describe("blog demo", () => {
   test("links the blog and features without the old benchmark entry", async () => {
-    const site = await Bun.file("demo/site.fez").text();
-    const page = await Bun.file("demo/blog.html").text();
-    const blog = await Bun.file("demo/fez/site-blog.fez").text();
+    const site = await Bun.file("fez-static/src/site.fez").text();
+    const page = await Bun.file("fez-static/src/blog.html").text();
+    const blog = await Bun.file("fez-static/src/fez/site-blog.fez").text();
 
     expect(site).toContain("label: 'Blog'");
     expect(site).toContain('<a href="./features.html">Features</a>');

@@ -23,7 +23,15 @@ describe('fez dispatcher', () => {
     const result = await run(['--help']);
 
     expect(result.exitCode).toBe(0);
-    for (const command of ['agents', 'compile', 'debug', 'index', 'refactor', 'template']) {
+    for (const command of [
+      'agents',
+      'compile',
+      'debug',
+      'index',
+      'refactor',
+      'static',
+      'template',
+    ]) {
       expect(result.stdout).toMatch(new RegExp(`^\\s+${command}\\s+`, 'm'));
     }
   });
@@ -127,7 +135,9 @@ describe('published CLI wiring', () => {
     expect(pkg.bin).toEqual({ fez: 'bin/fez' });
     expect(pkg.dependencies.playwright).toBeDefined();
     expect(pkg.devDependencies.playwright).toBeUndefined();
+    expect(pkg.engines.bun).toBe('>=1.3.8');
     expect(pkg.scripts.refactor).toBe('bun bin/fez-refactor');
+    expect(pkg.scripts.static).toBe('bun bin/fez-static build');
     expect(pkg.scripts.release).toStartWith('bun publish');
     expect(Object.values(pkg.scripts).join('\n')).not.toMatch(/\b(?:npm|npx)\b/);
   });

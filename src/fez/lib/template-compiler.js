@@ -32,28 +32,33 @@ import {
  * @param {string} text - Template source
  * @param {Object} opts - Options
  * @param {string} opts.name - Component name for error messages
+ * @param {boolean} opts.strict - Throw compile and render errors
+ * @param {boolean} opts.static - Skip browser-runtime template transforms
  */
 export default function createTemplateCompiler(text, opts = {}) {
   const componentName = opts.name || "unknown";
+  const staticMode = opts.static === true;
 
   try {
-    // Decode HTML entities that might have been encoded by browser DOM
-    text = text
-      .replaceAll("&#x60;", "`")
-      .replaceAll("&lt;", "<")
-      .replaceAll("&gt;", ">")
-      .replaceAll("&amp;", "&");
+    if (!staticMode) {
+      // Decode HTML entities that might have been encoded by browser DOM
+      text = text
+        .replaceAll("&#x60;", "`")
+        .replaceAll("&lt;", "<")
+        .replaceAll("&gt;", ">")
+        .replaceAll("&amp;", "&");
 
-    // Allow Fez namespace syntax as alias for fez-attr
-    text = text.replace(/\bfez:([a-z][a-z0-9-]*)=/gi, "fez-$1=");
+      // Allow Fez namespace syntax as alias for fez-attr
+      text = text.replace(/\bfez:([a-z][a-z0-9-]*)=/gi, "fez-$1=");
 
-    // Strict event handlers: `on<event>!="body"` runs the body only when the
-    // element itself is the target (no child captured the event) and swallows
-    // it (stopPropagation + preventDefault). Body must be a single expression.
-    text = text.replace(
-      /\bon([a-z]+)!=(["'])([\s\S]*?)\2/gi,
-      (_, ev, q, body) => `on${ev}=${q}fez.fezBang(event) && (${body})${q}`,
-    );
+      // Strict event handlers: `on<event>!="body"` runs the body only when the
+      // element itself is the target (no child captured the event) and swallows
+      // it (stopPropagation + preventDefault). Body must be a single expression.
+      text = text.replace(
+        /\bon([a-z]+)!=(["'])([\s\S]*?)\2/gi,
+        (_, ev, q, body) => `on${ev}=${q}fez.fezBang(event) && (${body})${q}`,
+      );
+    }
 
     // Convert class:name={expr} conditional class directives
     // e.g. class:active={state.value === key} -> merges ternary into class attribute
@@ -126,16 +131,18 @@ export default function createTemplateCompiler(text, opts = {}) {
     // only the slot key, so loop variables and objects can be passed as props.
     // :file="el.file" -> :file={`Fez(${UID}).fezGlobals.value(${fez.fezGlobals.set(el.file)})`}
     // Supports variable access, method calls, ternaries, arrow funcs, etc.
-    text = text.replace(/:(\w+)="([^"{}]+)"/g, (match, attr, expr) => {
-      if (/^\d+$/.test(expr.trim())) return match;
-      return `:${attr}={\`Fez(\${UID}).fezGlobals.value(\${fez.fezGlobals.set(${expr})})\`}`;
-    });
+    if (!staticMode) {
+      text = text.replace(/:(\w+)="([^"{}]+)"/g, (match, attr, expr) => {
+        if (/^\d+$/.test(expr.trim())) return match;
+        return `:${attr}={\`Fez(\${UID}).fezGlobals.value(\${fez.fezGlobals.set(${expr})})\`}`;
+      });
 
-    // Remove HTML comments
-    text = text.replace(/<!--[\s\S]*?-->/g, "");
+      // Remove HTML comments
+      text = text.replace(/<!--[\s\S]*?-->/g, "");
 
-    // Normalize whitespace between tags
-    text = text.replace(/>\s+</g, "><").trim();
+      // Normalize whitespace between tags
+      text = text.replace(/>\s+</g, "><").trim();
+    }
 
     // Convert self-closing custom elements to paired tags
     // <ui-icon name="foo" /> -> <ui-icon name="foo"></ui-icon>
@@ -158,7 +165,9 @@ export default function createTemplateCompiler(text, opts = {}) {
     // Elements without key= get a sequential internal key. Elements inside
     // {#each}/{#for} loops include the loop index variable in the key.
     // User-provided key= attributes are preserved as-is.
-    text = autoInjectKeys(text);
+    if (!staticMode) {
+      text = autoInjectKeys(text);
+    }
 
     // Parse and build template literal
     let result = "";
@@ -480,18 +489,20 @@ export default function createTemplateCompiler(text, opts = {}) {
 
     // Auto-generate IDs for fez-this elements (static values only)
     // This helps the DOM differ match and preserve nodes across re-renders
-    result = result.replace(
-      /(<[a-z][a-z0-9-]*\s+)([^>]*?)(fez-this="([^"{}]+)")([^>]*?)>/gi,
-      (match, tagStart, before, fezThisAttr, fezThisValue, after) => {
-        // Skip if id already exists
-        if (/\bid=/.test(before) || /\bid=/.test(after)) {
-          return match;
-        }
-        // Sanitize: replace non-alphanumeric with -
-        const sanitized = fezThisValue.replace(/[^a-zA-Z0-9]/g, "-");
-        return `${tagStart}${before}${fezThisAttr}${after} id="fez-\${UID}-${sanitized}">`;
-      },
-    );
+    if (!staticMode) {
+      result = result.replace(
+        /(<[a-z][a-z0-9-]*\s+)([^>]*?)(fez-this="([^"{}]+)")([^>]*?)>/gi,
+        (match, tagStart, before, fezThisAttr, fezThisValue, after) => {
+          // Skip if id already exists
+          if (/\bid=/.test(before) || /\bid=/.test(after)) {
+            return match;
+          }
+          // Sanitize: replace non-alphanumeric with -
+          const sanitized = fezThisValue.replace(/[^a-zA-Z0-9]/g, "-");
+          return `${tagStart}${before}${fezThisAttr}${after} id="fez-\${UID}-${sanitized}">`;
+        },
+      );
+    }
 
     // Warn about dynamic fez-this values in dev mode (won't get auto-ID)
     if (typeof Fez !== "undefined" && Fez.LOG) {
@@ -518,6 +529,12 @@ export default function createTemplateCompiler(text, opts = {}) {
       try {
         return tplFunc.bind(ctx)();
       } catch (e) {
+        if (opts.strict) {
+          throw new Error(
+            `FEZ template runtime error in <${ctx.fezName || componentName}>: ${e.message}`,
+            { cause: e },
+          );
+        }
         console.error(
           `FEZ template runtime error in <${ctx.fezName || componentName}>:`,
           e.message,
@@ -527,6 +544,14 @@ export default function createTemplateCompiler(text, opts = {}) {
       }
     };
   } catch (e) {
+    if (opts.strict) {
+      throw new Error(
+        `FEZ template compile error in <${componentName}>: ${e.message}`,
+        {
+          cause: e,
+        },
+      );
+    }
     console.error(
       `FEZ template compile error in <${componentName}>:`,
       e.message,

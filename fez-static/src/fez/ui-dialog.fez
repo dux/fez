@@ -1,0 +1,217 @@
+<info>
+  <ul>
+    <li>Modal dialogs and drawers - center, top, bottom, side positions</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Call <code>Dialog.show()</code>, <code>Dialog.drawer()</code> with template ID</li>
+    <li>Overlay fades, content pops / flies in per position via <code>fez:transition</code> (no hand-written keyframes)</li>
+  </ul>
+</info>
+
+<demo>
+  Open:
+  <button onclick="Dialog.show('#dialog-data')"> center</button>
+  <button onclick="Dialog.drawer('#dialog-data')">drawer &rarr;</button>
+  <button onclick="Dialog.top('#dialog-data')">top &uarr;</button>
+  <button onclick="Dialog.bottom('#dialog-data')">bottom &darr;</button>
+
+  <template id="dialog-data">
+    <h1>Nice clock</h1>
+    <div style="max-width: 300px; margin: auto;">
+      <ui-clock publish="true"></ui-clock>
+    </div>
+    <div style="text-align: right; margin-top: 20px;">
+      On seconds 0,1, and 2 button is enabled.
+      &rarr;
+      <button
+        class="action-button"
+        onclick="Toast.info('Dont click so hard!')"
+      >Action</button>
+    </div>
+  </template>
+
+  <xmp fez="tmp-test-attr">
+    <script>
+      funcPass() {
+        this.props.func( Math.random() )
+      }
+    </script>
+
+    <button onclick="fez.funcPass()">Test func pointer pass</button>
+  </xmp>
+</demo>
+
+<script>
+  // if GLOBAL is present, Fez engine
+  // * on document load auto appends component to document
+  // * after init() runs window[GLOBAL] = fez (mounted component)
+  // this is singleton pattern
+  GLOBAL = 'Dialog'
+
+  close() {
+    this.state.data = null
+  }
+
+  // enter / leave animation for the content box, per position
+  anim() {
+    return {
+      center: 'pop, duration=150',
+      top: 'fly, from=top, distance=300, duration=300',
+      bottom: 'fly, from=bottom, distance=300, duration=300',
+      right: 'fly, from=right, distance=400, duration=200',
+    }[this.state.class] || 'pop'
+  }
+
+  show(data, opts = {}) {
+    this.state.class = opts.class || 'center'
+
+    if (data) {
+      if (data[0] == '#') {
+        data = document.getElementById(data.replace('#', '')).innerHTML
+      }
+
+      this.state.data = data
+    }
+  }
+
+  drawer(data, opts = {}) {
+    opts.class = 'right'
+    this.show(data, opts)
+  }
+
+  top(data, opts = {}) {
+    opts.class = 'top'
+    this.show(data, opts)
+  }
+
+  bottom(data, opts = {}) {
+    opts.class = 'bottom'
+    this.show(data, opts)
+  }
+
+  // Dialog.actionButton(true | false) -> enable | disable
+  // Just add a button with class 'action-button'
+  actionButton(value) {
+    const button = this.find('.action-button')
+    if (button) {
+      if (value) {
+        button.removeAttribute('disabled')
+      } else {
+        button.setAttribute('disabled', '')
+      }
+    }
+  }
+
+  testFunc(num) {
+    if (window.Toast) {
+      Toast.info(`Passed: ${num}`)
+    }
+  }
+
+  init() {
+    // for demo purposes, we subscribe to global event
+    this.subscribe('clock-second', (val)=>{
+      this.actionButton(val % 6 < 3)
+    })
+
+    // Global escape key listener to close dialog - this.on auto-removes it on destroy
+    this.on('keydown', (e) => {
+      if (e.key === 'Escape' && this.state.data) {
+        // Don't close if user is typing in a form element
+        const activeElement = document.activeElement
+        const isInFormElement = activeElement && (
+          activeElement.tagName === 'INPUT' ||
+          activeElement.tagName === 'TEXTAREA' ||
+          activeElement.tagName === 'SELECT' ||
+          activeElement.isContentEditable
+        )
+
+        if (!isInFormElement) {
+          this.close()
+        }
+      }
+    })
+  }
+</script>
+
+<style>
+  .global-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+
+    .dialog-content {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      padding: 2rem;
+      margin: 100px auto;
+      max-width: 600px;
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+      position: relative;
+
+      h1, h2 {
+        margin-top: 0px;
+        text-align: center;
+      }
+
+      &.top {
+        position: absolute;
+        top: 0;
+        left: 50px;
+        right: 50px;
+        width: auto;
+        max-width: none;
+        margin: 0;
+        min-height: 200px;
+        border-radius: 0 0 8px 8px;
+      }
+
+      &.bottom {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: auto;
+        max-width: none;
+        margin: 0;
+        min-height: 200px;
+        border-radius: 0;
+      }
+
+      &.right {
+        width: 400px;
+        margin: 0 0 0 auto;
+        height: 100vh;
+        border-radius: 0;
+        max-height: 100vh;
+      }
+    }
+
+    .dialog-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+    }
+  }
+
+</style>
+
+{#if state.data}
+  <div class="global-dialog" onclick="fez.close()" fez:transition="fade, duration=150">
+    <div class="dialog-content {state.class}" onclick="event.stopPropagation()" fez:in="{fez.anim()}">
+      <ui-btn sm class="dialog-close" onclick="fez.close()">&times;</ui-btn>
+      {@html state.data}
+      <center style="padding-top: 30px;">
+        <tmp-test-attr :func="fez.testFunc"></tmp-test-attr>
+      </center>
+    </div>
+  </div>
+{/if}

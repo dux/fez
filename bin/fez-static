@@ -1,0 +1,164 @@
+#!/usr/bin/env bun
+
+import { parseArgs } from 'node:util';
+import {
+  buildStaticSite,
+  cleanStaticSite,
+  doctorStaticSite,
+  serveStaticSite,
+  watchStaticSite,
+} from '../src/static.js';
+
+const INFO = 'Build Markdown, HTML, layouts, and Fez components into a static site';
+const COMMANDS = new Set(['build', 'clean', 'dev', 'doctor', 'serve']);
+
+const args = Bun.argv.slice(2);
+const command = COMMANDS.has(args[0]) ? args.shift() : 'build';
+
+let values;
+let positionals;
+try {
+  ({ values, positionals } = parseArgs({
+    args,
+    options: {
+      help: { type: 'boolean', short: 'h' },
+      info: { type: 'boolean' },
+      watch: { type: 'boolean', short: 'w' },
+      drafts: { type: 'boolean' },
+      port: { type: 'string', short: 'p', default: '3000' },
+      host: { type: 'string', default: '127.0.0.1' },
+    },
+    allowPositionals: true,
+  }));
+} catch (error) {
+  fail(firstLine(error.message) + ". See 'fez static --help'.");
+}
+
+if (values.info) {
+  console.log(INFO);
+  process.exit(0);
+}
+
+if (values.help) {
+  console.log(
+    [
+      'Usage: fez static [site-root] [options]',
+      '       fez static <command> [site-root] [options]',
+      '',
+      INFO,
+      '',
+      'Running without a command is the same as `fez static build`.',
+      'The default source is ./fez-static/src and target is ./build.',
+      '',
+      'Commands:',
+      '  build            Generate the static site',
+      '  dev              Build, watch, and serve with no-store caching',
+      '  serve            Serve the existing target without rebuilding',
+      '  clean            Remove the generated target directory',
+      '  doctor           Validate a complete build without publishing it',
+      '',
+      'Options:',
+      '  -h, --help       Show this help message',
+      '  -w, --watch      Rebuild when files under fez-static change',
+      '      --drafts     Include pages with draft: true',
+      '  -p, --port       Development server port (default: 3000)',
+      '      --host       Development server host (default: 127.0.0.1)',
+      '',
+      'Examples:',
+      '  fez static',
+      '  fez static build --watch',
+      '  fez static dev --port 4000',
+      '  fez static doctor ../my-site --drafts',
+      '',
+    ].join('\n'),
+  );
+  process.exit(0);
+}
+
+if (positionals.length > 1) {
+  fail("Expected at most one site root. See 'fez static --help'.");
+}
+
+const options = {
+  root: positionals[0] || process.cwd(),
+  drafts: values.drafts,
+  port: values.port,
+  host: values.host,
+};
+
+try {
+  if (command === 'dev') {
+    const watcher = await watchStaticSite(options, {
+      onBuild: printBuild,
+      onError: printWatchError,
+    });
+    const server = serveStaticSite(options);
+    console.log('Serving ' + server.url);
+    await waitUntilStopped(() => {
+      watcher.close();
+      server.stop(true);
+    });
+  } else if (command === 'serve') {
+    const server = serveStaticSite(options);
+    console.log('Serving ' + server.url);
+    await waitUntilStopped(() => server.stop(true));
+  } else if (command === 'clean') {
+    const result = cleanStaticSite(options);
+    console.log((result.removed ? 'Removed ' : 'Already clean: ') + result.outputDir);
+  } else if (command === 'doctor') {
+    const result = await doctorStaticSite(options);
+    console.log('Site is valid: ' + result.pages + ' pages and ' + result.assets + ' assets');
+  } else if (values.watch) {
+    const watcher = await watchStaticSite(options, {
+      onBuild: printBuild,
+      onError: printWatchError,
+    });
+    console.log('Watching ' + watcher.initial.outputDir);
+    await waitUntilStopped(() => watcher.close());
+  } else {
+    printBuild(await buildStaticSite(options));
+  }
+} catch (error) {
+  fail(firstLine(error.message));
+}
+
+function printBuild(result) {
+  const duration = Math.round(result.duration);
+  console.log(
+    'Built ' +
+      result.pages +
+      ' pages and ' +
+      result.assets +
+      ' assets in ' +
+      duration +
+      'ms -> ' +
+      result.outputDir,
+  );
+}
+
+function printWatchError(error) {
+  console.error('fez static: ' + firstLine(error.message));
+}
+
+function waitUntilStopped(close) {
+  return new Promise((resolve) => {
+    let stopped = false;
+    const stop = () => {
+      if (stopped) return;
+      stopped = true;
+      close();
+      resolve();
+    };
+    process.once('SIGINT', stop);
+    process.once('SIGTERM', stop);
+  });
+}
+
+function fail(message) {
+  console.error('fez static: ' + message);
+  process.exit(1);
+}
+
+function firstLine(message) {
+  return String(message || 'Unknown error').split('\n')[0];
+}

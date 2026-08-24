@@ -19,7 +19,7 @@
     "fez": "bin/fez"
   },
   "engines": {
-    "bun": ">=1.2.0"
+    "bun": ">=1.3.8"
   },
   "files": [
     "bin",
@@ -63,7 +63,7 @@
     "b": "bun run build",
     "watch": "bun build.js w",
     "server": "bun run lib/server.js",
-    "dev": "bunx concurrently --kill-others \"bun run server\" \"find src demo lib | entr -cn sh -c 'bun run index && bun run b'\"",
+    "dev": "bunx concurrently --kill-others \"bun run server\" \"find src fez-static lib | entr -cn sh -c 'bun run index && bun run b && bun run static'\"",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "format": "prettier --write \"src/**/*.js\"",
@@ -73,7 +73,8 @@
     "prepublishOnly": "bun run build && bun run test",
     "release": "bun publish --access public",
     "refactor": "bun bin/fez-refactor",
-    "index": "ls demo/fez/*.fez | xargs -n1 basename | sed 's/\\.fez$//' | sort | sed 's/^/fez\\//' > demo/fez.txt",
+    "index": "ls fez-static/src/fez/*.fez | xargs -n1 basename | sed 's/\\.fez$//' | sort | sed 's/^/fez\\//' > fez-static/src/fez.txt",
+    "static": "bun bin/fez-static build",
     "vscode:lint": "node --check vscode/src/extension.js",
     "vscode:test": "node --check vscode/src/extension.js",
     "vscode:package": "cd vscode && bunx @vscode/vsce package --no-dependencies",

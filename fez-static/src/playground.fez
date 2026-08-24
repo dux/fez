@@ -1,0 +1,749 @@
+<xmp fez="fez-playground">
+  <script>
+    import { EditorView, basicSetup } from 'https://esm.sh/codemirror'
+    import { keymap } from 'https://esm.sh/@codemirror/view'
+    import { indentWithTab } from 'https://esm.sh/@codemirror/commands'
+    import { html } from 'https://esm.sh/@codemirror/lang-html'
+    import { oneDark } from 'https://esm.sh/@codemirror/theme-one-dark'
+
+    const DRAFT_PREFIX = 'fez-playground:'
+    const LAYOUT_KEY = 'fez-playground:layout'
+    const STARTER = './playground-starter.fez'
+    const STARTER_NAME = 'my-counter'
+    const RUN_DELAY = 450
+
+    // <demo> block of a .fez source, dedented - the same thing Fez.compile
+    // stores in Fez.index[name].demo, but available before anything compiles
+    function extractDemo(source) {
+      const match = source.match(/<demo>\n?([\s\S]*?)\n?\s*<\/demo>/)
+      if (!match) return ''
+      const lines = match[1].split('\n')
+      const indent = Math.min(...lines.filter(l => l.trim()).map(l => l.match(/^\s*/)[0].length))
+      return lines.map(l => l.slice(indent)).join('\n').trim()
+    }
+
+    // console.* arguments to one line of log text
+    function formatArgs(args) {
+      return args.map(a => {
+        if (a instanceof Error) return a.message
+        if (typeof a === 'string') return a
+        try { return JSON.stringify(a) } catch { return String(a) }
+      }).join(' ')
+    }
+
+    class {
+      init() {
+        this.state.name = ''
+        this.state.list = []
+        this.state.log = []
+        this.state.status = 'idle'
+        this.state.statusText = 'loading'
+        this.state.auto = true
+        this.state.dirty = false
+        this.state.logOpen = true
+
+        const layout = Fez.localStorage.get(LAYOUT_KEY) || {}
+        this.state.split = layout.split || 50
+        this.state.demoH = layout.demoH || 170
+
+        this.original = null
+        this.demoDirty = false
+        this.loading = true
+        this.errors = 0
+        this.installHooks()
+      }
+
+      onMount() {
+        this.sourceView = this.editor(this.find('.ed.source'), () => this.changed('source'))
+        this.demoView = this.editor(this.find('.ed.demo'), () => this.changed('demo'))
+
+        Fez.fetch('./fez.txt', (text) => {
+          this.state.list = text.trim().split('\n')
+            .filter(l => l.trim() && !l.startsWith('#'))
+            .map(p => p.split('/').pop().replace('.fez', ''))
+        })
+
+        // demos call Toast.info() freely
+        Fez.head({ fez: './fez/ui-toast.fez' })
+
+        this.key = new URLSearchParams(location.search).get('fez') || ''
+        this.load(this.key)
+      }
+
+      beforeRender() {
+        this.state.hasErrors = this.state.log.some(e => e.type === 'error')
+      }
+
+      afterRender() {
+        const pick = this.find('select.pick')
+        if (pick) pick.value = this.key
+        const body = this.find('.log-body')
+        if (body) body.scrollTop = body.scrollHeight
+      }
+
+      // --- editors -----------------------------------------------------------
+
+      editor(parent, onChange) {
+        return new EditorView({
+          parent,
+          extensions: [
+            // before basicSetup so it wins over its Mod-Enter (insertBlankLine)
+            keymap.of([
+              { key: 'Mod-Enter', run: () => { this.run(); return true } },
+              indentWithTab,
+            ]),
+            basicSetup,
+            html(),
+            oneDark,
+            EditorView.updateListener.of(u => { if (u.docChanged) onChange() }),
+            EditorView.theme({
+              '&': { height: '100%', fontSize: '13.5px' },
+              '.cm-scroller': { fontFamily: 'var(--font-mono, ui-monospace, monospace)', lineHeight: '1.55' },
+            }),
+          ],
+        })
+      }
+
+      doc(view) {
+        return view.state.doc.toString()
+      }
+
+      setDoc(view, text) {
+        this.silent = true
+        view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } })
+        this.silent = false
+      }
+
+      // --- load / drafts -----------------------------------------------------
+
+      draftKey() {
+        return DRAFT_PREFIX + (this.key || 'new')
+      }
+
+      load(name) {
+        this.loading = true
+        const url = name ? `./fez/${name}.fez` : STARTER
+        // plain fetch: Fez.fetch resolves a 404 page as text, we want the failure
+        fetch(url)
+          .then(res => { if (!res.ok) throw new Error(`${res.status} ${res.statusText}`); return res.text() })
+          .then(text => this.start(name || STARTER_NAME, text))
+          .catch(e => {
+            this.capture('error', `Could not load ${url} (${e.message}) - starting with the blank component`)
+            fetch(STARTER).then(res => res.text()).then(text => this.start(STARTER_NAME, text))
+          })
+      }
+
+      start(name, fileSource) {
+        this.original = { source: fileSource, demo: extractDemo(fileSource) }
+
+        // draft: typed here earlier, or handed over from the examples page
+        let draft = Fez.localStorage.get(this.draftKey())
+        if (draft && draft.source.trim() === fileSource.trim() && (draft.demo || '').trim() === this.original.demo) {
+          Fez.localStorage.remove(this.draftKey())
+          draft = null
+        }
+
+        const source = draft ? draft.source : fileSource
+        const demo = draft ? draft.demo : this.original.demo
+        this.state.name = name
+        this.demoDirty = !!draft && demo !== extractDemo(source)
+
+        this.setDoc(this.sourceView, source)
+        this.setDoc(this.demoView, demo)
+        this.loading = false
+        this.updateDirty()
+        if (draft) this.capture('info', draft.from === 'examples' ? 'source handed over from the examples page' : 'draft restored from local storage - Reset loads the file again')
+        this.run()
+      }
+
+      changed(which) {
+        if (this.silent || this.loading) return
+        if (which === 'demo') this.demoDirty = true
+        this.updateDirty()
+        this.saveDraft()
+        if (this.state.auto) this.schedule()
+      }
+
+      updateDirty() {
+        if (!this.original) return
+        this.state.dirty = this.doc(this.sourceView) !== this.original.source
+          || this.doc(this.demoView).trim() !== this.original.demo
+      }
+
+      saveDraft() {
+        if (!this.state.dirty) {
+          Fez.localStorage.remove(this.draftKey())
+          return
+        }
+        Fez.localStorage.set(this.draftKey(), {
+          source: this.doc(this.sourceView),
+          demo: this.doc(this.demoView),
+          at: Date.now(),
+        })
+      }
+
+      reset() {
+        if (!this.original) return
+        Fez.localStorage.remove(this.draftKey())
+        this.demoDirty = false
+        this.state.name = this.key || STARTER_NAME
+        this.setDoc(this.sourceView, this.original.source)
+        this.setDoc(this.demoView, this.original.demo)
+        this.updateDirty()
+        this.capture('info', 'reset to the original file')
+        this.run()
+      }
+
+      pick(name) {
+        // full reload: a clean page also drops CSS injected by the previous component
+        location.href = name ? `./playground.html?fez=${name}` : './playground.html'
+      }
+
+      // a picked component is named by its file; the blank one follows the
+      // first custom tag in the demo html, so renaming it there renames the component
+      currentName() {
+        if (this.key) return this.key
+        const match = this.doc(this.demoView).match(/<([a-z][a-z0-9]*-[a-z0-9-]+)[\s>\/]/)
+        return match ? match[1] : STARTER_NAME
+      }
+
+      // --- compile + render --------------------------------------------------
+
+      schedule() {
+        clearTimeout(this.timer)
+        this.setStatus('busy', 'typing...')
+        this.timer = setTimeout(() => this.run(), RUN_DELAY)
+      }
+
+      setStatus(status, text) {
+        this.state.status = status
+        this.state.statusText = text
+      }
+
+      run() {
+        clearTimeout(this.timer)
+        if (!this.sourceView) return
+
+        const source = this.doc(this.sourceView)
+
+        // demo html follows the <demo> block until the user edits it by hand
+        if (!this.demoDirty) {
+          const fromSource = extractDemo(source)
+          if (fromSource !== this.doc(this.demoView)) this.setDoc(this.demoView, fromSource)
+        }
+        const demo = this.doc(this.demoView)
+        const name = this.state.name = this.currentName()
+
+        if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)+$/.test(name)) {
+          this.capture('error', `"${name}" is not a valid tag name - lowercase with a dash, like my-widget`)
+          this.setStatus('error', 'bad tag name')
+          return
+        }
+
+        this.errors = 0
+        const t0 = performance.now()
+        const prevClass = Fez.index[name]?.class
+        const unchanged = this.lastCompiled === source && !!prevClass
+        this.lastCompiled = source
+
+        Fez.compile(name, source)
+
+        const done = () => {
+          this.loadDeps(name, source, demo)
+          this.render(name, demo)
+          const ms = Math.max(1, Math.round(performance.now() - t0))
+          if (this.errors) {
+            this.setStatus('error', `${this.errors} error${this.errors > 1 ? 's' : ''}`)
+          } else {
+            this.setStatus('ok', `compiled in ${ms}ms`)
+            this.capture('ok', `<${name}> compiled and rendered in ${ms}ms`)
+          }
+        }
+
+        // module sources (import ...) register asynchronously - wait for the
+        // class to be swapped before rendering, or the old version would show
+        if (/^\s*import\s/m.test(source) && !unchanged) {
+          this.setStatus('busy', 'loading modules...')
+          this.waitFor(() => Fez.index[name]?.class !== prevClass || this.errors > 0, 10000, done, () => {
+            this.capture('error', `<${name}> did not register within 10s - check the imports`)
+            this.setStatus('error', 'module timeout')
+          })
+        } else {
+          done()
+        }
+      }
+
+      waitFor(test, timeout, ok, fail) {
+        const started = Date.now()
+        const tick = () => {
+          if (test()) return ok()
+          if (Date.now() - started > timeout) return fail()
+          setTimeout(tick, 50)
+        }
+        tick()
+      }
+
+      // other demo components referenced by the template or the demo html -
+      // defined later is fine, custom elements upgrade in place
+      loadDeps(name, source, demo) {
+        const known = new Set(this.state.list)
+        const tags = new Set()
+        for (const match of (source + '\n' + demo).matchAll(/<([a-z][a-z0-9]*-[a-z0-9-]+)[\s>\/]/g)) tags.add(match[1])
+        for (const tag of tags) {
+          if (tag === name || !known.has(tag) || Fez.index[tag]?.class) continue
+          this.capture('info', `loading <${tag}> from ./fez/${tag}.fez`)
+          Fez.head({ fez: `./fez/${tag}.fez` })
+        }
+      }
+
+      render(name, demo) {
+        const stage = this.find('.stage-out')
+        stage.innerHTML = ''
+        Fez.index.ensure(name).demo = demo
+        if (!Fez.index.apply(name, stage)) {
+          stage.innerHTML = '<p class="empty">demo html is empty - add a &lt;' + name + '&gt; tag below the editor</p>'
+        }
+      }
+
+      // --- log ---------------------------------------------------------------
+
+      // everything the page reports - Fez.onError / consoleError go through
+      // console.error, runtime exceptions through window "error"
+      installHooks() {
+        window.fezPlayground = this
+        if (window.fezPlaygroundHooked) return
+        window.fezPlaygroundHooked = true
+
+        for (const level of ['error', 'warn', 'log']) {
+          const orig = console[level].bind(console)
+          console[level] = (...args) => {
+            orig(...args)
+            const text = formatArgs(args)
+            // Fez dumps the generated class after a compile error - the message above it is enough
+            if (level === 'log' && text.includes("window.Fez('")) return
+            window.fezPlayground?.capture(level === 'warn' ? 'warn' : level === 'log' ? 'log' : 'error', text)
+          }
+        }
+        window.addEventListener('error', (e) => {
+          window.fezPlayground?.capture('error', e.message || String(e.error || 'error'))
+        })
+        window.addEventListener('unhandledrejection', (e) => {
+          window.fezPlayground?.capture('error', 'unhandled promise: ' + (e.reason?.message || e.reason))
+        })
+      }
+
+      capture(type, text) {
+        if (type === 'error') this.errors++
+        const d = new Date()
+        const at = [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2, '0')).join(':')
+        this.state.log.push({ type, text: String(text).slice(0, 2000), at })
+        if (this.state.log.length > 200) this.state.log.splice(0, this.state.log.length - 200)
+        if (type === 'error' && this.state.status !== 'busy') this.setStatus('error', `${this.errors} error${this.errors > 1 ? 's' : ''}`)
+      }
+
+      clearLog() {
+        this.state.log = []
+        this.errors = 0
+      }
+
+      // --- toolbar -----------------------------------------------------------
+
+      copy() {
+        navigator.clipboard?.writeText(this.doc(this.sourceView)).then(
+          () => Toast.info('Source copied.'),
+          () => Toast.error('Could not copy.')
+        )
+      }
+
+      download() {
+        const blob = new Blob([this.doc(this.sourceView)], { type: 'text/plain' })
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = `${this.state.name || 'component'}.fez`
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+      }
+
+      codepen() {
+        const name = this.state.name
+        const open = '<xm' + 'p fez="' + name + '">'
+        const close = '</x' + 'mp>'
+        const html = [
+          '<link rel="stylesheet" href="//cdn.simplecss.org/simple.css" />',
+          '<scr' + 'ipt src="https://raw.githubusercontent.com/dux/fez/main/dist/fez.js"></scr' + 'ipt>',
+          '',
+          open + '\n' + this.doc(this.sourceView) + '\n' + close,
+          '',
+          this.doc(this.demoView),
+        ].join('\n')
+
+        const form = document.createElement('form')
+        form.method = 'POST'
+        form.action = 'https://codepen.io/pen/define'
+        form.target = '_blank'
+        const input = document.createElement('input')
+        input.type = 'hidden'
+        input.name = 'data'
+        input.value = JSON.stringify({ title: `Fez component - ${name}`, html, css: 'body { padding-top: 50px; }', js: '', editors: '100' })
+        form.appendChild(input)
+        document.body.appendChild(form)
+        form.submit()
+        form.remove()
+      }
+
+      // --- split handles -------------------------------------------------------
+
+      startDrag(e, axis) {
+        e.preventDefault()
+        this.root.classList.add('dragging')
+        const move = (ev) => {
+          if (axis === 'x') {
+            const r = this.find('.body').getBoundingClientRect()
+            this.state.split = Math.min(75, Math.max(25, ((ev.clientX - r.left) / r.width) * 100))
+          } else {
+            const r = this.find('.editors').getBoundingClientRect()
+            this.state.demoH = Math.round(Math.min(r.height - 180, Math.max(60, r.bottom - ev.clientY)))
+          }
+        }
+        const up = () => {
+          document.removeEventListener('mousemove', move)
+          document.removeEventListener('mouseup', up)
+          this.root.classList.remove('dragging')
+          Fez.localStorage.set(LAYOUT_KEY, { split: this.state.split, demoH: this.state.demoH })
+        }
+        document.addEventListener('mousemove', move)
+        document.addEventListener('mouseup', up)
+      }
+    }
+  </script>
+
+  <style>
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--paper, #fff);
+    color: var(--ink, #17181c);
+
+    &.dragging { user-select: none; cursor: col-resize; }
+    &.dragging .handle.y ~ *, &.dragging .handle.y { cursor: row-resize; }
+
+    .bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 52px;
+      padding: 0 14px 0 16px;
+      border-top: 3px solid var(--fez, #c8102e);
+      border-bottom: 1px solid var(--line, #e6e7ea);
+      background: #fff;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+      &::-webkit-scrollbar { display: none; }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        margin-right: 6px;
+        font-family: var(--font-display, system-ui);
+        font-weight: 800;
+        font-size: 19px;
+        letter-spacing: -0.02em;
+        color: var(--ink, #17181c) !important;
+        text-decoration: none !important;
+
+        img { height: 26px; width: auto; display: block; }
+        span { font-weight: 500; color: var(--ink-3, #80848e); font-size: 14px; margin-left: -3px; }
+      }
+
+      select.pick {
+        height: 32px;
+        border: 1px solid var(--line-2, #d2d4d9);
+        border-radius: 8px;
+        background: #fff;
+        font: 500 13.5px var(--font-body, system-ui);
+        color: var(--ink, #17181c);
+      }
+      select.pick { padding: 0 8px; max-width: 200px; }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 10px;
+        height: 26px;
+        border-radius: 999px;
+        font: 500 12.5px var(--font-mono, monospace);
+        color: var(--ink-2, #4b4f58);
+        background: var(--paper-2, #f6f6f4);
+
+        &::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #c9cbd1; }
+        &.ok::before { background: #2fa84f; }
+        &.error { color: #b4001c; background: var(--fez-tint, #fbeef0); }
+        &.error::before { background: var(--fez, #c8102e); }
+        &.busy::before { background: var(--gold, #d9a441); animation: fez-pg-pulse 0.9s ease-in-out infinite; }
+      }
+
+      .spacer { flex: 1; }
+
+      label.auto {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--ink-2, #4b4f58);
+        cursor: pointer;
+        input { margin: 0; accent-color: var(--fez, #c8102e); }
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        height: 32px;
+        padding: 0 13px;
+        border-radius: 999px;
+        border: 1px solid var(--ink, #17181c);
+        background: var(--ink, #17181c);
+        color: #fff;
+        font: 600 13px var(--font-body, system-ui);
+        cursor: pointer;
+
+        kbd { font: 11px var(--font-mono, monospace); opacity: 0.7; }
+        &:hover { background: var(--fez, #c8102e); border-color: var(--fez, #c8102e); }
+        &.ghost { background: transparent; color: var(--ink, #17181c); border-color: var(--line-2, #d2d4d9); }
+        &.ghost:hover { border-color: var(--ink, #17181c); background: var(--paper-2, #f6f6f4); }
+        &[disabled] { opacity: 0.4; cursor: default; pointer-events: none; }
+      }
+
+      a.link {
+        font-size: 13.5px;
+        font-weight: 500;
+        color: var(--ink-2, #4b4f58);
+        text-decoration: none;
+        padding: 6px 8px;
+        border-radius: 7px;
+        &:hover { background: var(--paper-2, #f6f6f4); color: var(--ink, #17181c); }
+      }
+    }
+
+    .body {
+      display: grid;
+      grid-template-columns: var(--split, 50%) 6px 1fr;
+      min-height: 0;
+    }
+
+    .stage, .editors {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .pane-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 34px;
+      padding: 0 16px;
+      font: 500 12px var(--font-mono, monospace);
+      letter-spacing: 0.02em;
+      color: var(--ink-2, #4b4f58);
+      background: var(--paper-2, #f6f6f4);
+      border-bottom: 1px solid var(--line, #e6e7ea);
+      flex: none;
+
+      b { color: var(--fez, #c8102e); font-weight: 500; }
+      /* angle brackets via CSS - literal ones would be re-parsed as a tag by the template pass */
+      b.tagname::before { content: '<'; color: var(--ink-3, #80848e); }
+      b.tagname::after { content: '>'; color: var(--ink-3, #80848e); }
+      .muted { color: var(--ink-3, #80848e); }
+      .spacer { flex: 1; }
+      .mini {
+        border: 1px solid var(--line-2, #d2d4d9);
+        background: #fff;
+        border-radius: 6px;
+        padding: 2px 8px;
+        font: 500 11.5px var(--font-body, system-ui);
+        color: var(--ink-2, #4b4f58);
+        cursor: pointer;
+        &:hover { border-color: var(--ink, #17181c); color: var(--ink, #17181c); }
+      }
+    }
+
+    .stage-out {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 24px;
+      /* same dotted paper as a design canvas - makes component edges readable */
+      background-color: #fff;
+      background-image: radial-gradient(var(--line, #e6e7ea) 1px, transparent 1px);
+      background-size: 18px 18px;
+
+      .empty { color: var(--ink-3, #80848e); font-size: 14px; }
+    }
+
+    .log {
+      flex: none;
+      border-top: 1px solid var(--line, #e6e7ea);
+      display: flex;
+      flex-direction: column;
+      max-height: 38%;
+
+      .pane-head { cursor: pointer; border-bottom: 0; }
+      &.open .pane-head { border-bottom: 1px solid var(--line, #e6e7ea); }
+
+      .count {
+        font-style: normal;
+        min-width: 18px;
+        padding: 0 5px;
+        border-radius: 999px;
+        text-align: center;
+        background: var(--line, #e6e7ea);
+        color: var(--ink-2, #4b4f58);
+        &.has-errors { background: var(--fez, #c8102e); color: #fff; }
+      }
+    }
+
+    .log-body {
+      overflow: auto;
+      font: 12.5px/1.5 var(--font-mono, monospace);
+      background: #fff;
+      min-height: 52px;
+
+      .entry {
+        display: flex;
+        gap: 12px;
+        padding: 4px 16px;
+        border-bottom: 1px solid var(--paper-2, #f6f6f4);
+        time { color: var(--ink-3, #80848e); flex: none; }
+        pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: inherit; color: var(--ink-2, #4b4f58); }
+        /* prefixed: demo css has a global div.info */
+        &.is-error pre { color: #b4001c; }
+        &.is-error { background: #fff7f8; }
+        &.is-warn pre { color: #8a5a00; }
+        &.is-ok pre { color: #1f7a38; }
+        &.is-info pre { color: var(--ink-3, #80848e); }
+      }
+      .nothing { padding: 10px 16px; color: var(--ink-3, #80848e); }
+    }
+
+    .handle {
+      background: var(--line, #e6e7ea);
+      transition: background 0.15s;
+      &:hover { background: var(--fez, #c8102e); }
+      &.x { cursor: col-resize; }
+      &.y { cursor: row-resize; height: 6px; flex: none; }
+    }
+
+    .ed {
+      min-height: 0;
+      background: #282c34;
+      .cm-editor { height: 100%; }
+      .cm-editor.cm-focused { outline: none; }
+    }
+    .ed.source { flex: 1; }
+    .ed.demo { flex: none; }
+
+    @keyframes fez-pg-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* toolbar: drop the secondary items before anything has to scroll */
+    @media (max-width: 1400px) {
+      .bar .brand span, .bar .btn kbd { display: none; }
+    }
+    @media (max-width: 1250px) {
+      .bar a.link { display: none; }
+    }
+    @media (max-width: 1100px) {
+      .bar .btn.codepen, .bar label.auto { display: none; }
+    }
+
+    @media (max-width: 900px) {
+      & { height: auto; overflow: visible; }
+      .body { grid-template-columns: 1fr; }
+      .handle.x { display: none; }
+      .stage-out { min-height: 40vh; }
+      .ed.source { height: 60vh; }
+    }
+  </style>
+
+  <header class="bar">
+    <a class="brand" href="./index.html"><img src="./fez.png" alt="" />Fez <span>playground</span></a>
+
+    <select class="pick" onchange="fez.pick(this.value)" title="Load a demo component">
+      <option value="">new component</option>
+      {#each state.list as name}
+        <option value="{name}">{name}</option>
+      {/each}
+    </select>
+
+    <span class="status {state.status}">{state.statusText}</span>
+    <span class="spacer"></span>
+
+    <label class="auto" title="Recompile while typing">
+      <input type="checkbox" checked={state.auto} onchange="fez.state.auto = this.checked" />
+      auto-run
+    </label>
+    <button class="btn" onclick="fez.run()" title="Compile and render now">Run <kbd>&#8984;&#9166;</kbd></button>
+    <button class="btn ghost" onclick="fez.reset()" disabled={!state.dirty} title="Throw away your edits and reload the file">Reset</button>
+    <button class="btn ghost" onclick="fez.copy()">Copy</button>
+    <button class="btn ghost" onclick="fez.download()" title="Save as {state.name}.fez">Download</button>
+    <button class="btn ghost codepen" onclick="fez.codepen()">CodePen</button>
+    <a class="link" href="./examples.html">Examples</a>
+    <a class="link" href="./docs.html">Docs</a>
+  </header>
+
+  <div class="body" style="--split: {state.split}%">
+    <section class="stage">
+      <div class="pane-head">
+        <span>demo</span>
+        <span class="muted"><b class="tagname">{state.name}</b> rendered live, re-created on every compile</span>
+        <span class="spacer"></span>
+        <button class="mini" onclick="location.reload()" title="Full page reload - drops CSS left over from earlier versions, your draft is kept">reload page</button>
+      </div>
+      <div class="stage-out" fez:keep="stage"></div>
+      <div class="log {state.logOpen ? 'open' : ''}">
+        <div class="pane-head" onclick="fez.state.logOpen = !fez.state.logOpen">
+          <span>log</span>
+          <i class="count {state.hasErrors ? 'has-errors' : ''}">{state.log.length}</i>
+          <span class="muted">compile results, console output, runtime errors</span>
+          <span class="spacer"></span>
+          <button class="mini" onclick!="fez.clearLog()">clear</button>
+        </div>
+        {#if state.logOpen}
+          <div class="log-body">
+            {#if state.log.length == 0}
+              <div class="nothing">nothing yet</div>
+            {/if}
+            {#each state.log as entry}
+              <div class="entry is-{entry.type}"><time>{entry.at}</time><pre>{entry.text}</pre></div>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    </section>
+
+    <div class="handle x" onmousedown="fez.startDrag(event, 'x')" title="Drag to resize"></div>
+
+    <section class="editors">
+      <div class="pane-head">
+        <span><b>{state.name}</b>.fez</span>
+        <span class="muted">component source{state.dirty ? ' - modified' : ''}</span>
+      </div>
+      <div class="ed source" fez:keep="source"></div>
+      <div class="handle y" onmousedown="fez.startDrag(event, 'y')" title="Drag to resize"></div>
+      <div class="pane-head">
+        <span>demo html</span>
+        <span class="muted">what goes in the page - follows the <b class="tagname">demo</b> block until you edit it</span>
+      </div>
+      <div class="ed demo" fez:keep="demo" style="height: {state.demoH}px"></div>
+    </section>
+  </div>
+</xmp>

@@ -1,0 +1,115 @@
+<info>
+  <ul>
+    <li>Tip calculator - a bill, a slider, two derived numbers</li>
+    <li><code>PROPS</code> types <code>bill</code> as a Number and copies it to state with <code>state: true</code></li>
+    <li><code>fez:bind</code> two-way binds both the number input and the range, no change handlers</li>
+    <li>Totals are derived in <code>beforeRender()</code> - the Fez answer to memos and runes</li>
+  </ul>
+</info>
+
+<demo>
+  <ui-tip bill="48"></ui-tip>
+</demo>
+
+<script>
+  PROPS = { bill: { type: Number, state: true, default: 48 } }
+
+  init() {
+    this.state.tip = 18
+  }
+
+  beforeRender() {
+    const tip = this.state.bill * this.state.tip / 100
+    this.state.tip_sum = tip.toFixed(2)
+    this.state.total = (this.state.bill + tip).toFixed(2)
+  }
+</script>
+
+<label>
+  bill
+  <input type="number" min="0" step="1" fez:bind="state.bill" />
+</label>
+
+<input type="range" min="0" max="30" fez:bind="state.tip" style="--pct: {state.tip / 30 * 100}%" />
+
+<p class="out">
+  <span>{state.tip}% tip is <b>${state.tip_sum}</b></span>
+  <span class="total">total <b>${state.total}</b></span>
+</p>
+
+<style>
+  display: grid;
+  gap: 12px;
+  width: 100%;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #888;
+
+    input {
+      flex: 1;
+      min-width: 0;
+      padding: 8px 11px;
+      font: inherit;
+      color: #111;
+      border: 1px solid #d8d8d8;
+      border-radius: 8px;
+    }
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 10px;
+    margin: 0;
+    border-radius: 999px;
+    /* --pct is written from state, so the filled part follows the value */
+    background: linear-gradient(90deg, #0ea5e9 var(--pct), #e9e9ee var(--pct));
+    cursor: ew-resize;
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    }
+
+    &::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+      border-radius: 50%;
+      background: #fff;
+    }
+  }
+
+  .out {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #f1f1f4;
+    font-size: 14px;
+    color: #888;
+
+    b {
+      color: #111;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .total b {
+      font-size: 20px;
+      font-weight: 600;
+    }
+  }
+</style>

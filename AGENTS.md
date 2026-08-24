@@ -23,7 +23,7 @@ Fez ships the former `dux-pjax` package (ported to JS) in `src/fez/pjax/` and ex
 
 ## Writing New Components
 
-If you are instructed to write a fez component, ALWAYS write it in `demo/fez/[name].fez`.
+If you are instructed to write a fez component, ALWAYS write it in `fez-static/src/fez/[name].fez`; `demo/fez` is generated output.
 All documentation and demos go INSIDE the .fez file (no separate .html files) using `<info>` and `<demo>` blocks.
 
 ## CDN
@@ -61,9 +61,57 @@ fez refactor [path-or-glob]
 # Index files as JSON, or open an interactive Playwright debugging REPL
 fez index path/to/files
 fez debug http://localhost:3333
+
+# Build ./fez-static/src into the configured target; develop or validate it
+fez static
+fez static dev
+fez static doctor
 ```
 
 `.fez` files use Fez's own template compiler (`src/fez/lib/template-compiler.js`), not the Svelte compiler. Use the Svelte compiler only for `.svelte` files.
+
+## Static Site Builder
+
+`fez static` builds `./fez-static/src` into `./build` by default, or the project-root-relative `target` in `fez-static/config.yaml`.
+It uses `Bun.YAML` for front matter and `Bun.markdown` for Markdown, with no additional parser dependency.
+It requires Bun 1.3.8 or newer.
+
+```text
+fez-static/
+|-- config.yaml
+|-- layouts/
+|   |-- default.html
+|   `-- post.html
+|-- parts/
+|   `-- header.html
+`-- src/
+    |-- blog/
+    |   `-- YYYY-MM-DD-slug.md
+    |-- index.html
+    `-- about.md
+```
+
+Rules:
+
+* Every `.md` and `.html` page accepts YAML front matter.
+* A missing `layout` uses `fez-static/layouts/default.html` without a config declaration.
+* `layout: name` resolves `fez-static/layouts/name.html`.
+* `layout: false` emits a page without a layout.
+* `render: false` leaves a page body untouched; combine it with `layout: false` for passthrough HTML.
+* Layouts may declare a parent layout in their own front matter.
+* `index.md` becomes `index.html` and other pages preserve their relative path with an `.html` extension.
+* `permalink: /docs/start/` becomes `build/docs/start/index.html`.
+* Other non-page files, including browser-side `.fez` components, are copied unchanged.
+* Files under `blog/` populate `collections.posts`, sorted newest first.
+* `draft: true` pages are omitted unless `--drafts` is passed.
+* HTML pages, layouts, and includes use Fez template syntax with `site`, `page`, `collections`, and `include`.
+* Markdown braces are not evaluated, so documented Fez templates remain literal.
+* `{@content}` inserts the page or child layout.
+* `{@include "name.html"}` resolves from `fez-static/parts` and may be nested.
+* `{@include "card.html", { title: page.title }}` passes values through `include`.
+* A `./name.html` include inside a part is relative to that part; all includes must remain under `parts`.
+* Include paths are quoted literals, and recursive includes are build errors.
+* The existing target remains unchanged when a build or doctor check fails.
 
 ## Core Rules for LLM
 

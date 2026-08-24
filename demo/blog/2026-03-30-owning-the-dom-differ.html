@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Owning the differ let Fez preserve component identity, slots, refs, and render hashes according to its own lifecycle rules.">
+<title>Fez replaced Idiomorph with its own DOM differ - Fez</title>
+<link rel="icon" href="/fez.png">
+<link rel="stylesheet" href="/css/full.css">
+<link rel="stylesheet" href="/css/site.css">
+
+  </head>
+  <body class="site">
+    <main class="site-wrap site-docs">
+      <article class="site-md">
+        <h1>Fez replaced Idiomorph with its own DOM differ</h1>
+<p>Adopting DOM morphing in 2024 was the right decision, and using an existing implementation was the fastest way to validate it.
+By 2026, Fez needed semantics that were specific to Fez components.</p>
+<p>On March 30, I removed Idiomorph and introduced a dedicated differ with a large behavioral test suite.
+It understood component roots, slot anchors, <code>fez:keep</code>, stable references, and the points where child lifecycle methods must run.</p>
+<p>The renderer also skips a morph when newly rendered HTML and render slots are unchanged.
+That avoids walking a component tree when state writes collapse into the same visible result.
+The optimization only works because the runtime owns both template output and reconciliation.</p>
+<p>Writing a differ is not a goal I would recommend casually.
+It became justified when adapting a general-purpose library was more complex than implementing the smaller set of rules Fez actually needed.</p>
+<h2>Working example</h2>
+<p>This component lets the browser retain the live input while a sibling counter renders repeatedly.</p>
+<pre><code class="language-html">&lt;script&gt;
+  class {
+    init() {
+      this.state.count = 0
+    }
+
+    increment() {
+      this.state.count++
+    }
+
+    submit() {
+      alert(this.email_input.value)
+    }
+  }
+&lt;/script&gt;
+
+&lt;input fez:this=&quot;email_input&quot; type=&quot;email&quot; placeholder=&quot;Type, then increment&quot; /&gt;
+&lt;button onclick=&quot;fez.increment()&quot;&gt;Render {state.count}&lt;/button&gt;
+&lt;button onclick=&quot;fez.submit()&quot;&gt;Read email&lt;/button&gt;
+</code></pre>
+<p><code>fez:this</code> supplies a stable identifier that helps the differ match the input across renders.
+The user's current value remains browser state rather than being copied through the template.</p>
+<p>The result feels uneventful, which is exactly what good reconciliation should feel like.
+State updates the output that changed and leaves unrelated live DOM alone.</p>
+
+      </article>
+    </main>
+  </body>
+</html>

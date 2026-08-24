@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Fez simplified template access and settled on init as the lifecycle entry point for instance state.">
+<title>State, props, and init became the component vocabulary - Fez</title>
+<link rel="icon" href="/fez.png">
+<link rel="stylesheet" href="/css/full.css">
+<link rel="stylesheet" href="/css/site.css">
+
+  </head>
+  <body class="site">
+    <main class="site-wrap site-docs">
+      <article class="site-md">
+        <h1>State, props, and init became the component vocabulary</h1>
+<p>Framework APIs accumulate accidental terminology quickly.
+By July 2025, Fez had enough real components to show which names were helping and which were only historical residue.</p>
+<p>I made <code>state</code> and <code>props</code> direct template values and renamed the connection hook to <code>init()</code>.
+Those names describe the work rather than the implementation event.</p>
+<p><code>props</code> are inputs supplied by the caller.
+<code>state</code> is data owned by the instance that should schedule rendering when it changes.
+<code>init()</code> is where instance state is established before the first template render.</p>
+<p>Keeping these roles distinct prevents a common bug: copying a prop into state merely to display it.
+Props already update when a parent re-renders.
+A copied value becomes stale unless the component adds synchronization code it did not otherwise need.</p>
+<h2>Working example</h2>
+<p>The label remains a prop while only the count is local state.</p>
+<pre><code class="language-html">&lt;script&gt;
+  class {
+    PROPS = {
+      label: { type: String, default: 'Count' },
+      start: { type: Number, default: 0 },
+    }
+
+    init(props) {
+      this.state.count = props.start
+    }
+
+    increment() {
+      this.state.count++
+    }
+  }
+&lt;/script&gt;
+
+&lt;button onclick=&quot;fez.increment()&quot;&gt;
+  {props.label}: {state.count}
+&lt;/button&gt;
+</code></pre>
+<pre><code class="language-html">&lt;score-counter label=&quot;Points&quot; start=&quot;10&quot;&gt;&lt;/score-counter&gt;
+</code></pre>
+<p>The <code>PROPS</code> schema shown here arrived later, but it reinforces the boundary established in 2025.
+<code>start</code> seeds owned state once.
+<code>label</code> remains reactive caller input and is read directly from <code>props</code>.</p>
+<p>Good lifecycle naming does not make a component correct by itself.
+It makes the correct ownership model easier to see during implementation and review.</p>
+
+      </article>
+    </main>
+  </body>
+</html>

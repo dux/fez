@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="URL loading made a .fez file a portable component artifact that a page can consume without a local build pipeline.">
+<title>A Fez component became loadable by URL - Fez</title>
+<link rel="icon" href="/fez.png">
+<link rel="stylesheet" href="/css/full.css">
+<link rel="stylesheet" href="/css/site.css">
+
+  </head>
+  <body class="site">
+    <main class="site-wrap site-docs">
+      <article class="site-md">
+        <h1>A Fez component became loadable by URL</h1>
+<p>The <code>.fez</code> format was designed to keep a component in one place, but it still needed a simple delivery mechanism.
+In June 2025, the loader learned to fetch and compile a component directly from a URL.</p>
+<p>That made the file itself the unit of distribution.
+A Rails view, a static page, or a small server-rendered application could add one component without adopting the repository structure or build tool that produced it.</p>
+<p>There are obvious limits to remote code.
+The URL must be trusted, CORS must allow the request, and production systems should pin a version they control.
+Convenience does not change the security model of executing JavaScript.</p>
+<p>Within those boundaries, URL loading is a powerful way to keep adoption incremental.
+A team can try one component on one page and move it local only when that becomes useful.</p>
+<h2>Working example</h2>
+<p>The <code>fez</code> attribute belongs on a normal script tag.</p>
+<pre><code class="language-html">&lt;script src=&quot;https://raw.githubusercontent.com/dux/fez/main/dist/fez.js&quot;&gt;&lt;/script&gt;
+
+&lt;script fez=&quot;https://raw.githubusercontent.com/dux/fez/main/demo/fez/ui-counter.fez&quot;&gt;&lt;/script&gt;
+
+&lt;ui-counter start=&quot;2&quot;&gt;&lt;/ui-counter&gt;
+</code></pre>
+<p>Fez fetches the component source from the repository, compiles it, registers <code>ui-counter</code>, and lets the existing tag connect.
+No bundler participates in that path.</p>
+<p>The same syntax works with local relative URLs, which remains the usual choice for application-owned components.
+The important part is that delivery is explicit and uses the web's existing address space.</p>
+
+      </article>
+    </main>
+  </body>
+</html>

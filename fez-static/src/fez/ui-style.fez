@@ -1,0 +1,68 @@
+<info>
+  <ul>
+    <li>CSS mixin demo - create reusable style shortcuts</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Use <code>Fez.cssMixin</code> for custom CSS patterns like <code>:mobile</code></li>
+    <li>A mixin expands to a selector or an at-rule, so <code>:dark</code> is just another macro</li>
+    <li>Built in: <code>:mobile</code>, <code>:tablet</code>, <code>:desktop</code>, <code>:dark</code></li>
+  </ul>
+</info>
+
+<demo>
+  <ui-style>
+    This text is smaller on mobile and inverts under a dark theme.
+  </ui-style>
+</demo>
+
+<head>
+  <script>
+    // globally available
+    Fez.cssMixin('desktop', '@media (min-width:  1200px)')
+  </script>
+</head>
+
+<script>
+  // :dark expands to &:where(.dark, .dark *), so every component styles itself
+  // once a `dark` class lands on <html>. Fez ships no theme runtime - flipping
+  // the class is the app's job, which is all this button does.
+
+  init() {
+    this.state.dark = document.documentElement.classList.contains('dark')
+  }
+
+  toggleDark() {
+    this.state.dark = !this.state.dark
+    document.documentElement.classList.toggle('dark', this.state.dark)
+  }
+</script>
+
+<style>
+  h1 {
+    transition: font-size 0.3s ease, background 0.3s ease, color 0.3s ease;
+    font-size: 20px;
+    padding: 12px 16px;
+    border-radius: 6px;
+    background: #f4f4f4;
+    color: #111;
+
+    :desktop {
+      font-size: 34px;
+    }
+
+    /* wins on source order alone - :where() adds no specificity */
+    :dark {
+      background: #222;
+      color: #eee;
+    }
+  }
+</style>
+
+<div>
+  <h1>
+     <slot />
+  </h1>
+
+  <button onclick="fez.toggleDark()">
+    {#if state.dark}Light{:else}Dark{/if} theme
+  </button>
+</div>

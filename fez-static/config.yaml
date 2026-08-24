@@ -1,0 +1,5 @@
+target: demo
+
+site:
+  title: Fez
+  description: JavaScript DOM components framework

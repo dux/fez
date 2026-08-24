@@ -1,0 +1,126 @@
+<info>
+  <ul>
+    <li>Tab navigation with panels - supports nested tabs!</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Uses slot content for panels - way simpler than <code>lit.js</code></li>
+  </ul>
+</info>
+
+<demo>
+  <ui-tabs>
+    <div title="Bar">
+      <p>First tab</p>
+
+      <br />
+
+      <ui-tabs>
+        <div title="Foo nested 2">First tab</div>
+        <div title="Bar">
+          <p>second tab</p>
+
+          <ui-tabs>
+            <div title="Foo nested 3">first tab</div>
+            <div title="Bar nested 3">
+              <p>second tab</p>
+              <hr />
+              <ui-clock></ui-clock>
+            </div>
+          </ui-tabs>
+        </div>
+      </ui-tabs>
+    </div>
+    <div title="Baz">
+      <h4>image tab</h4>
+      <img src="./fez.png" />
+    </div>
+    <div title="Foo">
+      Third tab
+      <hr />
+      <ui-clock></ui-clock>
+    </div>
+    <div title="Disabled" disabled="true">
+      Not accesible
+    </div>
+  </ui-tabs>
+</demo>
+
+<script>
+  // add active class to node and remove it from siblings
+  activateNode(node) {
+    Fez.activateNode(node, 'active')
+  }
+
+  // activate header tab and body tab
+  activate(num) {
+    if (this.tabs[num]?.getAttribute('disabled')) return
+
+    this.activateNode(this.find(':scope > .header').children[num])
+    this.activateNode(this.tabs[num])
+  }
+
+  onInit() {
+    this.tabs = this.childNodes()
+  }
+
+  onMount() {
+    this.activate(0)
+  }
+</script>
+
+<style>
+  --tabs-border: 1px solid #ccc;
+
+  max-width: calc(100%);
+
+  .header {
+    margin-bottom: -2px;
+    position: relative;
+    z-index: 1;
+
+    & > span {
+      border: var(--tabs-border);
+      padding: 8px 15px;
+      display: inline-block;
+      border-radius: 8px 8px 0 0;
+      margin-right: -1px;
+      background: #eee;
+      cursor: pointer;
+
+      &.active {
+        background-color: #fff;
+        border-bottom: none;
+      }
+
+      &.disabled {
+        color: #aaa;
+      }
+    }
+  }
+
+  .fez-slot {
+    border: var(--tabs-border);
+    padding: 8px 15px;
+    background: #fff;
+
+    & > div {
+      display: none;
+
+      &.active {
+        display: block;
+      }
+    }
+  }
+</style>
+
+<div class="header">
+  {#for tab, index in tabs}
+    <span
+      onclick={() => activate(index)}
+      class={tab.getAttribute('disabled') ? 'disabled' : ''}
+    >
+      {tab.getAttribute('title')}
+    </span>
+  {/for}
+</div>
+
+<slot />
