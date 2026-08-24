@@ -1,3 +1,4 @@
+<!-- generated from src: fez-static/root/site.fez | DO NOT EDIT OR READ THIS FILE -->
 <xmp fez="site-nav">
   <script>
     class {
@@ -6,15 +7,14 @@
       init() {
         this.state.path = this.currentPage()
         this.state.links = [
-          { href: './index.html',     name: 'index.html',    label: 'Home' },
-          { href: './features.html',  name: 'features.html', label: 'Features' },
-          // the blog loads its own page component, so enter it with a full navigation
-          { href: './blog.html',      name: 'blog.html',     label: 'Blog', full: true },
-          { href: './examples.html',  name: 'examples.html', label: 'Examples' },
+          { href: '/demo/index.html',     name: 'index.html',    label: 'Home' },
+          { href: '/demo/features.html',  name: 'features.html', label: 'Features' },
+          { href: '/demo/blogs/',         name: 'blogs',         label: 'Blog' },
+          { href: '/demo/examples.html',  name: 'examples.html', label: 'Examples' },
           // the playground is a full-viewport app without a pjax container - plain navigation
-          { href: './playground.html', label: 'Playground', full: true },
-          { href: './docs.html',      name: 'docs.html',     label: 'Docs' },
-          { href: './electron.html',  name: 'electron.html', label: 'Electron' },
+          { href: '/demo/playground.html', label: 'Playground', full: true },
+          { href: '/demo/docs.html',      name: 'docs.html',     label: 'Docs' },
+          { href: '/demo/electron.html',  name: 'electron.html', label: 'Electron' },
           { href: 'https://github.com/dux/fez', label: 'GitHub', ext: true },
         ]
       }
@@ -27,15 +27,15 @@
       }
 
       currentPage() {
-        const last = location.pathname.split('/').pop()
+        const last = location.pathname.replace(/\/$/, '').split('/').pop()
         return last || 'index.html'
       }
     }
   </script>
 
   <div class="site-wrap">
-    <a class="brand" href="./index.html">
-      <img src="./fez.png" alt="" />
+    <a class="brand" href="/demo/index.html">
+      <img src="/demo/fez.png" alt="" />
       <span class="brand-copy">
         <strong>Fez</strong>
         <small>DOM / single-page / no-compile components</small>
@@ -67,8 +67,8 @@
   <div class="site-wrap">
     <span>Fez - jQuery simplicity for the component era. One script tag, no build step.</span>
     <span class="spacer"></span>
-    <a href="./features.html">Features</a>
-    <a href="./blog.html" class="no-pjax">Blog</a>
+    <a href="/demo/features.html">Features</a>
+    <a href="/demo/blogs/">Blog</a>
     <a href="https://github.com/dux/fez">GitHub</a>
     <a href="https://www.npmjs.com/package/@dinoreic/fez">npm</a>
     <a href="https://github.com/dux/fez/blob/main/AGENTS.md">AGENTS.md</a>

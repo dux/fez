@@ -1,3 +1,4 @@
+<!-- generated from src: fez-static/root/fez/input-date.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Beautiful date picker with calendar popup</li>
@@ -31,7 +32,7 @@
   Fez.head({css: 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css'})
 
   class {
-    
+
     init() {
       // Initialize state
       this.state.selectedDate = ''

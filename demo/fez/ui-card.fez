@@ -1,3 +1,4 @@
+<!-- generated from src: fez-static/root/fez/ui-card.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Flippable card component with 3D CSS animation</li>
@@ -147,4 +148,3 @@
 <div class="card" onclick="fez.flip()">
   <slot />
 </div>
-

@@ -1,0 +1,96 @@
+<!-- generated from src: fez-static/root/[blogs]/2026-01-22-svelte-like-templates-without-svelte.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A familiar block syntax improved readability while Fez kept its own compiler, runtime, and DOM ownership model.">
+<title>Fez adopted Svelte-like templates without adopting Svelte - Fez</title>
+<link rel="icon" href="/demo/fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/dux/fez@main/dist/fez.js"></script>
+
+  <script fez="/demo/site.fez"></script>
+
+
+<link rel="stylesheet" href="/demo/css/full.css">
+<link rel="stylesheet" href="/demo/css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-docs site-md">
+
+        <nav class="article-nav" aria-label="Blog navigation">
+          <a href="/demo/blogs/">Back to all posts</a>
+          <div class="article-meta">
+            <span>2026-01-22</span>
+            <span>templates / syntax / compiler</span>
+          </div>
+        </nav>
+        <div class="commit-list" aria-label="Source commits">
+
+            <a href="https://github.com/dux/fez/commit/876eb7e" class="no-pjax" target="_blank">876eb7e</a>
+
+            <a href="https://github.com/dux/fez/commit/df8927f" class="no-pjax" target="_blank">df8927f</a>
+
+            <a href="https://github.com/dux/fez/commit/e8fe356" class="no-pjax" target="_blank">e8fe356</a>
+
+        </div>
+
+
+      <h1>Fez adopted Svelte-like templates without adopting Svelte</h1>
+<p>Fez had already used several template syntaxes by early 2026.
+The language worked, but familiarity matters when it does not compromise the architecture.</p>
+<p>On January 22, I added a Svelte-like compiler path and then migrated the components to it.
+Blocks such as <code>{#if}</code>, <code>{#each}</code>, and <code>{:else}</code> made structure visible without inventing new punctuation for ideas developers already knew.</p>
+<p>This did not make Fez a Svelte runtime.
+There is no Svelte compiler dependency for <code>.fez</code> files, no component ownership of the entire application tree, and no generated virtual application around the page.
+Fez's own compiler produces HTML for its component-aware DOM differ.</p>
+<p>Borrowing good surface syntax is cheaper than making every developer learn a novel one.
+The framework's identity should live in its behavior and boundaries, not in being different for its own sake.</p>
+<h2>Working example</h2>
+<p>The current syntax keeps branching, iteration, and conditional classes readable in the HTML.</p>
+<pre><code class="language-html">&lt;script&gt;
+  class {
+    init() {
+      this.state.selected = 2
+      this.state.people = [
+        { id: 1, name: 'Ada' },
+        { id: 2, name: 'Grace' },
+      ]
+    }
+
+    select(id) {
+      this.state.selected = id
+    }
+  }
+&lt;/script&gt;
+
+{#if state.people}
+  &lt;ul&gt;
+    {#each state.people as person}
+      &lt;li class:selected={person.id === state.selected}&gt;
+        &lt;button onclick=&quot;fez.select({person.id})&quot;&gt;{person.name}&lt;/button&gt;
+      &lt;/li&gt;
+    {/each}
+  &lt;/ul&gt;
+{:else}
+  &lt;p&gt;No people found.&lt;/p&gt;
+{/if}
+</code></pre>
+<p>The inline event value is resolved when the loop renders.
+The class directive compiles into the element's class attribute.
+The empty collection rule means the fallback also handles <code>[]</code>.</p>
+<p>Familiar syntax lowered the cost of reading Fez while leaving the runtime's smaller ownership model intact.</p>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

@@ -1,3 +1,4 @@
+<!-- generated from src: fez-static/root/fez/image-preview.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <h3>image-preview</h3>
   <p>Singleton fullscreen image gallery overlay. Mounted automatically via <code>GLOBAL = 'ImagePreview'</code>.</p>

@@ -1,0 +1,93 @@
+<!-- generated from src: fez-static/root/[blogs]/2024-06-14-cde-became-fez.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Renaming the project clarified that it was a small component layer for real pages, not another abstract element system.">
+<title>CDE became Fez - Fez</title>
+<link rel="icon" href="/demo/fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/dux/fez@main/dist/fez.js"></script>
+
+  <script fez="/demo/site.fez"></script>
+
+
+<link rel="stylesheet" href="/demo/css/full.css">
+<link rel="stylesheet" href="/demo/css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-docs site-md">
+
+        <nav class="article-nav" aria-label="Blog navigation">
+          <a href="/demo/blogs/">Back to all posts</a>
+          <div class="article-meta">
+            <span>2024-06-14</span>
+            <span>design / components</span>
+          </div>
+        </nav>
+        <div class="commit-list" aria-label="Source commits">
+
+            <a href="https://github.com/dux/fez/commit/d8d0ce8" class="no-pjax" target="_blank">d8d0ce8</a>
+
+            <a href="https://github.com/dux/fez/commit/18106b3" class="no-pjax" target="_blank">18106b3</a>
+
+        </div>
+
+
+      <h1>CDE became Fez</h1>
+<p>Four days into the project, I renamed CDE to Fez.
+The code change was mechanical, but the product decision was not.</p>
+<p>Names influence which abstractions feel natural.
+&quot;Custom DOM Elements&quot; described an implementation mechanism.
+Fez gave the project room to become a practical way of adding behavior, state, styling, loading, and lifecycle to ordinary HTML.</p>
+<p>I also wanted component names to remain visible in the markup.
+A custom element should read like a small piece of the product, not like compiler output.
+Kebab-case tags made that possible while staying inside the browser's custom-element rules.</p>
+<p>The convention is deliberately boring.
+<code>user-profile</code>, <code>payment-status</code>, and <code>search-box</code> tell another developer what lives there before they open the component source.
+That readability is more valuable than saving a few characters.</p>
+<h2>Working example</h2>
+<p>A Fez component is named by its file and used as a real custom element.</p>
+<pre><code class="language-html">&lt;!-- ./status-pill.fez --&gt;
+&lt;script&gt;
+  class {
+    PROPS = {
+      state: { type: String, default: 'pending' },
+    }
+  }
+&lt;/script&gt;
+
+&lt;style&gt;
+  span {
+    display: inline-flex;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #f4d9de;
+    color: #8e0b21;
+  }
+&lt;/style&gt;
+
+&lt;span&gt;{props.state}&lt;/span&gt;
+</code></pre>
+<pre><code class="language-html">&lt;script fez=&quot;./status-pill.fez&quot;&gt;&lt;/script&gt;
+
+&lt;p&gt;Invoice &lt;status-pill state=&quot;paid&quot;&gt;&lt;/status-pill&gt;&lt;/p&gt;
+</code></pre>
+<p>The component does not need a parent Fez application.
+It can sit beside server templates, old JavaScript, or a third-party widget and still remain understandable as HTML.</p>
+<p>The rename marked the point where the project stopped being an experiment named after its plumbing.
+It became a small framework with a clear taste: readable tags, local ownership, and very little ceremony.</p>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

@@ -23,7 +23,7 @@ Fez ships the former `dux-pjax` package (ported to JS) in `src/fez/pjax/` and ex
 
 ## Writing New Components
 
-If you are instructed to write a fez component, ALWAYS write it in `fez-static/src/fez/[name].fez`; `demo/fez` is generated output.
+If you are instructed to write a fez component, ALWAYS write it in `fez-static/root/fez/[name].fez`; `demo/fez` is generated output.
 All documentation and demos go INSIDE the .fez file (no separate .html files) using `<info>` and `<demo>` blocks.
 
 ## CDN
@@ -62,7 +62,8 @@ fez refactor [path-or-glob]
 fez index path/to/files
 fez debug http://localhost:3333
 
-# Build ./fez-static/src into the configured target; develop or validate it
+# Initialize or build ./fez-static/root into the configured target
+fez static init
 fez static
 fez static dev
 fez static doctor
@@ -72,7 +73,8 @@ fez static doctor
 
 ## Static Site Builder
 
-`fez static` builds `./fez-static/src` into `./build` by default, or the project-root-relative `target` in `fez-static/config.yaml`.
+`fez static` builds `./fez-static/root` into `./build` by default, or the project-root-relative `target` in `fez-static/config.yaml` or `config.json`.
+YAML configuration takes precedence when both files exist.
 It uses `Bun.YAML` for front matter and `Bun.markdown` for Markdown, with no additional parser dependency.
 It requires Bun 1.3.8 or newer.
 
@@ -84,8 +86,8 @@ fez-static/
 |   `-- post.html
 |-- parts/
 |   `-- header.html
-`-- src/
-    |-- blog/
+`-- root/
+    |-- [blogs]/
     |   `-- YYYY-MM-DD-slug.md
     |-- index.html
     `-- about.md
@@ -94,15 +96,18 @@ fez-static/
 Rules:
 
 * Every `.md` and `.html` page accepts YAML front matter.
-* A missing `layout` uses `fez-static/layouts/default.html` without a config declaration.
-* `layout: name` resolves `fez-static/layouts/name.html`.
+* A missing `layout` uses `fez-static/layouts/default.html` or `default.md` without a config declaration.
+* `layout: name` resolves an `.html` layout first, then `.md`.
 * `layout: false` emits a page without a layout.
 * `render: false` leaves a page body untouched; combine it with `layout: false` for passthrough HTML.
 * Layouts may declare a parent layout in their own front matter.
 * `index.md` becomes `index.html` and other pages preserve their relative path with an `.html` extension.
 * `permalink: /docs/start/` becomes `build/docs/start/index.html`.
-* Other non-page files, including browser-side `.fez` components, are copied unchanged.
-* Files under `blog/` populate `collections.posts`, sorted newest first.
+* Every generated HTML and Fez file starts with an HTML source-path notice identifying its file under `fez-static/root`; JavaScript files use an equivalent `//` notice.
+* Other non-page files are copied unchanged.
+* A bracketed directory declares a collection: `[blogs]` populates `collections.blogs`, publishes as `blogs`, and generates `blogs/index.yaml`.
+* Assets inside a bracketed directory are copied but are not collection entries.
+* Collection pages are sorted newest first, and `config.collections.<name>.layout` may set their default layout.
 * `draft: true` pages are omitted unless `--drafts` is passed.
 * HTML pages, layouts, and includes use Fez template syntax with `site`, `page`, `collections`, and `include`.
 * Markdown braces are not evaluated, so documented Fez templates remain literal.

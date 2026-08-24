@@ -3,8 +3,10 @@ import path from 'node:path';
 import createTemplateCompiler from './fez/lib/template-compiler.js';
 
 const PAGE_EXTENSIONS = new Set(['.html', '.md']);
+const CONFIG_FILENAMES = ['config.yaml', 'config.json'];
+const COLLECTION_SEGMENT = /^\[([a-z][a-z0-9_-]*)\]$/i;
 const RAW_REGION_PATTERN =
-  /<!--[\s\S]*?-->|<(script|style|pre|code|xmp|fez-inline)\b[^>]*>[\s\S]*?<\/\1\s*>/gi;
+  /(<!--[\s\S]*?-->)|(<(script|style|pre|code|xmp|fez-inline)\b[^>]*>)([\s\S]*?)(<\/\3\s*>)/gi;
 const STATIC_CONTENT_MARKER = '\uE002FEZ_STATIC_CONTENT\uE003';
 const STATIC_INCLUDE_MARKER_PATTERN = /<template data-fez-static-include="(\d+)"><\/template>/g;
 
@@ -52,27 +54,38 @@ export async function buildStaticSite(options = {}) {
   const sourceFiles = listFiles(paths.sourceDir);
   const pages = [];
   const assets = [];
+  const collectionDirs = new Map();
 
   for (const absolutePath of sourceFiles) {
-    const relativePath = toPosix(path.relative(paths.sourceDir, absolutePath));
-    const extension = path.extname(relativePath).toLowerCase();
+    const sourcePath = toPosix(path.relative(paths.sourceDir, absolutePath));
+    const rootPath = parseRootPath(sourcePath);
+    registerCollection(collectionDirs, rootPath.collection);
+    const extension = path.extname(rootPath.outputPath).toLowerCase();
     if (PAGE_EXTENSIONS.has(extension)) {
-      const page = readPage(absolutePath, relativePath);
+      const page = readPage(
+        absolutePath,
+        sourcePath,
+        rootPath.outputPath,
+        rootPath.collection?.name,
+        paths.config,
+      );
       if (!page.draft || options.drafts) {
         pages.push(page);
       }
     } else {
-      assets.push({ absolutePath, outputPath: relativePath });
+      assets.push({ absolutePath, outputPath: rootPath.outputPath, sourcePath });
     }
   }
 
-  assertUniqueOutputs(pages, assets);
-
   const publicPages = pages.map(toPublicPage);
-  const posts = publicPages
-    .filter((page) => page.source_path.startsWith('blog/'))
-    .sort(comparePosts);
-  const collections = { posts };
+  const collections = buildCollections(publicPages, collectionDirs);
+  const collectionIndexes = [...collectionDirs.values()].map((collection) => ({
+    outputPath: collection.outputPath + '/index.yaml',
+    sourcePath: collection.sourcePath,
+    pages: collections[collection.name],
+  }));
+  assertUniqueOutputs(pages, assets, collectionIndexes);
+
   const site = {
     ...paths.config.site,
     pages: publicPages,
@@ -87,14 +100,32 @@ export async function buildStaticSite(options = {}) {
     for (const page of pages) {
       const publicPage = pageBySource.get(page.absolutePath);
       const context = createRenderContext(site, collections, publicPage);
-      const html = renderPage(page, context, paths);
+      const html = addGeneratedNotice(renderPage(page, context, paths), page.sourcePath);
       writeOutput(stageDir, page.outputPath, ensureFinalNewline(html));
     }
 
     for (const asset of assets) {
+      const extension = path.extname(asset.outputPath).toLowerCase();
+      if (extension === '.js' || extension === '.fez') {
+        const source = fs.readFileSync(asset.absolutePath, 'utf8');
+        writeOutput(
+          stageDir,
+          asset.outputPath,
+          ensureFinalNewline(addGeneratedNotice(source, asset.sourcePath)),
+        );
+        continue;
+      }
       const target = outputFilePath(stageDir, asset.outputPath);
       fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.copyFileSync(asset.absolutePath, target);
+    }
+
+    for (const index of collectionIndexes) {
+      writeOutput(
+        stageDir,
+        index.outputPath,
+        ensureFinalNewline(stripTrailingWhitespace(Bun.YAML.stringify(index.pages, null, 2))),
+      );
     }
 
     if (options.check) {
@@ -112,6 +143,7 @@ export async function buildStaticSite(options = {}) {
   return {
     pages: pages.length,
     assets: assets.length,
+    collections: collectionIndexes.length,
     outputDir: paths.outputDir,
     duration: performance.now() - startedAt,
   };
@@ -119,6 +151,97 @@ export async function buildStaticSite(options = {}) {
 
 export async function doctorStaticSite(options = {}) {
   return buildStaticSite({ ...options, check: true });
+}
+
+export function initStaticSite(options = {}) {
+  const rootDir = path.resolve(options.root || process.cwd());
+  const siteDir = path.resolve(rootDir, options.site || 'fez-static');
+  if (fs.existsSync(siteDir)) {
+    throw new Error('Static site already exists: ' + siteDir);
+  }
+
+  const files = {
+    'config.yaml': [
+      'site:',
+      '  title: My Fez Site',
+      '  description: A small static site built with Fez',
+      '',
+    ].join('\n'),
+    'layouts/default.html': [
+      '<!doctype html>',
+      '<html lang="en">',
+      '  <head>',
+      '    <meta charset="UTF-8">',
+      '    <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+      '    <meta name="description" content={page.description || site.description}>',
+      '    <title>{page.title} - {site.title}</title>',
+      '    <link rel="stylesheet" href="/site.css">',
+      '  </head>',
+      '  <body>',
+      '    <header>',
+      '      <nav><a href="/">{site.title}</a></nav>',
+      '    </header>',
+      '    <main>{@content}</main>',
+      '    <footer>Built with Fez.</footer>',
+      '  </body>',
+      '</html>',
+      '',
+    ].join('\n'),
+    'root/index.html': [
+      '---',
+      'title: Home',
+      '---',
+      '<h1>{site.title}</h1>',
+      '<p>{site.description}</p>',
+      '<h2>Blog</h2>',
+      '<ul>',
+      '{#each collections.blogs as post}',
+      '  <li><a href={post.url}>{post.title}</a></li>',
+      '{/each}',
+      '</ul>',
+      '',
+    ].join('\n'),
+    'root/[blogs]/2026-01-01-hello-fez.md': [
+      '---',
+      'title: Hello, Fez',
+      'description: The first post on this Fez static site.',
+      'date: 2026-01-01',
+      '---',
+      '',
+      '# Hello, Fez',
+      '',
+      'This is the first post in the `blogs` collection.',
+      '',
+    ].join('\n'),
+    'root/[blogs]/2026-01-02-another-post.md': [
+      '---',
+      'title: Another post',
+      'description: A second example collection entry.',
+      'date: 2026-01-02',
+      '---',
+      '',
+      '# Another post',
+      '',
+      'Add Markdown or HTML files here and rebuild the site.',
+      '',
+    ].join('\n'),
+    'root/site.css': [
+      ':root { font: 18px/1.6 system-ui, sans-serif; color: #202124; }',
+      'body { max-width: 760px; margin: 0 auto; padding: 0 24px; }',
+      'header, footer { padding: 24px 0; }',
+      'main { min-height: 60vh; }',
+      'a { color: #b42318; }',
+      '',
+    ].join('\n'),
+  };
+
+  for (const [relativePath, content] of Object.entries(files)) {
+    const target = path.join(siteDir, relativePath);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, content);
+  }
+
+  return { siteDir, files: Object.keys(files).length };
 }
 
 export function cleanStaticSite(options = {}) {
@@ -185,7 +308,7 @@ export async function watchStaticSite(options = {}, callbacks = {}) {
 }
 
 export function serveStaticSite(options = {}) {
-  const { outputDir } = resolveStaticPaths(options);
+  const { outputDir, config } = resolveStaticPaths(options);
   const port = Number(options.port || 3000);
   if (!Number.isInteger(port) || port < 0 || port > 65535) {
     throw new Error('Port must be an integer between 0 and 65535');
@@ -205,7 +328,10 @@ export function serveStaticSite(options = {}) {
       if (pathname.includes('\0')) {
         return new Response('Bad request', { status: 400 });
       }
-      const filePath = findServedFile(outputDir, pathname);
+      const filePath = findServedFile(
+        outputDir,
+        stripStaticBaseUrl(pathname, config.site.base_url),
+      );
       if (!filePath) {
         return new Response('Not found', { status: 404 });
       }
@@ -226,11 +352,11 @@ export function serveStaticSite(options = {}) {
 export function resolveStaticPaths(options = {}) {
   const rootDir = path.resolve(options.root || process.cwd());
   const siteDir = path.resolve(rootDir, options.site || 'fez-static');
-  const configFile = path.resolve(siteDir, options.config || 'config.yaml');
+  const configFile = resolveConfigFile(siteDir, options.config);
   const config = readStaticConfig(configFile);
   const sourceDir = options.source
     ? path.resolve(rootDir, options.source)
-    : path.resolve(siteDir, 'src');
+    : path.resolve(siteDir, 'root');
   const outputDir = options.output
     ? path.resolve(rootDir, options.output)
     : path.resolve(rootDir, config.target || 'build');
@@ -253,12 +379,12 @@ function validateBuildPaths(paths) {
     stat = fs.statSync(paths.sourceDir);
   } catch (error) {
     if (error.code === 'ENOENT') {
-      throw new Error('Static source directory not found: ' + paths.sourceDir);
+      throw new Error('Static root directory not found: ' + paths.sourceDir);
     }
     throw error;
   }
   if (!stat.isDirectory()) {
-    throw new Error('Static source is not a directory: ' + paths.sourceDir);
+    throw new Error('Static root is not a directory: ' + paths.sourceDir);
   }
 
   const filesystemRoot = path.parse(paths.outputDir).root;
@@ -272,16 +398,42 @@ function validateBuildPaths(paths) {
     isPathInside(paths.outputDir, paths.sourceDir) ||
     isPathInside(paths.sourceDir, paths.outputDir)
   ) {
-    throw new Error('Static source and output directories must not contain each other');
+    throw new Error('Static root and output directories must not contain each other');
   }
 }
 
-function readStaticConfig(configFile) {
-  if (!fs.existsSync(configFile)) {
-    return { site: {} };
+function resolveConfigFile(siteDir, requestedFile) {
+  if (requestedFile) {
+    return path.resolve(siteDir, requestedFile);
   }
-  const parsed = parseYaml(fs.readFileSync(configFile, 'utf8'), configFile);
+  for (const filename of CONFIG_FILENAMES) {
+    const candidate = path.join(siteDir, filename);
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+function readStaticConfig(configFile) {
+  if (!configFile || !fs.existsSync(configFile)) {
+    return { site: {}, collections: {} };
+  }
+  const source = fs.readFileSync(configFile, 'utf8');
+  let parsed;
+  if (path.extname(configFile).toLowerCase() === '.json') {
+    try {
+      parsed = JSON.parse(source);
+    } catch (error) {
+      throw new Error('Invalid JSON in ' + configFile + ': ' + error.message, { cause: error });
+    }
+  } else {
+    parsed = parseYaml(source, configFile);
+  }
   const config = parsed || {};
+  if (typeof config !== 'object' || Array.isArray(config)) {
+    throw new Error('Static config must be an object: ' + configFile);
+  }
 
   if (Object.prototype.hasOwnProperty.call(config, 'default_layout')) {
     throw new Error('default_layout is not configurable; use fez-static/layouts/default.html');
@@ -301,7 +453,31 @@ function readStaticConfig(configFile) {
     throw new Error('Static config site must be an object');
   }
 
-  return { ...config, site: config.site || {} };
+  if (
+    Object.prototype.hasOwnProperty.call(config, 'collections') &&
+    (config.collections == null ||
+      typeof config.collections !== 'object' ||
+      Array.isArray(config.collections))
+  ) {
+    throw new Error('Static config collections must be an object');
+  }
+  for (const [name, options] of Object.entries(config.collections || {})) {
+    if (!/^[a-z][a-z0-9_-]*$/i.test(name)) {
+      throw new Error('Invalid static collection name: ' + name);
+    }
+    if (options == null || typeof options !== 'object' || Array.isArray(options)) {
+      throw new Error('Static collection config must be an object: ' + name);
+    }
+    if (Object.prototype.hasOwnProperty.call(options, 'layout')) {
+      effectiveLayout({ layout: options.layout });
+    }
+  }
+
+  return {
+    ...config,
+    site: config.site || {},
+    collections: config.collections || {},
+  };
 }
 
 function listFiles(directory) {
@@ -329,7 +505,61 @@ function listFiles(directory) {
   return files;
 }
 
-function readPage(absolutePath, relativePath) {
+function parseRootPath(sourcePath) {
+  const sourceSegments = sourcePath.split('/');
+  const outputSegments = [];
+  let collection = null;
+
+  for (const segment of sourceSegments) {
+    const match = segment.match(COLLECTION_SEGMENT);
+    if (!match) {
+      outputSegments.push(segment);
+      continue;
+    }
+    if (collection) {
+      throw new Error('Static files cannot belong to nested collections: ' + sourcePath);
+    }
+    outputSegments.push(match[1]);
+    collection = {
+      name: match[1],
+      sourcePath: sourceSegments.slice(0, outputSegments.length).join('/'),
+      outputPath: outputSegments.join('/'),
+    };
+  }
+
+  return { collection, outputPath: outputSegments.join('/') };
+}
+
+function registerCollection(collections, collection) {
+  if (!collection) {
+    return;
+  }
+  const existing = collections.get(collection.name);
+  if (existing && existing.sourcePath !== collection.sourcePath) {
+    throw new Error(
+      'Static collection name is declared more than once: ' +
+        existing.sourcePath +
+        ' and ' +
+        collection.sourcePath,
+    );
+  }
+  collections.set(collection.name, collection);
+}
+
+function buildCollections(pages, collectionDirs) {
+  const collections = Object.fromEntries([...collectionDirs.keys()].map((name) => [name, []]));
+  for (const page of pages) {
+    if (page.collection) {
+      collections[page.collection].push(page);
+    }
+  }
+  for (const pagesInCollection of Object.values(collections)) {
+    pagesInCollection.sort(compareCollectionPages);
+  }
+  return collections;
+}
+
+function readPage(absolutePath, sourcePath, relativePath, collection, config) {
   const source = fs.readFileSync(absolutePath, 'utf8');
   const { data, body } = splitFrontMatter(source, absolutePath);
   const extension = path.extname(relativePath).toLowerCase();
@@ -338,10 +568,12 @@ function readPage(absolutePath, relativePath) {
   const filenameDate = filename.match(/^(\d{4}-\d{2}-\d{2})-/)?.[1];
   const slug = String(data.slug || filename.replace(/^\d{4}-\d{2}-\d{2}-/, ''));
   const date = normalizeDate(data.date || filenameDate);
-  const layout = effectiveLayout(data);
+  const defaultLayout = collection ? config.collections[collection]?.layout ?? 'default' : 'default';
+  const layout = effectiveLayout(data, defaultLayout);
 
   return {
     absolutePath,
+    sourcePath,
     relativePath,
     outputPath: route.outputPath,
     url: route.url,
@@ -351,6 +583,7 @@ function readPage(absolutePath, relativePath) {
     title: data.title || titleFromSlug(slug),
     slug,
     date,
+    collection,
     layout,
     render: data.render !== false,
     draft: data.draft === true,
@@ -363,19 +596,23 @@ function toPublicPage(page) {
     title: page.title,
     slug: page.slug,
     date: page.date,
+    format: page.extension.slice(1),
+    collection: page.collection,
     layout: page.layout,
     url: page.url,
-    source_path: page.relativePath,
+    source_path: page.sourcePath,
   };
 }
 
-function comparePosts(left, right) {
+function compareCollectionPages(left, right) {
   const byDate = String(right.date || '').localeCompare(String(left.date || ''));
   return byDate || left.url.localeCompare(right.url);
 }
 
-function effectiveLayout(data) {
-  const value = Object.prototype.hasOwnProperty.call(data, 'layout') ? data.layout : 'default';
+function effectiveLayout(data, defaultLayout = 'default') {
+  const value = Object.prototype.hasOwnProperty.call(data, 'layout')
+    ? data.layout
+    : defaultLayout;
   if (value === false || value === null) {
     return false;
   }
@@ -440,7 +677,7 @@ function titleFromSlug(slug) {
     .join(' ');
 }
 
-function assertUniqueOutputs(pages, assets) {
+function assertUniqueOutputs(pages, assets, generated = []) {
   const outputs = new Map();
   const add = (outputPath, sourcePath) => {
     const key = outputPath.toLowerCase();
@@ -457,7 +694,10 @@ function assertUniqueOutputs(pages, assets) {
     add(page.outputPath, page.relativePath);
   }
   for (const asset of assets) {
-    add(asset.outputPath, asset.outputPath);
+    add(asset.outputPath, asset.sourcePath);
+  }
+  for (const output of generated) {
+    add(output.outputPath, output.sourcePath + ' collection index');
   }
 }
 
@@ -533,7 +773,15 @@ function renderPage(page, context, paths) {
       fezName: toPosix(path.relative(paths.siteDir, layoutFile)),
       layout: parsed.data,
     };
-    let rendered = renderStaticTemplate(parsed.body, layoutContext, layoutContext.fezName);
+    const extension = path.extname(layoutFile).toLowerCase();
+    const templateSource = extension === '.md' ? Bun.markdown.html(parsed.body) : parsed.body;
+    let rendered = renderStaticTemplate(templateSource, layoutContext, layoutContext.fezName);
+    if (extension === '.md') {
+      rendered = rendered.replace(
+        new RegExp('<p>\\s*' + STATIC_CONTENT_MARKER + '\\s*</p>'),
+        STATIC_CONTENT_MARKER,
+      );
+    }
     rendered = insertStaticContent(rendered, content, layoutContext.fezName);
     content = expandStaticIncludes(rendered, layoutContext, path.dirname(layoutFile), [], paths);
 
@@ -552,20 +800,25 @@ function renderPage(page, context, paths) {
 
   if (page.render || page.layout) {
     assertNoStaticDirectives(content, page.relativePath);
+    content = stripTrailingWhitespace(content);
   }
   return content;
 }
 
 function resolveLayoutFile(layoutName, layoutsDir) {
-  const name = layoutName.endsWith('.html') ? layoutName : layoutName + '.html';
-  if (path.isAbsolute(name) || name.split(/[\\/]/).includes('..')) {
+  if (path.isAbsolute(layoutName) || layoutName.split(/[\\/]/).includes('..')) {
     throw new Error('Invalid layout path: ' + layoutName);
   }
-  const resolved = path.resolve(layoutsDir, name);
-  if (!isPathInside(layoutsDir, resolved)) {
+  const extension = path.extname(layoutName).toLowerCase();
+  if (extension && !PAGE_EXTENSIONS.has(extension)) {
+    throw new Error('Static layouts must use .html or .md: ' + layoutName);
+  }
+  const candidates = extension ? [layoutName] : [layoutName + '.html', layoutName + '.md'];
+  const resolvedCandidates = candidates.map((name) => path.resolve(layoutsDir, name));
+  if (resolvedCandidates.some((resolved) => !isPathInside(layoutsDir, resolved))) {
     throw new Error('Layout escapes fez-static/layouts: ' + layoutName);
   }
-  return resolved;
+  return resolvedCandidates.find((candidate) => fs.existsSync(candidate)) || resolvedCandidates[0];
 }
 
 function renderStaticTemplate(source, context, label) {
@@ -814,10 +1067,14 @@ function protectRawRegions(source) {
   while (source.includes(prefix)) {
     prefix += '_';
   }
-  const text = source.replace(RAW_REGION_PATTERN, (value) => {
+  const text = source.replace(RAW_REGION_PATTERN, (value, comment, open, _tag, body, close) => {
     const token = prefix + values.length + '\uE001';
-    values.push([token, value]);
-    return token;
+    if (comment) {
+      values.push([token, value]);
+      return token;
+    }
+    values.push([token, body]);
+    return open + token + close;
   });
   return {
     text,
@@ -901,6 +1158,17 @@ function replaceOutputDirectory(stageDir, outputDir) {
   }
 }
 
+function stripStaticBaseUrl(pathname, baseUrl) {
+  if (typeof baseUrl !== 'string' || !baseUrl.startsWith('/')) {
+    return pathname;
+  }
+  const prefix = baseUrl.replace(/\/+$/, '');
+  if (!prefix || pathname === prefix) {
+    return '/';
+  }
+  return pathname.startsWith(prefix + '/') ? pathname.slice(prefix.length) : pathname;
+}
+
 function findServedFile(outputDir, pathname) {
   const relative = pathname.replace(/^\/+/, '');
   const base = path.resolve(outputDir, relative);
@@ -951,6 +1219,22 @@ function isPathInside(parent, child) {
 
 function ensureFinalNewline(value) {
   return value.endsWith('\n') ? value : value + '\n';
+}
+
+function addGeneratedNotice(value, sourcePath) {
+  const safeSourcePath = ('fez-static/root/' + toPosix(sourcePath))
+    .replace(/[\r\n]/g, ' ')
+    .replace(/--/g, '- -');
+  const message = 'generated from src: ' + safeSourcePath + ' | DO NOT EDIT OR READ THIS FILE';
+  const notice =
+    path.extname(sourcePath).toLowerCase() === '.js'
+      ? '// ' + message
+      : '<!-- ' + message + ' -->';
+  return notice + '\n' + value;
+}
+
+function stripTrailingWhitespace(value) {
+  return value.replace(/[ \t]+$/gm, '');
 }
 
 function toPosix(value) {

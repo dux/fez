@@ -1,0 +1,91 @@
+<!-- generated from src: fez-static/root/[blogs]/2025-08-05-preserving-dom-with-fez-keep.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A stable preservation key gave expensive or stateful DOM subtrees a clear contract with the renderer.">
+<title>fez:keep made preservation explicit - Fez</title>
+<link rel="icon" href="/demo/fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/dux/fez@main/dist/fez.js"></script>
+
+  <script fez="/demo/site.fez"></script>
+
+
+<link rel="stylesheet" href="/demo/css/full.css">
+<link rel="stylesheet" href="/demo/css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-docs site-md">
+
+        <nav class="article-nav" aria-label="Blog navigation">
+          <a href="/demo/blogs/">Back to all posts</a>
+          <div class="article-meta">
+            <span>2025-08-05</span>
+            <span>dom / identity / performance</span>
+          </div>
+        </nav>
+        <div class="commit-list" aria-label="Source commits">
+
+            <a href="https://github.com/dux/fez/commit/82b7f80" class="no-pjax" target="_blank">82b7f80</a>
+
+            <a href="https://github.com/dux/fez/commit/32c1671" class="no-pjax" target="_blank">32c1671</a>
+
+        </div>
+
+
+      <h1>fez:keep made preservation explicit</h1>
+<p>DOM morphing handles ordinary updates well, but some subtrees should not participate in diffing at all.
+An editor, map, video player, or third-party widget may own internal nodes that cannot be reconstructed from the Fez template.</p>
+<p>In August 2025, Fez added <code>fez:keep</code> as an explicit preservation contract.
+When the key remains the same, the differ keeps the existing plain element and everything inside it.
+When the key changes, the subtree can be recreated intentionally.</p>
+<p>The directive belongs on plain HTML elements, not directly on Fez component tags.
+Nested Fez components already have component-aware preservation rules.
+When a component needs a preservation boundary, a plain wrapper makes that boundary visible.</p>
+<p>The key should include every value that makes the preserved subtree obsolete.
+A constant key means &quot;never let rendering touch this again,&quot; which is correct only when the component updates that subtree itself.</p>
+<h2>Working example</h2>
+<p>This component lets an external chart own its container while the heading remains reactive.</p>
+<pre><code class="language-html">&lt;script&gt;
+  import Chart from 'https://cdn.jsdelivr.net/npm/chart.js@4/+esm'
+
+  class {
+    init() {
+      this.state.title = 'Revenue'
+    }
+
+    onMount() {
+      this.local.chart = new Chart(this.chart_node, {
+        type: 'line',
+        data: this.props.data,
+      })
+    }
+
+    onDestroy() {
+      this.local.chart?.destroy()
+    }
+  }
+&lt;/script&gt;
+
+&lt;h2&gt;{state.title}&lt;/h2&gt;
+&lt;div fez:keep=&quot;revenue-chart&quot; fez:this=&quot;chart_node&quot;&gt;&lt;/div&gt;
+</code></pre>
+<p>A change to <code>state.title</code> re-renders the component but leaves the chart's DOM untouched.
+The external instance lives in <code>this.local</code> because it is not render state.</p>
+<p><code>fez:keep</code> is not a performance charm to scatter across templates.
+It is a precise ownership declaration for the places where another system, or direct DOM code, is in charge.</p>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

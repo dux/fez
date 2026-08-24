@@ -1,0 +1,81 @@
+<!-- generated from src: fez-static/root/[blogs]/2024-07-11-escaped-html-by-default.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Escaped interpolation became the safe default, with a visible raw-HTML directive for trusted content.">
+<title>Templates escape HTML unless I explicitly opt out - Fez</title>
+<link rel="icon" href="/demo/fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/dux/fez@main/dist/fez.js"></script>
+
+  <script fez="/demo/site.fez"></script>
+
+
+<link rel="stylesheet" href="/demo/css/full.css">
+<link rel="stylesheet" href="/demo/css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-docs site-md">
+
+        <nav class="article-nav" aria-label="Blog navigation">
+          <a href="/demo/blogs/">Back to all posts</a>
+          <div class="article-meta">
+            <span>2024-07-11</span>
+            <span>templates / security / html</span>
+          </div>
+        </nav>
+        <div class="commit-list" aria-label="Source commits">
+
+            <a href="https://github.com/dux/fez/commit/5e9f72b" class="no-pjax" target="_blank">5e9f72b</a>
+
+        </div>
+
+
+      <h1>Templates escape HTML unless I explicitly opt out</h1>
+<p>Template convenience can quietly become a security policy.
+If ordinary interpolation emits raw HTML, every value carries an obligation to prove where it came from.
+That is the wrong default for application code.</p>
+<p>On July 11, Fez changed interpolation to escape HTML and added an explicit raw-HTML form.
+The syntax has evolved since then, but the contract has not.</p>
+<p>Visible friction is useful at a dangerous boundary.
+<code>{state.value}</code> should be safe for a name from a form, a title from a database, or a value returned by an API.
+When code genuinely holds sanitized markup, <code>{@html state.value}</code> makes that decision obvious during review.</p>
+<p>The raw directive is not a sanitizer.
+It is a statement that sanitization or trust has already been established elsewhere.
+Keeping those two responsibilities separate makes the component easier to reason about.</p>
+<h2>Working example</h2>
+<p>The first value is treated as text even though it contains markup.
+The second value is deliberately rendered as HTML.</p>
+<pre><code class="language-html">&lt;script&gt;
+  class {
+    init() {
+      this.state.user_text = '&lt;img src=x onerror=alert(1)&gt;'
+      this.state.trusted_html = '&lt;strong&gt;Saved successfully.&lt;/strong&gt;'
+    }
+  }
+&lt;/script&gt;
+
+&lt;p&gt;User input: {state.user_text}&lt;/p&gt;
+&lt;div class=&quot;notice&quot;&gt;{@html state.trusted_html}&lt;/div&gt;
+</code></pre>
+<p>The paragraph displays the angle brackets instead of creating an image.
+The notice creates a <code>strong</code> element because the raw directive is explicit.</p>
+<p>In production, <code>trusted_html</code> should come from a controlled template or a real HTML sanitizer.
+I do not use <code>{@html}</code> merely because a value happens to contain tags.</p>
+<p>Safe defaults are one of the few framework features that remove work rather than adding it.
+Most values stay on the ordinary path, and the exceptional path is easy to search for.</p>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

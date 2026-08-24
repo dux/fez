@@ -1,31 +1,46 @@
+<!-- generated from src: fez-static/root/index.html | DO NOT EDIT OR READ THIS FILE -->
 <!doctype html>
 <html lang="en">
   <head>
-    <title>Fez - jQuery simplicity for the component era</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Fez adds real components to the HTML your server already renders - no build step, no ownership war over the DOM, no framework rewrite. One script tag: state, a component-aware DOM differ, transitions, typed props and pjax navigation.">
-    <link rel="icon" href="./fez.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <script src="../dist/fez.js"></script>
-    <script fez="./site.fez"></script>
-    <script fez="./system.fez"></script>
-    <script fez="./system-blocks.fez"></script>
-    <script fez="./fez/ui-editor.fez"></script>
-    <script fez="./fez/ui-toast.fez"></script>
-    <script fez="./fez/ui-clock.fez"></script>
-    <script fez="./fez/ui-counter.fez"></script>
-    <script fez="./fez/ui-tags.fez"></script>
-    <script fez="./fez/ui-tip.fez"></script>
-    <link rel="stylesheet" href="./css/full.css" />
-    <link rel="stylesheet" href="./css/site.css" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Fez adds real components to the HTML your server already renders - no build step, no ownership war over the DOM, no framework rewrite.">
+<title>jQuery simplicity for the component era - Fez</title>
+<link rel="icon" href="/demo/fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/dux/fez@main/dist/fez.js"></script>
+
+  <script fez="/demo/site.fez"></script>
+
+
+  <script fez="/demo/system.fez"></script>
+
+  <script fez="/demo/system-blocks.fez"></script>
+
+  <script fez="/demo/fez/ui-editor.fez"></script>
+
+  <script fez="/demo/fez/ui-toast.fez"></script>
+
+  <script fez="/demo/fez/ui-clock.fez"></script>
+
+  <script fez="/demo/fez/ui-counter.fez"></script>
+
+  <script fez="/demo/fez/ui-tags.fez"></script>
+
+  <script fez="/demo/fez/ui-tip.fez"></script>
+
+<link rel="stylesheet" href="/demo/css/full.css">
+<link rel="stylesheet" href="/demo/css/site.css">
+
   </head>
   <body class="site">
-    <site-nav></site-nav>
+
+      <site-nav></site-nav>
 
     <main id="pjax" class="pjax">
+
       <section class="site-hero">
         <div class="site-wrap grid">
           <div>
@@ -254,7 +269,7 @@
             <div class="site-feature"><span class="glyph">&lt;ui-clock&gt;</span><h4>Native custom elements</h4><p>Standard browser API. Create a tag, put it anywhere in your HTML - server-rendered, injected, or typed into dev tools - and it just works.</p></div>
             <div class="site-feature"><span class="glyph">morph</span><h4>Component-aware differ</h4><p>Real-DOM morph, no virtual DOM. Renders are hashed so a no-op costs nothing; child components are repositioned, never re-rendered; focus, scroll, input values and running CSS animations survive.</p></div>
             <div class="site-feature"><span class="glyph">fez:in / fez:out</span><h4>Transitions built in</h4><p>fade, fly, slide, scale, pop, blur, flip, rotate, draw - plus <code>fez:animate="flip"</code> for list reorders and <code>"height"</code> for content that grows. Web Animations API, honours <code>prefers-reduced-motion</code>.</p></div>
-            <div class="site-feature"><span class="glyph">PROPS = { ... }</span><h4>Typed props</h4><p>Declare a schema and attribute strings arrive in <code>this.props</code> as numbers, booleans, arrays, dates - with defaults, <code>required</code> and <code>enum</code>. No <code>parseInt</code> by hand.</p></div>
+            <div class="site-feature"><span class="glyph">PROPS = &#123; ... }</span><h4>Typed props</h4><p>Declare a schema and attribute strings arrive in <code>this.props</code> as numbers, booleans, arrays, dates - with defaults, <code>required</code> and <code>enum</code>. No <code>parseInt</code> by hand.</p></div>
             <div class="site-feature"><span class="glyph">&lt;main class="pjax"&gt;</span><h4>Pjax navigation</h4><p>Server-rendered pages are fetched and morphed in place. History preserved, assets not re-parsed, components on the page keep their state. Partial swaps with <code>pjax-target</code>.</p></div>
             <div class="site-feature"><span class="glyph">this.state.a.b = c</span><h4>Deep reactive state</h4><p>Nested writes trigger a render, multiple writes in one tick batch into a single frame. No immutable update dance, no dependency arrays.</p></div>
             <div class="site-feature"><span class="glyph">&lt;style&gt;</span><h4>Scoped SCSS-style CSS</h4><p>Nested rules and <code>&amp;</code> flattened to plain CSS at runtime - works on browsers older than native nesting. <code>&lt;style global&gt;</code> when you mean document-wide.</p></div>
@@ -439,8 +454,10 @@
           </div>
         </div>
       </section>
+
     </main>
 
-    <site-footer></site-footer>
+      <site-footer></site-footer>
+
   </body>
 </html>

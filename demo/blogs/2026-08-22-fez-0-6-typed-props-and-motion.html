@@ -1,0 +1,98 @@
+<!-- generated from src: fez-static/root/[blogs]/2026-08-22-fez-0-6-typed-props-and-motion.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Typed PROPS, element transitions, FLIP reordering, and content-size animation rounded out the 0.6 runtime.">
+<title>Fez 0.6 added typed boundaries and native motion - Fez</title>
+<link rel="icon" href="/demo/fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/dux/fez@main/dist/fez.js"></script>
+
+  <script fez="/demo/site.fez"></script>
+
+
+<link rel="stylesheet" href="/demo/css/full.css">
+<link rel="stylesheet" href="/demo/css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-docs site-md">
+
+        <nav class="article-nav" aria-label="Blog navigation">
+          <a href="/demo/blogs/">Back to all posts</a>
+          <div class="article-meta">
+            <span>2026-08-22</span>
+            <span>release / props / transitions</span>
+          </div>
+        </nav>
+        <div class="commit-list" aria-label="Source commits">
+
+            <a href="https://github.com/dux/fez/commit/cfdb677" class="no-pjax" target="_blank">cfdb677</a>
+
+            <a href="https://github.com/dux/fez/commit/0101aba" class="no-pjax" target="_blank">0101aba</a>
+
+            <a href="https://github.com/dux/fez/commit/73d2827" class="no-pjax" target="_blank">73d2827</a>
+
+        </div>
+
+          <img class="article-hero" src="/demo/blogs/assets/2026-08-22-typed-props-motion.webp" alt="Geometric inputs passing through typed gates into moving interface cards." decoding="async" fetchpriority="high" />
+
+
+      <h1>Fez 0.6 added typed boundaries and native motion</h1>
+<p>The 0.6 work brought two concerns into the runtime that are often left to component-by-component convention: input coercion and motion lifecycle.</p>
+<p>The <code>PROPS</code> schema converts HTML strings into numbers, booleans, arrays, objects, dates, or functions before <code>init()</code> runs.
+It also supports defaults, required values, enums, transforms, and one-time state seeding.
+Bad input reports through <code>Fez.onError</code> and falls back predictably instead of throwing during connection.</p>
+<p>Transitions became declarative attributes on plain elements.
+<code>fez:in</code>, <code>fez:out</code>, and <code>fez:transition</code> connect animation to insertion and removal.
+<code>fez:animate=&quot;flip&quot;</code> covers keyed reordering, while height, width, and size animation respond to content changes through <code>ResizeObserver</code>.</p>
+<p>Both features belong near the template because both describe a boundary.
+Props define how outside data enters the component.
+Transitions define how DOM enters, leaves, and moves.</p>
+<h2>Working example</h2>
+<p>This notice coerces its duration, seeds open state from a Boolean prop, and animates removal.</p>
+<pre><code class="language-html">&lt;script&gt;
+  class {
+    PROPS = {
+      message: { type: String, required: true },
+      duration: { type: Number, default: 3000 },
+      open: { type: Boolean, state: true },
+    }
+
+    onMount() {
+      if (this.state.open) {
+        this.setTimeout(() =&gt; {
+          this.state.open = false
+        }, this.props.duration)
+      }
+    }
+  }
+&lt;/script&gt;
+
+{#if state.open}
+  &lt;aside fez:in=&quot;fly, from=right, duration=220&quot; fez:out=&quot;fade, duration=140&quot;&gt;
+    {props.message}
+  &lt;/aside&gt;
+{/if}
+</code></pre>
+<pre><code class="language-html">&lt;auto-notice message=&quot;Saved&quot; duration=&quot;1800&quot; open&gt;&lt;/auto-notice&gt;
+</code></pre>
+<p><code>duration</code> reaches the lifecycle as a number rather than a string.
+<code>open</code> seeds <code>state.open</code> once because the component owns the value after connection.
+The outro keeps the node in the DOM until its animation finishes, then the differ removes it.</p>
+<p>Fez 0.6 did not change the framework's central premise.
+It made the local component boundary more expressive while the surrounding page remained ordinary HTML.</p>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

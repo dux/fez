@@ -6,7 +6,8 @@ const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 const loadPosts = async () => {
   const posts = [];
 
-  for await (const path of new Glob("fez-static/src/blog/*.md").scan(".")) {
+  for await (const path of new Glob("fez-static/root/*/*.md").scan(".")) {
+    if (!path.startsWith("fez-static/root/[blogs]/")) continue;
     if (path.includes(".tmp.")) continue;
 
     const text = await Bun.file(path).text();
@@ -17,7 +18,7 @@ const loadPosts = async () => {
     posts.push({
       path,
       text,
-      data: { ...frontmatter, file: path.replace("fez-static/src/blog/", "") },
+      data: { ...frontmatter, file: path.replace("fez-static/root/[blogs]/", "") },
     });
   }
 
@@ -50,7 +51,7 @@ describe("blog posts", () => {
         expect(data.image).toMatch(/^assets\/[a-z0-9-]+\.webp$/);
         expect(data.image_alt).toBeString();
         expect(data.image_alt.length).toBeGreaterThan(20);
-        expect(await Bun.file(`fez-static/src/blog/${data.image}`).exists()).toBeTrue();
+        expect(await Bun.file(`fez-static/root/[blogs]/${data.image}`).exists()).toBeTrue();
       } else {
         expect(data.image_alt).toBeUndefined();
       }
@@ -68,9 +69,10 @@ describe("blog posts", () => {
       .sort();
     const assets = [];
 
-    for await (const path of new Glob("fez-static/src/blog/assets/*.webp").scan(".")) {
+    for await (const path of new Glob("fez-static/root/*/assets/*.webp").scan(".")) {
+      if (!path.startsWith("fez-static/root/[blogs]/")) continue;
       if (path.includes(".tmp.")) continue;
-      assets.push(path.replace("fez-static/src/blog/", ""));
+      assets.push(path.replace("fez-static/root/[blogs]/", ""));
     }
 
     expect(referenced).toHaveLength(6);
@@ -99,27 +101,36 @@ describe("blog posts", () => {
     expect(counts).toEqual({ 2024: 7, 2025: 10, 2026: 10 });
   });
 
-  test("keep index.json synchronized with frontmatter", async () => {
-    const posts = await loadPosts();
-    const index = await Bun.file("fez-static/src/blog/index.json").json();
-
-    expect(index).toEqual(posts.map(({ data }) => data));
+  test("leave collection indexes to the static builder", async () => {
+    expect(await Bun.file("fez-static/root/[blogs]/index.json").exists()).toBeFalse();
+    expect(await Bun.file("fez-static/root/[blogs]/index.yaml").exists()).toBeFalse();
   });
 });
 
 describe("blog demo", () => {
   test("links the blog and features without the old benchmark entry", async () => {
-    const site = await Bun.file("fez-static/src/site.fez").text();
-    const page = await Bun.file("fez-static/src/blog.html").text();
-    const blog = await Bun.file("fez-static/src/fez/site-blog.fez").text();
+    const site = await Bun.file("fez-static/root/site.fez").text();
+    const page = await Bun.file("fez-static/root/blog.html").text();
+    const layout = await Bun.file("fez-static/layouts/default.html").text();
+    const output = await Bun.file("demo/blogs/index.html").text();
+    const config = Bun.YAML.parse(await Bun.file("fez-static/config.yaml").text());
 
     expect(site).toContain("label: 'Blog'");
-    expect(site).toContain('<a href="./features.html">Features</a>');
-    expect(site).toContain('<a href="./blog.html" class="no-pjax">Blog</a>');
+    expect(config.site.fez_url).toStartWith("https://cdn.jsdelivr.net/");
+    expect(site).toContain('<a href="/demo/features.html">Features</a>');
+    expect(site).toContain('<a href="/demo/blogs/">Blog</a>');
+    expect(site).not.toContain("name: 'blogs',         label: 'Blog', full: true");
     expect(site).not.toContain("Benchmark");
-    expect(page).toContain("<site-blog></site-blog>");
-    expect(blog).toContain('class="post-card-image"');
-    expect(blog).toContain('loading="lazy"');
-    expect(blog).toContain('class="article-hero"');
+    expect(page).toContain("permalink: /blogs/");
+    expect(page).toContain("collections.blogs");
+    expect(page).toContain('class="post-card-image"');
+    expect(page).toContain('loading="lazy"');
+    expect(layout).toContain('class="article-hero"');
+    expect(layout).toContain('href="{site.base_url}/blogs/"');
+    expect(layout).not.toContain('href="{site.base_url}/blogs/" class="no-pjax"');
+    expect(await Bun.file("demo/blog.html").exists()).toBeFalse();
+    expect(output.match(/class="post-card-link/g)).toHaveLength(27);
+    expect(output).not.toContain("collections.blogs");
+    expect(await Bun.file("fez-static/root/fez/site-blog.fez").exists()).toBeFalse();
   });
 });

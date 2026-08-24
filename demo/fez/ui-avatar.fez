@@ -1,3 +1,4 @@
+<!-- generated from src: fez-static/root/fez/ui-avatar.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Avatar component with image or initials fallback</li>

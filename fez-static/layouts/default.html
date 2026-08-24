@@ -4,10 +4,31 @@
     {@include "head.html"}
   </head>
   <body class="site">
-    <main class="site-wrap site-docs">
-      <article class="site-md">
-        {@content}
-      </article>
+    {#if page.shell !== false}
+      <site-nav></site-nav>
+    {/if}
+    <main id={page.shell === false ? '' : 'pjax'} class={page.collection || page.format === 'md' ? 'pjax site-wrap site-docs site-md' : page.shell === false ? '' : 'pjax'}>
+      {#if page.collection}
+        <nav class="article-nav" aria-label="Blog navigation">
+          <a href="{site.base_url}/blogs/">Back to all posts</a>
+          <div class="article-meta">
+            <span>{page.date}</span>
+            <span>{page.tags.join(' / ')}</span>
+          </div>
+        </nav>
+        <div class="commit-list" aria-label="Source commits">
+          {#each page.commits as commit}
+            <a href="https://github.com/dux/fez/commit/{commit}" class="no-pjax" target="_blank">{commit}</a>
+          {/each}
+        </div>
+        {#if page.image}
+          <img class="article-hero" src="{site.base_url}/blogs/{page.image}" alt={page.image_alt} decoding="async" fetchpriority="high" />
+        {/if}
+      {/if}
+      {@content}
     </main>
+    {#if page.shell !== false}
+      <site-footer></site-footer>
+    {/if}
   </body>
 </html>

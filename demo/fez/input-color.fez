@@ -1,3 +1,4 @@
+<!-- generated from src: fez-static/root/fez/input-color.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Color picker input with preview swatch</li>
@@ -247,7 +248,6 @@
   <div class="color-preview" style="background-color: {state.color}"></div>
   <span class="color-value">{state.color}</span>
 </div>
-
 <div class="color-picker-popup" style="display: {state.showPicker && !props.disabled ? 'block' : 'none'};" onclick="event.stopPropagation()">
   <div class="color-palette">
     {#for row in palette}
@@ -275,4 +275,3 @@
     />
   </div>
 </div>
-

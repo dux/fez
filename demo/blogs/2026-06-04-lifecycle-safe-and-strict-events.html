@@ -1,0 +1,100 @@
+<!-- generated from src: fez-static/root/[blogs]/2026-06-04-lifecycle-safe-and-strict-events.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="this.on centralized listener cleanup, and strict event attributes made target-only interactions concise and reliable.">
+<title>Events became lifecycle-safe and optionally strict - Fez</title>
+<link rel="icon" href="/demo/fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/dux/fez@main/dist/fez.js"></script>
+
+  <script fez="/demo/site.fez"></script>
+
+
+<link rel="stylesheet" href="/demo/css/full.css">
+<link rel="stylesheet" href="/demo/css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-docs site-md">
+
+        <nav class="article-nav" aria-label="Blog navigation">
+          <a href="/demo/blogs/">Back to all posts</a>
+          <div class="article-meta">
+            <span>2026-06-04</span>
+            <span>events / lifecycle / templates</span>
+          </div>
+        </nav>
+        <div class="commit-list" aria-label="Source commits">
+
+            <a href="https://github.com/dux/fez/commit/8c2aed6" class="no-pjax" target="_blank">8c2aed6</a>
+
+            <a href="https://github.com/dux/fez/commit/c9dc412" class="no-pjax" target="_blank">c9dc412</a>
+
+            <a href="https://github.com/dux/fez/commit/f75a007" class="no-pjax" target="_blank">f75a007</a>
+
+        </div>
+
+
+      <h1>Events became lifecycle-safe and optionally strict</h1>
+<p>Event listeners are easy to add and easy to leak.
+A component that listens on <code>document</code>, <code>window</code>, or another long-lived node must remove that exact handler when it disconnects.</p>
+<p>The May 2026 work strengthened <code>this.on()</code> so it binds the instance, guards disconnected components, supports throttling, and removes listeners automatically during destruction.
+<code>onRefresh</code> also gave preserved child components a lifecycle point when a parent re-rendered around them.</p>
+<p>In June, strict event attributes added a different kind of precision.
+Appending <code>!</code> to an event attribute makes the handler run only when the element itself is the event target, then stops propagation and prevents the default action.</p>
+<p>This is particularly useful for overlays and interactive cards, where a child click should not trigger the parent's action.</p>
+<h2>Working example</h2>
+<p>The component listens for an external pjax event safely and closes only when the overlay itself is clicked.</p>
+<pre><code class="language-html">&lt;script&gt;
+  class {
+    init() {
+      this.state.open = false
+      this.state.path = location.pathname
+    }
+
+    onMount() {
+      this.on('pjax:render', (event) =&gt; {
+        this.state.path = new URL(event.detail.to, location.href).pathname
+      })
+    }
+
+    open() {
+      this.state.open = true
+    }
+
+    close() {
+      this.state.open = false
+    }
+  }
+&lt;/script&gt;
+
+&lt;button onclick=&quot;fez.open()&quot;&gt;Show current path&lt;/button&gt;
+
+{#if state.open}
+  &lt;div class=&quot;overlay&quot; onclick!=&quot;fez.close()&quot;&gt;
+    &lt;section&gt;
+      &lt;p&gt;{state.path}&lt;/p&gt;
+      &lt;button onclick=&quot;fez.close()&quot;&gt;Close&lt;/button&gt;
+    &lt;/section&gt;
+  &lt;/div&gt;
+{/if}
+</code></pre>
+<p>Clicking the section or its button does not count as clicking the overlay itself.
+The pjax listener needs no matching <code>removeEventListener</code> in <code>onDestroy()</code> because <code>this.on()</code> owns that cleanup.</p>
+<p>Event correctness is mostly lifecycle and targeting discipline.
+These APIs put both disciplines close to the code that declares the event.</p>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

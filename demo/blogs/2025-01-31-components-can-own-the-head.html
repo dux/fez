@@ -1,0 +1,89 @@
+<!-- generated from src: fez-static/root/[blogs]/2025-01-31-components-can-own-the-head.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Fez.head made external CSS, scripts, and import maps part of the component module instead of hidden page setup.">
+<title>A component can declare what it needs in the document head - Fez</title>
+<link rel="icon" href="/demo/fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/dux/fez@main/dist/fez.js"></script>
+
+  <script fez="/demo/site.fez"></script>
+
+
+<link rel="stylesheet" href="/demo/css/full.css">
+<link rel="stylesheet" href="/demo/css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-docs site-md">
+
+        <nav class="article-nav" aria-label="Blog navigation">
+          <a href="/demo/blogs/">Back to all posts</a>
+          <div class="article-meta">
+            <span>2025-01-31</span>
+            <span>dependencies / head / modules</span>
+          </div>
+        </nav>
+        <div class="commit-list" aria-label="Source commits">
+
+            <a href="https://github.com/dux/fez/commit/a151c17" class="no-pjax" target="_blank">a151c17</a>
+
+            <a href="https://github.com/dux/fez/commit/c624e73" class="no-pjax" target="_blank">c624e73</a>
+
+        </div>
+
+
+      <h1>A component can declare what it needs in the document head</h1>
+<p>Reusable components often arrive with an awkward second set of instructions.
+Copy this tag into the page head, load this stylesheet first, and make sure another version of the same library is not already present.</p>
+<p>At the end of January 2025, I added <code>Fez.head()</code> so those requirements could live beside the component that owns them.
+The runtime deduplicates the resulting head entries, which means multiple instances do not multiply the same stylesheet or import map.</p>
+<p>Dependency declarations belong at module level, before the component class.
+They are evaluated when the <code>.fez</code> module loads, while instance lifecycle stays inside the class.
+That distinction keeps shared setup from running once per tag.</p>
+<p>This was also early groundwork for component blocks and import support.
+A <code>.fez</code> file was becoming more than a template fragment.
+It was becoming the complete delivery unit for one piece of interface.</p>
+<h2>Working example</h2>
+<p>This editor component declares an import map and external theme before importing its module.</p>
+<pre><code class="language-html">&lt;script&gt;
+  Fez.head({
+    importmap: {
+      'nanoid': 'https://esm.sh/nanoid@5',
+    },
+  })
+
+  Fez.head({
+    css: 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
+  })
+
+  import { nanoid } from 'nanoid'
+
+  class {
+    init() {
+      this.state.document_id = nanoid()
+    }
+  }
+&lt;/script&gt;
+
+&lt;p&gt;&lt;i class=&quot;fa-solid fa-file&quot;&gt;&lt;/i&gt; Document: &lt;code&gt;{state.document_id}&lt;/code&gt;&lt;/p&gt;
+</code></pre>
+<p>The class remains the final item in the script block.
+Imports and <code>Fez.head()</code> calls stay above it because they belong to the shared module, not to an individual component instance.</p>
+<p>This arrangement makes a component honest about its dependencies.
+Opening one file is enough to see both what it renders and what it asks the page to load.</p>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

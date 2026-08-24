@@ -1,0 +1,89 @@
+<!-- generated from src: fez-static/root/[blogs]/2025-06-26-unless-understands-empty-collections.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Fez added a practical empty-state block whose truthiness rules match the way interface data is actually shaped.">
+<title>Unless understands empty collections - Fez</title>
+<link rel="icon" href="/demo/fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/dux/fez@main/dist/fez.js"></script>
+
+  <script fez="/demo/site.fez"></script>
+
+
+<link rel="stylesheet" href="/demo/css/full.css">
+<link rel="stylesheet" href="/demo/css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-docs site-md">
+
+        <nav class="article-nav" aria-label="Blog navigation">
+          <a href="/demo/blogs/">Back to all posts</a>
+          <div class="article-meta">
+            <span>2025-06-26</span>
+            <span>templates / empty-states / collections</span>
+          </div>
+        </nav>
+        <div class="commit-list" aria-label="Source commits">
+
+            <a href="https://github.com/dux/fez/commit/e04f498" class="no-pjax" target="_blank">e04f498</a>
+
+        </div>
+
+
+      <h1>Unless understands empty collections</h1>
+<p>Empty states are common enough that their syntax should not fight the data model.
+JavaScript considers <code>[]</code> and <code>{}</code> truthy, but an interface usually considers them empty.</p>
+<p>In June 2025, Fez added <code>unless</code> and defined collection-aware truthiness for its template blocks.
+An empty array, an empty object, <code>null</code>, <code>undefined</code>, <code>false</code>, <code>0</code>, and an empty string all take the empty branch.</p>
+<p>This is intentionally a template rule rather than a change to JavaScript itself.
+Inside methods, ordinary JavaScript semantics still apply.
+Inside a rendering condition, Fez answers the more useful UI question: is there anything to show?</p>
+<p>The rule also applies consistently to <code>if</code> and <code>else if</code> blocks.
+Consistency matters more than the particular spelling because it prevents every component from inventing its own <code>items &amp;&amp; items.length</code> guard.</p>
+<h2>Working example</h2>
+<p>The fallback renders for <code>[]</code> without an extra length check.</p>
+<pre><code class="language-html">&lt;script&gt;
+  class {
+    init() {
+      this.state.notifications = []
+    }
+
+    add() {
+      this.state.notifications.push({
+        id: Date.now(),
+        text: 'Build completed',
+      })
+    }
+  }
+&lt;/script&gt;
+
+&lt;button onclick=&quot;fez.add()&quot;&gt;Add notification&lt;/button&gt;
+
+{#unless state.notifications}
+  &lt;p&gt;You are all caught up.&lt;/p&gt;
+{/unless}
+
+{#each state.notifications as notification}
+  &lt;p key={notification.id}&gt;{notification.text}&lt;/p&gt;
+{/each}
+</code></pre>
+<p>Before the first click, the array is present but empty, so the empty-state message appears.
+After the push, deep state reactivity schedules a render and the notification replaces it.</p>
+<p>Small template semantics like this rarely headline a framework release.
+They do, however, determine whether everyday component code stays readable after the demo is over.</p>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

@@ -57,7 +57,10 @@ It requires Bun 1.3.8 or newer for the native Markdown renderer.
 Inside this repository, the same commands can be called directly through `./bin/fez-static`.
 
 ```bash
-# Build ./fez-static/src into the configured target (./build by default)
+# Create a starter with one page, two posts, navigation, and a footer
+fez static init
+
+# Build ./fez-static/root into the configured target (./build by default)
 fez static
 fez static build
 
@@ -83,8 +86,10 @@ my-site/
 |   |   `-- post.html
 |   |-- parts/
 |   |   `-- header.html
-|   `-- src/
-|       |-- blog/
+|   `-- root/
+|       |-- [blogs]/
+|       |   |-- first-post.md
+|       |   `-- second-post.html
 |       |-- index.html
 |       `-- about.md
 `-- build/
@@ -94,6 +99,7 @@ Markdown and HTML pages share YAML front matter.
 Pages without `layout` use `fez-static/layouts/default.html` automatically.
 Use `layout: false` for an unwrapped page, or name another layout with `layout: post`.
 Layouts can declare parent layouts.
+Layouts and parts may use `.html` or `.md`.
 
 ```yaml
 ---
@@ -135,13 +141,20 @@ Pass one parameters object; its values are available through `include`:
 <strong class={include.kind}>{include.label}</strong>
 ```
 
-Templates receive `site`, `page`, `collections.posts`, and `include`.
-Files under `blog/` are exposed as `collections.posts` and sorted newest first.
-Non-page files under `src` are copied with their source-relative paths.
+Templates receive `site`, `page`, `collections`, and `include`.
+A bracketed directory declares a collection: files under `root/[blogs]/` are exposed as `collections.blogs` and sorted newest first.
+The brackets are removed from public paths, so posts build under `build/blogs/`.
+Each collection gets a generated `index.yaml` containing its published page metadata.
+Assets inside a collection are copied to the same bracket-free output path but are not collection entries.
+Non-page files under `root` keep their root-relative paths.
 Use `permalink` to override a page route.
-For an existing complete HTML document that must pass through unchanged, set both `layout: false` and `render: false` in its front matter.
+For an existing complete HTML document whose body must pass through without rendering, set both `layout: false` and `render: false` in its front matter.
+Every generated HTML and Fez file starts with `<!-- generated from src: fez-static/root/PATH | DO NOT EDIT OR READ THIS FILE -->`, including unrendered HTML pages.
+JavaScript files use the equivalent `// generated from src: fez-static/root/PATH | DO NOT EDIT OR READ THIS FILE` notice; all other assets are copied unchanged.
 
-`fez-static/config.yaml` is optional. `target` is relative to the project root and defaults to `build`; values under `site` are exposed to templates:
+Configuration is optional.
+Fez loads `fez-static/config.yaml` first and falls back to `fez-static/config.json`.
+`target` is relative to the project root and defaults to `build`; values under `site` are exposed to templates:
 
 ```yaml
 target: demo
@@ -149,12 +162,19 @@ target: demo
 site:
   title: Fez
   description: JavaScript DOM components framework
+
+collections:
+  blogs:
+    layout: post
 ```
+
+Collection configuration is optional.
+Use it to provide a default layout for pages in a bracketed collection; page front matter can still override that layout.
 
 The builder writes through a staging directory and replaces the target only after every page renders successfully.
 Missing layouts or parts, output collisions, recursive includes, recursive layouts, dynamic include paths, and source-escaping paths fail the build.
 
-This repository uses root `fez-static/` as its source and generates `demo/`.
+This repository uses `fez-static/root/` as its publish root and generates `demo/`.
 
 ## Why Fez is Simpler
 

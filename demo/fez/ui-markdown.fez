@@ -1,3 +1,4 @@
+<!-- generated from src: fez-static/root/fez/ui-markdown.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Render Markdown as HTML instantly</li>
@@ -27,7 +28,7 @@ I am **markdown** from Fez custom component called `<ui-markdown>`, created inli
   import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
 
   class {
-    
+
     init(props) {
       let text = props.html || this.root.innerHTML;
       this.root.classList.add('markdown');

@@ -1,0 +1,100 @@
+<!-- generated from src: fez-static/root/[blogs]/2025-01-25-owning-the-template-compiler.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Replacing the early renderer gave Fez control over template semantics, errors, and the cost of each render.">
+<title>Fez began owning its template compiler - Fez</title>
+<link rel="icon" href="/demo/fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/dux/fez@main/dist/fez.js"></script>
+
+  <script fez="/demo/site.fez"></script>
+
+
+<link rel="stylesheet" href="/demo/css/full.css">
+<link rel="stylesheet" href="/demo/css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-docs site-md">
+
+        <nav class="article-nav" aria-label="Blog navigation">
+          <a href="/demo/blogs/">Back to all posts</a>
+          <div class="article-meta">
+            <span>2025-01-25</span>
+            <span>templates / compiler / rendering</span>
+          </div>
+        </nav>
+        <div class="commit-list" aria-label="Source commits">
+
+            <a href="https://github.com/dux/fez/commit/16f9420" class="no-pjax" target="_blank">16f9420</a>
+
+            <a href="https://github.com/dux/fez/commit/9a6dc92" class="no-pjax" target="_blank">9a6dc92</a>
+
+            <a href="https://github.com/dux/fez/commit/6915b94" class="no-pjax" target="_blank">6915b94</a>
+
+            <a href="https://github.com/dux/fez/commit/4cce741" class="no-pjax" target="_blank">4cce741</a>
+
+        </div>
+
+          <img class="article-hero" src="/demo/blogs/assets/2025-01-25-template-compiler.webp" alt="A compact compiler machine arranging loose tokens into structured component blocks." decoding="async" fetchpriority="high" />
+
+
+      <h1>Fez began owning its template compiler</h1>
+<p>The early Fez prototypes moved through existing template engines quickly.
+That was useful while the component model was still changing, but it also meant the most central part of the runtime obeyed someone else's grammar and tradeoffs.</p>
+<p>In January 2025, I replaced that path with a Fez template compiler and optimized the generated render functions.
+Owning the compiler meant Fez could define collection truthiness, component-specific attributes, event transformation, and useful compile errors as one coherent language.</p>
+<p>This was not about inventing syntax for its own sake.
+A small runtime benefits from reducing the number of semantic layers a developer has to keep in mind.
+The same compiler can understand a loop, preserve a keyed node, register an event, and tell the DOM differ what identity means.</p>
+<p>The compiler has since adopted the current Svelte-like surface syntax.
+The important milestone was taking responsibility for the semantics underneath it.</p>
+<h2>Working example</h2>
+<p>The compiler turns conditions and loops into a render function before the component updates the DOM.</p>
+<pre><code class="language-html">&lt;script&gt;
+  class {
+    init() {
+      this.state.filter = 'all'
+      this.state.visible = []
+      this.state.tasks = [
+        { id: 1, title: 'Compile template', done: true },
+        { id: 2, title: 'Morph DOM', done: false },
+      ]
+    }
+
+    beforeRender() {
+      this.state.visible = this.state.filter === 'all'
+        ? this.state.tasks
+        : this.state.tasks.filter(task =&gt; task.done)
+    }
+  }
+&lt;/script&gt;
+
+{#if state.visible.length}
+  &lt;ul&gt;
+    {#each state.visible as task}
+      &lt;li key={task.id}&gt;{task.title}&lt;/li&gt;
+    {/each}
+  &lt;/ul&gt;
+{:else}
+  &lt;p&gt;No matching tasks.&lt;/p&gt;
+{/if}
+</code></pre>
+<p><code>beforeRender()</code> computes derived state, while the template remains a readable description of the output.
+Keys and block structure are known to Fez at compile time instead of being reconstructed from string conventions later.</p>
+<p>Once the compiler belonged to Fez, later additions such as await blocks, strict events, transitions, and typed render slots could grow from the same foundation.</p>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

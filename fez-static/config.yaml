@@ -3,3 +3,7 @@ target: demo
 site:
   title: Fez
   description: JavaScript DOM components framework
+  base_url: /demo
+  fez_url: https://cdn.jsdelivr.net/gh/dux/fez@main/dist/fez.js
+  components:
+    - /demo/site.fez

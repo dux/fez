@@ -1,3 +1,4 @@
+<!-- generated from src: fez-static/root/fez/bubble-alerter.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Event bubbling demo - child events bubble up to parent components</li>

@@ -1,0 +1,100 @@
+<!-- generated from src: fez-static/root/[blogs]/2026-01-30-await-blocks-and-self-documenting-components.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Promises gained visible loading and error states while info and demo blocks made each .fez file explain and demonstrate itself.">
+<title>Await blocks and documentation moved into the component - Fez</title>
+<link rel="icon" href="/demo/fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/dux/fez@main/dist/fez.js"></script>
+
+  <script fez="/demo/site.fez"></script>
+
+
+<link rel="stylesheet" href="/demo/css/full.css">
+<link rel="stylesheet" href="/demo/css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-docs site-md">
+
+        <nav class="article-nav" aria-label="Blog navigation">
+          <a href="/demo/blogs/">Back to all posts</a>
+          <div class="article-meta">
+            <span>2026-01-30</span>
+            <span>async / documentation / demos</span>
+          </div>
+        </nav>
+        <div class="commit-list" aria-label="Source commits">
+
+            <a href="https://github.com/dux/fez/commit/088cf99" class="no-pjax" target="_blank">088cf99</a>
+
+            <a href="https://github.com/dux/fez/commit/803b9ee" class="no-pjax" target="_blank">803b9ee</a>
+
+            <a href="https://github.com/dux/fez/commit/50f469c" class="no-pjax" target="_blank">50f469c</a>
+
+        </div>
+
+
+      <h1>Await blocks and documentation moved into the component</h1>
+<p>Asynchronous state is not only a resolved value.
+It is pending, fulfilled, or rejected, and hiding those states in method bookkeeping makes a component harder to read.</p>
+<p>At the end of January 2026, Fez added await blocks.
+A promise can stay in state, and the template can describe all three outcomes where they render.
+Reassigning a promise naturally returns the component to its loading branch.</p>
+<p>The same period added <code>&lt;info&gt;</code> and <code>&lt;demo&gt;</code> blocks to the component format.
+That put explanation, example usage, source, and implementation in one file.
+The Fez component index could then power documentation pages without maintaining parallel demo HTML.</p>
+<p>These features share a theme: important component states and knowledge should remain visible beside the component.</p>
+<h2>Working example</h2>
+<p>This complete file documents itself and handles the request lifecycle directly in the template.</p>
+<pre><code class="language-html">&lt;info&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Loads one user and renders pending, success, and error states.&lt;/li&gt;
+    &lt;li&gt;Prop: &lt;code&gt;user_id&lt;/code&gt;.&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/info&gt;
+
+&lt;demo&gt;
+  &lt;user-summary user_id=&quot;42&quot;&gt;&lt;/user-summary&gt;
+&lt;/demo&gt;
+
+&lt;script&gt;
+  class {
+    PROPS = {
+      user_id: { type: Number, required: true },
+    }
+
+    init(props) {
+      this.state.user = Fez.fetch(`/api/users/${props.user_id}`)
+    }
+  }
+&lt;/script&gt;
+
+{#await state.user}
+  &lt;p&gt;Loading user...&lt;/p&gt;
+{:then user}
+  &lt;h2&gt;{user.name}&lt;/h2&gt;
+  &lt;p&gt;{user.email}&lt;/p&gt;
+{:catch error}
+  &lt;p&gt;Could not load user: {error.message}&lt;/p&gt;
+{/await}
+</code></pre>
+<p>The promise is assigned directly.
+Using <code>await</code> inside <code>init()</code> would discard the pending state before the template saw it.</p>
+<p>The demo system can render the <code>&lt;demo&gt;</code> block and show the <code>&lt;info&gt;</code> block from this same source file.
+Documentation stays close enough to the implementation that changing one without noticing the other becomes difficult.</p>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

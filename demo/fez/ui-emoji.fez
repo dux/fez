@@ -1,3 +1,4 @@
+<!-- generated from src: fez-static/root/fez/ui-emoji.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Searchable emoji picker with categorized tabs</li>
@@ -152,7 +153,7 @@
   }
 
   class {
-    
+
     init(props) {
       this.props = props || {}
       this.state.selectedEmoji = props.value || '😀'

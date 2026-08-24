@@ -73,7 +73,7 @@
     "prepublishOnly": "bun run build && bun run test",
     "release": "bun publish --access public",
     "refactor": "bun bin/fez-refactor",
-    "index": "ls fez-static/src/fez/*.fez | xargs -n1 basename | sed 's/\\.fez$//' | sort | sed 's/^/fez\\//' > fez-static/src/fez.txt",
+    "index": "ls fez-static/root/fez/*.fez | xargs -n1 basename | sed 's/\\.fez$//' | sort | sed 's/^/fez\\//' > fez-static/root/fez.txt",
     "static": "bun bin/fez-static build",
     "vscode:lint": "node --check vscode/src/extension.js",
     "vscode:test": "node --check vscode/src/extension.js",
