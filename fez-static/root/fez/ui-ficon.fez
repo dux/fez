@@ -255,6 +255,7 @@
 
     createSvgIcon(paths, viewBox = '0 0 256 256') {
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
       svg.setAttribute('viewBox', viewBox)
       svg.setAttribute('fill', 'currentColor')
       svg.setAttribute('width', '36')
@@ -280,6 +281,7 @@
 
     createTextIcon(text) {
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
       svg.setAttribute('viewBox', '0 0 256 256')
       svg.setAttribute('width', '36')
       svg.setAttribute('height', '36')
@@ -322,51 +324,52 @@
       return svg
     }
 
-    init(props) {
-      let icon
+    paint(props) {
+      if (!this.root) return
 
       const ext = this.getExtension(props.ext)
-      if (!ext) return
+      if (!ext) {
+        this.root.replaceChildren()
+        return
+      }
 
-      // Get icon data, checking aliases first
       let iconKey = ext
       if (iconAliases.has(ext)) {
         iconKey = iconAliases.get(ext)
       }
 
       const data = iconData.get(iconKey)
-
-      if (data) {
-        // Create SVG with icon paths
-        icon = this.createSvgIcon(data.paths)
-
-        // Apply color - use prop color or default color
-        const color = props.color || data.color
-        icon.style.color = color
-
-        // Apply title - use prop title or default title
-        const title = props.title || data.title
-        icon.setAttribute('title', title)
-
-        // Copy attributes to the icon
-        if (props.class) icon.classList.add(props.class)
-        if (props.style) icon.setAttribute('style', (icon.getAttribute('style') || '') + '; ' + props.style)
-      } else {
-        // Create text icon for unknown extensions
-        icon = this.createTextIcon(ext)
-
-        // Apply color and title
-        const color = props.color || '#64748B'
-        const title = props.title || `${ext.toUpperCase()} File`
-        icon.style.color = color
-        icon.setAttribute('title', title)
-
-        // Copy attributes
-        if (props.class) icon.classList.add(props.class)
-        if (props.style) icon.setAttribute('style', (icon.getAttribute('style') || '') + '; ' + props.style)
+      const icon = data ? this.createSvgIcon(data.paths) : this.createTextIcon(ext)
+      icon.style.color = props.color || data?.color || '#64748B'
+      icon.setAttribute('title', props.title || data?.title || `${ext.toUpperCase()} File`)
+      if (props.class) icon.classList.add(props.class)
+      if (props.style) {
+        icon.setAttribute('style', (icon.getAttribute('style') || '') + '; ' + props.style)
       }
 
-      this.dissolve(icon)
+      this.root.replaceChildren(icon)
+    }
+
+    init(props) {
+      this.paint(props)
+    }
+
+    onPropsChange() {
+      this.paint(this.props)
+    }
+
+    onRefresh(props) {
+      this.paint(props)
     }
   }
 </script>
+
+<style>
+  display: inline-flex;
+  vertical-align: middle;
+  line-height: 0;
+
+  svg {
+    display: block;
+  }
+</style>

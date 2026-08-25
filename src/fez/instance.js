@@ -1065,23 +1065,21 @@ export default class FezBase {
       inNode.classList.add(`fez-${this.fezName}`);
       inNode.fez = this;
       if (this.attr("id")) inNode.setAttribute("id", this.attr("id"));
-
-      this.root.innerHTML = "";
-      this.root.appendChild(inNode);
+      this.root.replaceChildren(inNode);
     }
 
     const node = this.root;
-    const nodes = this.childNodes();
-    const parent = this.root.parentNode;
-
-    nodes.reverse().forEach((el) => parent.insertBefore(el, node.nextSibling));
-
-    this.root.remove();
-    this.root = undefined;
-
-    if (inNode) {
-      this.root = inNode;
+    const parent = node.parentNode;
+    // Prefer the node just inserted. childNodes() returns the pre-connect
+    // slot snapshot (_fezChildNodes), which is empty for tags like <ui-ficon>
+    // and would drop the icon while still removing the wrapper.
+    const nodes = inNode ? [inNode] : this.childNodes();
+    if (parent) {
+      nodes.slice().reverse().forEach((el) => parent.insertBefore(el, node.nextSibling));
     }
+
+    node.remove();
+    this.root = inNode || undefined;
 
     return nodes;
   }
