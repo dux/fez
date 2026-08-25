@@ -20,7 +20,8 @@
   collection: blogs
   layout: default
   url: /blogs/2026-08-22-fez-0-6-typed-props-and-motion.html
-  href: /demo/blogs/2026-08-22-fez-0-6-typed-props-and-motion.html
+  href: /blogs/2026-08-22-fez-0-6-typed-props-and-motion.html
+  base: ../
   source_path: "[blogs]/2026-08-22-fez-0-6-typed-props-and-motion.md"
 - title: Pjax joined the Fez runtime
   description: "Bundling the former dux-pjax package connected server-rendered navigation with Fez's component-aware DOM morphing."
@@ -44,7 +45,8 @@
   collection: blogs
   layout: default
   url: /blogs/2026-08-20-pjax-joins-the-runtime.html
-  href: /demo/blogs/2026-08-20-pjax-joins-the-runtime.html
+  href: /blogs/2026-08-20-pjax-joins-the-runtime.html
+  base: ../
   source_path: "[blogs]/2026-08-20-pjax-joins-the-runtime.md"
 - title: Style scope became explicit on the tag
   description: "Fez removed its CSS-in-JS dependency and made scoped, global, nested, and hoisted CSS behavior part of its own compiler."
@@ -67,7 +69,8 @@
   collection: blogs
   layout: default
   url: /blogs/2026-08-10-explicit-style-scoping.html
-  href: /demo/blogs/2026-08-10-explicit-style-scoping.html
+  href: /blogs/2026-08-10-explicit-style-scoping.html
+  base: ../
   source_path: "[blogs]/2026-08-10-explicit-style-scoping.md"
 - title: Component identity stopped depending on sibling position
   description: "Source signatures and explicit keys made component preservation reliable when lists insert, remove, or reorder children."
@@ -88,7 +91,8 @@
   collection: blogs
   layout: default
   url: /blogs/2026-07-11-component-identity-during-morphs.html
-  href: /demo/blogs/2026-07-11-component-identity-during-morphs.html
+  href: /blogs/2026-07-11-component-identity-during-morphs.html
+  base: ../
   source_path: "[blogs]/2026-07-11-component-identity-during-morphs.md"
 - title: Events became lifecycle-safe and optionally strict
   description: "this.on centralized listener cleanup, and strict event attributes made target-only interactions concise and reliable."
@@ -110,7 +114,8 @@
   collection: blogs
   layout: default
   url: /blogs/2026-06-04-lifecycle-safe-and-strict-events.html
-  href: /demo/blogs/2026-06-04-lifecycle-safe-and-strict-events.html
+  href: /blogs/2026-06-04-lifecycle-safe-and-strict-events.html
+  base: ../
   source_path: "[blogs]/2026-06-04-lifecycle-safe-and-strict-events.md"
 - title: "Editor tooling arrived, and slots learned to disappear"
   description: VS Code support improved authoring while slot unwrap let semantic wrappers remain exactly where the component design intended.
@@ -131,7 +136,8 @@
   collection: blogs
   layout: default
   url: /blogs/2026-04-28-editor-tooling-and-slot-unwrap.html
-  href: /demo/blogs/2026-04-28-editor-tooling-and-slot-unwrap.html
+  href: /blogs/2026-04-28-editor-tooling-and-slot-unwrap.html
+  base: ../
   source_path: "[blogs]/2026-04-28-editor-tooling-and-slot-unwrap.md"
 - title: Fez replaced Idiomorph with its own DOM differ
   description: "Owning the differ let Fez preserve component identity, slots, refs, and render hashes according to its own lifecycle rules."
@@ -153,7 +159,8 @@
   collection: blogs
   layout: default
   url: /blogs/2026-03-30-owning-the-dom-differ.html
-  href: /demo/blogs/2026-03-30-owning-the-dom-differ.html
+  href: /blogs/2026-03-30-owning-the-dom-differ.html
+  base: ../
   source_path: "[blogs]/2026-03-30-owning-the-dom-differ.md"
 - title: Await blocks and documentation moved into the component
   description: Promises gained visible loading and error states while info and demo blocks made each .fez file explain and demonstrate itself.
@@ -175,7 +182,8 @@
   collection: blogs
   layout: default
   url: /blogs/2026-01-30-await-blocks-and-self-documenting-components.html
-  href: /demo/blogs/2026-01-30-await-blocks-and-self-documenting-components.html
+  href: /blogs/2026-01-30-await-blocks-and-self-documenting-components.html
+  base: ../
   source_path: "[blogs]/2026-01-30-await-blocks-and-self-documenting-components.md"
 - title: Fez adopted Svelte-like templates without adopting Svelte
   description: "A familiar block syntax improved readability while Fez kept its own compiler, runtime, and DOM ownership model."
@@ -197,7 +205,8 @@
   collection: blogs
   layout: default
   url: /blogs/2026-01-22-svelte-like-templates-without-svelte.html
-  href: /demo/blogs/2026-01-22-svelte-like-templates-without-svelte.html
+  href: /blogs/2026-01-22-svelte-like-templates-without-svelte.html
+  base: ../
   source_path: "[blogs]/2026-01-22-svelte-like-templates-without-svelte.md"
 - title: The CLI started validating the component format
   description: "Compile and refactor commands turned Fez's browser compiler knowledge into dependable local and CI feedback."
@@ -218,7 +227,8 @@
   collection: blogs
   layout: default
   url: /blogs/2026-01-20-a-cli-for-the-component-format.html
-  href: /demo/blogs/2026-01-20-a-cli-for-the-component-format.html
+  href: /blogs/2026-01-20-a-cli-for-the-component-format.html
+  base: ../
   source_path: "[blogs]/2026-01-20-a-cli-for-the-component-format.md"
 - title: Shared state stayed observable and debuggable
   description: "Global pub/sub, state subscriptions, dump helpers, and CSS mixins expanded coordination without hiding it behind a store framework."
@@ -240,7 +250,8 @@
   collection: blogs
   layout: default
   url: /blogs/2025-09-11-debuggable-shared-state.html
-  href: /demo/blogs/2025-09-11-debuggable-shared-state.html
+  href: /blogs/2025-09-11-debuggable-shared-state.html
+  base: ../
   source_path: "[blogs]/2025-09-11-debuggable-shared-state.md"
 - title: fez:keep made preservation explicit
   description: A stable preservation key gave expensive or stateful DOM subtrees a clear contract with the renderer.
@@ -261,7 +272,8 @@
   collection: blogs
   layout: default
   url: /blogs/2025-08-05-preserving-dom-with-fez-keep.html
-  href: /demo/blogs/2025-08-05-preserving-dom-with-fez-keep.html
+  href: /blogs/2025-08-05-preserving-dom-with-fez-keep.html
+  base: ../
   source_path: "[blogs]/2025-08-05-preserving-dom-with-fez-keep.md"
 - title: The Fez toolchain became native Bun
   description: Removing the Ruby builder and publishing the package made compilation and indexing available from one JavaScript toolchain.
@@ -284,7 +296,8 @@
   collection: blogs
   layout: default
   url: /blogs/2025-08-01-a-native-bun-toolchain.html
-  href: /demo/blogs/2025-08-01-a-native-bun-toolchain.html
+  href: /blogs/2025-08-01-a-native-bun-toolchain.html
+  base: ../
   source_path: "[blogs]/2025-08-01-a-native-bun-toolchain.md"
 - title: ES modules moved inside the component file
   description: Module-context imports let a .fez file declare external behavior without a second bootstrap script.
@@ -305,7 +318,8 @@
   collection: blogs
   layout: default
   url: /blogs/2025-07-27-es-modules-inside-fez-components.html
-  href: /demo/blogs/2025-07-27-es-modules-inside-fez-components.html
+  href: /blogs/2025-07-27-es-modules-inside-fez-components.html
+  base: ../
   source_path: "[blogs]/2025-07-27-es-modules-inside-fez-components.md"
 - title: Global components and Fez.fetch covered page-level services
   description: "Singleton components and a cached request helper made dialogs, data panels, and other page-level services straightforward."
@@ -326,7 +340,8 @@
   collection: blogs
   layout: default
   url: /blogs/2025-07-23-global-components-and-fez-fetch.html
-  href: /demo/blogs/2025-07-23-global-components-and-fez-fetch.html
+  href: /blogs/2025-07-23-global-components-and-fez-fetch.html
+  base: ../
   source_path: "[blogs]/2025-07-23-global-components-and-fez-fetch.md"
 - title: "State, props, and init became the component vocabulary"
   description: Fez simplified template access and settled on init as the lifecycle entry point for instance state.
@@ -347,7 +362,8 @@
   collection: blogs
   layout: default
   url: /blogs/2025-07-15-state-props-and-init.html
-  href: /demo/blogs/2025-07-15-state-props-and-init.html
+  href: /blogs/2025-07-15-state-props-and-init.html
+  base: ../
   source_path: "[blogs]/2025-07-15-state-props-and-init.md"
 - title: Unless understands empty collections
   description: Fez added a practical empty-state block whose truthiness rules match the way interface data is actually shaped.
@@ -367,7 +383,8 @@
   collection: blogs
   layout: default
   url: /blogs/2025-06-26-unless-understands-empty-collections.html
-  href: /demo/blogs/2025-06-26-unless-understands-empty-collections.html
+  href: /blogs/2025-06-26-unless-understands-empty-collections.html
+  base: ../
   source_path: "[blogs]/2025-06-26-unless-understands-empty-collections.md"
 - title: A Fez component became loadable by URL
   description: URL loading made a .fez file a portable component artifact that a page can consume without a local build pipeline.
@@ -388,7 +405,8 @@
   collection: blogs
   layout: default
   url: /blogs/2025-06-19-loading-fez-components-by-url.html
-  href: /demo/blogs/2025-06-19-loading-fez-components-by-url.html
+  href: /blogs/2025-06-19-loading-fez-components-by-url.html
+  base: ../
   source_path: "[blogs]/2025-06-19-loading-fez-components-by-url.md"
 - title: A component can declare what it needs in the document head
   description: "Fez.head made external CSS, scripts, and import maps part of the component module instead of hidden page setup."
@@ -409,7 +427,8 @@
   collection: blogs
   layout: default
   url: /blogs/2025-01-31-components-can-own-the-head.html
-  href: /demo/blogs/2025-01-31-components-can-own-the-head.html
+  href: /blogs/2025-01-31-components-can-own-the-head.html
+  base: ../
   source_path: "[blogs]/2025-01-31-components-can-own-the-head.md"
 - title: Fez began owning its template compiler
   description: "Replacing the early renderer gave Fez control over template semantics, errors, and the cost of each render."
@@ -434,7 +453,8 @@
   collection: blogs
   layout: default
   url: /blogs/2025-01-25-owning-the-template-compiler.html
-  href: /demo/blogs/2025-01-25-owning-the-template-compiler.html
+  href: /blogs/2025-01-25-owning-the-template-compiler.html
+  base: ../
   source_path: "[blogs]/2025-01-25-owning-the-template-compiler.md"
 - title: Components needed local styles and durable slots
   description: "Style scoping, slot preservation, and binding work turned isolated demos into components that could live safely on real pages."
@@ -456,7 +476,8 @@
   collection: blogs
   layout: default
   url: /blogs/2024-07-17-scoped-styles-slots-and-bindings.html
-  href: /demo/blogs/2024-07-17-scoped-styles-slots-and-bindings.html
+  href: /blogs/2024-07-17-scoped-styles-slots-and-bindings.html
+  base: ../
   source_path: "[blogs]/2024-07-17-scoped-styles-slots-and-bindings.md"
 - title: Pub/sub made components cooperate without coupling
   description: The first substantial demos arrived with a small event model for communication within and across component trees.
@@ -477,7 +498,8 @@
   collection: blogs
   layout: default
   url: /blogs/2024-07-14-pub-sub-and-real-components.html
-  href: /demo/blogs/2024-07-14-pub-sub-and-real-components.html
+  href: /blogs/2024-07-14-pub-sub-and-real-components.html
+  base: ../
   source_path: "[blogs]/2024-07-14-pub-sub-and-real-components.md"
 - title: Templates escape HTML unless I explicitly opt out
   description: "Escaped interpolation became the safe default, with a visible raw-HTML directive for trusted content."
@@ -497,7 +519,8 @@
   collection: blogs
   layout: default
   url: /blogs/2024-07-11-escaped-html-by-default.html
-  href: /demo/blogs/2024-07-11-escaped-html-by-default.html
+  href: /blogs/2024-07-11-escaped-html-by-default.html
+  base: ../
   source_path: "[blogs]/2024-07-11-escaped-html-by-default.md"
 - title: Rendering became component-aware DOM morphing
   description: "Fez moved from replacing HTML to morphing it, preserving useful browser and component state across renders."
@@ -517,7 +540,8 @@
   collection: blogs
   layout: default
   url: /blogs/2024-07-08-component-aware-dom-morphing.html
-  href: /demo/blogs/2024-07-08-component-aware-dom-morphing.html
+  href: /blogs/2024-07-08-component-aware-dom-morphing.html
+  base: ../
   source_path: "[blogs]/2024-07-08-component-aware-dom-morphing.md"
 - title: Reactivity needs a direct route back to the DOM
   description: Reactive state and fez:this arrived together because useful components need both declarative rendering and precise DOM access.
@@ -537,7 +561,8 @@
   collection: blogs
   layout: default
   url: /blogs/2024-07-01-reactivity-and-dom-references.html
-  href: /demo/blogs/2024-07-01-reactivity-and-dom-references.html
+  href: /blogs/2024-07-01-reactivity-and-dom-references.html
+  base: ../
   source_path: "[blogs]/2024-07-01-reactivity-and-dom-references.md"
 - title: CDE became Fez
   description: "Renaming the project clarified that it was a small component layer for real pages, not another abstract element system."
@@ -557,7 +582,8 @@
   collection: blogs
   layout: default
   url: /blogs/2024-06-14-cde-became-fez.html
-  href: /demo/blogs/2024-06-14-cde-became-fez.html
+  href: /blogs/2024-06-14-cde-became-fez.html
+  base: ../
   source_path: "[blogs]/2024-06-14-cde-became-fez.md"
 - title: Fez started with the DOM
   description: "The first version established the rule that still matters most: enhance the page the server rendered instead of taking it over."
@@ -580,5 +606,6 @@
   collection: blogs
   layout: default
   url: /blogs/2024-06-10-fez-started-with-the-dom.html
-  href: /demo/blogs/2024-06-10-fez-started-with-the-dom.html
+  href: /blogs/2024-06-10-fez-started-with-the-dom.html
+  base: ../
   source_path: "[blogs]/2024-06-10-fez-started-with-the-dom.md"

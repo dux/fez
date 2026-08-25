@@ -25,8 +25,8 @@ fez static init
 
 ## Base-aware URLs
 
-Set `site.base_url` when the generated site is hosted below the domain root.
-Use `url(path)` for assets and navigation, or use the base-aware `page.href` attached to every page and collection entry.
+Leave `site.base_url` unset and put `<base href={page.base}>` in the layout. `url(path)` then emits paths relative to the generated site root, so the same files work locally and on GitHub Pages.
+Set `site.base_url` only when you want absolute site paths instead.
 
 ```html
 <a href={url("/")}>Home</a>

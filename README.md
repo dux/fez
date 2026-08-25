@@ -142,8 +142,9 @@ Pass one parameters object; its values are available through `include`:
 ```
 
 Templates receive `site`, `page`, `collections`, `include`, and the `url(path)` helper.
-`url(path)` prefixes root-relative paths with `site.base_url`, preserves relative and external URLs, and never adds the prefix twice.
-Every page also exposes `page.href`, which is the base-aware form of `page.url`.
+With no `site.base_url`, `url(path)` emits paths relative to the generated site root (`css/site.css`, `blogs/post.html`). Put `<base href={page.base}>` in the layout so those paths resolve from every nested page. The same files then work at `/demo/` locally and `/fez/demo/` on GitHub Pages, with no extra config.
+If `site.base_url` is set, `url(path)` prefixes that value onto root-relative paths instead.
+Every page also exposes `page.href` (the prefixed form of `page.url`) and `page.base` (the relative href for `<base>`).
 
 ```html
 <a href={url("/")}>Home</a>
@@ -171,7 +172,6 @@ target: demo
 site:
   title: Fez
   description: JavaScript DOM components framework
-  base_url: /demo
 
 copy:
   "../dist/main.min.js": "./assets/main.min.js"
@@ -195,8 +195,8 @@ A file maps to one exact target path; a source directory copies its contents rec
 Copy targets are relative to the generated target, copied bytes are unchanged, and copied sources participate in watch mode.
 Missing sources, symbolic links, scratch files, unsafe paths, and output collisions fail the build.
 
-`fez static doctor` renders into a temporary target and checks internal `href`, `src`, `srcset`, and fragment references.
-Root-relative references must include `site.base_url`; use `url(path)` or `page.href` to produce them safely.
+`fez static doctor` renders into a temporary target and checks internal `href`, `src`, `srcset`, and fragment references, including those resolved through `<base href>`.
+Use `url(path)` or `page.href` for internal links. When `site.base_url` is set, root-relative references must include it.
 External and protocol URLs are ignored.
 Add `data-fez-static-ignore` to an element when an intentional client-side route has no generated file.
 

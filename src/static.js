@@ -189,6 +189,7 @@ export function initStaticSite(options = {}) {
       '<!doctype html>',
       '<html lang="en">',
       '  <head>',
+      '    <base href={page.base}>',
       '    <meta charset="UTF-8">',
       '    <meta name="viewport" content="width=device-width, initial-scale=1.0">',
       '    <meta name="description" content={page.description || site.description}>',
@@ -356,7 +357,9 @@ export async function watchStaticSite(options = {}, callbacks = {}) {
 }
 
 export function serveStaticSite(options = {}) {
-  const { outputDir, config } = resolveStaticPaths(options);
+  const paths = resolveStaticPaths(options);
+  const { config } = paths;
+  const served = resolveServeRoot(paths);
   const liveReload = options.liveReload === true;
   const port = Number(options.port || 3000);
   if (!Number.isInteger(port) || port < 0 || port > 65535) {
@@ -393,9 +396,20 @@ export function serveStaticSite(options = {}) {
         });
       }
 
+      const prefix = config.serve_prefix;
+      if (prefix) {
+        if (pathname === prefix || pathname.startsWith(prefix + '/')) {
+          pathname = pathname.slice(prefix.length) || '/';
+        } else {
+          const location =
+            prefix + (pathname === '/' ? (config.site.base_url || '') + '/' : pathname);
+          return Response.redirect(new URL(location, request.url), 302);
+        }
+      }
+
       const filePath = findServedFile(
-        outputDir,
-        stripStaticBaseUrl(pathname, config.site.base_url),
+        served.dir,
+        served.stripBase ? stripStaticBaseUrl(pathname, config.site.base_url) : pathname,
       );
       if (!filePath) {
         return new Response('Not found', { status: 404 });
@@ -583,9 +597,12 @@ function readStaticConfig(configFile) {
     site: {
       ...(config.site || {}),
       base_url: normalizeStaticBaseUrl(config.site?.base_url),
+      relative_urls: config.site?.relative_urls === true,
     },
     collections: config.collections || {},
     copy: config.copy || {},
+    serve_root: normalizeServeRoot(config.serve_root),
+    serve_prefix: normalizeStaticBaseUrl(config.serve_prefix),
   };
 }
 
@@ -873,8 +890,17 @@ function toPublicPage(page, baseUrl) {
     layout: page.layout,
     url: page.url,
     href: staticUrl(baseUrl, page.url),
+    base: pageBaseHref(page.outputPath),
     source_path: page.sourcePath,
   };
+}
+
+function pageBaseHref(outputPath) {
+  const directory = path.posix.dirname(toPosix(outputPath));
+  if (!directory || directory === '.') {
+    return './';
+  }
+  return directory.split('/').filter(Boolean).map(() => '..').join('/') + '/';
 }
 
 function compareCollectionPages(left, right) {
@@ -968,6 +994,84 @@ function staticUrl(baseUrl, value) {
   return baseUrl + source;
 }
 
+function rootRelativeUrl(value) {
+  if (value == null) {
+    return '';
+  }
+  const source = String(value);
+  if (!source.startsWith('/') || source.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(source)) {
+    return source;
+  }
+  const rest = source.slice(1);
+  return rest === '' ? './' : rest;
+}
+
+function pageRelativeUrl(fromPageUrl, toUrl) {
+  const hashIndex = String(toUrl).search(/[?#]/);
+  const toPath = hashIndex === -1 ? String(toUrl) : String(toUrl).slice(0, hashIndex);
+  const suffix = hashIndex === -1 ? '' : String(toUrl).slice(hashIndex);
+  const fromDir = fromPageUrl.endsWith('/')
+    ? fromPageUrl
+    : fromPageUrl.slice(0, fromPageUrl.lastIndexOf('/') + 1);
+  const fromParts = fromDir.split('/').filter(Boolean);
+  const toIsDir = toPath.endsWith('/');
+  const toParts = toPath.split('/').filter(Boolean);
+
+  let shared = 0;
+  while (
+    shared < fromParts.length &&
+    shared < toParts.length &&
+    fromParts[shared] === toParts[shared]
+  ) {
+    shared += 1;
+  }
+
+  const segments = [...Array(fromParts.length - shared).fill('..'), ...toParts.slice(shared)];
+  let relative = segments.join('/');
+  if (!relative) {
+    relative = toIsDir ? './' : '.';
+  } else if (toIsDir && !relative.endsWith('/')) {
+    relative += '/';
+  }
+  return relative + suffix;
+}
+
+function normalizeServeRoot(value) {
+  if (value == null || value === '') {
+    return '';
+  }
+  if (typeof value !== 'string') {
+    throw new Error('Static serve_root must be a string');
+  }
+  const source = value.trim();
+  if (!source || source.split(/[\\/]/).includes('..')) {
+    throw new Error('Static serve_root must be a path inside the project');
+  }
+  return source;
+}
+
+function resolveServeRoot(paths) {
+  const configured = paths.config.serve_root;
+  if (!configured) {
+    return { dir: paths.outputDir, stripBase: true };
+  }
+  const dir = path.resolve(paths.rootDir, configured);
+  if (dir !== paths.rootDir && !isPathInside(paths.rootDir, dir)) {
+    throw new Error('Static serve_root must remain inside the project root: ' + configured);
+  }
+  try {
+    if (!fs.statSync(dir).isDirectory()) {
+      throw new Error('Static serve_root is not a directory: ' + configured);
+    }
+  } catch (error) {
+    if (error.message.startsWith('Static serve_root')) {
+      throw error;
+    }
+    throw new Error('Static serve_root not found: ' + configured);
+  }
+  return { dir, stripBase: dir === paths.outputDir };
+}
+
 function normalizeDate(value) {
   if (value == null || value === '') {
     return null;
@@ -1046,6 +1150,7 @@ function validateStaticOutput(outputDir, baseUrl) {
     const html = fs.readFileSync(absolutePath, 'utf8');
     documents.set(path.resolve(absolutePath), {
       anchors: extractStaticAnchors(html),
+      baseHref: extractStaticBaseHref(html),
       outputPath,
       references: extractStaticReferences(html),
     });
@@ -1071,6 +1176,10 @@ function validateStaticReference(reference, document, documents, outputDir, base
   if (!value || value.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(value)) {
     return null;
   }
+  // <script fez="ui-clock"> names a component; only file paths are checked.
+  if (reference.attribute === 'fez' && !value.includes('/') && !value.includes('.')) {
+    return null;
+  }
   const absolutePath = value.split(/[?#]/, 1)[0];
   if (
     baseUrl &&
@@ -1092,7 +1201,9 @@ function validateStaticReference(reference, document, documents, outputDir, base
   let resolved;
   try {
     const pageUrl = staticUrl(baseUrl, outputPathUrl(document.outputPath));
-    resolved = new URL(value, 'https://fez-static.invalid' + pageUrl);
+    const fallback = 'https://fez-static.invalid' + pageUrl;
+    const origin = document.baseHref ? new URL(document.baseHref, fallback) : fallback;
+    resolved = new URL(value, origin);
   } catch {
     return document.outputPath + ' has an invalid URL in ' + reference.attribute + ': ' + value;
   }
@@ -1126,6 +1237,16 @@ function validateStaticReference(reference, document, documents, outputDir, base
     return document.outputPath + ' links to missing fragment: ' + value;
   }
   return null;
+}
+
+function extractStaticBaseHref(html) {
+  const match = html.match(/<base\b[^>]*>/i);
+  if (!match) {
+    return '';
+  }
+  const attributes = parseStaticAttributes(match[0].replace(/^<base/i, '').replace(/\/?>$/, ''));
+  const href = attributes.get('href');
+  return href == null ? '' : decodeStaticAttribute(href).trim();
 }
 
 function extractStaticReferences(html) {
@@ -1203,7 +1324,7 @@ function staticReferenceAttributes(tag) {
     return ['src', 'poster'];
   }
   if (['audio', 'embed', 'iframe', 'input', 'script', 'track'].includes(tag)) {
-    return ['src'];
+    return tag === 'script' ? ['src', 'fez'] : ['src'];
   }
   return [];
 }
@@ -1250,7 +1371,28 @@ function staticDoctorError(errors) {
 
 function createRenderContext(site, collections, page) {
   const includes = [];
-  const url = (value) => staticUrl(site.base_url, value);
+  const url = (value) => {
+    if (site.relative_urls) {
+      if (value == null) {
+        return '';
+      }
+      const source = String(value);
+      if (!source.startsWith('/') || source.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(source)) {
+        return source;
+      }
+      const pathname = source.split(/[?#]/, 1)[0];
+      const inSite =
+        site.base_url &&
+        (pathname === site.base_url || pathname.startsWith(site.base_url + '/'))
+          ? pathname.slice(site.base_url.length) || '/'
+          : pathname;
+      return pageRelativeUrl(page.url, inSite + source.slice(pathname.length));
+    }
+    if (site.base_url) {
+      return staticUrl(site.base_url, value);
+    }
+    return rootRelativeUrl(value);
+  };
   const staticFez = {
     ...STATIC_FEZ,
     staticInclude(partPath, values = {}) {

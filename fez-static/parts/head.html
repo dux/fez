@@ -2,16 +2,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content={page.description || site.description}>
 <title>{page.title} - {site.title}</title>
-<link rel="icon" href="{site.base_url}/fez.png">
+<link rel="icon" href={url('/fez.png')}>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src={site.fez_url}></script>
 {#each site.components as component}
-  <script fez={component}></script>
+  <script fez={url(component)}></script>
 {/each}
 {#each page.components as component}
-  <script fez={component}></script>
+  <script fez={url(component)}></script>
 {/each}
-<link rel="stylesheet" href="{site.base_url}/css/full.css">
-<link rel="stylesheet" href="{site.base_url}/css/site.css">
+<link rel="stylesheet" href={url('/css/full.css')}>
+<link rel="stylesheet" href={url('/css/site.css')}>

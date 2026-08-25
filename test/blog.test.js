@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import path from "node:path";
 import { Glob } from "bun";
+import { doctorStaticSite } from "../src/static.js";
 
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 
@@ -118,8 +120,13 @@ describe("blog demo", () => {
     expect(site).toContain("label: 'Blog'");
     expect(config.site.fez_url).toStartWith("https://cdn.jsdelivr.net/");
     expect(config.collections.blogs.required).toEqual(["title", "description", "date"]);
-    expect(site).toContain('<a href="/demo/features.html">Features</a>');
-    expect(site).toContain('<a href="/demo/blogs/">Blog</a>');
+    expect(config.site.base_url).toBeUndefined();
+    expect(config.serve_root).toBeUndefined();
+    expect(config.serve_prefix).toBeUndefined();
+    expect(site).toContain('<a href="features.html">Features</a>');
+    expect(site).toContain('<a href="blogs/">Blog</a>');
+    expect(output).toContain('href="');
+    expect(layout).toContain('<base href={page.base}>');
     expect(site).not.toContain("name: 'blogs',         label: 'Blog', full: true");
     expect(site).not.toContain("Benchmark");
     expect(page).toContain("permalink: /blogs/");
@@ -127,11 +134,17 @@ describe("blog demo", () => {
     expect(page).toContain('class="post-card-image"');
     expect(page).toContain('loading="lazy"');
     expect(layout).toContain('class="article-hero"');
-    expect(layout).toContain('href="{site.base_url}/blogs/"');
-    expect(layout).not.toContain('href="{site.base_url}/blogs/" class="no-pjax"');
+    expect(layout).toContain("href={url('/blogs/')}");
+    expect(layout).not.toContain("href={url('/blogs/')} class=\"no-pjax\"");
     expect(await Bun.file("demo/blog.html").exists()).toBeFalse();
     expect(output.match(/class="post-card-link/g)).toHaveLength(27);
     expect(output).not.toContain("collections.blogs");
     expect(await Bun.file("fez-static/root/fez/site-blog.fez").exists()).toBeFalse();
+  });
+
+  test("doctor accepts the relocatable demo site", async () => {
+    await expect(doctorStaticSite({ root: process.cwd() })).resolves.toMatchObject({
+      outputDir: path.join(process.cwd(), "demo"),
+    });
   });
 });

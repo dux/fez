@@ -13,10 +13,10 @@ permalink: /blogs/
   <p class="post-count">{collections.blogs.length} posts / newest first</p>
   <div class="post-list">
     {#each collections.blogs as post}
-      <a class="post-card-link no-pjax" href="{site.base_url}{post.url}">
+      <a class="post-card-link no-pjax" href={url(post.url)}>
         <article class={post.image ? 'post-card has-image' : 'post-card'}>
           {#if post.image}
-            <img class="post-card-image" src="{site.base_url}/blogs/{post.image}" alt={post.image_alt} loading="lazy" decoding="async" />
+            <img class="post-card-image" src={url('/blogs/' + post.image)} alt={post.image_alt} loading="lazy" decoding="async" />
           {/if}
           <div class="post-card-body">
             <time class="post-date" datetime={post.date}>{post.date}</time>

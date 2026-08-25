@@ -351,6 +351,108 @@ describe('fez static', () => {
       'outside base_url /preview',
     );
 
+    const wrongFez = createSite();
+    write(wrongFez, 'fez-static/config.yaml', 'site:\n  base_url: /preview\n');
+    write(
+      wrongFez,
+      'fez-static/root/index.html',
+      lines(['---', 'layout: false', '---', '<script fez="/other.fez"></script>']),
+    );
+    await expect(doctorStaticSite({ root: wrongFez })).rejects.toThrow(
+      'outside base_url /preview',
+    );
+
+    const namedFez = createSite();
+    write(
+      namedFez,
+      'fez-static/root/index.html',
+      lines(['---', 'layout: false', '---', '<script fez="ui-clock"></script>']),
+    );
+    await expect(doctorStaticSite({ root: namedFez })).resolves.toMatchObject({ pages: 1 });
+  });
+
+  test('emits build-root URLs with page.base so nested pages share one prefix', async () => {
+    const root = createSite();
+    write(
+      root,
+      'fez-static/layouts/default.html',
+      lines([
+        '<base href={page.base}>',
+        '<link rel="stylesheet" href={url("/app.css")}>',
+        '<a href={url("/")}>Home</a>',
+        '<script fez={url("/app.fez")}></script>',
+        '<main>{@content}</main>',
+      ]),
+    );
+    write(root, 'fez-static/root/index.html', '<h1>Home</h1>\n');
+    write(
+      root,
+      'fez-static/root/nested.html',
+      lines(['---', 'permalink: /deep/page/', '---', '<p>Deep</p>']),
+    );
+    write(root, 'fez-static/root/app.css', 'body{}\n');
+    write(root, 'fez-static/root/app.fez', '<p>Hi</p>\n');
+
+    await buildStaticSite({ root });
+    expect(read(root, 'build/index.html')).toContain('<base href="./">');
+    expect(read(root, 'build/index.html')).toContain('href="app.css"');
+    expect(read(root, 'build/index.html')).toContain('fez="app.fez"');
+    expect(read(root, 'build/deep/page/index.html')).toContain('<base href="../../">');
+    expect(read(root, 'build/deep/page/index.html')).toContain('href="app.css"');
+    expect(read(root, 'build/deep/page/index.html')).toContain('fez="app.fez"');
+    await expect(doctorStaticSite({ root })).resolves.toMatchObject({ pages: 2 });
+  });
+
+  test('emits page-relative URLs and serves from a parent document root', async () => {
+    const root = createSite();
+    write(
+      root,
+      'fez-static/config.yaml',
+      lines([
+        'target: public',
+        'serve_root: .',
+        'serve_prefix: /repo',
+        'site:',
+        '  base_url: /public',
+        '  relative_urls: true',
+      ]),
+    );
+    write(
+      root,
+      'fez-static/layouts/default.html',
+      lines([
+        '<link rel="stylesheet" href={url("/app.css")}>',
+        '<a href={url("/")}>Home</a>',
+        '<main>{@content}</main>',
+      ]),
+    );
+    write(root, 'fez-static/root/index.html', '<h1>Home</h1>\n');
+    write(
+      root,
+      'fez-static/root/nested.html',
+      lines(['---', 'permalink: /deep/page/', '---', '<p>Deep</p>']),
+    );
+    write(root, 'fez-static/root/app.css', 'body{}\n');
+
+    await buildStaticSite({ root });
+    expect(read(root, 'public/index.html')).toContain('href="app.css"');
+    expect(read(root, 'public/index.html')).toContain('href="./"');
+    expect(read(root, 'public/deep/page/index.html')).toContain('href="../../app.css"');
+    expect(read(root, 'public/deep/page/index.html')).toContain('href="../../"');
+    await expect(doctorStaticSite({ root })).resolves.toMatchObject({ pages: 2 });
+
+    const server = serveStaticSite({ root, port: '0' });
+    try {
+      expect((await fetch(new URL('/repo/public/', server.url))).status).toBe(200);
+      expect((await fetch(new URL('/repo/public/app.css', server.url))).status).toBe(200);
+      expect((await fetch(new URL('/repo/public/deep/page/', server.url))).status).toBe(200);
+      const redirected = await fetch(new URL('/public/', server.url), { redirect: 'manual' });
+      expect(redirected.status).toBe(302);
+      expect(redirected.headers.get('location')).toContain('/repo/public/');
+    } finally {
+      server.stop(true);
+    }
+
     const missingMetadata = createSite();
     write(
       missingMetadata,

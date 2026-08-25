@@ -110,7 +110,8 @@ Rules:
 * Collection pages are sorted newest first, `config.collections.<name>.layout` may set their default layout, and `config.collections.<name>.required` lists metadata fields checked by `fez static doctor`.
 * `draft: true` pages are omitted unless `--drafts` is passed.
 * HTML pages, layouts, and includes use Fez template syntax with `site`, `page`, `collections`, `include`, and `url(path)`.
-* `url(path)` prefixes root-relative paths with normalized `site.base_url`; every public page also exposes the base-aware `page.href` while `page.url` remains the unprefixed route.
+* `url(path)` emits site-root-relative paths when `site.base_url` is unset (`css/app.css`); set `base_url` to prefix absolute site paths instead. Every page exposes `page.base` for `<base href={page.base}>`, plus `page.href` / `page.url`.
+* `site.relative_urls`, `serve_root`, and `serve_prefix` are optional serving helpers; this demo site does not need them.
 * Markdown braces are not evaluated, so documented Fez templates remain literal.
 * `{@content}` inserts the page or child layout.
 * `{@include "name.html"}` resolves from `fez-static/parts` and may be nested.

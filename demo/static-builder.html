@@ -2,21 +2,22 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <base href="./">
     <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Build Markdown and HTML sites with Fez templates.">
 <title>Fez Static - Fez</title>
-<link rel="icon" href="/demo/fez.png">
+<link rel="icon" href="fez.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/gh/dux/fez@main/dist/fez.js"></script>
 
-  <script fez="/demo/site.fez"></script>
+  <script fez="site.fez"></script>
 
 
-<link rel="stylesheet" href="/demo/css/full.css">
-<link rel="stylesheet" href="/demo/css/site.css">
+<link rel="stylesheet" href="css/full.css">
+<link rel="stylesheet" href="css/site.css">
 
   </head>
   <body class="site">
@@ -37,8 +38,8 @@ For example, <code>root/[blogs]/</code> is available to templates as <code>colle
 <pre><code class="language-bash">fez static init
 </code></pre>
 <h2>Base-aware URLs</h2>
-<p>Set <code>site.base_url</code> when the generated site is hosted below the domain root.
-Use <code>url(path)</code> for assets and navigation, or use the base-aware <code>page.href</code> attached to every page and collection entry.</p>
+<p>Leave <code>site.base_url</code> unset and put <code>&lt;base href={page.base}&gt;</code> in the layout. <code>url(path)</code> then emits paths relative to the generated site root, so the same files work locally and on GitHub Pages.
+Set <code>site.base_url</code> only when you want absolute site paths instead.</p>
 <pre><code class="language-html">&lt;a href={url(&quot;/&quot;)}&gt;Home&lt;/a&gt;
 &lt;a href={page.href}&gt;{page.title}&lt;/a&gt;
 &lt;script src={url(&quot;/assets/app.js&quot;)}&gt;&lt;/script&gt;

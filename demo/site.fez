@@ -7,14 +7,14 @@
       init() {
         this.state.path = this.currentPage()
         this.state.links = [
-          { href: '/demo/index.html',     name: 'index.html',    label: 'Home' },
-          { href: '/demo/features.html',  name: 'features.html', label: 'Features' },
-          { href: '/demo/blogs/',         name: 'blogs',         label: 'Blog' },
-          { href: '/demo/examples.html',  name: 'examples.html', label: 'Examples' },
+          { href: 'index.html',     name: 'index.html',    label: 'Home' },
+          { href: 'features.html',  name: 'features.html', label: 'Features' },
+          { href: 'blogs/',         name: 'blogs',         label: 'Blog' },
+          { href: 'examples.html',  name: 'examples.html', label: 'Examples' },
           // the playground is a full-viewport app without a pjax container - plain navigation
-          { href: '/demo/playground.html', label: 'Playground', full: true },
-          { href: '/demo/docs.html',      name: 'docs.html',     label: 'Docs' },
-          { href: '/demo/electron.html',  name: 'electron.html', label: 'Electron' },
+          { href: 'playground.html', label: 'Playground', full: true },
+          { href: 'docs.html',      name: 'docs.html',     label: 'Docs' },
+          { href: 'electron.html',  name: 'electron.html', label: 'Electron' },
           { href: 'https://github.com/dux/fez', label: 'GitHub', ext: true },
         ]
       }
@@ -34,8 +34,8 @@
   </script>
 
   <div class="site-wrap">
-    <a class="brand" href="/demo/index.html">
-      <img src="/demo/fez.png" alt="" />
+    <a class="brand" href="index.html">
+      <img src="fez.png" alt="" />
       <span class="brand-copy">
         <strong>Fez</strong>
         <small>DOM / single-page / no-compile components</small>
@@ -67,8 +67,8 @@
   <div class="site-wrap">
     <span>Fez - jQuery simplicity for the component era. One script tag, no build step.</span>
     <span class="spacer"></span>
-    <a href="/demo/features.html">Features</a>
-    <a href="/demo/blogs/">Blog</a>
+    <a href="features.html">Features</a>
+    <a href="blogs/">Blog</a>
     <a href="https://github.com/dux/fez">GitHub</a>
     <a href="https://www.npmjs.com/package/@dinoreic/fez">npm</a>
     <a href="https://github.com/dux/fez/blob/main/AGENTS.md">AGENTS.md</a>
@@ -154,6 +154,8 @@
 
       init() {
         this.state.items = []
+        const name = location.pathname.replace(/\/+$/, '').split('/').pop() || 'index.html'
+        this.state.file = name.includes('.') ? name : 'index.html'
       }
 
       onMount() {
@@ -186,7 +188,7 @@
 
   <div class="site-toc">
     {#each state.items as item}
-      <a href="#{item.id}" class="{item.level} {item.id == state.active ? 'active' : ''}">{item.text}</a>
+      <a href="{state.file}#{item.id}" class="{item.level} {item.id == state.active ? 'active' : ''}">{item.text}</a>
     {/each}
   </div>
 </xmp>
