@@ -118,7 +118,9 @@ describe("blog demo", () => {
     const config = Bun.YAML.parse(await Bun.file("fez-static/config.yaml").text());
 
     expect(site).toContain("label: 'Blog'");
-    expect(config.site.fez_url).toStartWith("https://cdn.jsdelivr.net/");
+    expect(config.site.fez_url).toBe("fez.min.js");
+    expect(config.copy["../dist/fez.min.js"]).toBe("fez.min.js");
+    expect(config.copy["../dist/fez.min.js.map"]).toBe("fez.min.js.map");
     expect(config.collections.blogs.required).toEqual(["title", "description", "date"]);
     expect(config.site.base_url).toBeUndefined();
     expect(config.serve_root).toBeUndefined();

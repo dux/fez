@@ -7,6 +7,19 @@ import {
 } from '../src/fez/lib/source-parser.js';
 
 describe('Fez source parser', () => {
+  test('removes generated source notices from template HTML', () => {
+    const parsed =
+      parseFezSource(`<!-- generated from src: fez-static/root/fez/ui-label.fez | DO NOT EDIT OR READ THIS FILE -->
+<script>
+  NAME = 'span'
+</script>`);
+
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.script).toContain("NAME = 'span'");
+    expect(parsed.html.trim()).toBe('');
+    expect(parseFezSource('<!-- authored comment -->').html).toBe('<!-- authored comment -->');
+  });
+
   test('preserves normal header elements in template HTML', () => {
     const parsed = parseFezSource(`<header>
   <p>{state.title}</p>

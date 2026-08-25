@@ -23,7 +23,6 @@ const opts = {
   bundle: true,
   platform: 'browser',
   sourcemap: kind != 'd',
-  minify: true,
   plugins: []
 }
 
@@ -43,6 +42,11 @@ if (kind === 'w') {
 else if (kind === 'b') {
   cliRun(`bun run index`)
   await esbuild.build(opts)
+  await esbuild.build({
+    ...opts,
+    entryNames: '[name].min',
+    minify: true
+  })
 }
 else {
   console.error('ERROR: OPT w|b not selected')

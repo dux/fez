@@ -3,9 +3,13 @@ target: demo
 site:
   title: Fez
   description: JavaScript DOM components framework
-  fez_url: https://cdn.jsdelivr.net/gh/dux/fez@main/dist/fez.js
+  fez_url: fez.min.js
   components:
     - /site.fez
+
+copy:
+  "../dist/fez.min.js": "fez.min.js"
+  "../dist/fez.min.js.map": "fez.min.js.map"
 
 collections:
   blogs:
