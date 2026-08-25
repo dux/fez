@@ -1,0 +1,19 @@
+{
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/bower_components": true,
+    "**/*.code-search": true,
+    "**/tmp": true,
+    ".history/*": true,
+    "build/*": true,
+    "dist/*": true,
+    "dist": true,
+    "dist/**": true,
+    ".vscode": true,
+    ".vscode/**": true,
+    ".claude": true,
+    ".claude/**": true,
+    "demo": true,
+    "demo/**": true
+  }
+}
