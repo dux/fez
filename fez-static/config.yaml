@@ -7,3 +7,7 @@ site:
   fez_url: https://cdn.jsdelivr.net/gh/dux/fez@main/dist/fez.js
   components:
     - /demo/site.fez
+
+collections:
+  blogs:
+    required: [title, description, date]

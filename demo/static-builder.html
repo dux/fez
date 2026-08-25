@@ -36,6 +36,31 @@ For example, <code>root/[blogs]/</code> is available to templates as <code>colle
 <p>Start a new site with one page, two Markdown posts, navigation, and a footer:</p>
 <pre><code class="language-bash">fez static init
 </code></pre>
+<h2>Base-aware URLs</h2>
+<p>Set <code>site.base_url</code> when the generated site is hosted below the domain root.
+Use <code>url(path)</code> for assets and navigation, or use the base-aware <code>page.href</code> attached to every page and collection entry.</p>
+<pre><code class="language-html">&lt;a href={url(&quot;/&quot;)}&gt;Home&lt;/a&gt;
+&lt;a href={page.href}&gt;{page.title}&lt;/a&gt;
+&lt;script src={url(&quot;/assets/app.js&quot;)}&gt;&lt;/script&gt;
+</code></pre>
+<h2>Copy external build artifacts</h2>
+<p>The <code>copy</code> map brings files or directory trees from outside <code>fez-static/root</code> into the generated target.
+Sources resolve from <code>fez-static</code>, destinations resolve inside the target, and copied files remain unchanged.</p>
+<pre><code class="language-yaml">copy:
+  &quot;../dist/main.min.js&quot;: &quot;./assets/main.min.js&quot;
+  &quot;../public&quot;: &quot;./vendor&quot;
+</code></pre>
+<h2>Validate before publishing</h2>
+<p><code>fez static doctor</code> renders without replacing the target and checks required metadata, internal links, fragments, referenced assets, and <code>base_url</code> usage.
+Collection requirements live beside the collection layout configuration.</p>
+<pre><code class="language-yaml">collections:
+  blogs:
+    layout: post
+    required: [title, description, date]
+</code></pre>
+<p>Use <code>data-fez-static-ignore</code> on an intentional client-side link that has no generated target.</p>
+<h2>Develop with reload</h2>
+<p><code>fez static dev</code> watches the site and configured copy sources, serves the target, and reloads connected browser pages after each successful build.</p>
 
     </main>
 

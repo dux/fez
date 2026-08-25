@@ -64,10 +64,10 @@ fez static init
 fez static
 fez static build
 
-# Build, watch, and serve during development
+# Build, watch, serve, and reload the browser after successful builds
 fez static dev
 
-# Validate a complete build without publishing it
+# Validate a complete build, metadata, links, fragments, and assets without publishing it
 fez static doctor
 
 # Serve the existing target, or remove it
@@ -141,7 +141,16 @@ Pass one parameters object; its values are available through `include`:
 <strong class={include.kind}>{include.label}</strong>
 ```
 
-Templates receive `site`, `page`, `collections`, and `include`.
+Templates receive `site`, `page`, `collections`, `include`, and the `url(path)` helper.
+`url(path)` prefixes root-relative paths with `site.base_url`, preserves relative and external URLs, and never adds the prefix twice.
+Every page also exposes `page.href`, which is the base-aware form of `page.url`.
+
+```html
+<a href={url("/")}>Home</a>
+<a href={page.href}>{page.title}</a>
+<script src={url("/assets/app.js")}></script>
+```
+
 A bracketed directory declares a collection: files under `root/[blogs]/` are exposed as `collections.blogs` and sorted newest first.
 The brackets are removed from public paths, so posts build under `build/blogs/`.
 Each collection gets a generated `index.yaml` containing its published page metadata.
@@ -162,17 +171,38 @@ target: demo
 site:
   title: Fez
   description: JavaScript DOM components framework
+  base_url: /demo
+
+copy:
+  "../dist/main.min.js": "./assets/main.min.js"
+  "../public": "./vendor"
 
 collections:
   blogs:
     layout: post
+    required:
+      - title
+      - description
+      - date
 ```
 
 Collection configuration is optional.
 Use it to provide a default layout for pages in a bracketed collection; page front matter can still override that layout.
+The optional `required` list is checked by `fez static doctor` against the final page metadata, including inferred titles and filename dates.
+
+Copy sources are relative to `fez-static`, may live outside `fez-static/root`, and must remain inside the project root.
+A file maps to one exact target path; a source directory copies its contents recursively into the mapped target directory.
+Copy targets are relative to the generated target, copied bytes are unchanged, and copied sources participate in watch mode.
+Missing sources, symbolic links, scratch files, unsafe paths, and output collisions fail the build.
+
+`fez static doctor` renders into a temporary target and checks internal `href`, `src`, `srcset`, and fragment references.
+Root-relative references must include `site.base_url`; use `url(path)` or `page.href` to produce them safely.
+External and protocol URLs are ignored.
+Add `data-fez-static-ignore` to an element when an intentional client-side route has no generated file.
 
 The builder writes through a staging directory and replaces the target only after every page renders successfully.
-Missing layouts or parts, output collisions, recursive includes, recursive layouts, dynamic include paths, and source-escaping paths fail the build.
+Missing layouts or parts, output collisions, recursive includes, recursive layouts, dynamic include paths, and unsafe paths fail the build.
+`fez static dev` injects a development-only reload client and refreshes connected pages after each successful rebuild.
 
 This repository uses `fez-static/root/` as its publish root and generates `demo/`.
 

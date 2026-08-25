@@ -6,6 +6,7 @@ import {
   cleanStaticSite,
   doctorStaticSite,
   initStaticSite,
+  reloadStaticSiteClients,
   serveStaticSite,
   watchStaticSite,
 } from '../src/static.js';
@@ -53,10 +54,10 @@ if (values.help) {
       '',
       'Commands:',
       '  build            Generate the static site',
-      '  dev              Build, watch, and serve with no-store caching',
+      '  dev              Build, watch, serve, and reload connected browsers',
       '  serve            Serve the existing target without rebuilding',
       '  clean            Remove the generated target directory',
-      '  doctor           Validate a complete build without publishing it',
+      '  doctor           Validate build output and links without publishing it',
       '  init             Create a starter site without overwriting existing files',
       '',
       'Options:',
@@ -94,11 +95,17 @@ try {
     const result = initStaticSite(options);
     console.log('Created ' + result.siteDir + ' with ' + result.files + ' files');
   } else if (command === 'dev') {
+    let server = null;
     const watcher = await watchStaticSite(options, {
-      onBuild: printBuild,
+      onBuild(result) {
+        printBuild(result);
+        if (server) {
+          reloadStaticSiteClients(server);
+        }
+      },
       onError: printWatchError,
     });
-    const server = serveStaticSite(options);
+    server = serveStaticSite({ ...options, liveReload: true });
     console.log('Serving ' + server.url);
     await waitUntilStopped(() => {
       watcher.close();
@@ -126,7 +133,7 @@ try {
     console.log('Run locally: fez static serve');
   }
 } catch (error) {
-  fail(firstLine(error.message));
+  fail(error.message);
 }
 
 function printBuild(result) {
@@ -144,7 +151,7 @@ function printBuild(result) {
 }
 
 function printWatchError(error) {
-  console.error('fez static: ' + firstLine(error.message));
+  console.error('fez static: ' + error.message);
 }
 
 function waitUntilStopped(close) {

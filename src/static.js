@@ -9,6 +9,9 @@ const RAW_REGION_PATTERN =
   /(<!--[\s\S]*?-->)|(<(script|style|pre|code|xmp|fez-inline)\b[^>]*>)([\s\S]*?)(<\/\3\s*>)/gi;
 const STATIC_CONTENT_MARKER = '\uE002FEZ_STATIC_CONTENT\uE003';
 const STATIC_INCLUDE_MARKER_PATTERN = /<template data-fez-static-include="(\d+)"><\/template>/g;
+const LIVE_RELOAD_CHANNEL = 'fez-static-reload';
+const LIVE_RELOAD_SCRIPT_PATH = '/__fez_static/reload.js';
+const LIVE_RELOAD_SOCKET_PATH = '/__fez_static/reload';
 
 const STATIC_FEZ = {
   htmlEscape(value) {
@@ -52,6 +55,7 @@ export async function buildStaticSite(options = {}) {
   validateBuildPaths(paths);
 
   const sourceFiles = listFiles(paths.sourceDir);
+  const copiedAssets = resolveCopiedAssets(paths);
   const pages = [];
   const assets = [];
   const collectionDirs = new Map();
@@ -77,14 +81,18 @@ export async function buildStaticSite(options = {}) {
     }
   }
 
-  const publicPages = pages.map(toPublicPage);
+  const publicPages = pages.map((page) => toPublicPage(page, paths.config.site.base_url));
   const collections = buildCollections(publicPages, collectionDirs);
   const collectionIndexes = [...collectionDirs.values()].map((collection) => ({
     outputPath: collection.outputPath + '/index.yaml',
     sourcePath: collection.sourcePath,
     pages: collections[collection.name],
   }));
-  assertUniqueOutputs(pages, assets, collectionIndexes);
+  assertUniqueOutputs(pages, [...assets, ...copiedAssets], collectionIndexes);
+
+  if (options.validate) {
+    validateRequiredMetadata(collections, paths.config.collections);
+  }
 
   const site = {
     ...paths.config.site,
@@ -120,12 +128,22 @@ export async function buildStaticSite(options = {}) {
       fs.copyFileSync(asset.absolutePath, target);
     }
 
+    for (const asset of copiedAssets) {
+      const target = outputFilePath(stageDir, asset.outputPath);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.copyFileSync(asset.absolutePath, target);
+    }
+
     for (const index of collectionIndexes) {
       writeOutput(
         stageDir,
         index.outputPath,
         ensureFinalNewline(stripTrailingWhitespace(Bun.YAML.stringify(index.pages, null, 2))),
       );
+    }
+
+    if (options.validate) {
+      validateStaticOutput(stageDir, paths.config.site.base_url);
     }
 
     if (options.check) {
@@ -142,7 +160,7 @@ export async function buildStaticSite(options = {}) {
 
   return {
     pages: pages.length,
-    assets: assets.length,
+    assets: assets.length + copiedAssets.length,
     collections: collectionIndexes.length,
     outputDir: paths.outputDir,
     duration: performance.now() - startedAt,
@@ -150,7 +168,7 @@ export async function buildStaticSite(options = {}) {
 }
 
 export async function doctorStaticSite(options = {}) {
-  return buildStaticSite({ ...options, check: true });
+  return buildStaticSite({ ...options, check: true, validate: true });
 }
 
 export function initStaticSite(options = {}) {
@@ -175,11 +193,11 @@ export function initStaticSite(options = {}) {
       '    <meta name="viewport" content="width=device-width, initial-scale=1.0">',
       '    <meta name="description" content={page.description || site.description}>',
       '    <title>{page.title} - {site.title}</title>',
-      '    <link rel="stylesheet" href="/site.css">',
+      '    <link rel="stylesheet" href={url("/site.css")}>',
       '  </head>',
       '  <body>',
       '    <header>',
-      '      <nav><a href="/">{site.title}</a></nav>',
+      '      <nav><a href={url("/")}>{site.title}</a></nav>',
       '    </header>',
       '    <main>{@content}</main>',
       '    <footer>Built with Fez.</footer>',
@@ -196,7 +214,7 @@ export function initStaticSite(options = {}) {
       '<h2>Blog</h2>',
       '<ul>',
       '{#each collections.blogs as post}',
-      '  <li><a href={post.url}>{post.title}</a></li>',
+      '  <li><a href={post.href}>{post.title}</a></li>',
       '{/each}',
       '</ul>',
       '',
@@ -255,13 +273,45 @@ export function cleanStaticSite(options = {}) {
 }
 
 export async function watchStaticSite(options = {}, callbacks = {}) {
-  const paths = resolveStaticPaths(options);
   const onBuild = callbacks.onBuild || (() => {});
   const onError = callbacks.onError || (() => {});
+  let watchers = [];
   let closed = false;
   let timer = null;
   let building = false;
   let queued = false;
+
+  const schedule = (_event, filename, watchedFile = null, watchDir = null) => {
+    const changedName = String(filename || '');
+    if (closed || changedName.includes('.tmp.')) {
+      return;
+    }
+    if (
+      watchedFile &&
+      changedName &&
+      path.resolve(watchDir, changedName) !== path.resolve(watchedFile)
+    ) {
+      return;
+    }
+    clearTimeout(timer);
+    timer = setTimeout(() => void run(), 60);
+  };
+
+  const syncWatchers = () => {
+    for (const watcher of watchers) {
+      watcher.close();
+    }
+    watchers = [];
+
+    for (const target of staticWatchTargets(resolveStaticPaths(options))) {
+      const watcher = fs.watch(
+        target.directory,
+        { recursive: target.recursive },
+        (event, filename) => schedule(event, filename, target.file, target.directory),
+      );
+      watchers.push(watcher);
+    }
+  };
 
   const run = async () => {
     if (closed) {
@@ -274,7 +324,9 @@ export async function watchStaticSite(options = {}, callbacks = {}) {
 
     building = true;
     try {
-      onBuild(await buildStaticSite(options));
+      const result = await buildStaticSite(options);
+      syncWatchers();
+      onBuild(result);
     } catch (error) {
       onError(error);
     } finally {
@@ -287,34 +339,31 @@ export async function watchStaticSite(options = {}, callbacks = {}) {
   };
 
   const initial = await buildStaticSite(options);
+  syncWatchers();
   onBuild(initial);
-
-  const watcher = fs.watch(paths.siteDir, { recursive: true }, (_event, filename) => {
-    if (closed || String(filename || '').includes('.tmp.')) {
-      return;
-    }
-    clearTimeout(timer);
-    timer = setTimeout(() => void run(), 60);
-  });
 
   return {
     initial,
     close() {
       closed = true;
       clearTimeout(timer);
-      watcher.close();
+      for (const watcher of watchers) {
+        watcher.close();
+      }
+      watchers = [];
     },
   };
 }
 
 export function serveStaticSite(options = {}) {
   const { outputDir, config } = resolveStaticPaths(options);
+  const liveReload = options.liveReload === true;
   const port = Number(options.port || 3000);
   if (!Number.isInteger(port) || port < 0 || port > 65535) {
     throw new Error('Port must be an integer between 0 and 65535');
   }
 
-  return Bun.serve({
+  const serverOptions = {
     hostname: options.host || '127.0.0.1',
     port,
     async fetch(request) {
@@ -328,6 +377,22 @@ export function serveStaticSite(options = {}) {
       if (pathname.includes('\0')) {
         return new Response('Bad request', { status: 400 });
       }
+
+      if (liveReload && pathname === LIVE_RELOAD_SOCKET_PATH) {
+        if (server.upgrade(request)) {
+          return;
+        }
+        return new Response('WebSocket upgrade required', { status: 426 });
+      }
+      if (liveReload && pathname === LIVE_RELOAD_SCRIPT_PATH) {
+        return new Response(liveReloadScript(), {
+          headers: {
+            'cache-control': 'no-store',
+            'content-type': 'text/javascript; charset=utf-8',
+          },
+        });
+      }
+
       const filePath = findServedFile(
         outputDir,
         stripStaticBaseUrl(pathname, config.site.base_url),
@@ -344,9 +409,28 @@ export function serveStaticSite(options = {}) {
       if (request.method === 'HEAD') {
         return new Response(null, { headers });
       }
+      if (liveReload && file.type.startsWith('text/html')) {
+        return new Response(injectLiveReload(await file.text()), { headers });
+      }
       return new Response(file, { headers });
     },
-  });
+  };
+
+  if (liveReload) {
+    serverOptions.websocket = {
+      open(socket) {
+        socket.subscribe(LIVE_RELOAD_CHANNEL);
+      },
+      message() {},
+    };
+  }
+
+  const server = Bun.serve(serverOptions);
+  return server;
+}
+
+export function reloadStaticSiteClients(server) {
+  return server.publish(LIVE_RELOAD_CHANNEL, 'reload');
 }
 
 export function resolveStaticPaths(options = {}) {
@@ -417,7 +501,7 @@ function resolveConfigFile(siteDir, requestedFile) {
 
 function readStaticConfig(configFile) {
   if (!configFile || !fs.existsSync(configFile)) {
-    return { site: {}, collections: {} };
+    return { site: { base_url: '' }, collections: {}, copy: {} };
   }
   const source = fs.readFileSync(configFile, 'utf8');
   let parsed;
@@ -471,12 +555,37 @@ function readStaticConfig(configFile) {
     if (Object.prototype.hasOwnProperty.call(options, 'layout')) {
       effectiveLayout({ layout: options.layout });
     }
+    if (Object.prototype.hasOwnProperty.call(options, 'required')) {
+      if (
+        !Array.isArray(options.required) ||
+        options.required.some((field) => typeof field !== 'string' || !field.trim())
+      ) {
+        throw new Error('Static collection required fields must be non-empty strings: ' + name);
+      }
+      options.required = options.required.map((field) => field.trim());
+    }
+  }
+
+  if (
+    Object.prototype.hasOwnProperty.call(config, 'copy') &&
+    (config.copy == null || typeof config.copy !== 'object' || Array.isArray(config.copy))
+  ) {
+    throw new Error('Static config copy must be an object');
+  }
+  for (const [source, destination] of Object.entries(config.copy || {})) {
+    if (!source.trim() || typeof destination !== 'string' || !destination.trim()) {
+      throw new Error('Static copy paths must be non-empty strings');
+    }
   }
 
   return {
     ...config,
-    site: config.site || {},
+    site: {
+      ...(config.site || {}),
+      base_url: normalizeStaticBaseUrl(config.site?.base_url),
+    },
     collections: config.collections || {},
+    copy: config.copy || {},
   };
 }
 
@@ -503,6 +612,167 @@ function listFiles(directory) {
 
   visit(directory);
   return files;
+}
+
+function resolveCopiedAssets(paths) {
+  const assets = [];
+
+  for (const source of resolveCopySources(paths)) {
+    if (source.stat.isDirectory()) {
+      for (const absolutePath of listCopiedFiles(source.absolutePath)) {
+        const relativePath = toPosix(path.relative(source.absolutePath, absolutePath));
+        assets.push({
+          absolutePath,
+          outputPath: joinStaticOutputPath(source.outputPath, relativePath),
+          sourcePath: 'copy ' + source.configuredPath + '/' + relativePath,
+        });
+      }
+      continue;
+    }
+
+    const outputPath = source.destinationEndsInSlash
+      ? joinStaticOutputPath(source.outputPath, path.basename(source.absolutePath))
+      : source.outputPath === '.'
+        ? path.basename(source.absolutePath)
+        : source.outputPath;
+    assets.push({
+      absolutePath: source.absolutePath,
+      outputPath,
+      sourcePath: 'copy ' + source.configuredPath,
+    });
+  }
+
+  return assets;
+}
+
+function resolveCopySources(paths) {
+  const sources = [];
+  const realRoot = fs.realpathSync(paths.rootDir);
+
+  for (const [configuredPath, configuredOutput] of Object.entries(paths.config.copy)) {
+    if (path.isAbsolute(configuredPath) || containsScratchPath(configuredPath)) {
+      throw new Error('Invalid static copy source: ' + configuredPath);
+    }
+
+    const absolutePath = path.resolve(paths.siteDir, configuredPath);
+    let stat;
+    try {
+      stat = fs.lstatSync(absolutePath);
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        throw new Error('Static copy source not found: ' + configuredPath);
+      }
+      throw error;
+    }
+    if (stat.isSymbolicLink()) {
+      throw new Error('Static copy sources cannot be symbolic links: ' + configuredPath);
+    }
+    if (!stat.isFile() && !stat.isDirectory()) {
+      throw new Error('Static copy source must be a file or directory: ' + configuredPath);
+    }
+
+    const realSource = fs.realpathSync(absolutePath);
+    if (!isPathInside(realRoot, realSource)) {
+      throw new Error('Static copy source must remain inside the project root: ' + configuredPath);
+    }
+    if (
+      isPathInside(paths.outputDir, absolutePath) ||
+      (stat.isDirectory() && isPathInside(absolutePath, paths.outputDir))
+    ) {
+      throw new Error(
+        'Static copy source and target must not contain each other: ' + configuredPath,
+      );
+    }
+
+    const outputPath = normalizeStaticOutputPath(configuredOutput);
+    sources.push({
+      absolutePath,
+      configuredPath,
+      destinationEndsInSlash: /[\\/]$/.test(configuredOutput),
+      outputPath,
+      stat,
+    });
+  }
+
+  return sources;
+}
+
+function listCopiedFiles(directory) {
+  const files = [];
+
+  const visit = (current) => {
+    const entries = fs
+      .readdirSync(current, { withFileTypes: true })
+      .sort((left, right) => left.name.localeCompare(right.name));
+
+    for (const entry of entries) {
+      if (entry.name.includes('.tmp.')) {
+        throw new Error(
+          'Static copy cannot include scratch files: ' + path.join(current, entry.name),
+        );
+      }
+      const absolutePath = path.join(current, entry.name);
+      if (entry.isSymbolicLink()) {
+        throw new Error('Static copy cannot include symbolic links: ' + absolutePath);
+      }
+      if (entry.isDirectory()) {
+        visit(absolutePath);
+      } else if (entry.isFile()) {
+        files.push(absolutePath);
+      }
+    }
+  };
+
+  visit(directory);
+  return files;
+}
+
+function staticWatchTargets(paths) {
+  const targets = [{ directory: paths.siteDir, recursive: true, file: null }];
+  const seen = new Set([paths.siteDir + '\0']);
+
+  for (const source of resolveCopySources(paths)) {
+    if (isPathInside(paths.siteDir, source.absolutePath)) {
+      continue;
+    }
+    let target;
+    if (source.stat.isDirectory()) {
+      target = { directory: source.absolutePath, recursive: true, file: null };
+    } else {
+      target = {
+        directory: path.dirname(source.absolutePath),
+        recursive: false,
+        file: source.absolutePath,
+      };
+    }
+    const key = target.directory + '\0' + (target.file || '');
+    if (!seen.has(key)) {
+      seen.add(key);
+      targets.push(target);
+    }
+  }
+
+  return targets;
+}
+
+function normalizeStaticOutputPath(value) {
+  const source = value.trim().replace(/\\/g, '/');
+  if (source.includes('.tmp.') || path.posix.isAbsolute(source)) {
+    throw new Error('Invalid static copy destination: ' + value);
+  }
+  const normalized = path.posix.normalize(source).replace(/^\.\//, '');
+  if (normalized === '..' || normalized.startsWith('../')) {
+    throw new Error('Static copy destination escapes the target: ' + value);
+  }
+  return normalized;
+}
+
+function joinStaticOutputPath(left, right) {
+  return path.posix.join(left === '.' ? '' : left, right);
+}
+
+function containsScratchPath(value) {
+  return value.split(/[\\/]/).some((segment) => segment.includes('.tmp.'));
 }
 
 function parseRootPath(sourcePath) {
@@ -568,7 +838,9 @@ function readPage(absolutePath, sourcePath, relativePath, collection, config) {
   const filenameDate = filename.match(/^(\d{4}-\d{2}-\d{2})-/)?.[1];
   const slug = String(data.slug || filename.replace(/^\d{4}-\d{2}-\d{2}-/, ''));
   const date = normalizeDate(data.date || filenameDate);
-  const defaultLayout = collection ? config.collections[collection]?.layout ?? 'default' : 'default';
+  const defaultLayout = collection
+    ? (config.collections[collection]?.layout ?? 'default')
+    : 'default';
   const layout = effectiveLayout(data, defaultLayout);
 
   return {
@@ -590,7 +862,7 @@ function readPage(absolutePath, sourcePath, relativePath, collection, config) {
   };
 }
 
-function toPublicPage(page) {
+function toPublicPage(page, baseUrl) {
   return {
     ...page.metadata,
     title: page.title,
@@ -600,6 +872,7 @@ function toPublicPage(page) {
     collection: page.collection,
     layout: page.layout,
     url: page.url,
+    href: staticUrl(baseUrl, page.url),
     source_path: page.sourcePath,
   };
 }
@@ -610,9 +883,7 @@ function compareCollectionPages(left, right) {
 }
 
 function effectiveLayout(data, defaultLayout = 'default') {
-  const value = Object.prototype.hasOwnProperty.call(data, 'layout')
-    ? data.layout
-    : defaultLayout;
+  const value = Object.prototype.hasOwnProperty.call(data, 'layout') ? data.layout : defaultLayout;
   if (value === false || value === null) {
     return false;
   }
@@ -659,6 +930,44 @@ function permalinkRoute(value) {
   };
 }
 
+function normalizeStaticBaseUrl(value) {
+  if (value == null || value === '') {
+    return '';
+  }
+  if (typeof value !== 'string') {
+    throw new Error('Static site base_url must be a string');
+  }
+
+  const source = value.trim();
+  if (
+    !source.startsWith('/') ||
+    source.startsWith('//') ||
+    /[?#]/.test(source) ||
+    /\/{2,}/.test(source) ||
+    source.split('/').some((segment) => segment === '.' || segment === '..')
+  ) {
+    throw new Error('Static site base_url must be an absolute site path');
+  }
+
+  const normalized = source.replace(/\/+$/, '');
+  return normalized === '' ? '' : normalized;
+}
+
+function staticUrl(baseUrl, value) {
+  if (value == null) {
+    return '';
+  }
+  const source = String(value);
+  if (!source.startsWith('/') || source.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(source)) {
+    return source;
+  }
+  const pathname = source.split(/[?#]/, 1)[0];
+  if (!baseUrl || pathname === baseUrl || pathname.startsWith(baseUrl + '/')) {
+    return source;
+  }
+  return baseUrl + source;
+}
+
 function normalizeDate(value) {
   if (value == null || value === '') {
     return null;
@@ -701,8 +1010,247 @@ function assertUniqueOutputs(pages, assets, generated = []) {
   }
 }
 
+function validateRequiredMetadata(collections, config) {
+  const errors = [];
+
+  for (const [name, options] of Object.entries(config)) {
+    const required = [...new Set(options.required || [])];
+    for (const page of collections[name] || []) {
+      const missing = required.filter((field) => !hasRequiredMetadata(page[field]));
+      if (missing.length) {
+        errors.push(page.source_path + ' is missing required fields: ' + missing.join(', '));
+      }
+    }
+  }
+
+  if (errors.length) {
+    throw staticDoctorError(errors);
+  }
+}
+
+function hasRequiredMetadata(value) {
+  if (value == null) {
+    return false;
+  }
+  return typeof value !== 'string' || value.trim() !== '';
+}
+
+function validateStaticOutput(outputDir, baseUrl) {
+  const documents = new Map();
+
+  for (const absolutePath of listFiles(outputDir)) {
+    if (path.extname(absolutePath).toLowerCase() !== '.html') {
+      continue;
+    }
+    const outputPath = toPosix(path.relative(outputDir, absolutePath));
+    const html = fs.readFileSync(absolutePath, 'utf8');
+    documents.set(path.resolve(absolutePath), {
+      anchors: extractStaticAnchors(html),
+      outputPath,
+      references: extractStaticReferences(html),
+    });
+  }
+
+  const errors = [];
+  for (const document of documents.values()) {
+    for (const reference of document.references) {
+      const error = validateStaticReference(reference, document, documents, outputDir, baseUrl);
+      if (error) {
+        errors.push(error);
+      }
+    }
+  }
+
+  if (errors.length) {
+    throw staticDoctorError(errors);
+  }
+}
+
+function validateStaticReference(reference, document, documents, outputDir, baseUrl) {
+  const value = decodeStaticAttribute(reference.value).trim();
+  if (!value || value.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(value)) {
+    return null;
+  }
+  const absolutePath = value.split(/[?#]/, 1)[0];
+  if (
+    baseUrl &&
+    absolutePath.startsWith('/') &&
+    absolutePath !== baseUrl &&
+    !absolutePath.startsWith(baseUrl + '/')
+  ) {
+    return (
+      document.outputPath +
+      ' has ' +
+      reference.attribute +
+      '="' +
+      value +
+      '" outside base_url ' +
+      baseUrl
+    );
+  }
+
+  let resolved;
+  try {
+    const pageUrl = staticUrl(baseUrl, outputPathUrl(document.outputPath));
+    resolved = new URL(value, 'https://fez-static.invalid' + pageUrl);
+  } catch {
+    return document.outputPath + ' has an invalid URL in ' + reference.attribute + ': ' + value;
+  }
+
+  let pathname;
+  try {
+    pathname = decodeURIComponent(resolved.pathname);
+  } catch {
+    return document.outputPath + ' has an invalid encoded URL: ' + value;
+  }
+  const target = findServedFile(outputDir, stripStaticBaseUrl(pathname, baseUrl));
+  if (!target) {
+    return document.outputPath + ' links to missing output: ' + value;
+  }
+
+  if (!resolved.hash || path.extname(target).toLowerCase() !== '.html') {
+    return null;
+  }
+
+  let anchor;
+  try {
+    anchor = decodeURIComponent(resolved.hash.slice(1));
+  } catch {
+    return document.outputPath + ' has an invalid encoded fragment: ' + value;
+  }
+  if (!anchor) {
+    return null;
+  }
+  const targetDocument = documents.get(path.resolve(target));
+  if (!targetDocument || !targetDocument.anchors.has(anchor)) {
+    return document.outputPath + ' links to missing fragment: ' + value;
+  }
+  return null;
+}
+
+function extractStaticReferences(html) {
+  const references = [];
+  const protectedHtml = protectRawRegions(html).text;
+  const tagPattern = /<([a-z][\w:-]*)\b([^<>]*?)\/?\s*>/gi;
+  let match;
+
+  while ((match = tagPattern.exec(protectedHtml))) {
+    const tag = match[1].toLowerCase();
+    const attributes = parseStaticAttributes(match[2]);
+    if (attributes.has('data-fez-static-ignore')) {
+      continue;
+    }
+
+    const names = staticReferenceAttributes(tag);
+    for (const name of names) {
+      const value = attributes.get(name);
+      if (value == null) {
+        continue;
+      }
+      if (name === 'srcset') {
+        for (const source of staticSrcsetUrls(value)) {
+          references.push({ attribute: name, value: source });
+        }
+      } else {
+        references.push({ attribute: name, value });
+      }
+    }
+  }
+
+  return references;
+}
+
+function extractStaticAnchors(html) {
+  const anchors = new Set();
+  const protectedHtml = protectRawRegions(html).text;
+  const tagPattern = /<([a-z][\w:-]*)\b([^<>]*?)\/?\s*>/gi;
+  let match;
+
+  while ((match = tagPattern.exec(protectedHtml))) {
+    const tag = match[1].toLowerCase();
+    const attributes = parseStaticAttributes(match[2]);
+    const id = attributes.get('id');
+    if (id) {
+      anchors.add(decodeStaticAttribute(id));
+    }
+    const name = tag === 'a' ? attributes.get('name') : null;
+    if (name) {
+      anchors.add(decodeStaticAttribute(name));
+    }
+  }
+
+  return anchors;
+}
+
+function parseStaticAttributes(source) {
+  const attributes = new Map();
+  const pattern = /([^\s"'<>\/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+  let match;
+  while ((match = pattern.exec(source))) {
+    attributes.set(match[1].toLowerCase(), match[2] ?? match[3] ?? match[4] ?? '');
+  }
+  return attributes;
+}
+
+function staticReferenceAttributes(tag) {
+  if (tag === 'a' || tag === 'area' || tag === 'link') {
+    return ['href'];
+  }
+  if (tag === 'img' || tag === 'source') {
+    return ['src', 'srcset'];
+  }
+  if (tag === 'video') {
+    return ['src', 'poster'];
+  }
+  if (['audio', 'embed', 'iframe', 'input', 'script', 'track'].includes(tag)) {
+    return ['src'];
+  }
+  return [];
+}
+
+function staticSrcsetUrls(value) {
+  if (value.trim().startsWith('data:')) {
+    return [];
+  }
+  return value
+    .split(',')
+    .map((candidate) => candidate.trim().split(/\s+/)[0])
+    .filter(Boolean);
+}
+
+function decodeStaticAttribute(value) {
+  return value
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#39;', "'")
+    .replaceAll('&#x27;', "'")
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&amp;', '&');
+}
+
+function outputPathUrl(outputPath) {
+  if (outputPath === 'index.html') {
+    return '/';
+  }
+  if (outputPath.endsWith('/index.html')) {
+    return '/' + outputPath.slice(0, -'index.html'.length);
+  }
+  return '/' + outputPath;
+}
+
+function staticDoctorError(errors) {
+  return new Error(
+    'Static doctor found ' +
+      errors.length +
+      (errors.length === 1 ? ' problem' : ' problems') +
+      ':\n- ' +
+      errors.join('\n- '),
+  );
+}
+
 function createRenderContext(site, collections, page) {
   const includes = [];
+  const url = (value) => staticUrl(site.base_url, value);
   const staticFez = {
     ...STATIC_FEZ,
     staticInclude(partPath, values = {}) {
@@ -729,6 +1277,7 @@ function createRenderContext(site, collections, page) {
     page,
     collections,
     include: {},
+    url,
     staticIncludes: includes,
   };
 }
@@ -1158,6 +1707,33 @@ function replaceOutputDirectory(stageDir, outputDir) {
   }
 }
 
+function injectLiveReload(html) {
+  const script = '<script src="' + LIVE_RELOAD_SCRIPT_PATH + '" defer></script>';
+  if (/<\/body\s*>/i.test(html)) {
+    return html.replace(/<\/body\s*>/i, script + '\n</body>');
+  }
+  return html + script + '\n';
+}
+
+function liveReloadScript() {
+  return [
+    '(() => {',
+    '  const connect = () => {',
+    "    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';",
+    "    const socket = new WebSocket(protocol + '//' + location.host + '" +
+      LIVE_RELOAD_SOCKET_PATH +
+      "');",
+    "    socket.addEventListener('message', (event) => {",
+    "      if (event.data === 'reload') location.reload();",
+    '    });',
+    "    socket.addEventListener('close', () => setTimeout(connect, 500));",
+    '  };',
+    '  connect();',
+    '})();',
+    '',
+  ].join('\n');
+}
+
 function stripStaticBaseUrl(pathname, baseUrl) {
   if (typeof baseUrl !== 'string' || !baseUrl.startsWith('/')) {
     return pathname;
@@ -1227,9 +1803,7 @@ function addGeneratedNotice(value, sourcePath) {
     .replace(/--/g, '- -');
   const message = 'generated from src: ' + safeSourcePath + ' | DO NOT EDIT OR READ THIS FILE';
   const notice =
-    path.extname(sourcePath).toLowerCase() === '.js'
-      ? '// ' + message
-      : '<!-- ' + message + ' -->';
+    path.extname(sourcePath).toLowerCase() === '.js' ? '// ' + message : '<!-- ' + message + ' -->';
   return notice + '\n' + value;
 }
 

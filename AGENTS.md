@@ -107,15 +107,20 @@ Rules:
 * Other non-page files are copied unchanged.
 * A bracketed directory declares a collection: `[blogs]` populates `collections.blogs`, publishes as `blogs`, and generates `blogs/index.yaml`.
 * Assets inside a bracketed directory are copied but are not collection entries.
-* Collection pages are sorted newest first, and `config.collections.<name>.layout` may set their default layout.
+* Collection pages are sorted newest first, `config.collections.<name>.layout` may set their default layout, and `config.collections.<name>.required` lists metadata fields checked by `fez static doctor`.
 * `draft: true` pages are omitted unless `--drafts` is passed.
-* HTML pages, layouts, and includes use Fez template syntax with `site`, `page`, `collections`, and `include`.
+* HTML pages, layouts, and includes use Fez template syntax with `site`, `page`, `collections`, `include`, and `url(path)`.
+* `url(path)` prefixes root-relative paths with normalized `site.base_url`; every public page also exposes the base-aware `page.href` while `page.url` remains the unprefixed route.
 * Markdown braces are not evaluated, so documented Fez templates remain literal.
 * `{@content}` inserts the page or child layout.
 * `{@include "name.html"}` resolves from `fez-static/parts` and may be nested.
 * `{@include "card.html", { title: page.title }}` passes values through `include`.
 * A `./name.html` include inside a part is relative to that part; all includes must remain under `parts`.
 * Include paths are quoted literals, and recursive includes are build errors.
+* `config.copy` maps files or directories outside `fez-static/root` into target-relative paths; sources resolve from `fez-static`, must remain inside the project root, and are watched by `dev` and `--watch`.
+* Copied files remain byte-for-byte unchanged, directories copy recursively, and unsafe paths, symbolic links, scratch files, missing sources, or output collisions fail the build.
+* `fez static doctor` performs a non-publishing render and validates required collection metadata, internal links, referenced assets, fragments, and `base_url` usage; `data-fez-static-ignore` opts one element out.
+* `fez static dev` injects a development-only client and reloads connected browsers after successful rebuilds.
 * The existing target remains unchanged when a build or doctor check fails.
 
 ## Core Rules for LLM

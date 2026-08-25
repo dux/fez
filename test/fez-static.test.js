@@ -7,6 +7,7 @@ import {
   cleanStaticSite,
   doctorStaticSite,
   initStaticSite,
+  reloadStaticSiteClients,
   serveStaticSite,
   watchStaticSite,
 } from '../src/static.js';
@@ -273,6 +274,158 @@ describe('fez static', () => {
     expect(fs.existsSync(path.join(root, 'public'))).toBe(false);
   });
 
+  test('builds base-aware URLs and validates links, assets, anchors, and metadata', async () => {
+    const root = createSite();
+    write(
+      root,
+      'fez-static/config.yaml',
+      lines([
+        'site:',
+        '  base_url: /preview/',
+        'collections:',
+        '  docs:',
+        '    required: [title, description]',
+      ]),
+    );
+    write(
+      root,
+      'fez-static/layouts/default.html',
+      lines([
+        '<nav><a href={url("/")}>Home</a></nav>',
+        '<main>{@content}</main>',
+        '<script src={url("/app.js")}></script>',
+      ]),
+    );
+    write(root, 'fez-static/root/index.html', '<h1 id="home">Home</h1>\n');
+    write(
+      root,
+      'fez-static/root/[docs]/guide.html',
+      lines([
+        '---',
+        'title: Guide',
+        'description: A guide.',
+        'permalink: /guide/',
+        '---',
+        '<h1 id="start">Guide</h1>',
+        '<a href={page.href + "#start"}>Start</a>',
+        '<img src={url("/cover.png")} alt="Cover">',
+        '<a href="/application" data-fez-static-ignore>Application</a>',
+      ]),
+    );
+    write(root, 'fez-static/root/app.js', 'window.ready = true;\n');
+    write(root, 'fez-static/root/cover.png', 'image\n');
+
+    const built = await buildStaticSite({ root });
+    expect(built.pages).toBe(2);
+    expect(read(root, 'build/guide/index.html')).toContain('href="/preview/guide/#start"');
+    expect(read(root, 'build/guide/index.html')).toContain('src="/preview/cover.png"');
+    expect(read(root, 'build/docs/index.yaml')).toContain('href: /preview/guide/');
+
+    const checked = await doctorStaticSite({ root });
+    expect(checked.pages).toBe(2);
+    expect(read(root, 'build/guide/index.html')).toContain('Guide');
+
+    const broken = createSite();
+    write(
+      broken,
+      'fez-static/root/index.html',
+      lines([
+        '---',
+        'layout: false',
+        '---',
+        '<a href="/missing/">Missing</a>',
+        '<a href="#missing">Missing anchor</a>',
+        '<img src="/missing.png">',
+      ]),
+    );
+    await expect(doctorStaticSite({ root: broken })).rejects.toThrow('3 problems');
+
+    const wrongBase = createSite();
+    write(wrongBase, 'fez-static/config.yaml', 'site:\n  base_url: /preview\n');
+    write(
+      wrongBase,
+      'fez-static/root/index.html',
+      lines(['---', 'layout: false', '---', '<a href="/other/">Other</a>']),
+    );
+    await expect(doctorStaticSite({ root: wrongBase })).rejects.toThrow(
+      'outside base_url /preview',
+    );
+
+    const missingMetadata = createSite();
+    write(
+      missingMetadata,
+      'fez-static/config.yaml',
+      lines(['collections:', '  notes:', '    required: [description]']),
+    );
+    write(
+      missingMetadata,
+      'fez-static/root/[notes]/note.html',
+      lines(['---', 'layout: false', 'title: Note', '---', '<p>Note</p>']),
+    );
+    await expect(doctorStaticSite({ root: missingMetadata })).rejects.toThrow(
+      'missing required fields: description',
+    );
+
+    const invalidBase = createSite();
+    write(invalidBase, 'fez-static/config.yaml', 'site:\n  base_url: docs\n');
+    write(invalidBase, 'fez-static/root/index.html', '<p>Invalid</p>\n');
+    await expect(buildStaticSite({ root: invalidBase })).rejects.toThrow(
+      'base_url must be an absolute site path',
+    );
+  });
+
+  test('copies configured files and directories outside the static root', async () => {
+    const root = createSite();
+    write(
+      root,
+      'fez-static/config.yaml',
+      lines([
+        'copy:',
+        '  "../dist/main.min.js": "./assets/main.min.js"',
+        '  "../shared": "./vendor"',
+      ]),
+    );
+    write(
+      root,
+      'fez-static/root/index.html',
+      lines(['---', 'layout: false', '---', '<p>Home</p>']),
+    );
+    write(root, 'dist/main.min.js', 'window.minified=true;\n');
+    write(root, 'shared/nested/data.txt', 'shared data\n');
+
+    const result = await buildStaticSite({ root });
+    expect(result.assets).toBe(2);
+    expect(read(root, 'build/assets/main.min.js')).toBe('window.minified=true;\n');
+    expect(read(root, 'build/vendor/nested/data.txt')).toBe('shared data\n');
+
+    const collision = createSite();
+    write(collision, 'fez-static/config.yaml', 'copy:\n  "../outside.html": "index.html"\n');
+    write(collision, 'outside.html', '<p>Outside</p>\n');
+    write(
+      collision,
+      'fez-static/root/index.html',
+      lines(['---', 'layout: false', '---', '<p>Inside</p>']),
+    );
+    await expect(buildStaticSite({ root: collision })).rejects.toThrow('output collision');
+
+    const scratch = createSite();
+    write(scratch, 'fez-static/config.yaml', 'copy:\n  "../file.tmp.js": "file.js"\n');
+    write(scratch, 'fez-static/root/index.html', '<p>Scratch</p>\n');
+    await expect(buildStaticSite({ root: scratch })).rejects.toThrow('Invalid static copy source');
+
+    const outside = createSite();
+    write(outside, 'secret.txt', 'secret\n');
+    const unsafe = createSite();
+    const unsafeSource = toPosix(
+      path.relative(path.join(unsafe, 'fez-static'), path.join(outside, 'secret.txt')),
+    );
+    write(unsafe, 'fez-static/config.yaml', 'copy:\n  "' + unsafeSource + '": "secret.txt"\n');
+    write(unsafe, 'fez-static/root/index.html', '<p>Unsafe</p>\n');
+    await expect(buildStaticSite({ root: unsafe })).rejects.toThrow(
+      'copy source must remain inside the project root',
+    );
+  });
+
   test('loads JSON config and prefers YAML when both files exist', async () => {
     const jsonRoot = createSite();
     write(
@@ -297,7 +450,11 @@ describe('fez static', () => {
       'fez-static/config.yaml',
       lines(['target: yaml-public', 'site:', '  title: YAML Site']),
     );
-    write(preferredRoot, 'fez-static/layouts/default.html', '<title>{site.title}</title>{@content}\n');
+    write(
+      preferredRoot,
+      'fez-static/layouts/default.html',
+      '<title>{site.title}</title>{@content}\n',
+    );
     write(preferredRoot, 'fez-static/root/index.html', '<h1>YAML</h1>\n');
 
     await buildStaticSite({ root: preferredRoot });
@@ -356,7 +513,11 @@ describe('fez static', () => {
 
     const collisions = createSite();
     write(collisions, 'fez-static/layouts/default.html', '{@content}\n');
-    write(collisions, 'fez-static/root/one.md', lines(['---', 'permalink: /same/', '---', '# One']));
+    write(
+      collisions,
+      'fez-static/root/one.md',
+      lines(['---', 'permalink: /same/', '---', '# One']),
+    );
     write(
       collisions,
       'fez-static/root/two.html',
@@ -431,6 +592,95 @@ describe('fez static', () => {
     expect(fs.existsSync(path.join(root, 'build'))).toBe(false);
   });
 
+  test('serves and publishes live reload events in development mode', async () => {
+    const root = createSite();
+    write(
+      root,
+      'fez-static/root/index.html',
+      lines(['---', 'layout: false', '---', '<!doctype html><body><p>Live</p></body>']),
+    );
+    await buildStaticSite({ root });
+
+    const server = serveStaticSite({ root, port: '0', liveReload: true });
+    let socket;
+    try {
+      const html = await (await fetch(server.url)).text();
+      expect(html).toContain('<script src="/__fez_static/reload.js" defer></script>');
+      const script = await (await fetch(new URL('/__fez_static/reload.js', server.url))).text();
+      expect(script).toContain('new WebSocket');
+
+      const socketUrl = new URL('/__fez_static/reload', server.url);
+      socketUrl.protocol = 'ws:';
+      socket = new WebSocket(socketUrl);
+      await Promise.race([
+        new Promise((resolve, reject) => {
+          socket.addEventListener('open', resolve, { once: true });
+          socket.addEventListener('error', reject, { once: true });
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('live reload socket timed out')), 3000),
+        ),
+      ]);
+
+      const message = Promise.race([
+        new Promise((resolve) =>
+          socket.addEventListener('message', (event) => resolve(event.data), { once: true }),
+        ),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('live reload message timed out')), 3000),
+        ),
+      ]);
+      reloadStaticSiteClients(server);
+      expect(await message).toBe('reload');
+    } finally {
+      socket?.close();
+      server.stop(true);
+    }
+  });
+
+  test('watches configured copy sources outside the static root', async () => {
+    const root = createSite();
+    write(root, 'fez-static/config.yaml', 'copy:\n  "../dist/main.js": "main.js"\n');
+    write(
+      root,
+      'fez-static/root/index.html',
+      lines(['---', 'layout: false', '---', '<p>Watcher</p>']),
+    );
+    write(root, 'dist/main.js', 'window.version = 1;\n');
+
+    let buildCount = 0;
+    let resolveRebuild;
+    const rebuilt = new Promise((resolve) => {
+      resolveRebuild = resolve;
+    });
+    const watcher = await watchStaticSite(
+      { root },
+      {
+        onBuild() {
+          buildCount++;
+          if (buildCount === 2) {
+            resolveRebuild();
+          }
+        },
+      },
+    );
+
+    try {
+      expect(read(root, 'build/main.js')).toBe('window.version = 1;\n');
+      await Bun.sleep(50);
+      write(root, 'dist/main.js', 'window.version = 2;\n');
+      await Promise.race([
+        rebuilt,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('copied file rebuild timed out')), 3000),
+        ),
+      ]);
+      expect(read(root, 'build/main.js')).toBe('window.version = 2;\n');
+    } finally {
+      watcher.close();
+    }
+  });
+
   test('watches source changes and serves clean URLs', async () => {
     const root = createSite();
     write(root, 'fez-static/config.yaml', lines(['site:', '  base_url: /preview']));
@@ -447,7 +697,9 @@ describe('fez static', () => {
       {
         onBuild() {
           buildCount++;
-          if (buildCount === 2) resolveRebuild();
+          if (buildCount === 2) {
+            resolveRebuild();
+          }
         },
       },
     );
@@ -501,4 +753,8 @@ function read(root, relativePath) {
 
 function lines(values) {
   return values.join('\n') + '\n';
+}
+
+function toPosix(value) {
+  return value.split(path.sep).join('/');
 }

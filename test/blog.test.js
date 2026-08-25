@@ -117,6 +117,7 @@ describe("blog demo", () => {
 
     expect(site).toContain("label: 'Blog'");
     expect(config.site.fez_url).toStartWith("https://cdn.jsdelivr.net/");
+    expect(config.collections.blogs.required).toEqual(["title", "description", "date"]);
     expect(site).toContain('<a href="/demo/features.html">Features</a>');
     expect(site).toContain('<a href="/demo/blogs/">Blog</a>');
     expect(site).not.toContain("name: 'blogs',         label: 'Blog', full: true");
