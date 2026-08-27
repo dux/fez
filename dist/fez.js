@@ -2664,7 +2664,10 @@ ${demo}
      */
     fezParseHtml(text) {
       const base = this.fezHtmlRoot.replaceAll('"', "&quot;");
-      text = text.replace(/([!'"\s;(])fez\.(\w)/g, `$1${base}$2`).replace(/>\s+</g, "><");
+      text = text.replace(
+        /\bon[a-z]+=(["'])([\s\S]*?)\1/gi,
+        (attr) => attr.replace(/\bfez\.(\w)/g, `${base}$1`)
+      ).replace(/>\s+</g, "><");
       return text.trim();
     }
     /**

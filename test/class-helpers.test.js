@@ -28,6 +28,16 @@ function mockElement() {
 // Import FezBase to test instance methods
 const { default: FezBase } = await import("../src/fez/instance.js");
 
+describe("fezParseHtml", () => {
+  test("rewrites handlers without touching asset URLs", () => {
+    const instance = Object.create(FezBase.prototype);
+    instance.UID = 7;
+    expect(instance.fezParseHtml(
+      '<img src="fez.png"><button onclick="fez.open()">Open</button>',
+    )).toBe('<img src="fez.png"><button onclick="Fez(7).open()">Open</button>');
+  });
+});
+
 describe("addClass", () => {
   test("adds a single class to root", () => {
     const instance = Object.create(FezBase.prototype);
