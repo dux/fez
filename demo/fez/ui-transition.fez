@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/fez/ui-transition.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/fez/ui-transition.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Svelte-style enter/leave transitions with <code>fez:in</code> / <code>fez:out</code> (or <code>fez:transition</code> for both) attributes</li>

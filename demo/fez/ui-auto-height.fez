@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/fez/ui-auto-height.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/fez/ui-auto-height.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li><code>fez:animate="height"</code> - the element animates from its old to its new height whenever its content changes</li>

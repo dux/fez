@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/fez/ui-editor.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/fez/ui-editor.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Live code editor with syntax highlighting - this is what you see on the right!</li>

@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/fez/ui-tabs.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/fez/ui-tabs.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Tab navigation with panels - supports nested tabs!</li>

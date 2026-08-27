@@ -57,10 +57,10 @@ It requires Bun 1.3.8 or newer for the native Markdown renderer.
 Inside this repository, the same commands can be called directly through `./bin/fez-static`.
 
 ```bash
-# Create a starter with one page, two posts, navigation, and a footer
+# Create a starter with a fully commented config, one page, two posts, navigation, and a footer
 fez static init
 
-# Build ./fez-static/root into the configured target (./build by default)
+# Build ./web_src/root into the configured target (./web_build by default)
 fez static
 fez static build
 
@@ -79,8 +79,8 @@ A site uses this structure:
 
 ```text
 my-site/
-|-- fez-static/
-|   |-- config.yaml
+|-- fez-static.yaml
+|-- web_src/
 |   |-- layouts/
 |   |   |-- default.html
 |   |   `-- post.html
@@ -92,11 +92,12 @@ my-site/
 |       |   `-- second-post.html
 |       |-- index.html
 |       `-- about.md
-`-- build/
+`-- web_build/
 ```
 
+`web_src` and `web_build` are the default `source_dir` and `target_dir`; both are configurable.
 Markdown and HTML pages share YAML front matter.
-Pages without `layout` use `fez-static/layouts/default.html` automatically.
+Pages without `layout` use `layouts/default.html` from `source_dir` automatically.
 Use `layout: false` for an unwrapped page, or name another layout with `layout: post`.
 Layouts can declare parent layouts.
 Layouts and parts may use `.html` or `.md`.
@@ -129,7 +130,7 @@ Markdown is converted without evaluating braces, so Fez examples and other code 
 ```
 
 `{@content}` inserts the current page or child layout.
-`{@include "name.html"}` resolves from `fez-static/parts` and may be used in pages, layouts, or other parts.
+`{@include "name.html"}` resolves from `parts/` in `source_dir` and may be used in pages, layouts, or other parts.
 Use `./name.html` for a part relative to another part.
 Pass one parameters object; its values are available through `include`:
 
@@ -159,23 +160,24 @@ Assets inside a collection are copied to the same bracket-free output path but a
 Non-page files under `root` keep their root-relative paths.
 Use `permalink` to override a page route.
 For an existing complete HTML document whose body must pass through without rendering, set both `layout: false` and `render: false` in its front matter.
-Every generated HTML and Fez file starts with `<!-- generated from src: fez-static/root/PATH | DO NOT EDIT OR READ THIS FILE -->`, including unrendered HTML pages.
-JavaScript files use the equivalent `// generated from src: fez-static/root/PATH | DO NOT EDIT OR READ THIS FILE` notice; all other assets are copied unchanged.
+Every generated HTML and Fez file starts with `<!-- generated from src: web_src/root/PATH | DO NOT EDIT OR READ THIS FILE -->`, including unrendered HTML pages.
+JavaScript files use the equivalent `// generated from src: web_src/root/PATH | DO NOT EDIT OR READ THIS FILE` notice; all other assets are copied unchanged.
 
 Configuration is optional.
-Fez loads `fez-static/config.yaml` first and falls back to `fez-static/config.json`.
-`target` is relative to the project root and defaults to `build`; values under `site` are exposed to templates:
+Fez looks for `fez-static.yaml`, then `fez-static.json`, in the project root and then in `config/`; the first match wins.
+`source_dir` (default `web_src`) and `target_dir` (default `web_build`) are relative to the project root and must stay inside it; values under `site` are exposed to templates:
 
 ```yaml
-target: demo
+source_dir: web_src
+target_dir: demo
 
 site:
   title: Fez
   description: JavaScript DOM components framework
 
 copy:
-  "../dist/main.min.js": "./assets/main.min.js"
-  "../public": "./vendor"
+  "dist/main.min.js": "./assets/main.min.js"
+  "public": "./vendor"
 
 collections:
   blogs:
@@ -190,7 +192,7 @@ Collection configuration is optional.
 Use it to provide a default layout for pages in a bracketed collection; page front matter can still override that layout.
 The optional `required` list is checked by `fez static doctor` against the final page metadata, including inferred titles and filename dates.
 
-Copy sources are relative to `fez-static`, may live outside `fez-static/root`, and must remain inside the project root.
+Copy sources are relative to the project root, may live outside `source_dir`, and must remain inside the project root.
 A file maps to one exact target path; a source directory copies its contents recursively into the mapped target directory.
 Copy targets are relative to the generated target, copied bytes are unchanged, and copied sources participate in watch mode.
 Missing sources, symbolic links, scratch files, unsafe paths, and output collisions fail the build.
@@ -204,7 +206,7 @@ The builder writes through a staging directory and replaces the target only afte
 Missing layouts or parts, output collisions, recursive includes, recursive layouts, dynamic include paths, and unsafe paths fail the build.
 `fez static dev` injects a development-only reload client and refreshes connected pages after each successful rebuild.
 
-This repository uses `fez-static/root/` as its publish root and generates `demo/`.
+This repository uses `demo_src/root/` as its publish root (`source_dir: demo_src`) and generates `demo/`.
 
 ## Why Fez is Simpler
 

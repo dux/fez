@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/system-blocks.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/system-blocks.fez | DO NOT EDIT OR READ THIS FILE -->
 <xmp fez="promo-blocks">
   <script>
     init() {

@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/playground.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/playground.fez | DO NOT EDIT OR READ THIS FILE -->
 <xmp fez="fez-playground">
   <script>
     import { EditorView, basicSetup } from 'https://esm.sh/codemirror'

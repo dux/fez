@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/site.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/site.fez | DO NOT EDIT OR READ THIS FILE -->
 <xmp fez="site-nav">
   <script>
     class {
@@ -14,7 +14,7 @@
           // the playground loads page-specific editor assets, so enter it with a full navigation
           { href: 'playground.html', name: 'playground.html', label: 'Playground', full: true },
           { href: 'docs.html',      name: 'docs.html',     label: 'Docs' },
-          { href: 'electron.html',  name: 'electron.html', label: 'Electron' },
+          { href: 'static.html',    name: 'static.html',   label: 'Site generator' },
           { href: 'https://github.com/dux/fez', label: 'GitHub', ext: true },
         ]
       }

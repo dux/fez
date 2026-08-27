@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/fez/ui-tip.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/fez/ui-tip.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Tip calculator - a bill, a slider, two derived numbers</li>

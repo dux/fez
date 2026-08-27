@@ -3,7 +3,14 @@ import path from 'node:path';
 import createTemplateCompiler from './fez/lib/template-compiler.js';
 
 const PAGE_EXTENSIONS = new Set(['.html', '.md']);
-const CONFIG_FILENAMES = ['config.yaml', 'config.json'];
+const CONFIG_FILENAMES = [
+  'fez-static.yaml',
+  'fez-static.json',
+  'config/fez-static.yaml',
+  'config/fez-static.json',
+];
+const DEFAULT_SOURCE_DIR = 'web_src';
+const DEFAULT_TARGET_DIR = 'web_build';
 const COLLECTION_SEGMENT = /^\[([a-z][a-z0-9_-]*)\]$/i;
 const RAW_REGION_PATTERN =
   /(<!--[\s\S]*?-->)|(<(script|style|pre|code|xmp|fez-inline)\b[^>]*>)([\s\S]*?)(<\/\3\s*>)/gi;
@@ -108,7 +115,7 @@ export async function buildStaticSite(options = {}) {
     for (const page of pages) {
       const publicPage = pageBySource.get(page.absolutePath);
       const context = createRenderContext(site, collections, publicPage);
-      const html = addGeneratedNotice(renderPage(page, context, paths), page.sourcePath);
+      const html = addGeneratedNotice(renderPage(page, context, paths), page.sourcePath, paths);
       writeOutput(stageDir, page.outputPath, ensureFinalNewline(html));
     }
 
@@ -119,7 +126,7 @@ export async function buildStaticSite(options = {}) {
         writeOutput(
           stageDir,
           asset.outputPath,
-          ensureFinalNewline(addGeneratedNotice(source, asset.sourcePath)),
+          ensureFinalNewline(addGeneratedNotice(source, asset.sourcePath, paths)),
         );
         continue;
       }
@@ -177,18 +184,20 @@ export async function doctorStaticSite(options = {}) {
 
 export function initStaticSite(options = {}) {
   const rootDir = path.resolve(options.root || process.cwd());
-  const siteDir = path.resolve(rootDir, options.site || 'fez-static');
+  // An existing config decides where the site goes; otherwise init writes one.
+  const configFile = resolveConfigFile(rootDir);
+  const config = readStaticConfig(configFile);
+  const siteDir = path.resolve(rootDir, config.source_dir);
   if (fs.existsSync(siteDir)) {
     throw new Error('Static site already exists: ' + siteDir);
   }
 
-  const files = {
-    'config.yaml': [
-      'site:',
-      '  title: My Fez Site',
-      '  description: A small static site built with Fez',
-      '',
-    ].join('\n'),
+  const files = {};
+  if (!configFile) {
+    files[CONFIG_FILENAMES[0]] = starterConfig(config);
+  }
+
+  const siteFiles = {
     'layouts/default.html': [
       '<!doctype html>',
       '<html lang="en">',
@@ -257,14 +266,64 @@ export function initStaticSite(options = {}) {
       '',
     ].join('\n'),
   };
+  for (const [relativePath, content] of Object.entries(siteFiles)) {
+    files[path.join(config.source_dir, relativePath)] = content;
+  }
 
   for (const [relativePath, content] of Object.entries(files)) {
-    const target = path.join(siteDir, relativePath);
+    const target = path.join(rootDir, relativePath);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, content);
   }
 
   return { siteDir, files: Object.keys(files).length };
+}
+
+// Every supported option, documented in place; only the two required paths are active.
+function starterConfig(config) {
+  return [
+    '# fez static configuration',
+    '# Looked up as ./fez-static.yaml, ./fez-static.json, ./config/fez-static.yaml, ./config/fez-static.json.',
+    '# Every path below is relative to the project root and must stay inside it.',
+    '',
+    '# Site folder holding layouts/, parts/ and root/ (the public page root).',
+    'source_dir: ' + config.source_dir,
+    '',
+    '# Generated output; replaced atomically after every successful build.',
+    'target_dir: ' + config.target_dir,
+    '',
+    '# Values under site are exposed to every template as {site.*}.',
+    '# title and description are used by the starter layout; add any other keys you need.',
+    'site:',
+    '  title: My Fez Site',
+    '  description: A small static site built with Fez',
+    '  # Absolute site path used by url() and page.href when the site is not served from /.',
+    '  # Leave unset and use <base href={page.base}> in the layout for host-independent links.',
+    '  # base_url: /my-site',
+    '  # Emit page-relative URLs (../css/site.css) instead of site-root-relative ones.',
+    '  # relative_urls: true',
+    '',
+    '# Copy files or whole directories from outside source_dir into the target.',
+    '# Keys are project-root-relative sources, values are target-relative destinations.',
+    '# copy:',
+    '#   "dist/app.min.js": "assets/app.min.js"',
+    '#   "public": "vendor"',
+    '',
+    '# Per-collection options for bracketed directories such as root/[blogs].',
+    '# layout sets the default layout for entries; required lists front matter keys',
+    '# that `fez static doctor` verifies.',
+    '# collections:',
+    '#   blogs:',
+    '#     layout: post',
+    '#     required: [title, description, date]',
+    '',
+    '# Development server (fez static serve / dev) helpers, rarely needed.',
+    '# Serve a parent directory as the document root, e.g. "." to browse /<target_dir>/ paths.',
+    '# serve_root: .',
+    '# Mount the site under a URL prefix to mimic project pages hosting (/repo/index.html).',
+    '# serve_prefix: /repo',
+    '',
+  ].join('\n');
 }
 
 export function cleanStaticSite(options = {}) {
@@ -453,20 +512,16 @@ export function reloadStaticSiteClients(server) {
 
 export function resolveStaticPaths(options = {}) {
   const rootDir = path.resolve(options.root || process.cwd());
-  const siteDir = path.resolve(rootDir, options.site || 'fez-static');
-  const configFile = resolveConfigFile(siteDir, options.config);
+  const configFile = resolveConfigFile(rootDir);
   const config = readStaticConfig(configFile);
-  const sourceDir = options.source
-    ? path.resolve(rootDir, options.source)
-    : path.resolve(siteDir, 'root');
-  const outputDir = options.output
-    ? path.resolve(rootDir, options.output)
-    : path.resolve(rootDir, config.target || 'build');
+  const siteDir = path.resolve(rootDir, config.source_dir);
+  const outputDir = path.resolve(rootDir, config.target_dir);
 
   return {
     rootDir,
     siteDir,
-    sourceDir,
+    siteDirName: toPosix(path.relative(rootDir, siteDir)),
+    sourceDir: path.resolve(siteDir, 'root'),
     layoutsDir: path.resolve(siteDir, 'layouts'),
     partsDir: path.resolve(siteDir, 'parts'),
     configFile,
@@ -476,12 +531,22 @@ export function resolveStaticPaths(options = {}) {
 }
 
 function validateBuildPaths(paths) {
+  if (paths.siteDir === paths.rootDir || !isPathInside(paths.rootDir, paths.siteDir)) {
+    throw new Error('Static source_dir must remain inside the project root: ' + paths.siteDir);
+  }
+
   let stat;
   try {
     stat = fs.statSync(paths.sourceDir);
   } catch (error) {
     if (error.code === 'ENOENT') {
-      throw new Error('Static root directory not found: ' + paths.sourceDir);
+      throw new Error(
+        'Static root directory not found: ' +
+          paths.sourceDir +
+          ' (source_dir: ' +
+          paths.config.source_dir +
+          ')',
+      );
     }
     throw error;
   }
@@ -494,7 +559,7 @@ function validateBuildPaths(paths) {
     throw new Error('Refusing unsafe static output directory: ' + paths.outputDir);
   }
   if (!isPathInside(paths.rootDir, paths.outputDir)) {
-    throw new Error('Static target must remain inside the project root: ' + paths.outputDir);
+    throw new Error('Static target_dir must remain inside the project root: ' + paths.outputDir);
   }
   if (
     isPathInside(paths.outputDir, paths.sourceDir) ||
@@ -504,12 +569,9 @@ function validateBuildPaths(paths) {
   }
 }
 
-function resolveConfigFile(siteDir, requestedFile) {
-  if (requestedFile) {
-    return path.resolve(siteDir, requestedFile);
-  }
+function resolveConfigFile(rootDir) {
   for (const filename of CONFIG_FILENAMES) {
-    const candidate = path.join(siteDir, filename);
+    const candidate = path.join(rootDir, filename);
     if (fs.existsSync(candidate)) {
       return candidate;
     }
@@ -519,7 +581,13 @@ function resolveConfigFile(siteDir, requestedFile) {
 
 function readStaticConfig(configFile) {
   if (!configFile || !fs.existsSync(configFile)) {
-    return { site: { base_url: '' }, collections: {}, copy: {} };
+    return {
+      source_dir: DEFAULT_SOURCE_DIR,
+      target_dir: DEFAULT_TARGET_DIR,
+      site: { base_url: '' },
+      collections: {},
+      copy: {},
+    };
   }
   const source = fs.readFileSync(configFile, 'utf8');
   let parsed;
@@ -538,9 +606,12 @@ function readStaticConfig(configFile) {
   }
 
   if (Object.prototype.hasOwnProperty.call(config, 'default_layout')) {
-    throw new Error('default_layout is not configurable; use fez-static/layouts/default.html');
+    throw new Error('default_layout is not configurable; use layouts/default.html in source_dir');
   }
-  for (const name of ['target']) {
+  if (Object.prototype.hasOwnProperty.call(config, 'target')) {
+    throw new Error('Static config target was renamed to target_dir');
+  }
+  for (const name of ['source_dir', 'target_dir']) {
     if (
       Object.prototype.hasOwnProperty.call(config, name) &&
       (typeof config[name] !== 'string' || !config[name].trim())
@@ -598,6 +669,8 @@ function readStaticConfig(configFile) {
 
   return {
     ...config,
+    source_dir: (config.source_dir || DEFAULT_SOURCE_DIR).trim(),
+    target_dir: (config.target_dir || DEFAULT_TARGET_DIR).trim(),
     site: {
       ...(config.site || {}),
       base_url: normalizeStaticBaseUrl(config.site?.base_url),
@@ -675,7 +748,7 @@ function resolveCopySources(paths) {
       throw new Error('Invalid static copy source: ' + configuredPath);
     }
 
-    const absolutePath = path.resolve(paths.siteDir, configuredPath);
+    const absolutePath = path.resolve(paths.rootDir, configuredPath);
     let stat;
     try {
       stat = fs.lstatSync(absolutePath);
@@ -1530,7 +1603,7 @@ function resolveLayoutFile(layoutName, layoutsDir) {
   const candidates = extension ? [layoutName] : [layoutName + '.html', layoutName + '.md'];
   const resolvedCandidates = candidates.map((name) => path.resolve(layoutsDir, name));
   if (resolvedCandidates.some((resolved) => !isPathInside(layoutsDir, resolved))) {
-    throw new Error('Layout escapes fez-static/layouts: ' + layoutName);
+    throw new Error('Layout escapes the layouts directory: ' + layoutName);
   }
   return resolvedCandidates.find((candidate) => fs.existsSync(candidate)) || resolvedCandidates[0];
 }
@@ -1750,7 +1823,7 @@ function resolvePartFile(partPath, currentDir, partsDir) {
   const base = partPath.startsWith('./') ? currentDir : partsDir;
   const resolved = path.resolve(base, partPath);
   if (!isPathInside(partsDir, resolved)) {
-    throw new Error('{@include} escapes fez-static/parts: ' + partPath);
+    throw new Error('{@include} escapes the parts directory: ' + partPath);
   }
   return resolved;
 }
@@ -1962,8 +2035,8 @@ function ensureFinalNewline(value) {
   return value.endsWith('\n') ? value : value + '\n';
 }
 
-function addGeneratedNotice(value, sourcePath) {
-  const safeSourcePath = ('fez-static/root/' + toPosix(sourcePath))
+function addGeneratedNotice(value, sourcePath, paths) {
+  const safeSourcePath = (paths.siteDirName + '/root/' + toPosix(sourcePath))
     .replace(/[\r\n]/g, ' ')
     .replace(/--/g, '- -');
   const message = 'generated from src: ' + safeSourcePath + ' | DO NOT EDIT OR READ THIS FILE';

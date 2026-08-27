@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/fez/ui-3d-viewer.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/fez/ui-3d-viewer.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>3D model viewer for GLB/GLTF files with customizable text overlay</li>

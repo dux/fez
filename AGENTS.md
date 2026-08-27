@@ -23,7 +23,7 @@ Fez ships the former `dux-pjax` package (ported to JS) in `src/fez/pjax/` and ex
 
 ## Writing New Components
 
-If you are instructed to write a fez component, ALWAYS write it in `fez-static/root/fez/[name].fez`; `demo/fez` is generated output.
+If you are instructed to write a fez component, ALWAYS write it in `demo_src/root/fez/[name].fez`; `demo/fez` is generated output.
 All documentation and demos go INSIDE the .fez file (no separate .html files) using `<info>` and `<demo>` blocks.
 
 ## CDN
@@ -62,7 +62,7 @@ fez refactor [path-or-glob]
 fez index path/to/files
 fez debug http://localhost:3333
 
-# Initialize or build ./fez-static/root into the configured target
+# Initialize or build ./web_src/root into the configured target
 fez static init
 fez static
 fez static dev
@@ -73,14 +73,15 @@ fez static doctor
 
 ## Static Site Builder
 
-`fez static` builds `./fez-static/root` into `./build` by default, or the project-root-relative `target` in `fez-static/config.yaml` or `config.json`.
-YAML configuration takes precedence when both files exist.
+`fez static` reads `fez-static.yaml` or `fez-static.json` from the project root or its `config/` folder; the first match wins and YAML takes precedence.
+`source_dir` (default `web_src`) holds `layouts/`, `parts/`, and `root/`; `target_dir` (default `web_build`) receives the build.
+Both paths are relative to the project root, must stay inside it, and are always resolved even without a config file.
 It uses `Bun.YAML` for front matter and `Bun.markdown` for Markdown, with no additional parser dependency.
 It requires Bun 1.3.8 or newer.
 
 ```text
-fez-static/
-|-- config.yaml
+fez-static.yaml
+web_src/
 |-- layouts/
 |   |-- default.html
 |   `-- post.html
@@ -96,14 +97,14 @@ fez-static/
 Rules:
 
 * Every `.md` and `.html` page accepts YAML front matter.
-* A missing `layout` uses `fez-static/layouts/default.html` or `default.md` without a config declaration.
+* A missing `layout` uses `web_src/layouts/default.html` or `default.md` without a config declaration.
 * `layout: name` resolves an `.html` layout first, then `.md`.
 * `layout: false` emits a page without a layout.
 * `render: false` leaves a page body untouched; combine it with `layout: false` for passthrough HTML.
 * Layouts may declare a parent layout in their own front matter.
 * `index.md` becomes `index.html` and other pages preserve their relative path with an `.html` extension.
 * `permalink: /docs/start/` becomes `build/docs/start/index.html`.
-* Every generated HTML and Fez file starts with an HTML source-path notice identifying its file under `fez-static/root`; JavaScript files use an equivalent `//` notice.
+* Every generated HTML and Fez file starts with an HTML source-path notice identifying its file under `web_src/root`; JavaScript files use an equivalent `//` notice.
 * Other non-page files are copied unchanged.
 * A bracketed directory declares a collection: `[blogs]` populates `collections.blogs`, publishes as `blogs`, and generates `blogs/index.yaml`.
 * Assets inside a bracketed directory are copied but are not collection entries.
@@ -111,14 +112,14 @@ Rules:
 * `draft: true` pages are omitted unless `--drafts` is passed.
 * HTML pages, layouts, and includes use Fez template syntax with `site`, `page`, `collections`, `include`, and `url(path)`.
 * `url(path)` emits site-root-relative paths when `site.base_url` is unset (`css/app.css`); set `base_url` to prefix absolute site paths instead. Every page exposes `page.base` for `<base href={page.base}>`, plus `page.href` / `page.url`.
-* `site.relative_urls`, `serve_root`, and `serve_prefix` are optional serving helpers; this demo site does not need them.
+* `site.relative_urls`, `serve_root`, and `serve_prefix` are optional serving helpers; this demo site sets `serve_root: .` so `docs.html` can fetch `../README.md` from the repo root.
 * Markdown braces are not evaluated, so documented Fez templates remain literal.
 * `{@content}` inserts the page or child layout.
-* `{@include "name.html"}` resolves from `fez-static/parts` and may be nested.
+* `{@include "name.html"}` resolves from `web_src/parts` and may be nested.
 * `{@include "card.html", { title: page.title }}` passes values through `include`.
 * A `./name.html` include inside a part is relative to that part; all includes must remain under `parts`.
 * Include paths are quoted literals, and recursive includes are build errors.
-* `config.copy` maps files or directories outside `fez-static/root` into target-relative paths; sources resolve from `fez-static`, must remain inside the project root, and are watched by `dev` and `--watch`.
+* `config.copy` maps files or directories outside `web_src/root` into target-relative paths; sources resolve from the project root, must remain inside it, and are watched by `dev` and `--watch`.
 * Copied files remain byte-for-byte unchanged, directories copy recursively, and unsafe paths, symbolic links, scratch files, missing sources, or output collisions fail the build.
 * `fez static doctor` performs a non-publishing render and validates required collection metadata, internal links, referenced assets, fragments, and `base_url` usage; `data-fez-static-ignore` opts one element out.
 * `fez static dev` injects a development-only client and reloads connected browsers after successful rebuilds.

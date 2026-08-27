@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/fez/ui-tags.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/fez/ui-tags.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Tag list - add through a form, remove with a click</li>

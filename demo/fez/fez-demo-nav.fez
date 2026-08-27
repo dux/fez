@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/fez/fez-demo-nav.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/fez/fez-demo-nav.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>In-flow component picker for the demo pages - a pill control with a dropdown list of every demo component.</li>

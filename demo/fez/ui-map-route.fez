@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/fez/ui-map-route.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/fez/ui-map-route.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Animated flight-tracker style map with curved routes and moving plane</li>

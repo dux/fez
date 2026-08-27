@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/fez/input-currency.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/fez/input-currency.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Currency/number input with thousands separator formatting</li>

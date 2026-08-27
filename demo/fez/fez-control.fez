@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/fez/fez-control.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/fez/fez-control.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Site-wide syntax highlighting controller for fenced code blocks</li>

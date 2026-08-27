@@ -1,0 +1,21 @@
+source_dir: demo_src
+target_dir: demo
+
+# docs.html fetches ../README.md, so serve the repo root and browse /demo/ (same shape as GitHub Pages)
+serve_root: .
+
+site:
+  title: Fez
+  description: JavaScript DOM components framework
+  fez_url: fez.min.js
+  components:
+    - /site.fez
+    - /fez/fez-control.fez
+
+copy:
+  "dist/fez.min.js": "fez.min.js"
+  "dist/fez.min.js.map": "fez.min.js.map"
+
+collections:
+  changelog:
+    required: [title, description, date]

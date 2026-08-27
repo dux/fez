@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/fez/ui-clock.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/fez/ui-clock.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Analog clock with SVG rendering and smooth second hand</li>

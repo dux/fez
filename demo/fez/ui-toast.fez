@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/fez/ui-toast.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/fez/ui-toast.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Toast notifications - info, success, warning, error</li>

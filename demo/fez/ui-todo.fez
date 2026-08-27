@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/fez/ui-todo.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/fez/ui-todo.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <ul>
     <li>Classic Todo app demo - add, complete, clear tasks</li>

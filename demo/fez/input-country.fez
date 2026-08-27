@@ -1,4 +1,4 @@
-<!-- generated from src: fez-static/root/fez/input-country.fez | DO NOT EDIT OR READ THIS FILE -->
+<!-- generated from src: demo_src/root/fez/input-country.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <h3>input-country</h3>
   <p>Country selector with flag icons. Works in single-select or multi-select (array) mode.</p>

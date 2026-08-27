@@ -9,7 +9,7 @@ import {
 describe('Fez source parser', () => {
   test('removes generated source notices from template HTML', () => {
     const parsed =
-      parseFezSource(`<!-- generated from src: fez-static/root/fez/ui-label.fez | DO NOT EDIT OR READ THIS FILE -->
+      parseFezSource(`<!-- generated from src: web_src/root/fez/ui-label.fez | DO NOT EDIT OR READ THIS FILE -->
 <script>
   NAME = 'span'
 </script>`);
