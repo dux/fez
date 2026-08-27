@@ -76,7 +76,7 @@ describe('fez static', () => {
     write(
       root,
       'fez-static/parts/post-link.html',
-      '<li><a href={include.post.url}>{include.post.title}</a></li>\n',
+      '<li><a href={include.post.url}>{include.post.title}</a><div class="post-content">{@html include.post.content}</div></li>\n',
     );
     write(
       root,
@@ -171,12 +171,14 @@ describe('fez static', () => {
     expect(collectionIndex[0].collection).toBe('blogs');
     expect(collectionIndex[0].source_path).toBe('[blogs]/2026-08-24-newer.md');
     expect(collectionIndex[0].layout).toBe('post');
+    expect(collectionIndex[0].content).toBeUndefined();
 
     const index = read(root, 'build/index.html');
     expect(/[ \t]+$/m.test(index)).toBe(false);
     expect(index.indexOf('Newer')).toBeLessThan(index.indexOf('Older'));
     expect(index).toContain('href="/notes/older/"');
     expect(index).not.toContain('href="/notes/older//"');
+    expect(index).toContain('<div class="post-content"><h1>Newer</h1></div>');
 
     const withDrafts = await buildStaticSite({ root, drafts: true });
     expect(withDrafts.pages).toBe(5);
@@ -358,9 +360,7 @@ describe('fez static', () => {
       'fez-static/root/index.html',
       lines(['---', 'layout: false', '---', '<script fez="/other.fez"></script>']),
     );
-    await expect(doctorStaticSite({ root: wrongFez })).rejects.toThrow(
-      'outside base_url /preview',
-    );
+    await expect(doctorStaticSite({ root: wrongFez })).rejects.toThrow('outside base_url /preview');
 
     const namedFez = createSite();
     write(

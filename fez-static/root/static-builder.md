@@ -16,6 +16,7 @@ Shared build-time fragments use the Fez-native include directive:
 
 A bracketed directory declares a collection.
 For example, `root/[blogs]/` is available to templates as `collections.blogs`, publishes under `blogs/`, and produces `blogs/index.yaml` during the build.
+Collection entries expose their Markdown body as rendered HTML in `content` for templates; generated `index.yaml` files keep metadata only.
 
 Start a new site with one page, two Markdown posts, navigation, and a footer:
 

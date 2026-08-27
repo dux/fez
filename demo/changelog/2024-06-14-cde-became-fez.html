@@ -1,0 +1,80 @@
+<!-- generated from src: fez-static/root/[changelog]/2024-06-14-cde-became-fez.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <base href="../">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Renaming the project clarified that it was a small component layer for real pages, not another abstract element system.">
+<title>CDE became Fez - Fez</title>
+<link rel="icon" href="fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="fez.min.js"></script>
+
+  <script fez="site.fez"></script>
+
+  <script fez="fez/fez-control.fez"></script>
+
+
+<link rel="stylesheet" href="css/full.css">
+<link rel="stylesheet" href="css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-text site-md">
+
+        <nav class="article-nav" aria-label="Changelog navigation">
+          <a href="changelog/">Back to changelog</a>
+          <div class="article-meta">
+            <span>2024-06-14</span>
+            <span>design / components</span>
+          </div>
+        </nav>
+        <div class="commit-list" aria-label="Source commits">
+
+            <a href="https://github.com/dux/fez/commit/d8d0ce8" class="no-pjax" target="_blank">d8d0ce8</a>
+
+            <a href="https://github.com/dux/fez/commit/18106b3" class="no-pjax" target="_blank">18106b3</a>
+
+        </div>
+
+        <h1>CDE became Fez</h1>
+        <p class="article-summary">Renaming the project clarified that it was a small component layer for real pages, not another abstract element system.</p>
+
+      <pre><code class="language-html">&lt;!-- ./status-pill.fez --&gt;
+&lt;script&gt;
+  class {
+    PROPS = {
+      state: { type: String, default: 'pending' },
+    }
+  }
+&lt;/script&gt;
+
+&lt;style&gt;
+  span {
+    display: inline-flex;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #f4d9de;
+    color: #8e0b21;
+  }
+&lt;/style&gt;
+
+&lt;span&gt;{props.state}&lt;/span&gt;
+</code></pre>
+<pre><code class="language-html">&lt;script fez=&quot;./status-pill.fez&quot;&gt;&lt;/script&gt;
+
+&lt;p&gt;Invoice &lt;status-pill state=&quot;paid&quot;&gt;&lt;/status-pill&gt;&lt;/p&gt;
+</code></pre>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

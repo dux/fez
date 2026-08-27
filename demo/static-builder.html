@@ -15,6 +15,8 @@
 
   <script fez="site.fez"></script>
 
+  <script fez="fez/fez-control.fez"></script>
+
 
 <link rel="stylesheet" href="css/full.css">
 <link rel="stylesheet" href="css/site.css">
@@ -33,7 +35,8 @@ Pages and browser assets live under <code>fez-static/root</code>, which mirrors 
 <pre><code class="language-html">{@include &quot;head.html&quot;}
 </code></pre>
 <p>A bracketed directory declares a collection.
-For example, <code>root/[blogs]/</code> is available to templates as <code>collections.blogs</code>, publishes under <code>blogs/</code>, and produces <code>blogs/index.yaml</code> during the build.</p>
+For example, <code>root/[blogs]/</code> is available to templates as <code>collections.blogs</code>, publishes under <code>blogs/</code>, and produces <code>blogs/index.yaml</code> during the build.
+Collection entries expose their Markdown body as rendered HTML in <code>content</code> for templates; generated <code>index.yaml</code> files keep metadata only.</p>
 <p>Start a new site with one page, two Markdown posts, navigation, and a footer:</p>
 <pre><code class="language-bash">fez static init
 </code></pre>

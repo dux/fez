@@ -1,0 +1,27 @@
+---
+title: Changelog
+description: Engineering changes from the Fez commit history, newest first.
+permalink: /changelog/
+---
+<section class="site-changelog site-wrap">
+  <header class="changelog-head">
+    <p class="site-eyebrow">changelog</p>
+    <h1 class="site-h1">Changelog</h1>
+  </header>
+
+  <div class="changelog-list">
+    {#each collections.changelog as entry}
+      <article class={entry.image ? 'changelog-row has-image' : 'changelog-row'}>
+        <time class="changelog-date" datetime={entry.date}>{entry.date}</time>
+        <div class="changelog-body">
+          <h2><a href={url(entry.url)}>{entry.title}</a></h2>
+          <p>{entry.description}</p>
+          {#if entry.image}
+            <img class="changelog-image" src={url('/changelog/' + entry.image)} alt={entry.image_alt} loading="lazy" decoding="async" />
+          {/if}
+          <div class="changelog-code">{@html entry.content}</div>
+        </div>
+      </article>
+    {/each}
+  </div>
+</section>

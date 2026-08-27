@@ -8,7 +8,7 @@
         this.state.links = [
           { href: 'index.html',     name: 'index.html',    label: 'Home' },
           { href: 'features.html',  name: 'features.html', label: 'Features' },
-          { href: 'blogs/',         name: 'blogs',         label: 'Blog' },
+          { href: 'changelog/',     name: 'changelog',     label: 'Changelog' },
           { href: 'examples.html',  name: 'examples.html', label: 'Examples' },
           // the playground is a full-viewport app without a pjax container - plain navigation
           { href: 'playground.html', label: 'Playground', full: true },
@@ -67,7 +67,7 @@
     <span>Fez - jQuery simplicity for the component era. One script tag, no build step.</span>
     <span class="spacer"></span>
     <a href="features.html">Features</a>
-    <a href="blogs/">Blog</a>
+    <a href="changelog/">Changelog</a>
     <a href="https://github.com/dux/fez">GitHub</a>
     <a href="https://www.npmjs.com/package/@dinoreic/fez">npm</a>
     <a href="https://github.com/dux/fez/blob/main/AGENTS.md">AGENTS.md</a>
@@ -204,7 +204,7 @@
       init(props) {
         this.root.classList.add('markdown')
         Fez.fetch(props.src, (text) => {
-          // Blog files keep portable YAML frontmatter; marked should render only the article body.
+          // Changelog files keep portable YAML frontmatter; marked should render only the entry body.
           text = text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '')
           // README paths are repo-root relative; this page lives in ./demo
           text = text

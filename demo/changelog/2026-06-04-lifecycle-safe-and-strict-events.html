@@ -1,0 +1,91 @@
+<!-- generated from src: fez-static/root/[changelog]/2026-06-04-lifecycle-safe-and-strict-events.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <base href="../">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="this.on centralized listener cleanup, and strict event attributes made target-only interactions concise and reliable.">
+<title>Events became lifecycle-safe and optionally strict - Fez</title>
+<link rel="icon" href="fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="fez.min.js"></script>
+
+  <script fez="site.fez"></script>
+
+  <script fez="fez/fez-control.fez"></script>
+
+
+<link rel="stylesheet" href="css/full.css">
+<link rel="stylesheet" href="css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-text site-md">
+
+        <nav class="article-nav" aria-label="Changelog navigation">
+          <a href="changelog/">Back to changelog</a>
+          <div class="article-meta">
+            <span>2026-06-04</span>
+            <span>events / lifecycle / templates</span>
+          </div>
+        </nav>
+        <div class="commit-list" aria-label="Source commits">
+
+            <a href="https://github.com/dux/fez/commit/8c2aed6" class="no-pjax" target="_blank">8c2aed6</a>
+
+            <a href="https://github.com/dux/fez/commit/c9dc412" class="no-pjax" target="_blank">c9dc412</a>
+
+            <a href="https://github.com/dux/fez/commit/f75a007" class="no-pjax" target="_blank">f75a007</a>
+
+        </div>
+
+        <h1>Events became lifecycle-safe and optionally strict</h1>
+        <p class="article-summary">this.on centralized listener cleanup, and strict event attributes made target-only interactions concise and reliable.</p>
+
+      <pre><code class="language-html">&lt;script&gt;
+  class {
+    init() {
+      this.state.open = false
+      this.state.path = location.pathname
+    }
+
+    onMount() {
+      this.on('pjax:render', (event) =&gt; {
+        this.state.path = new URL(event.detail.to, location.href).pathname
+      })
+    }
+
+    open() {
+      this.state.open = true
+    }
+
+    close() {
+      this.state.open = false
+    }
+  }
+&lt;/script&gt;
+
+&lt;button onclick=&quot;fez.open()&quot;&gt;Show current path&lt;/button&gt;
+
+{#if state.open}
+  &lt;div class=&quot;overlay&quot; onclick!=&quot;fez.close()&quot;&gt;
+    &lt;section&gt;
+      &lt;p&gt;{state.path}&lt;/p&gt;
+      &lt;button onclick=&quot;fez.close()&quot;&gt;Close&lt;/button&gt;
+    &lt;/section&gt;
+  &lt;/div&gt;
+{/if}
+</code></pre>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

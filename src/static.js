@@ -138,7 +138,11 @@ export async function buildStaticSite(options = {}) {
       writeOutput(
         stageDir,
         index.outputPath,
-        ensureFinalNewline(stripTrailingWhitespace(Bun.YAML.stringify(index.pages, null, 2))),
+        ensureFinalNewline(
+          stripTrailingWhitespace(
+            Bun.YAML.stringify(index.pages.map(toCollectionIndexPage), null, 2),
+          ),
+        ),
       );
     }
 
@@ -880,7 +884,7 @@ function readPage(absolutePath, sourcePath, relativePath, collection, config) {
 }
 
 function toPublicPage(page, baseUrl) {
-  return {
+  const publicPage = {
     ...page.metadata,
     title: page.title,
     slug: page.slug,
@@ -893,6 +897,16 @@ function toPublicPage(page, baseUrl) {
     base: pageBaseHref(page.outputPath),
     source_path: page.sourcePath,
   };
+  if (page.extension === '.md' && page.body.trim()) {
+    publicPage.content = Bun.markdown.html(page.body).trim();
+  }
+  return publicPage;
+}
+
+function toCollectionIndexPage(page) {
+  const rest = { ...page };
+  delete rest.content;
+  return rest;
 }
 
 function pageBaseHref(outputPath) {
@@ -900,7 +914,13 @@ function pageBaseHref(outputPath) {
   if (!directory || directory === '.') {
     return './';
   }
-  return directory.split('/').filter(Boolean).map(() => '..').join('/') + '/';
+  return (
+    directory
+      .split('/')
+      .filter(Boolean)
+      .map(() => '..')
+      .join('/') + '/'
+  );
 }
 
 function compareCollectionPages(left, right) {
@@ -1377,13 +1397,16 @@ function createRenderContext(site, collections, page) {
         return '';
       }
       const source = String(value);
-      if (!source.startsWith('/') || source.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(source)) {
+      if (
+        !source.startsWith('/') ||
+        source.startsWith('//') ||
+        /^[a-z][a-z0-9+.-]*:/i.test(source)
+      ) {
         return source;
       }
       const pathname = source.split(/[?#]/, 1)[0];
       const inSite =
-        site.base_url &&
-        (pathname === site.base_url || pathname.startsWith(site.base_url + '/'))
+        site.base_url && (pathname === site.base_url || pathname.startsWith(site.base_url + '/'))
           ? pathname.slice(site.base_url.length) || '/'
           : pathname;
       return pageRelativeUrl(page.url, inSite + source.slice(pathname.length));

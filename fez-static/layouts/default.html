@@ -8,10 +8,10 @@
     {#if page.shell !== false}
       <site-nav></site-nav>
     {/if}
-    <main id={page.shell === false ? '' : 'pjax'} class={page.collection || page.format === 'md' ? 'pjax site-wrap site-docs site-md' : page.shell === false ? '' : 'pjax'}>
+    <main id={page.shell === false ? '' : 'pjax'} class={page.collection ? 'pjax site-wrap site-text site-md' : page.format === 'md' ? 'pjax site-wrap site-docs site-md' : page.shell === false ? '' : 'pjax'}>
       {#if page.collection}
-        <nav class="article-nav" aria-label="Blog navigation">
-          <a href={url('/blogs/')}>Back to all posts</a>
+        <nav class="article-nav" aria-label="Changelog navigation">
+          <a href={url('/changelog/')}>Back to changelog</a>
           <div class="article-meta">
             <span>{page.date}</span>
             <span>{page.tags.join(' / ')}</span>
@@ -23,8 +23,10 @@
           {/each}
         </div>
         {#if page.image}
-          <img class="article-hero" src={url('/blogs/' + page.image)} alt={page.image_alt} decoding="async" fetchpriority="high" />
+          <img class="article-hero" src={url('/changelog/' + page.image)} alt={page.image_alt} decoding="async" fetchpriority="high" />
         {/if}
+        <h1>{page.title}</h1>
+        <p class="article-summary">{page.description}</p>
       {/if}
       {@content}
     </main>

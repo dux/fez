@@ -1,0 +1,85 @@
+<!-- generated from src: fez-static/root/[changelog]/2026-08-22-fez-0-6-typed-props-and-motion.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <base href="../">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Typed PROPS, element transitions, FLIP reordering, and content-size animation rounded out the 0.6 runtime.">
+<title>Fez 0.6 added typed boundaries and native motion - Fez</title>
+<link rel="icon" href="fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="fez.min.js"></script>
+
+  <script fez="site.fez"></script>
+
+  <script fez="fez/fez-control.fez"></script>
+
+
+<link rel="stylesheet" href="css/full.css">
+<link rel="stylesheet" href="css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-text site-md">
+
+        <nav class="article-nav" aria-label="Changelog navigation">
+          <a href="changelog/">Back to changelog</a>
+          <div class="article-meta">
+            <span>2026-08-22</span>
+            <span>release / props / transitions</span>
+          </div>
+        </nav>
+        <div class="commit-list" aria-label="Source commits">
+
+            <a href="https://github.com/dux/fez/commit/cfdb677" class="no-pjax" target="_blank">cfdb677</a>
+
+            <a href="https://github.com/dux/fez/commit/0101aba" class="no-pjax" target="_blank">0101aba</a>
+
+            <a href="https://github.com/dux/fez/commit/73d2827" class="no-pjax" target="_blank">73d2827</a>
+
+        </div>
+
+          <img class="article-hero" src="changelog/assets/2026-08-22-typed-props-motion.webp" alt="Geometric inputs passing through typed gates into moving interface cards." decoding="async" fetchpriority="high" />
+
+        <h1>Fez 0.6 added typed boundaries and native motion</h1>
+        <p class="article-summary">Typed PROPS, element transitions, FLIP reordering, and content-size animation rounded out the 0.6 runtime.</p>
+
+      <pre><code class="language-html">&lt;script&gt;
+  class {
+    PROPS = {
+      message: { type: String, required: true },
+      duration: { type: Number, default: 3000 },
+      open: { type: Boolean, state: true },
+    }
+
+    onMount() {
+      if (this.state.open) {
+        this.setTimeout(() =&gt; {
+          this.state.open = false
+        }, this.props.duration)
+      }
+    }
+  }
+&lt;/script&gt;
+
+{#if state.open}
+  &lt;aside fez:in=&quot;fly, from=right, duration=220&quot; fez:out=&quot;fade, duration=140&quot;&gt;
+    {props.message}
+  &lt;/aside&gt;
+{/if}
+</code></pre>
+<pre><code class="language-html">&lt;auto-notice message=&quot;Saved&quot; duration=&quot;1800&quot; open&gt;&lt;/auto-notice&gt;
+</code></pre>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

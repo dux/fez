@@ -1,0 +1,64 @@
+<!-- generated from src: fez-static/root/[changelog]/2025-08-01-a-native-bun-toolchain.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <base href="../">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Removing the Ruby builder and publishing the package made compilation and indexing available from one JavaScript toolchain.">
+<title>The Fez toolchain became native Bun - Fez</title>
+<link rel="icon" href="fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="fez.min.js"></script>
+
+  <script fez="site.fez"></script>
+
+  <script fez="fez/fez-control.fez"></script>
+
+
+<link rel="stylesheet" href="css/full.css">
+<link rel="stylesheet" href="css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-text site-md">
+
+        <nav class="article-nav" aria-label="Changelog navigation">
+          <a href="changelog/">Back to changelog</a>
+          <div class="article-meta">
+            <span>2025-08-01</span>
+            <span>bun / cli / tooling</span>
+          </div>
+        </nav>
+        <div class="commit-list" aria-label="Source commits">
+
+            <a href="https://github.com/dux/fez/commit/950f310" class="no-pjax" target="_blank">950f310</a>
+
+            <a href="https://github.com/dux/fez/commit/26650c3" class="no-pjax" target="_blank">26650c3</a>
+
+        </div>
+
+          <img class="article-hero" src="changelog/assets/2025-08-01-bun-toolchain.webp" alt="A unified tool rail assembling modular component cards." decoding="async" fetchpriority="high" />
+
+        <h1>The Fez toolchain became native Bun</h1>
+        <p class="article-summary">Removing the Ruby builder and publishing the package made compilation and indexing available from one JavaScript toolchain.</p>
+
+      <pre><code class="language-bash">bun ./bin/fez compile ./demo/fez/ui-counter.fez
+bun ./bin/fez template ./demo/fez/ui-counter.fez
+bun ./bin/fez refactor ./demo/fez
+</code></pre>
+<pre><code class="language-bash">bun add @dinoreic/fez
+bunx --package @dinoreic/fez fez compile './components/**/*.fez'
+</code></pre>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

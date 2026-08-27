@@ -6,11 +6,12 @@ site:
   fez_url: fez.min.js
   components:
     - /site.fez
+    - /fez/fez-control.fez
 
 copy:
   "../dist/fez.min.js": "fez.min.js"
   "../dist/fez.min.js.map": "fez.min.js.map"
 
 collections:
-  blogs:
+  changelog:
     required: [title, description, date]
