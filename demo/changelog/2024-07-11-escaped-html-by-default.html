@@ -27,23 +27,6 @@
       <site-nav></site-nav>
 
     <main id="pjax" class="pjax site-wrap site-text site-md">
-
-        <nav class="article-nav" aria-label="Changelog navigation">
-          <a href="changelog/">Back to changelog</a>
-          <div class="article-meta">
-            <span>2024-07-11</span>
-            <span>templates / security / html</span>
-          </div>
-        </nav>
-        <div class="commit-list" aria-label="Source commits">
-
-            <a href="https://github.com/dux/fez/commit/5e9f72b" class="no-pjax" target="_blank">5e9f72b</a>
-
-        </div>
-
-        <h1>Templates escape HTML unless I explicitly opt out</h1>
-        <p class="article-summary">Escaped interpolation became the safe default, with a visible raw-HTML directive for trusted content.</p>
-
       <pre><code class="language-html">&lt;script&gt;
   class {
     init() {

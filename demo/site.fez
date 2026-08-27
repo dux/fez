@@ -11,8 +11,8 @@
           { href: 'features.html',  name: 'features.html', label: 'Features' },
           { href: 'changelog/',     name: 'changelog',     label: 'Changelog' },
           { href: 'examples.html',  name: 'examples.html', label: 'Examples' },
-          // the playground is a full-viewport app without a pjax container - plain navigation
-          { href: 'playground.html', label: 'Playground', full: true },
+          // the playground loads page-specific editor assets, so enter it with a full navigation
+          { href: 'playground.html', name: 'playground.html', label: 'Playground', full: true },
           { href: 'docs.html',      name: 'docs.html',     label: 'Docs' },
           { href: 'electron.html',  name: 'electron.html', label: 'Electron' },
           { href: 'https://github.com/dux/fez', label: 'GitHub', ext: true },
@@ -33,7 +33,7 @@
     }
   </script>
 
-  <div class="site-wrap">
+  <div class="site-wrap {state.path == 'playground.html' ? 'no-pjax' : ''}">
     <a class="brand" href="index.html">
       <img src="fez.png" alt="" />
       <span class="brand-copy">

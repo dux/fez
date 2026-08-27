@@ -26,11 +26,19 @@
   </head>
   <body class="site">
 
-    <main id="" class="">
+      <site-nav></site-nav>
 
-      <fez-playground></fez-playground>
+    <main id="pjax" class="pjax">
+      <style>
+  @media (min-width: 901px) {
+    body { overflow: hidden; }
+  }
+</style>
+<fez-playground></fez-playground>
 
     </main>
+
+      <site-footer></site-footer>
 
   </body>
 </html>

@@ -27,25 +27,6 @@
       <site-nav></site-nav>
 
     <main id="pjax" class="pjax site-wrap site-text site-md">
-
-        <nav class="article-nav" aria-label="Changelog navigation">
-          <a href="changelog/">Back to changelog</a>
-          <div class="article-meta">
-            <span>2025-01-31</span>
-            <span>dependencies / head / modules</span>
-          </div>
-        </nav>
-        <div class="commit-list" aria-label="Source commits">
-
-            <a href="https://github.com/dux/fez/commit/a151c17" class="no-pjax" target="_blank">a151c17</a>
-
-            <a href="https://github.com/dux/fez/commit/c624e73" class="no-pjax" target="_blank">c624e73</a>
-
-        </div>
-
-        <h1>A component can declare what it needs in the document head</h1>
-        <p class="article-summary">Fez.head made external CSS, scripts, and import maps part of the component module instead of hidden page setup.</p>
-
       <pre><code class="language-html">&lt;script&gt;
   Fez.head({
     importmap: {

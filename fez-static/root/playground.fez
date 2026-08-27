@@ -420,7 +420,7 @@
   <style>
     display: grid;
     grid-template-rows: auto 1fr;
-    height: 100vh;
+    height: calc(100vh - 64px);
     overflow: hidden;
     background: var(--paper, #fff);
     color: var(--ink, #17181c);
@@ -674,7 +674,7 @@
     }
   </style>
 
-  <header class="bar">
+  <header class="bar no-pjax">
     <a class="brand" href="./index.html"><img src="./fez.png" alt="" />Fez <span>playground</span></a>
 
     <select class="pick" onchange="fez.pick(this.value)" title="Load a demo component">
