@@ -95,7 +95,7 @@
 
     .bar {
       display: flex; align-items: center; gap: 8px; padding: 10px 14px;
-      border-bottom: 1px solid var(--line); background: var(--paper-2);
+      border-bottom: 1px solid var(--line); background: #fff;
       font: 12.5px var(--font-mono); color: var(--ink-2);
 
       i { width: 10px; height: 10px; border-radius: 50%; background: var(--line-2); display: inline-block; }

@@ -10,6 +10,7 @@
   --line-2: #d2d4d9;
   --paper: #ffffff;
   --paper-2: #f6f6f4;
+  --page: #f7f6f3;
   --fez: #c8102e;
   --fez-deep: #8e0b21;
   --fez-tint: #fbeef0;
@@ -31,7 +32,7 @@ html { scroll-behavior: smooth; }
 body.site {
   margin: 0;
   padding: 0;
-  background: var(--paper);
+  background: var(--page);
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 17px;
@@ -162,7 +163,7 @@ body.site code.hljs { font-family: var(--font-mono); border-radius: 10px; }
 .site-cmp { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 15px; background: #fff;
   border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
 .site-cmp th, .site-cmp td { padding: 14px 16px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
-.site-cmp th { font: 600 13px var(--font-mono); letter-spacing: 0.02em; color: var(--ink-2); background: var(--paper-2); }
+.site-cmp th { font: 600 13px var(--font-mono); letter-spacing: 0.02em; color: var(--ink); background: #ececea; }
 .site-cmp th.is-fez { background: var(--fez); color: #fff; }
 .site-cmp td:first-child { font-weight: 600; color: var(--ink); white-space: nowrap; }
 .site-cmp td { color: var(--ink-2); }
