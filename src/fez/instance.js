@@ -30,6 +30,40 @@ export const WINDOW_EVENTS = new Set([
   "orientationchange", "error",
 ]);
 
+/**
+ * Wrapper attribute that mirrors this.props for the DOM inspector. The source
+ * tag is replaced by the wrapper on connect (connect.js), so without it the
+ * tree shows only <div class="fez fez-name"> - nothing about what the
+ * component was created with. Read-only: the attribute observer ignores it.
+ */
+export const PROPS_ATTR = "fez-props";
+const PROPS_ATTR_MAX_STRING = 60;
+
+/**
+ * Serialize props CSS-declaration style: `count: 3; label: Hits; user: {}`.
+ * Primitives print their value; anything structured is only typed - `{}`,
+ * `[]`, `()=>{}` - the inspector is for orientation, not for dumping data.
+ */
+export function formatPropsAttr(props) {
+  const parts = [];
+  for (const [key, value] of Object.entries(props || {})) {
+    let text;
+    if (value === null) text = "null";
+    else if (value === undefined) text = "undefined";
+    else if (typeof value === "function") text = "()=>{}";
+    else if (Array.isArray(value)) text = "[]";
+    else if (typeof value === "object") text = "{}";
+    else {
+      text = String(value).replace(/\s+/g, " ").trim();
+      if (text.length > PROPS_ATTR_MAX_STRING) {
+        text = text.slice(0, PROPS_ATTR_MAX_STRING) + "…";
+      }
+    }
+    parts.push(`${key}: ${text}`);
+  }
+  return parts.join("; ");
+}
+
 export default class FezBase {
   // ===========================================================================
   // STATIC METHODS
@@ -350,6 +384,7 @@ export default class FezBase {
     // assign the container instead: this.props.user = { ...this.props.user }
     this._props = this.fezReactiveStore(this._propsRaw, (_t, _k, next, prev) => {
       if (next === prev) return;
+      this.fezSyncPropsAttr();
       if (this._isRendering || this._isInitializing) return;
       // <slot unwrap /> dissolves the slot wrapper on first render and the
       // children can never be re-inserted, so those components render once -
@@ -358,6 +393,24 @@ export default class FezBase {
       if (this._fezStateDisabled) return;
       this.fezNextTick(this.fezRender, "fezRender");
     }, { shallow: true });
+    this.fezSyncPropsAttr();
+  }
+
+  /**
+   * Mirror this.props onto the root as `fez-props` (see formatPropsAttr).
+   * Runs on every props assignment and every this.props.x write, so the
+   * inspector never shows stale values. Never diffed: the morph does not sync
+   * root attributes, and parents treat live components as preserved.
+   */
+  fezSyncPropsAttr() {
+    const root = this.root;
+    if (!root?.setAttribute) return;
+    const text = formatPropsAttr(this._propsRaw);
+    if (text) {
+      if (root.getAttribute(PROPS_ATTR) !== text) root.setAttribute(PROPS_ATTR, text);
+    } else if (root.hasAttribute(PROPS_ATTR)) {
+      root.removeAttribute(PROPS_ATTR);
+    }
   }
 
   // Slots for passing live values (:attr props, loop handlers) through

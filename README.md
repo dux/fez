@@ -1413,6 +1413,16 @@ Note: an `Array`/`Object` given as a JSON **string** is re-parsed on every paren
 
 The schema is also exposed on `Fez.index[name].props` for tooling and docs.
 
+### Props in the DOM inspector (`fez-props`)
+
+On connect the source tag is replaced by the component wrapper, so the inspector would only show `<div class="fez fez-ui-pager">`. Fez mirrors `this.props` onto the wrapper as one read-only attribute, in CSS declaration style:
+
+```html
+<div class="fez fez-ui-pager" fez-props="page: 3; open: true; size: md; items: []; user: {}; on_pick: ()=>{}">
+```
+
+Primitives print their value (long strings are truncated); objects, arrays and functions are only typed as `{}`, `[]` and `()=>{}`. The attribute follows every props change (`this.props.x = ...`, attribute changes, keyed refresh from a parent render) and is ignored by `onPropsChange`. It is orientation for the inspector, not an API - read `node.fez.props` for the real values.
+
 ### how to call custom FEZ node from the outside, anywhere in HTML
 
 Inside `init()`, you have pointer to `this`. Pass it anywhere you need, even store in window.

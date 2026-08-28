@@ -907,3 +907,51 @@ test('transitions - fez:animate="flip" glides kept items to their new position o
     await closePage(page);
   }
 });
+
+test('fez-props - wrapper mirrors props, follows attribute and parent changes, never leaks into props', async () => {
+  const page = await createTestPage('<test-parent></test-parent>');
+
+  try {
+    await page.evaluate(() => {
+      window.testResults.changes = [];
+      window.Fez('test-child', class {
+        PROPS = { count: { type: Number, default: 0 } };
+        onPropsChange(name, value) { window.testResults.changes.push(name); }
+        HTML = '<span class="child">{props.count}</span>';
+      });
+      window.Fez('test-parent', class {
+        init() { this.state.n = 1; this.state.user = { id: 1 }; }
+        HTML = '<test-child fez-key="c" count="{state.n}" label="Hits" :user="state.user" :on_pick="() => 1"></test-child>';
+      });
+    });
+
+    await page.waitForFunction(() => document.querySelector('.child')?.textContent === '1', { timeout: 2000 });
+
+    const initial = await page.evaluate(() => {
+      const node = document.querySelector('.fez-test-child');
+      return { attr: node.getAttribute('fez-props'), keys: Object.keys(node.fez.props) };
+    });
+    expect(initial.attr).toBe('count: 1; label: Hits; user: {}; on_pick: ()=>{}');
+    expect(initial.keys).not.toContain('fez-props');
+
+    // parent re-render -> keyed props refresh
+    await page.evaluate(() => { document.querySelector('.fez-test-parent').fez.state.n = 2; });
+    await page.waitForFunction(() => document.querySelector('.child')?.textContent === '2', { timeout: 2000 });
+    expect(await page.evaluate(() => document.querySelector('.fez-test-child').getAttribute('fez-props')))
+      .toBe('count: 2; label: Hits; user: {}; on_pick: ()=>{}');
+
+    // external attribute change -> attrObserver -> props -> attribute follows
+    await page.evaluate(() => { document.querySelector('.fez-test-child').setAttribute('count', '7'); });
+    await page.waitForFunction(() => document.querySelector('.child')?.textContent === '7', { timeout: 2000 });
+
+    const after = await page.evaluate(() => {
+      const node = document.querySelector('.fez-test-child');
+      return { attr: node.getAttribute('fez-props'), keys: Object.keys(node.fez.props), changes: window.testResults.changes };
+    });
+    expect(after.attr).toBe('count: 7; label: Hits; user: {}; on_pick: ()=>{}');
+    expect(after.keys).not.toContain('fez-props');
+    expect(after.changes).not.toContain('fez-props');
+  } finally {
+    await closePage(page);
+  }
+});

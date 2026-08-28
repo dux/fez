@@ -2304,6 +2304,27 @@ ${demo}
     "orientationchange",
     "error"
   ]);
+  var PROPS_ATTR = "fez-props";
+  var PROPS_ATTR_MAX_STRING = 60;
+  function formatPropsAttr(props) {
+    const parts = [];
+    for (const [key, value] of Object.entries(props || {})) {
+      let text;
+      if (value === null) text = "null";
+      else if (value === void 0) text = "undefined";
+      else if (typeof value === "function") text = "()=>{}";
+      else if (Array.isArray(value)) text = "[]";
+      else if (typeof value === "object") text = "{}";
+      else {
+        text = String(value).replace(/\s+/g, " ").trim();
+        if (text.length > PROPS_ATTR_MAX_STRING) {
+          text = text.slice(0, PROPS_ATTR_MAX_STRING) + "\u2026";
+        }
+      }
+      parts.push(`${key}: ${text}`);
+    }
+    return parts.join("; ");
+  }
   var FezBase = class _FezBase {
     // ===========================================================================
     // STATIC METHODS
@@ -2560,10 +2581,28 @@ ${demo}
       this._propsRaw = value || {};
       this._props = this.fezReactiveStore(this._propsRaw, (_t, _k, next, prev) => {
         if (next === prev) return;
+        this.fezSyncPropsAttr();
         if (this._isRendering || this._isInitializing) return;
         if (this._fezStateDisabled) return;
         this.fezNextTick(this.fezRender, "fezRender");
       }, { shallow: true });
+      this.fezSyncPropsAttr();
+    }
+    /**
+     * Mirror this.props onto the root as `fez-props` (see formatPropsAttr).
+     * Runs on every props assignment and every this.props.x write, so the
+     * inspector never shows stale values. Never diffed: the morph does not sync
+     * root attributes, and parents treat live components as preserved.
+     */
+    fezSyncPropsAttr() {
+      const root = this.root;
+      if (!root?.setAttribute) return;
+      const text = formatPropsAttr(this._propsRaw);
+      if (text) {
+        if (root.getAttribute(PROPS_ATTR) !== text) root.setAttribute(PROPS_ATTR, text);
+      } else if (root.hasAttribute(PROPS_ATTR)) {
+        root.removeAttribute(PROPS_ATTR);
+      }
     }
     // Slots for passing live values (:attr props, loop handlers) through
     // rendered HTML, see lib/render-slots.js
@@ -4312,6 +4351,7 @@ type: ${originalType}`);
         const fez = mutation.target.fez;
         if (fez) {
           const name = mutation.attributeName;
+          if (name === PROPS_ATTR) continue;
           const raw = mutation.target.getAttribute(name);
           const value = fez.class?.castProp ? fez.class.castProp(name, raw, fez.fezName) : raw;
           fez.props[name] = value;

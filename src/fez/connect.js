@@ -14,7 +14,7 @@
 
 import createTemplate from "./lib/template.js";
 import closeCustomTags from "./lib/close-custom-tags.js";
-import FezBase from "./instance.js";
+import FezBase, { PROPS_ATTR } from "./instance.js";
 
 // Attribute observer for reactive props
 const attrObserver = new MutationObserver((mutations) => {
@@ -23,6 +23,8 @@ const attrObserver = new MutationObserver((mutations) => {
       const fez = mutation.target.fez;
       if (fez) {
         const name = mutation.attributeName;
+        // the inspector mirror of this.props - written by fez, never a prop
+        if (name === PROPS_ATTR) continue;
         const raw = mutation.target.getAttribute(name);
         // run through PROPS schema so onPropsChange sees the same typed value as init()
         const value = fez.class?.castProp
