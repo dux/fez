@@ -52,6 +52,6 @@
 
 // console.log(generateFez('ui-foo', out))
 
-import content from '../demo/fez/clock.fez';
+import content from '../docs/fez/clock.fez';
 
 console.log(content);

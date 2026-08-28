@@ -1,7 +1,7 @@
 // define custom style macro - simple scss mixin
 // :mobile { ... } -> @media (max-width:  768px) { ... }
 // @include mobile { ... } -> @media (max-width:  768px) { ... }
-// demo/fez/ui-style.fez
+// docs/fez/ui-style.fez
 //
 // A mixin body is any selector or at-rule prelude, so a macro can expand to a
 // conditional group (:mobile) or to a selector (:dark). flattenCss resolves

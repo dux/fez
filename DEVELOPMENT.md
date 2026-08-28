@@ -161,7 +161,8 @@ fez/
 │   ├── *.test.js                 # Unit tests
 │   └── browser/
 │       └── integration.test.js   # Browser tests
-├── demo/fez/                     # Component demos
+├── docs_src/root/fez/            # Component demos (source)
+├── docs/                         # Generated site, published by GitHub Pages
 ├── dist/                         # Built files
 ├── fez.d.ts                      # TypeScript definitions
 ├── .eslintrc.json                # ESLint config
@@ -173,7 +174,7 @@ fez/
 
 ### Add a New Component
 
-1. Create file: `demo/fez/my-component.fez`
+1. Create file: `docs_src/root/fez/my-component.fez`
 2. Write component with `<info>`, `<demo>`, `<script>`, `<style>`, and template
 3. Run: `bun run dev` to see it live
 4. Test manually or add automated tests

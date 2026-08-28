@@ -43,10 +43,10 @@ Options:
   -d, --debug-template  Print generated template function body on template errors
 
 Examples:
-  fez compile demo/fez/ui-counter.fez
-  fez compile 'demo/fez/*.fez'
-  fez compile -o demo/fez/ui-counter.fez > compiled.js
-  fez compile --debug-template demo/fez/ui-counter.fez
+  fez compile docs/fez/ui-counter.fez
+  fez compile 'docs/fez/*.fez'
+  fez compile -o docs/fez/ui-counter.fez > compiled.js
+  fez compile --debug-template docs/fez/ui-counter.fez
 `);
   process.exit(0);
 }

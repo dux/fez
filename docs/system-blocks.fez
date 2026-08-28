@@ -1,0 +1,252 @@
+<!-- generated from src: docs_src/root/system-blocks.fez | DO NOT EDIT OR READ THIS FILE -->
+<xmp fez="promo-blocks">
+  <script>
+    init() {
+      const src = './fez.txt'
+
+      // Get component names for rendering
+      Fez.fetch(src, (text) => {
+        const paths = text.trim().split('\n').filter(n => n.trim() && !n.startsWith('#'))
+        // Extract component names (last part of path, without extension)
+        const names = paths.map(p => p.split('/').pop().replace('.fez', ''))
+        this.state.names = names
+        this.globalState.fezComponents = names
+
+        // the picker renders above the selected block, so honour #fez-demo-x
+        // before the blocks land instead of flashing it at the top first
+        const hash = window.location.hash.slice(1)
+        const selected = names.find(name => `fez-demo-${name}` === hash)
+        if (selected) this.globalState.demoSelected = selected
+      })
+
+      // Load all components using txt list feature
+      Fez.head({ fez: src }, () => {
+        // Restore scroll position after content loads
+        setTimeout(() => {
+          const scrollY = sessionStorage.getItem('scrollY')
+          if (scrollY) {
+            window.scrollTo(0, parseInt(scrollY))
+            sessionStorage.removeItem('scrollY')
+          }
+        }, 200)
+
+        const allNames = Fez.index.names()
+        const withDemo = Fez.index.withDemo()
+        const undocumented = allNames.filter(n => !withDemo.includes(n)).sort()
+        if (undocumented.length) {
+          const container = this.find('#undocumented')
+          if (container) {
+            container.innerHTML = '<h3 style="margin-top: 40px; color: #888;">Undocumented components</h3>'
+              + '<div style="display: flex; flex-wrap: wrap; gap: 8px;">'
+              + undocumented.map(n => `<code style="padding: 4px 8px; background: #f5f5f5; border-radius: 4px; font-size: 14px;">&lt;${n}&gt;</code>`).join('')
+              + '</div>'
+          }
+        }
+      })
+    }
+
+    // quick select sits before the list until something is picked, then the
+    // template moves it right above that component (offset clears the sticky site nav)
+    onMount() {
+      // Save scroll position before page unload
+      this.on('beforeunload', () => {
+        sessionStorage.setItem('scrollY', window.scrollY)
+      })
+    }
+  </script>
+
+  {#if !globalState.demoSelected}
+    <fez-demo-nav offset="76" />
+  {/if}
+  {#for name in state.names}
+    {#if globalState.demoSelected === name}
+      <fez-demo-nav for={name} offset="76" />
+    {/if}
+    <block-promo name={name} />
+  {/for}
+
+  <div id="undocumented"></div>
+</xmp>
+
+<xmp fez="block-promo">
+  <script>
+    // editor text with the real dots back - the parent template would rewrite
+    // `fez.` into Fez(UID). so the source is shown with U+2024 instead.
+    // Takes the name because applyChanges runs as a detached function pointer (no `this`).
+    componentSource(name) {
+      return Fez(`#code-${name}`).getSource().replaceAll('fez․', 'fez.')
+    }
+
+    openPlayground(name) {
+      // hand the (possibly edited) source over through localStorage, the playground reads the same key
+      Fez.localStorage.set(`fez-playground:${name}`, {
+        name: name,
+        source: this.componentSource(name),
+        demo: Fez(`#html-${name}`).getSource(),
+        from: 'examples',
+        at: Date.now(),
+      })
+      window.open(`./playground.html?fez=${name}`, '_blank')
+    }
+
+    openCodePen(name) {
+      let demo = Fez.index[name]?.demo || ''
+      let code = this.componentSource(name)
+      const body = [
+        '<link rel="stylesheet" href="//cdn.simplecss.org/simple.css" />\n<scr'+'ipt src="https://raw.githubusercontent.com/dux/fez/main/dist/fez.js"></scr'+'ipt>',
+        `<!-- FEZ code start -->\n<x`+`mp fez="${name}">\n${code}\n</xm`+`p>\n<!-- FEZ code end -->`,
+        `<!-- HTML code start -->\n${demo}\n<!-- HTML code end -->`
+      ]
+
+      const css = `body { padding-top: 50px; }`
+
+      const data = {
+        title: `Fez component - ${name}`,
+        html: body.join("\n\n"),
+        css: css,
+        js: '',
+        editors: "100" // 1=HTML, 0=CSS, 1=JS (open panels)
+      };
+
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "https://codepen.io/pen/define";
+      form.target = "_blank";
+
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "data";
+      input.value = JSON.stringify(data);
+
+      form.appendChild(input);
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+    }
+
+    applyChanges(name) {
+      // called through ui-editor's :action pointer, so `this` is not the component here
+      const source = Fez(`#code-${name}`).getSource().replaceAll('fez․', 'fez.')
+      Fez.compile(name, source)
+
+      // Re-render demo from updated component
+      const target = document.querySelector(`#body-${name}`)
+      if (target) {
+        Fez.index.apply(name, target)
+      }
+      Toast.info('Component updated.')
+    }
+
+    openDemo() {
+      window.open(`./raw.html?fez=${this.name}`, '_blank')
+    }
+
+    init(props) {
+      if (!props.name) return
+      this.name = props.name
+      Fez.fetch(`./fez/${props.name}.fez`, (res) => {
+        Fez.compile(props.name, res)
+        this.state.code = res
+          .replaceAll('fez.', 'fez․') // hack to hide dot
+
+        // Get info from Fez.index after component is compiled
+        const demoData = Fez.index.get(props.name)
+        if (!demoData.info) return
+        this.state.info = demoData.info.innerHTML
+        this.state.demoHtml = Fez.index[props.name]?.demo || ''
+        this.state.ready = true
+      })
+    }
+
+    appendDemo(container) {
+      // Render demo and execute scripts using Fez.index.apply
+      Fez.index.apply(this.name, container)
+    }
+  </script>
+
+  <style>
+    .promo-title {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0 0 25px 0;
+      &::before, &::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #ddd;
+      }
+    }
+
+    .promo-links {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 14px;
+      margin-top: 10px;
+
+      small, button { cursor: pointer; }
+
+      button.playground {
+        font-family: inherit;
+        font-size: 12.5px;
+        font-weight: 600;
+        line-height: 1;
+        padding: 7px 12px;
+        border-radius: 999px;
+        border: 1px solid #d2d4d9;
+        background: #fff;
+        color: #17181c;
+
+        &::before { content: '▶ '; font-size: 9px; color: #c8102e; }
+        &:hover { border-color: #c8102e; color: #c8102e; }
+      }
+    }
+  </style>
+
+  {#if state.ready}
+    <a id="fez-demo-{name}" name="fez-demo-{name}"></a>
+    <div style="margin-bottom: 50px;">
+      <h2 class="promo-title"><a onclick="fez.openDemo()" style="cursor: pointer;">{name}</a></h2>
+      <div class="flex even top">
+        <div style="flex: 1; min-width: 0;">
+          <div id="body-{name}" style="padding-bottom: 20px;" fez-use="appendDemo">
+          </div>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <ui-tabs>
+            <div title="Info" active="true">
+              {@html state.info}
+            </div>
+            <div title="Demo HTML">
+              <ui-editor
+                name="{name}"
+                id="html-{name}"
+                file="./docs_src/root/fez/{name}.fez"
+                language="html"
+              >
+                {state.demoHtml}
+              </ui-editor>
+            </div>
+            <div title="Fez component">
+              <ui-editor
+                id="code-{name}"
+                file="./docs_src/root/fez/{name}.fez"
+                name="{name}"
+                :action="fez.applyChanges"
+              >
+                {state.code}
+              </ui-editor>
+            </div>
+          </ui-tabs>
+          <div class="promo-links">
+            <button class="playground" onclick="fez.openPlayground('{name}')" title="Edit with live recompile in a full-width split view">open in playground</button>
+            <small onclick="fez.openCodePen('{name}')">open in CodePen</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  {/if}
+</xmp>

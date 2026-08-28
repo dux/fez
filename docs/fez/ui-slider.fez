@@ -1,0 +1,226 @@
+<!-- generated from src: docs_src/root/fez/ui-slider.fez | DO NOT EDIT OR READ THIS FILE -->
+<info>
+  <ul>
+    <li>Image/content slider with smooth CSS animations</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Touch-friendly, responsive, auto-advances</li>
+  </ul>
+</info>
+
+<demo>
+  <style>
+    .fez-c-slider {
+      .fez-slot {
+        > div {
+           text-align: center;
+        }
+      }
+    }
+
+    div.img {
+      img {
+        width: 100%;
+        max-height: 600px;
+        object-fit: cover;
+        border-radius: 8px;
+      }
+      &.flex {
+        display: flex;
+        gap: 10px;
+        img { width: 50%; }
+      }
+    }
+  </style>
+
+  <ui-slider arrows="true" dots="true">
+    <div>
+      <h1>Slide 1</h1>
+      <div class="img">
+        <img src="https://images.unsplash.com/photo-1737143765999-bd3be790ab4f?w=600" />
+       </div>
+    </div>
+    <div>
+      <h1>Slide 2</h1>
+      <div class="img flex even">
+        <img src="https://images.unsplash.com/photo-1735767975829-71496633d499?w=600" />
+        <img src="https://images.unsplash.com/photo-1736158064402-5b68c2cbcc77?w=600" />
+      </div>
+      <div style="width: 200px;  margin: 20px auto;">
+        <ui-clock city="Slider!"></ui-clock>
+      </div>
+    </div>
+    <div>
+      <h1>Slide 3</h1>
+      <div class="img">
+        <img src="https://images.unsplash.com/photo-1737898415581-7dea57a1905b?w=600" />
+       </div>
+    </div>
+    <div>
+      <h1>Slide 4</h1>
+      <div class="img">
+        <img src="https://images.unsplash.com/photo-1736158064402-5b68c2cbcc77?w=600" />
+      </div>
+      <ul>
+        <li>Add any HTML</li>
+      </ul>
+    </div>
+    <div>
+      <h1>Slide 5</h1>
+      <div class="img">
+        <img src="https://images.unsplash.com/photo-1736185669686-f302d6274f23?w=600" />
+      </div>
+    </div>
+  </ui-slider>
+</demo>
+
+<script>
+  resizeSelf() {
+    const width = this.find('.slider-container')?.getBoundingClientRect().width ?? 0
+    this.setStyle('--offset', `-${width * this.state.slide}px`)
+  }
+
+  setSlide(num) {
+    this.state.slide = parseInt(num)
+
+    if (this.state.slide < 0) {
+      this.state.slide = this.slidesCount - 1
+    } else if (this.state.slide >= this.slidesCount) {
+      this.state.slide = 0
+    }
+
+    this.resizeSelf()
+  }
+
+  changeSlide(direction){
+    this.setSlide( this.state.slide += direction )
+  }
+
+  init() {
+    this.slidesCount = this.childNodes().length
+    this.setSlide(0)
+    this.onWindowResize(this.resizeSelf, 100)
+  }
+</script>
+
+<style>
+  position: relative;
+
+  .slider-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+
+    .slot-parent {
+      transition: transform 0.3s ease;
+      transform: translateX(var(--offset));
+
+      .fez-slot {
+        display: flex;
+
+        & > div {
+          width: 100%;
+          flex-shrink: 0;
+        }
+      }
+    }
+
+    .arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 15px;
+      height: 15px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(0, 0, 0, 0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+      &:hover {
+        background: rgba(255, 255, 255, 1);
+        border-color: rgba(0, 0, 0, 0.5);
+        transform: translateY(-50%) scale(1.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      span {
+        color: #333;
+        font-size: 24px;
+        font-weight: bold;
+        line-height: 1;
+      }
+
+      &.prev {
+        left: 10px;
+      }
+
+      &.next {
+        right: 10px;
+      }
+    }
+  }
+
+  .dots {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(0, 0, 0, 0.4);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+      &:hover {
+        background: rgba(255, 255, 255, 1);
+        border-color: rgba(0, 0, 0, 0.6);
+        transform: scale(1.3);
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+      }
+
+      &.active {
+        background: #333;
+        border-color: rgba(255, 255, 255, 0.8);
+        transform: scale(1.3);
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+      }
+    }
+  }
+</style>
+
+<div class="slider-container">
+  <div class="slot-parent">
+    <slot />
+  </div>
+
+  {#if props.arrows}
+    <div class="arrow prev" onclick="fez.changeSlide(-1)">
+      <span>&#8249;</span>
+    </div>
+
+    <div class="arrow next" onclick="fez.changeSlide(1)">
+      <span>&#8250;</span>
+    </div>
+  {/if}
+</div>
+
+{#if props.dots}
+  <div class="dots">
+    {#each Array(slidesCount).fill(0) as dot, index}
+      <div class="dot {state.slide === index ? 'active' : ''}" onclick="fez.setSlide({index})"></div>
+    {/each}
+  </div>
+{/if}

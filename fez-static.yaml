@@ -1,8 +1,6 @@
-source_dir: demo_src
-target_dir: demo
-
-# docs.html fetches ../README.md, so serve the repo root and browse /demo/ (same shape as GitHub Pages)
-serve_root: .
+# GitHub Pages serves this repo from main /docs, so the generated site is its own root
+source_dir: docs_src
+target_dir: docs
 
 site:
   title: Fez
@@ -15,6 +13,9 @@ site:
 copy:
   "dist/fez.min.js": "fez.min.js"
   "dist/fez.min.js.map": "fez.min.js.map"
+  # docs.html renders the README, and vscode snippets link to /fez/dist/fez.js
+  "README.md": "README.md"
+  "dist": "dist"
 
 collections:
   changelog:

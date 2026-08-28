@@ -1,0 +1,64 @@
+<!-- generated from src: docs_src/root/[changelog]/2025-09-11-debuggable-shared-state.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <base href="../">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Global pub/sub, state subscriptions, dump helpers, and CSS mixins expanded coordination without hiding it behind a store framework.">
+<title>Shared state stayed observable and debuggable - Fez</title>
+<link rel="icon" href="fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="fez.min.js"></script>
+
+  <script fez="site.fez"></script>
+
+  <script fez="fez/fez-control.fez"></script>
+
+
+<link rel="stylesheet" href="css/full.css">
+<link rel="stylesheet" href="css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-text site-md">
+      <pre><code class="language-html">&lt;!-- theme-toggle.fez --&gt;
+&lt;script&gt;
+  class {
+    init() {
+      this.state.dark = Boolean(Fez.state.get('dark'))
+    }
+
+    toggle() {
+      this.state.dark = !this.state.dark
+      Fez.state.set('dark', this.state.dark)
+      document.documentElement.classList.toggle('dark', this.state.dark)
+    }
+  }
+&lt;/script&gt;
+
+&lt;button onclick=&quot;fez.toggle()&quot;&gt;
+  Use {state.dark ? 'light' : 'dark'} theme
+&lt;/button&gt;
+</code></pre>
+<pre><code class="language-html">&lt;theme-toggle&gt;&lt;/theme-toggle&gt;
+&lt;p&gt;Dark mode: &lt;fez-inline&gt;{globalState.dark ? 'on' : 'off'}&lt;/fez-inline&gt;&lt;/p&gt;
+
+&lt;script&gt;
+  Fez.state.subscribe('dark', (value, oldValue) =&gt; {
+    console.log('dark changed', { oldValue, value })
+  })
+&lt;/script&gt;
+</code></pre>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

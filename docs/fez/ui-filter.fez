@@ -1,0 +1,67 @@
+<!-- generated from src: docs_src/root/fez/ui-filter.fez | DO NOT EDIT OR READ THIS FILE -->
+<info>
+  <ul>
+    <li>Live filter over a list - type and the results follow</li>
+    <li><code>fez:bind</code> for two-way input binding, no change handler</li>
+    <li>Derived state in <code>beforeRender()</code> - the Fez answer to memos and runes</li>
+    <li><code>{#if}</code> / <code>{:else if}</code> / <code>{:else}</code> for the counter, <code>{#for}</code> for the hits</li>
+  </ul>
+</info>
+
+<demo>
+  <ui-filter></ui-filter>
+</demo>
+
+<script>
+  init() {
+    this.state.q = ''
+    this.state.all = ['pjax', 'differ', 'fetch', 'transitions']
+  }
+
+  beforeRender() {
+    const q = this.state.q
+    this.state.hits = this.state.all.filter(n => n.includes(q))
+  }
+</script>
+
+<input fez:bind="state.q" placeholder="filter features" />
+
+{#if !state.q}
+  <small>{state.all.length} features</small>
+{:else if state.hits.length}
+  <small>{state.hits.length} of {state.all.length}</small>
+{:else}
+  <small>nothing matches "{state.q}"</small>
+{/if}
+
+<div class="hits">
+  {#for name in state.hits}
+    <p key={name} fez:transition="slide, opacity=0">{name}</p>
+  {/for}
+</div>
+
+<style>
+  display: grid;
+  gap: 10px;
+  width: 100%;
+
+  input {
+    padding: 8px 11px;
+    font: inherit;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+  }
+
+  small {
+    font-size: 13px;
+    color: #888;
+  }
+
+  .hits p {
+    margin: 0 0 6px 0;
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: #f1f1f4;
+    font-size: 14px;
+  }
+</style>

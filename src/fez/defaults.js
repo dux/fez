@@ -23,7 +23,7 @@ const loadDefaults = () => {
   );
 
   // include remote data from url
-  // <fez-include src="./demo/fez/ui-slider.html"></fez-include>
+  // <fez-include src="./docs/fez/ui-slider.html"></fez-include>
   Fez(
     "fez-include",
     class {
@@ -81,7 +81,7 @@ const loadDefaults = () => {
     },
   );
 
-  // In-flow component picker for demo pages (see demo/fez/fez-demo-nav.fez)
+  // In-flow component picker for demo pages (see docs/fez/fez-demo-nav.fez)
   Fez(
     "fez-demo-nav",
     class {

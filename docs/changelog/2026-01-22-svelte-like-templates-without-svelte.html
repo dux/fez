@@ -1,0 +1,64 @@
+<!-- generated from src: docs_src/root/[changelog]/2026-01-22-svelte-like-templates-without-svelte.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <base href="../">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A familiar block syntax improved readability while Fez kept its own compiler, runtime, and DOM ownership model.">
+<title>Fez adopted Svelte-like templates without adopting Svelte - Fez</title>
+<link rel="icon" href="fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="fez.min.js"></script>
+
+  <script fez="site.fez"></script>
+
+  <script fez="fez/fez-control.fez"></script>
+
+
+<link rel="stylesheet" href="css/full.css">
+<link rel="stylesheet" href="css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-text site-md">
+      <pre><code class="language-html">&lt;script&gt;
+  class {
+    init() {
+      this.state.selected = 2
+      this.state.people = [
+        { id: 1, name: 'Ada' },
+        { id: 2, name: 'Grace' },
+      ]
+    }
+
+    select(id) {
+      this.state.selected = id
+    }
+  }
+&lt;/script&gt;
+
+{#if state.people}
+  &lt;ul&gt;
+    {#each state.people as person}
+      &lt;li class:selected={person.id === state.selected}&gt;
+        &lt;button onclick=&quot;fez.select({person.id})&quot;&gt;{person.name}&lt;/button&gt;
+      &lt;/li&gt;
+    {/each}
+  &lt;/ul&gt;
+{:else}
+  &lt;p&gt;No people found.&lt;/p&gt;
+{/if}
+</code></pre>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

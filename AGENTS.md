@@ -23,7 +23,7 @@ Fez ships the former `dux-pjax` package (ported to JS) in `src/fez/pjax/` and ex
 
 ## Writing New Components
 
-If you are instructed to write a fez component, ALWAYS write it in `demo_src/root/fez/[name].fez`; `demo/fez` is generated output.
+If you are instructed to write a fez component, ALWAYS write it in `docs_src/root/fez/[name].fez`; `docs/fez` is generated output.
 All documentation and demos go INSIDE the .fez file (no separate .html files) using `<info>` and `<demo>` blocks.
 
 ## CDN

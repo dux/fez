@@ -6,7 +6,7 @@ import path from 'path';
 import { globSync } from 'glob';
 
 const INFO = 'Report legacy Fez syntax and JavaScript modernization candidates';
-const DEFAULT_PATHS = ['demo/fez', 'src', 'test'];
+const DEFAULT_PATHS = ['docs/fez', 'src', 'test'];
 
 let values, positionals;
 try {

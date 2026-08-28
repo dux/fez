@@ -55,7 +55,7 @@ describe('fez template', () => {
   });
 
   test('validates component definitions independently', async () => {
-    const result = await runTemplate('demo/fez/bubble-alerter.fez');
+    const result = await runTemplate('docs/fez/bubble-alerter.fez');
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('2 components');

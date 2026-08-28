@@ -1,0 +1,37 @@
+<!-- generated from src: docs_src/root/fez/fez-control.fez | DO NOT EDIT OR READ THIS FILE -->
+<info>
+  <ul>
+    <li>Site-wide syntax highlighting controller for fenced code blocks</li>
+    <li>Highlights on initial load and after Pjax navigation</li>
+  </ul>
+</info>
+
+<demo>
+  <pre><code class="language-html">&lt;ui-label color="primary"&gt;Highlighted&lt;/ui-label&gt;</code></pre>
+</demo>
+
+<script>
+  Fez.head({ css: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs2015.min.css' })
+
+  import hljs from 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/es/highlight.min.js'
+
+  class {
+    GLOBAL = true
+    NAME = 'span'
+
+    onMount() {
+      this.highlight()
+      this.on('pjax:render', () => this.highlight())
+    }
+
+    highlight(root = document) {
+      root.querySelectorAll('pre code[class*="language-"]:not(.hljs)').forEach((node) => {
+        hljs.highlightElement(node)
+      })
+    }
+  }
+</script>
+
+<style>
+  display: none;
+</style>

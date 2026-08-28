@@ -3,16 +3,16 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Test page</title>
-    <link rel="icon" href="./demo/fez.png">
+    <link rel="icon" href="./docs/fez.png">
     <script src="./dist/fez.js"></script>
-    <script fez="./demo/system-blocks.fez"></script>
-    <link rel="stylesheet" href="./demo/css/full.css" />
+    <script fez="./docs/system-blocks.fez"></script>
+    <link rel="stylesheet" href="./docs/css/full.css" />
     <script>
       function loadFez(name) {
         Fez.onReady(()=>{
           document.body.innerHTML += `
-            <template fez="./demo/fez/${name}.fez"></template>
-            <xfez-include src="./demo/fez/${name}.html"></xfez-include>
+            <template fez="./docs/fez/${name}.fez"></template>
+            <xfez-include src="./docs/fez/${name}.html"></xfez-include>
           `
         })
       }

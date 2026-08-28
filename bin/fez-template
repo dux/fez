@@ -40,8 +40,8 @@ Options:
   -d, --debug  Print generated template function body on errors
 
 Examples:
-  fez template demo/fez/ui-counter.fez
-  fez template 'demo/fez/*.fez'
+  fez template docs/fez/ui-counter.fez
+  fez template 'docs/fez/*.fez'
   fez template --debug app/assets/auto/fez/js/input-currency-code.fez
 `);
   process.exit(0);

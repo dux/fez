@@ -49,9 +49,9 @@ describe("Fez.fetch in-flight de-dup", () => {
   test("concurrent identical GETs share one network request", async () => {
     const Fez = makeFez();
 
-    const a = Fez.fetch("/demo/fez/ui-card.fez");
-    const b = Fez.fetch("/demo/fez/ui-card.fez");
-    const c = Fez.fetch("/demo/fez/ui-card.fez");
+    const a = Fez.fetch("/docs/fez/ui-card.fez");
+    const b = Fez.fetch("/docs/fez/ui-card.fez");
+    const c = Fez.fetch("/docs/fez/ui-card.fez");
 
     // All three joined before any resolved.
     expect(net.calls).toBe(1);

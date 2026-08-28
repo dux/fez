@@ -1,0 +1,74 @@
+<!-- generated from src: docs_src/root/playground-starter.fez | DO NOT EDIT OR READ THIS FILE -->
+<info>
+  <ul>
+    <li>Starter component - edit anything on the right, the demo on the left recompiles as you type.</li>
+    <li>Typed props via <code>PROPS</code>, local <code>this.state</code>, scoped <code>&lt;style&gt;</code>.</li>
+  </ul>
+</info>
+
+<demo>
+  <my-counter start="3"></my-counter>
+  <my-counter></my-counter>
+</demo>
+
+<script>
+  class {
+    PROPS = {
+      start: { type: Number, default: 0 },
+    }
+
+    init(props) {
+      this.state.count = props.start
+    }
+
+    add(n) {
+      this.state.count += n
+    }
+
+    label() {
+      if (this.state.count < 0) return 'negative'
+      if (this.state.count === 0) return 'zero'
+      return this.state.count % 2 ? 'odd' : 'even'
+    }
+  }
+</script>
+
+<style>
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 10px 6px 0;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 16px;
+
+  button {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 16px;
+    cursor: pointer;
+
+    &:hover { border-color: #c8102e; color: #c8102e; }
+  }
+
+  b {
+    min-width: 2ch;
+    text-align: center;
+  }
+
+  small {
+    color: #888;
+  }
+</style>
+
+<button onclick="fez.add(-1)">-</button>
+<b>{state.count}</b>
+<button onclick="fez.add(1)">+</button>
+<small>{label()}</small>
+{#if state.count >= 10}
+  <span fez:in="pop">double digits!</span>
+{/if}

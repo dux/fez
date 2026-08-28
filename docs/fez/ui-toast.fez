@@ -1,0 +1,100 @@
+<!-- generated from src: docs_src/root/fez/ui-toast.fez | DO NOT EDIT OR READ THIS FILE -->
+<info>
+  <ul>
+    <li>Toast notifications - info, success, warning, error</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Call <code>Toast.info()</code>, <code>Toast.error()</code> etc. from anywhere</li>
+    <li>State-driven list: <code>fez:in</code> / <code>fez:out</code> animate enter and leave, <code>fez:animate="flip"</code> shifts the stack</li>
+  </ul>
+</info>
+
+<demo>
+  <form onsubmit="showToast(this); return false">
+    <input type="text" name="toast" style="margin-right: 10px;" />
+    <button class="btn">Show info</button>
+  </form>
+
+  <br />
+
+  <button class="btn btn-sm" onclick="Toast.info('Hi')">Trigger info</button>
+  <button class="btn btn-sm" onclick="Toast.error('Graaa')">Trigger error</button>
+
+  <script>
+    window.showToast = (form) => {
+      let input = form.querySelector('input')
+      Toast.info(input.value)
+      input.value = ''
+    }
+  </script>
+</demo>
+
+<script>
+  window.Alert = (data) => window.Toast ? Toast.info(data) : alert(data)
+
+  class {
+    GLOBAL = 'Toast'
+
+    init() {
+      this.state.toasts = []
+      this.local.uid = 0
+    }
+
+    error(text) {
+      this.info(text, 'error')
+    }
+
+    info(text, klass) {
+      const id = ++this.local.uid
+      this.state.toasts.unshift({ id, text, klass: klass || 'info' })
+      // dropping it from the list plays fez:out, the rest glide up via fez:animate
+      this.setTimeout(() => this.remove(id), 4000)
+    }
+
+    remove(id) {
+      this.state.toasts = this.state.toasts.filter((t) => t.id !== id)
+    }
+  }
+</script>
+
+<style>
+  .parent {
+    z-index: 1001;
+    width: 300px;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+
+    div.toast {
+      padding: 10px 20px;
+      background-color: #fff;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+      cursor: pointer;
+
+      &.info {
+        border: 1px solid lch(50% 50 140);
+        background-color: lch(90% 50 140);
+      }
+
+      &.error {
+        border: 1px solid lch(50% 50 350);
+        background-color: lch(90% 50 350);
+      }
+    }
+  }
+</style>
+
+<div class="parent">
+  {#each state.toasts as t}
+    <div
+      key={t.id}
+      class="toast {t.klass}"
+      fez:in="fly, from=top, distance=20, duration=500"
+      fez:out="fly, from=bottom, distance=20, duration=300"
+      fez:animate="flip, duration=300"
+      onclick="fez.remove({t.id})"
+      title="click to dismiss"
+    >{@html t.text}</div>
+  {/each}
+</div>
