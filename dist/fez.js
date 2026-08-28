@@ -1,3 +1,4 @@
+// v: 0.6.1
 (() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropNames = Object.getOwnPropertyNames;

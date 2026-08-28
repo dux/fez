@@ -6,7 +6,10 @@
 // npx esbuild $(npx glob-cli 'src/*.js') --outdir=public --bundle --watch --sourcemap
 
 import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import * as esbuild from 'esbuild'
+
+const { version } = JSON.parse(readFileSync('./package.json', 'utf8'))
 
 const cliRun = (command) => {
   console.log(`RUN: ${command}`)
@@ -23,6 +26,7 @@ const opts = {
   bundle: true,
   platform: 'browser',
   sourcemap: kind != 'd',
+  banner: { js: `// v: ${version}` },
   plugins: []
 }
 
