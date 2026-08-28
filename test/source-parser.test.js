@@ -41,6 +41,26 @@ describe('Fez source parser', () => {
     expect(parsed.html).toContain('<p>Hello</p>');
   });
 
+  test('a single-line <info> or <demo> does not swallow the rest of the file', () => {
+    // The old line scanner opened <info> on one line and only closed it on a
+    // later line, so `<info>x</info>` ate the script, template and style that
+    // followed - the component mounted as an empty class with no error.
+    const parsed = parseFezSource(`<info>Hero block</info>
+<demo><block-hero title="Hi" /></demo>
+<script>
+  class { init() {} }
+</script>
+<h1>{props.title}</h1>
+<style>h1 { color: red; }</style>`);
+
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.info.trim()).toBe('Hero block');
+    expect(parsed.demo.trim()).toBe('<block-hero title="Hi" />');
+    expect(parsed.script).toContain('init() {}');
+    expect(parsed.style).toBe('h1 { color: red; }');
+    expect(parsed.html).toContain('<h1>{props.title}</h1>');
+  });
+
   test('reports unclosed source blocks at their source line', () => {
     const parsed = parseFezSource(`<p>Hello</p>
 <script>
