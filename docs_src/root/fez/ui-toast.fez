@@ -31,6 +31,7 @@
   window.Alert = (data) => window.Toast ? Toast.info(data) : alert(data)
 
   class {
+    MOUNT = true
     GLOBAL = 'Toast'
 
     init() {

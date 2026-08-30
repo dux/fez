@@ -1,3 +1,4 @@
+// v: 0.6.1
 (() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -2304,6 +2305,27 @@ ${demo}
     "orientationchange",
     "error"
   ]);
+  var PROPS_ATTR = "fez-props";
+  var PROPS_ATTR_MAX_STRING = 60;
+  function formatPropsAttr(props) {
+    const parts = [];
+    for (const [key, value] of Object.entries(props || {})) {
+      let text;
+      if (value === null) text = "null";
+      else if (value === void 0) text = "undefined";
+      else if (typeof value === "function") text = "()=>{}";
+      else if (Array.isArray(value)) text = "[]";
+      else if (typeof value === "object") text = "{}";
+      else {
+        text = String(value).replace(/\s+/g, " ").trim();
+        if (text.length > PROPS_ATTR_MAX_STRING) {
+          text = text.slice(0, PROPS_ATTR_MAX_STRING) + "\u2026";
+        }
+      }
+      parts.push(`${key}: ${text}`);
+    }
+    return parts.join("; ");
+  }
   var FezBase = class _FezBase {
     // ===========================================================================
     // STATIC METHODS
@@ -2560,10 +2582,28 @@ ${demo}
       this._propsRaw = value || {};
       this._props = this.fezReactiveStore(this._propsRaw, (_t, _k, next, prev) => {
         if (next === prev) return;
+        this.fezSyncPropsAttr();
         if (this._isRendering || this._isInitializing) return;
         if (this._fezStateDisabled) return;
         this.fezNextTick(this.fezRender, "fezRender");
       }, { shallow: true });
+      this.fezSyncPropsAttr();
+    }
+    /**
+     * Mirror this.props onto the root as `fez-props` (see formatPropsAttr).
+     * Runs on every props assignment and every this.props.x write, so the
+     * inspector never shows stale values. Never diffed: the morph does not sync
+     * root attributes, and parents treat live components as preserved.
+     */
+    fezSyncPropsAttr() {
+      const root = this.root;
+      if (!root?.setAttribute) return;
+      const text = formatPropsAttr(this._propsRaw);
+      if (text) {
+        if (root.getAttribute(PROPS_ATTR) !== text) root.setAttribute(PROPS_ATTR, text);
+      } else if (root.hasAttribute(PROPS_ATTR)) {
+        root.removeAttribute(PROPS_ATTR);
+      }
     }
     // Slots for passing live values (:attr props, loop handlers) through
     // rendered HTML, see lib/render-slots.js
@@ -2644,6 +2684,9 @@ ${demo}
       };
       this.local = {};
       this.fezGlobals.clear();
+      const handle = this.class?.GLOBAL;
+      if (handle && window[handle] === this) delete window[handle];
+      Fez.instances?.delete(this.UID);
       if (this.root) {
         this.root.fez = void 0;
       }
@@ -4312,6 +4355,7 @@ type: ${originalType}`);
         const fez = mutation.target.fez;
         if (fez) {
           const name = mutation.attributeName;
+          if (name === PROPS_ATTR) continue;
           const raw = mutation.target.getAttribute(name);
           const value = fez.class?.castProp ? fez.class.castProp(name, raw, fez.fezName) : raw;
           fez.props[name] = value;
@@ -4377,6 +4421,7 @@ type: ${originalType}`);
     }
     const configMap = {
       GLOBAL: "GLOBAL",
+      MOUNT: "MOUNT",
       NAME: "nodeName",
       PROPS: "PROPS"
     };
@@ -4401,8 +4446,19 @@ type: ${originalType}`);
     if (newKlass.PROPS) {
       Fez3.index.ensure(name).props = newKlass.PROPS;
     }
-    if (instance.GLOBAL) {
-      Fez3.onReady(() => document.body.appendChild(document.createElement(name)));
+    if (newKlass.GLOBAL && typeof newKlass.GLOBAL !== "string") {
+      Fez3.onError(
+        "compile",
+        `<${name}>: GLOBAL must be a window name string, use MOUNT = true to auto-mount`
+      );
+      delete newKlass.GLOBAL;
+    }
+    if (newKlass.MOUNT) {
+      Fez3.onReady(() => {
+        if (!document.querySelector(`${name}, .fez-${name}`)) {
+          document.body.appendChild(document.createElement(name));
+        }
+      });
     }
     Fez3.consoleLog(`${name} compiled`);
     return newKlass;
@@ -4430,8 +4486,8 @@ type: ${originalType}`);
     newNode._fezSignature = node.outerHTML;
     fez.fezSlot(node, newNode);
     newNode.fez = fez;
-    if (klass.GLOBAL && klass.GLOBAL !== true) {
-      window[klass.GLOBAL] ||= fez;
+    if (klass.GLOBAL) {
+      window[klass.GLOBAL] = fez;
     }
     if (window.$) fez.$root = $(newNode);
     if (fez.props.id) newNode.setAttribute("id", fez.props.id);
@@ -5613,7 +5669,7 @@ ${after})`;
         return list;
       }
       if (typeof klass !== "function") {
-        return Fez2.find(name, klass);
+        return Fez2.find(klass, name);
       }
       return connect(name, klass);
     }
@@ -6444,7 +6500,6 @@ ${after})`;
           if (el.fez && !el.fez._destroyed) {
             queueMicrotask(() => {
               if (!el.isConnected && el.fez && !el.fez._destroyed) {
-                root_default.instances.delete(el.fez.UID);
                 el.fez.fezOnDestroy();
               }
             });

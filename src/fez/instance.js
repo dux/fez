@@ -497,6 +497,11 @@ export default class FezBase {
     // Drop parked :attr values and loop handlers
     this.fezGlobals.clear();
 
+    // Release the window handle only if it still points here (a replacement may own it)
+    const handle = this.class?.GLOBAL;
+    if (handle && window[handle] === this) delete window[handle];
+    Fez.instances?.delete(this.UID);
+
     // Clean up root references
     if (this.root) {
       this.root.fez = undefined;

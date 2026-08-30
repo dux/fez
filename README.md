@@ -865,10 +865,10 @@ Fez('foo-bar', class {
   // if you pair it with `fezReactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
   HTML = `...`
 
-  // Make it globally accessible as `window.Dialog`
-  // The component is automatically appended to the document body as a singleton. See `docs/fez/ui-dialog.fez` for a complete example.
+  // Expose the live instance as `window.Dialog` (works for tags you place yourself too)
   GLOBAL = 'Dialog'
-  GLOBAL = true // just append node to document, do not create window reference
+  // Append one <foo-bar> to body on ready, unless the page already placed it. See `docs/fez/ui-dialog.fez`.
+  MOUNT = true
 
   // optional props schema - validates and coerces attribute values into this.props
   // shorthand `name: String` or full `{ type, default, required, enum }`, see "Typed props" below
@@ -1108,20 +1108,29 @@ Fez.head(config, callback)
 
 ## Singleton / Global Components
 
-Declare `GLOBAL` on the class and Fez auto-appends a single instance to `<body>` on ready - useful for overlays, dialogs and global click/key listeners that should not require manual placement in every layout.
+Two independent class keys cover singletons and named handles:
+
+- `MOUNT = true` - Fez appends one `<tag>` to `<body>` on ready, unless the page already contains the tag. Useful for overlays, dialogs and global click/key listeners that should not require manual placement in every layout.
+- `GLOBAL = 'Name'` - the connected instance is stored on `window.Name` so other code can call methods on it (`Dialog.open(...)`). The handle follows the live instance: a re-mounted component replaces it, a destroyed one clears it.
 
 ```js
-Fez('image-preview', class {
-  GLOBAL = true       // append <image-preview> to body on ready, no window reference
-  // GLOBAL = 'ImagePreview'   // alternative: also expose instance as window.ImagePreview
+// singleton overlay: mounted for you, callable from anywhere
+Fez('ui-dialog', class {
+  MOUNT = true
+  GLOBAL = 'Dialog'
 
-  init() { ... }
+  open(message) { ... }
+})
+
+// service component you place in the layout yourself: named, not mounted
+Fez('anim-viewport', class {
+  GLOBAL = 'Viewport'
+
+  play(name) { ... }
 })
 ```
 
-- `GLOBAL = true` - body-append only (one instance, no global handle)
-- `GLOBAL = 'Name'` - same, plus the instance is stored on `window.Name` so other code can call methods on it (e.g. `Dialog.open(...)`)
-
+`GLOBAL = true` is a compile error - use `MOUNT = true` for a nameless singleton.
 See `docs/fez/ui-dialog.fez` for a complete singleton example.
 
 ## Loading Multiple Components

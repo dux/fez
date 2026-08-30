@@ -88,7 +88,7 @@ const Fez = (name, klass) => {
 
     // Fez('name', selector) - find with context
     if (typeof klass !== 'function') {
-      return Fez.find(name, klass);
+      return Fez.find(klass, name);
     }
 
     // Fez('name', class) - register component

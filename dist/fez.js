@@ -2684,6 +2684,9 @@ ${demo}
       };
       this.local = {};
       this.fezGlobals.clear();
+      const handle = this.class?.GLOBAL;
+      if (handle && window[handle] === this) delete window[handle];
+      Fez.instances?.delete(this.UID);
       if (this.root) {
         this.root.fez = void 0;
       }
@@ -4418,6 +4421,7 @@ type: ${originalType}`);
     }
     const configMap = {
       GLOBAL: "GLOBAL",
+      MOUNT: "MOUNT",
       NAME: "nodeName",
       PROPS: "PROPS"
     };
@@ -4442,8 +4446,19 @@ type: ${originalType}`);
     if (newKlass.PROPS) {
       Fez3.index.ensure(name).props = newKlass.PROPS;
     }
-    if (instance.GLOBAL) {
-      Fez3.onReady(() => document.body.appendChild(document.createElement(name)));
+    if (newKlass.GLOBAL && typeof newKlass.GLOBAL !== "string") {
+      Fez3.onError(
+        "compile",
+        `<${name}>: GLOBAL must be a window name string, use MOUNT = true to auto-mount`
+      );
+      delete newKlass.GLOBAL;
+    }
+    if (newKlass.MOUNT) {
+      Fez3.onReady(() => {
+        if (!document.querySelector(`${name}, .fez-${name}`)) {
+          document.body.appendChild(document.createElement(name));
+        }
+      });
     }
     Fez3.consoleLog(`${name} compiled`);
     return newKlass;
@@ -4471,8 +4486,8 @@ type: ${originalType}`);
     newNode._fezSignature = node.outerHTML;
     fez.fezSlot(node, newNode);
     newNode.fez = fez;
-    if (klass.GLOBAL && klass.GLOBAL !== true) {
-      window[klass.GLOBAL] ||= fez;
+    if (klass.GLOBAL) {
+      window[klass.GLOBAL] = fez;
     }
     if (window.$) fez.$root = $(newNode);
     if (fez.props.id) newNode.setAttribute("id", fez.props.id);
@@ -5654,7 +5669,7 @@ ${after})`;
         return list;
       }
       if (typeof klass !== "function") {
-        return Fez2.find(name, klass);
+        return Fez2.find(klass, name);
       }
       return connect(name, klass);
     }
@@ -6485,7 +6500,6 @@ ${after})`;
           if (el.fez && !el.fez._destroyed) {
             queueMicrotask(() => {
               if (!el.isConnected && el.fez && !el.fez._destroyed) {
-                root_default.instances.delete(el.fez.UID);
                 el.fez.fezOnDestroy();
               }
             });

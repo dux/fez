@@ -134,8 +134,11 @@ interface FezComponentConfig {
   /** Component HTML template */
   HTML?: string | (() => string);
 
-  /** Make component globally accessible as window[name] */
-  GLOBAL?: string | boolean;
+  /** Expose the live instance as window[name] (cleared on destroy) */
+  GLOBAL?: string;
+
+  /** Append one <tag> to body on ready unless the page already placed it */
+  MOUNT?: boolean;
 
   /** Component metadata */
   META?: Record<string, any>;

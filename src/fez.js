@@ -69,7 +69,6 @@ const observer = new MutationObserver(mutations => {
           queueMicrotask(() => {
             // If still not connected and not destroyed, cleanup
             if (!el.isConnected && el.fez && !el.fez._destroyed) {
-              Fez.instances.delete(el.fez.UID)
               el.fez.fezOnDestroy()
             }
           })

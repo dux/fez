@@ -154,6 +154,7 @@ function ensureFezBase(Fez, name, klass) {
   // Map config properties
   const configMap = {
     GLOBAL: "GLOBAL",
+    MOUNT: "MOUNT",
     NAME: "nodeName",
     PROPS: "PROPS",
   };
@@ -194,9 +195,22 @@ function ensureFezBase(Fez, name, klass) {
     Fez.index.ensure(name).props = newKlass.PROPS;
   }
 
-  // Auto-mount global components
-  if (instance.GLOBAL) {
-    Fez.onReady(() => document.body.appendChild(document.createElement(name)));
+  // GLOBAL only names the instance (window[name]); MOUNT is the singleton body-append
+  if (newKlass.GLOBAL && typeof newKlass.GLOBAL !== "string") {
+    Fez.onError(
+      "compile",
+      `<${name}>: GLOBAL must be a window name string, use MOUNT = true to auto-mount`,
+    );
+    delete newKlass.GLOBAL;
+  }
+
+  // Skip when the page already placed the tag, so a mount is idempotent
+  if (newKlass.MOUNT) {
+    Fez.onReady(() => {
+      if (!document.querySelector(`${name}, .fez-${name}`)) {
+        document.body.appendChild(document.createElement(name));
+      }
+    });
   }
 
   Fez.consoleLog(`${name} compiled`);
@@ -252,9 +266,10 @@ function connectNode(name, node) {
 
   newNode.fez = fez;
 
-  // Global component reference
-  if (klass.GLOBAL && klass.GLOBAL !== true) {
-    window[klass.GLOBAL] ||= fez;
+  // Global component reference. Last connected wins: the differ connects the
+  // replacement before the old instance is destroyed, so `||=` would keep a dead one.
+  if (klass.GLOBAL) {
+    window[klass.GLOBAL] = fez;
   }
 
   // jQuery compatibility

@@ -41,10 +41,10 @@
 </demo>
 
 <script>
-  // if GLOBAL is present, Fez engine
-  // * on document load auto appends component to document
-  // * after init() runs window[GLOBAL] = fez (mounted component)
-  // this is singleton pattern
+  // singleton pattern:
+  // * MOUNT appends the tag to body on document load, unless the page placed it
+  // * GLOBAL sets window.Dialog to the connected instance (before init runs)
+  MOUNT = true
   GLOBAL = 'Dialog'
 
   close() {

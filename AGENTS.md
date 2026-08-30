@@ -1100,18 +1100,33 @@ This is automatic - no extra configuration needed.
 
 ## Singleton / Global Components
 
-A component can declare itself as a singleton with `GLOBAL`. Fez auto-appends one instance of it to `<body>` on ready - no need to place the tag manually in any layout.
+Two independent class keys: `MOUNT` mounts, `GLOBAL` names.
 
 ```javascript
 class {
-  GLOBAL = true       // append <my-tag> to body on ready (no window reference)
-  GLOBAL = 'Dialog'   // same, plus expose the instance as window.Dialog
+  MOUNT = true        // append <my-tag> to body on ready, unless the page already placed it
+  GLOBAL = 'Dialog'   // expose the live instance as window.Dialog (cleared on destroy)
 
   init() { ... }
 }
 ```
 
-Use this for components that listen globally (e.g. `image-preview`, `ui-dialog`, toast hosts). Pick `GLOBAL = 'Name'` when other code needs to call methods on the instance (`Dialog.open(...)`); otherwise `GLOBAL = true`.
+- Overlays, dialogs, toast hosts (`image-preview`, `ui-dialog`, `ui-toast`): both keys - mounted for you, callable from anywhere via `Dialog.open(...)`.
+- A service component the layout places itself (a viewport, a player): `GLOBAL = 'Viewport'` alone, then `Viewport.play('idle')` from any other component.
+- Nameless singleton (`fez-control`): `MOUNT = true` alone. `GLOBAL = true` is a compile error.
+
+## Component communication: pick the channel
+
+Three channels exist; pick by the kind of traffic, not by habit.
+
+| Traffic | Example | Use |
+|---|---|---|
+| Shared state many components render | selected animation, playback speed, theme | `this.globalState.anim = 'idle'` - readers auto-subscribe, late-mounted components see the current value |
+| Command to one known service component | play, seek, reset camera | direct call: `Viewport.play('idle')` (`GLOBAL = 'Viewport'`) or `Fez('#viewport').play('idle')` - you get a return value, `await`, and a TypeError on a typo |
+| Event whose consumers the sender must not know | `chain:finished`, `model:loaded` | `this.publish('chain:finished')` (nearest subscribing ancestor) or `Fez.publish(...)` (everyone) |
+
+Pub/sub is the wrong tool for commands (no return value, no error when nobody listens) and for shared state (a component mounted after the event misses it).
+Most panels in a tool-style UI are shared-state readers; usually only one component is a command target.
 
 ## Slot Unwrap
 

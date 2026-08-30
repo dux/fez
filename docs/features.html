@@ -195,13 +195,14 @@ Fez.index.withDemo()</code></pre></div>
 
             <article class="site-feature-row" id="global-components">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">GLOBAL = true · GLOBAL = 'Name'</p>
+                <p class="site-feature-kicker">MOUNT = true · GLOBAL = 'Name'</p>
                 <h3>Singleton components</h3>
-                <p>Global overlays, toast hosts and dialogs can append themselves to <code>body</code> exactly once. A string also exposes the instance on <code>window</code> for calls from ordinary page code.</p>
+                <p>Global overlays, toast hosts and dialogs append themselves to <code>body</code> exactly once with <code>MOUNT</code>. <code>GLOBAL</code> exposes the live instance on <code>window</code> for calls from ordinary page code, and works just as well for a tag you placed yourself.</p>
               </div>
               <site-live title="ui-dialog.fez" right-title="singleton">
                 <div class="src"><pre><code>&lt;script&gt;
   class {
+    MOUNT = true
     GLOBAL = 'Dialog'
 
     open(message) {
@@ -212,7 +213,7 @@ Fez.index.withDemo()</code></pre></div>
 
 Dialog.open('Saved')</code></pre></div>
                 <div class="out feature-result"><span class="result-demo"><b>Saved</b>&nbsp; - one dialog instance in body</span></div>
-                <div class="out-label">GLOBAL = true keeps the singleton without creating a window handle</div>
+                <div class="out-label">GLOBAL alone names a component you placed yourself, e.g. a viewport</div>
               </site-live>
             </article>
 

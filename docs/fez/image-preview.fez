@@ -1,7 +1,7 @@
 <!-- generated from src: docs_src/root/fez/image-preview.fez | DO NOT EDIT OR READ THIS FILE -->
 <info>
   <h3>image-preview</h3>
-  <p>Singleton fullscreen image gallery overlay. Mounted automatically via <code>GLOBAL = 'ImagePreview'</code>.</p>
+  <p>Singleton fullscreen image gallery overlay. Mounted automatically via <code>MOUNT = true</code>, exposed as <code>window.ImagePreview</code> via <code>GLOBAL</code>.</p>
   <ul>
     <li>Click any element on the page that has an <code>img-url</code> attribute - the URL is shown in a fullscreen overlay.</li>
     <li>All other <code>[img-url]</code> elements on the page form the gallery, navigable via the bottom thumbnail strip or Left/Right arrow keys.</li>
@@ -83,6 +83,7 @@
   })
 
   class {
+    MOUNT = true
     GLOBAL = 'ImagePreview'
 
     init() {

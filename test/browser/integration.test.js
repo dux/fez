@@ -955,3 +955,125 @@ test('fez-props - wrapper mirrors props, follows attribute and parent changes, n
     await closePage(page);
   }
 });
+
+// =============================================================================
+// GLOBAL / MOUNT / LOOKUP / REGISTRY
+// =============================================================================
+
+test('GLOBAL - window handle follows the live instance and clears on destroy', async () => {
+  const page = await createTestPage('<div id="host"><x-probe></x-probe></div>');
+
+  try {
+    await page.evaluate(() => {
+      window.Fez('x-probe', class {
+        GLOBAL = 'Probe';
+        HTML = '<div class="probe">probe</div>';
+      });
+    });
+    await page.waitForFunction(() => window.Probe?.UID > 0, { timeout: 2000 });
+    const first = await page.evaluate(() => window.Probe.UID);
+
+    // no MOUNT: the placed tag is the only instance
+    expect(await page.evaluate(() => document.querySelectorAll('.fez-x-probe').length)).toBe(1);
+
+    await page.evaluate(() => { document.getElementById('host').innerHTML = ''; });
+    await page.waitForFunction(() => window.Probe === undefined, { timeout: 2000 });
+
+    await page.evaluate(() => { document.getElementById('host').innerHTML = '<x-probe></x-probe>'; });
+    await page.waitForFunction(() => window.Probe?.UID > 0, { timeout: 2000 });
+    expect(await page.evaluate(() => window.Probe.UID)).toBeGreaterThan(first);
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('MOUNT - appends once, skipped when the page already placed the tag', async () => {
+  const page = await createTestPage('<x-placed></x-placed>');
+
+  try {
+    await page.evaluate(() => {
+      window.Fez('x-mounted', class {
+        MOUNT = true;
+        HTML = '<div class="mounted">m</div>';
+      });
+      window.Fez('x-placed', class {
+        MOUNT = true;
+        HTML = '<div class="placed">p</div>';
+      });
+      window.Fez('x-bad', class {
+        GLOBAL = true;
+        HTML = '<div></div>';
+      });
+    });
+    await page.waitForFunction(() => document.querySelector('.mounted'), { timeout: 2000 });
+
+    const counts = await page.evaluate(() => ({
+      mounted: document.querySelectorAll('.fez-x-mounted').length,
+      placed: document.querySelectorAll('.fez-x-placed').length,
+      bad: document.querySelectorAll('.fez-x-bad').length,
+    }));
+    expect(counts).toEqual({ mounted: 1, placed: 1, bad: 0 });
+  } finally {
+    await closePage(page);
+  }
+});
+
+test("Fez('name', node) - resolves the enclosing parent instance", async () => {
+  const page = await createTestPage('<x-outer><x-inner></x-inner></x-outer>');
+
+  try {
+    await page.evaluate(() => {
+      window.Fez('x-outer', class {
+        HTML = '<div class="outer"><slot /></div>';
+      });
+      window.Fez('x-inner', class {
+        onMount() {
+          window.testResults.parentUID = window.Fez('x-outer', this.root).UID;
+          window.testResults.outerUID = document.querySelector('.fez-x-outer').fez.UID;
+        }
+        HTML = '<div class="inner">i</div>';
+      });
+    });
+    await page.waitForFunction(() => window.testResults.parentUID > 0, { timeout: 2000 });
+
+    const r = await page.evaluate(() => window.testResults);
+    expect(r.parentUID).toBe(r.outerUID);
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('Fez.instances - differ removal drops the entry', async () => {
+  const page = await createTestPage('<x-list></x-list>');
+
+  try {
+    await page.evaluate(() => {
+      window.Fez('x-item', class {
+        HTML = '<div class="item">x</div>';
+      });
+      window.Fez('x-list', class {
+        init() { this.state.show = true; }
+        HTML = '<div class="list">{#if state.show}<x-item></x-item>{/if}</div>';
+      });
+    });
+    await page.waitForFunction(() => document.querySelector('.fez-x-item')?.fez, { timeout: 2000 });
+
+    const before = await page.evaluate(() => {
+      const uid = document.querySelector('.fez-x-item').fez.UID;
+      return { uid, has: window.Fez.instances.has(uid), size: window.Fez.instances.size };
+    });
+    expect(before.has).toBe(true);
+
+    await page.evaluate(() => { document.querySelector('.fez-x-list').fez.state.show = false; });
+    await page.waitForFunction(() => !document.querySelector('.fez-x-item'), { timeout: 2000 });
+    await page.waitForTimeout(50);
+
+    const after = await page.evaluate((uid) => ({
+      has: window.Fez.instances.has(uid), size: window.Fez.instances.size,
+    }), before.uid);
+    expect(after.has).toBe(false);
+    expect(after.size).toBe(before.size - 1);
+  } finally {
+    await closePage(page);
+  }
+});

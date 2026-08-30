@@ -865,10 +865,10 @@ Fez('foo-bar', class {
   // if you pair it with `fezReactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
   HTML = `...`
 
-  // Make it globally accessible as `window.Dialog`
-  // The component is automatically appended to the document body as a singleton. See `docs/fez/ui-dialog.fez` for a complete example.
+  // Expose the live instance as `window.Dialog` (works for tags you place yourself too)
   GLOBAL = 'Dialog'
-  GLOBAL = true // just append node to document, do not create window reference
+  // Append one <foo-bar> to body on ready, unless the page already placed it. See `docs/fez/ui-dialog.fez`.
+  MOUNT = true
 
   // optional props schema - validates and coerces attribute values into this.props
   // shorthand `name: String` or full `{ type, default, required, enum }`, see "Typed props" below
@@ -1108,20 +1108,29 @@ Fez.head(config, callback)
 
 ## Singleton / Global Components
 
-Declare `GLOBAL` on the class and Fez auto-appends a single instance to `<body>` on ready - useful for overlays, dialogs and global click/key listeners that should not require manual placement in every layout.
+Two independent class keys cover singletons and named handles:
+
+- `MOUNT = true` - Fez appends one `<tag>` to `<body>` on ready, unless the page already contains the tag. Useful for overlays, dialogs and global click/key listeners that should not require manual placement in every layout.
+- `GLOBAL = 'Name'` - the connected instance is stored on `window.Name` so other code can call methods on it (`Dialog.open(...)`). The handle follows the live instance: a re-mounted component replaces it, a destroyed one clears it.
 
 ```js
-Fez('image-preview', class {
-  GLOBAL = true       // append <image-preview> to body on ready, no window reference
-  // GLOBAL = 'ImagePreview'   // alternative: also expose instance as window.ImagePreview
+// singleton overlay: mounted for you, callable from anywhere
+Fez('ui-dialog', class {
+  MOUNT = true
+  GLOBAL = 'Dialog'
 
-  init() { ... }
+  open(message) { ... }
+})
+
+// service component you place in the layout yourself: named, not mounted
+Fez('anim-viewport', class {
+  GLOBAL = 'Viewport'
+
+  play(name) { ... }
 })
 ```
 
-- `GLOBAL = true` - body-append only (one instance, no global handle)
-- `GLOBAL = 'Name'` - same, plus the instance is stored on `window.Name` so other code can call methods on it (e.g. `Dialog.open(...)`)
-
+`GLOBAL = true` is a compile error - use `MOUNT = true` for a nameless singleton.
 See `docs/fez/ui-dialog.fez` for a complete singleton example.
 
 ## Loading Multiple Components
@@ -1412,6 +1421,16 @@ Attribute changes observed by `onPropsChange(name, value)` and prop refreshes of
 Note: an `Array`/`Object` given as a JSON **string** is re-parsed on every parent render and therefore counts as changed (a fresh object each time), same as an inline `:items="[...]"` literal. Pass a stable reference (`:items="state.items"`) if you rely on the "re-render only when props change" optimization.
 
 The schema is also exposed on `Fez.index[name].props` for tooling and docs.
+
+### Props in the DOM inspector (`fez-props`)
+
+On connect the source tag is replaced by the component wrapper, so the inspector would only show `<div class="fez fez-ui-pager">`. Fez mirrors `this.props` onto the wrapper as one read-only attribute, in CSS declaration style:
+
+```html
+<div class="fez fez-ui-pager" fez-props="page: 3; open: true; size: md; items: []; user: {}; on_pick: ()=>{}">
+```
+
+Primitives print their value (long strings are truncated); objects, arrays and functions are only typed as `{}`, `[]` and `()=>{}`. The attribute follows every props change (`this.props.x = ...`, attribute changes, keyed refresh from a parent render) and is ignored by `onPropsChange`. It is orientation for the inspector, not an API - read `node.fez.props` for the real values.
 
 ### how to call custom FEZ node from the outside, anywhere in HTML
 
