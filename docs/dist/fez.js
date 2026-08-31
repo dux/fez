@@ -5624,12 +5624,15 @@ ${after})`;
 
   // src/fez/utils/css_mixin.js
   var CssMixins = {};
+  var escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  var declRe = (key) => new RegExp(`(^|[\\s{;])(?::|@include\\s+)${escapeRe(key)}\\s*;`, "g");
   var css_mixin_default = (Fez3) => {
     Fez3.cssMixin = (name, content) => {
       if (content) {
         CssMixins[name] = content;
       } else {
         Object.entries(CssMixins).forEach(([key, val]) => {
+          name = name.replace(declRe(key), (_, lead) => `${lead}${val.replace(/;\s*$/, "")};`);
           name = name.replaceAll(`:${key} `, `${val} `);
           name = name.replaceAll(`@include ${key} `, `${val} `);
         });

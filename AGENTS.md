@@ -322,6 +322,26 @@ Built in: `mobile` (`max-width: 767px`), `tablet` (768-1023px), `desktop` (`min-
 Both spellings work - `:mobile { ... }` and `@include mobile { ... }`.
 **The trailing space is required**: `:dark {` expands, `:dark{` does not and silently emits dead CSS.
 
+### Declaration mixins
+
+End the usage with `;` instead of `{` and the body is inlined where it sits, as declarations - the SCSS `@include` / Tailwind `@apply` shape.
+Use it for a bundle of properties shared across components; the body may carry nested rules too.
+
+```js
+Fez.cssMixin('card', 'padding: 16px; border-radius: 8px; box-shadow: var(--shadow)')
+Fez.cssMixin('lift', 'transition: transform .2s; &:hover { transform: translateY(-2px); }')
+```
+
+```html
+<style>
+  .item { :card; color: #333; }
+  .cta  { @include card; :lift; }
+</style>
+```
+
+`:card;` only matches at declaration position, so a property value that shares a name (`pointer-events:none;`) is never touched.
+An unregistered name stays as written and is dropped by the browser as an unknown declaration.
+
 ### Dark theme
 
 `:dark` expands to `&:where(.dark, .dark *)`, so it applies when `<html>` carries a `dark` class.

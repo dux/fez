@@ -961,11 +961,15 @@ Fez.cssMixin('dark',
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">cssMixin · globalCss · cssClass · extractCss · color helpers</p>
                 <h3>Programmable CSS utilities</h3>
-                <p>Register selector or at-rule macros, inject deduplicated global nested CSS, create a generated utility class, and extract every injected rule in order for debugging or server rendering.</p>
+                <p>Register selector, at-rule or declaration macros, inject deduplicated global nested CSS, create a generated utility class, and extract every injected rule in order for debugging or server rendering.</p>
               </div>
               <site-live title="CSS runtime" right-title="four APIs">
                 <div class="src"><pre><code>Fez.cssMixin('motion-ok',
   '@media (prefers-reduced-motion: no-preference)')
+
+// `;` instead of `{` inlines the body as declarations
+Fez.cssMixin('card', 'padding: 16px; border-radius: 8px')
+// .item { :card; color: red; }
 
 Fez.globalCss('.toast { &amp;.error { color: red } }')
 

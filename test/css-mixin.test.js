@@ -49,6 +49,45 @@ describe("cssMixin", () => {
   });
 });
 
+describe("cssMixin declarations", () => {
+  Fez.cssMixin("card", "padding: 16px; border-radius: 8px;");
+  Fez.cssMixin("lift", "box-shadow: 0 2px 8px #0002; &:hover { box-shadow: 0 6px 16px #0003; }");
+  Fez.cssMixin("none", "display: none");
+
+  test("inlines the body at the usage site, in place", () => {
+    expect(scoped(".item { color: red; :card; margin: 0; }")).toBe(
+      ".fez.fez-demo .item{color: red;padding: 16px;border-radius: 8px;margin: 0;}",
+    );
+  });
+
+  test("supports the @include form", () => {
+    expect(scoped(".item { @include card; }")).toBe(scoped(".item { :card; }"));
+  });
+
+  test("a body may carry nested rules", () => {
+    expect(scoped(".item { :lift; }")).toBe(
+      ".fez.fez-demo .item{box-shadow: 0 2px 8px #0002;} " +
+        ".fez.fez-demo .item:hover{box-shadow: 0 6px 16px #0003;}",
+    );
+  });
+
+  test("the same name still works as a block", () => {
+    // usage site decides: `:dark;` would be nonsense, `:card {` too - but the
+    // block form of a block mixin is untouched by the declaration pass
+    expect(scoped(".a { :dark { color: #eee; } }")).toContain(":where(.dark");
+  });
+
+  test("leaves a property value that shares the name alone", () => {
+    expect(scoped(".a { pointer-events:none; }")).toBe(
+      ".fez.fez-demo .a{pointer-events:none;}",
+    );
+  });
+
+  test("leaves an unregistered declaration mixin untouched", () => {
+    expect(scoped(".a { :nope; }")).toContain(":nope");
+  });
+});
+
 describe("cssMixin :dark", () => {
   test("resolves against the parent selector", () => {
     expect(scoped(".btn { background: #eee; :dark { background: #222; } }")).toBe(

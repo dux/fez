@@ -465,7 +465,10 @@ interface FezStatic {
    */
   globalCss(cssClass: string | Function, opts?: { name?: string; wrap?: boolean }): string;
 
-  /** Define custom CSS shortcuts */
+  /**
+   * Define a CSS shortcut. The usage site picks the form: `:name {` expands the
+   * value as a selector / at-rule prelude, `:name;` inlines it as declarations.
+   */
   cssMixin(name: string, value: string): void;
 
   // ===================================================================

@@ -806,7 +806,7 @@ This example showcases:
 - **Preserve DOM Elements** - Use `fez:keep="unique-key"` attribute to preserve DOM elements across re-renders (useful for child components, animations, form inputs, or stateful elements)
 - **Auto-ID for Form Inputs** - Elements with `fez:this` automatically get stable IDs, helping the differ preserve input state across re-renders
 - **Import Maps** - Use `Fez.head({importmap: {...}})` to map bare import specifiers to full URLs, avoiding duplicate library instances
-- **Style Macros** - Define custom CSS shortcuts like `Fez.cssMixin('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }` or `@include mobile { ... }`. A macro expands to a selector or an at-rule, so it can also encode a theme
+- **Style Macros** - Define custom CSS shortcuts like `Fez.cssMixin('mobile', '@media (max-width: 768px)')` and use as `:mobile { ... }` or `@include mobile { ... }`. A macro expands to a selector or an at-rule, so it can also encode a theme. End the usage with `;` instead (`.item { :card; }`) and the body is inlined as declarations, SCSS `@include` / Tailwind `@apply` style
 - **Dark Theme** - Built-in `:dark { ... }` macro expands to `&:where(.dark, .dark *)`, styling any component under a `dark` class on `<html>`. Zero added specificity; re-register it as `@media (prefers-color-scheme: dark)` to follow the OS instead, with no component changes
 - **Scoped Styles** - `<style>` is always scoped to the component, `<style global>` is always document-wide. Scope is declared on the tag, never inferred from the CSS. `:global(...)` hoists a single rule out of a scoped block (using it inside `<style global>` is a compile error - those rules are already global)
 
@@ -1008,6 +1008,10 @@ Fez('foo-bar', class {
 // :mobile { ... } -> @media (max-width:  768px) { ... }
 // @include mobile { ... } -> same thing, both spellings work
 // note: the trailing space is required, `:mobile{` is not expanded
+//
+// end the usage with `;` and the body is inlined as declarations instead
+// Fez.cssMixin('card', 'padding: 16px; border-radius: 8px')
+// .item { :card; color: red; } -> .item { padding: 16px; border-radius: 8px; color: red; }
 //
 // built in: mobile, tablet, desktop, dark
 // :dark { ... } -> &:where(.dark, .dark *) { ... }

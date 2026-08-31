@@ -7,10 +7,21 @@
 // conditional group (:mobile) or to a selector (:dark). flattenCss resolves
 // whichever it gets - at-rules hoist outward, `&` binds to the parent.
 //
+// The usage site picks the form, not the body: `:card {` opens a block with
+// the body as prelude, `:card;` inlines the body as declarations where it
+// sits (SCSS @include / Tailwind @apply). A declaration body may carry nested
+// rules too - flattenCss parses whatever lands there.
+//
 // Substitution is textual and needs the trailing space: `:dark {` expands,
 // `:dark{` does not.
 
 const CssMixins = {}
+
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+// `:name;` / `@include name;` at declaration position only - the lead guard
+// keeps `pointer-events:none;` intact when a mixin named `none` exists
+const declRe = (key) => new RegExp(`(^|[\\s{;])(?::|@include\\s+)${escapeRe(key)}\\s*;`, 'g')
 
 export default (Fez) => {
   Fez.cssMixin = (name, content) => {
@@ -18,6 +29,7 @@ export default (Fez) => {
       CssMixins[name] = content
     } else {
       Object.entries(CssMixins).forEach(([key, val])=>{
+        name = name.replace(declRe(key), (_, lead) => `${lead}${val.replace(/;\s*$/, '')};`)
         name = name.replaceAll(`:${key} `, `${val} `)
         name = name.replaceAll(`@include ${key} `, `${val} `)
       })
