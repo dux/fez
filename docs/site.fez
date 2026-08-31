@@ -6,6 +6,7 @@
 
       init() {
         this.state.path = this.currentPage()
+        this.state.menuOpen = false
         this.state.links = [
           { href: 'index.html',     name: 'index.html',    label: 'Home' },
           { href: 'features.html',  name: 'features.html', label: 'Features' },
@@ -23,7 +24,20 @@
         // pjax swaps only <main>; the nav lives outside it and follows the url
         this.on('pjax:render', () => {
           this.state.path = this.currentPage()
+          this.state.menuOpen = false
         })
+
+        // mobile menu closes on link click or a click outside the nav
+        this.on(this.root, 'click', (e) => {
+          if (e.target.closest('a')) this.state.menuOpen = false
+        })
+        this.on(document, 'click', (e) => {
+          if (this.state.menuOpen && !this.root.contains(e.target)) this.state.menuOpen = false
+        })
+      }
+
+      toggleMenu() {
+        this.state.menuOpen = !this.state.menuOpen
       }
 
       currentPage() {
@@ -41,7 +55,16 @@
         <small>DOM / single-page / no-compile components</small>
       </span>
     </a>
-    <ul>
+    <button
+      class="nav-burger"
+      class:open={state.menuOpen}
+      aria-label="Menu"
+      aria-expanded={state.menuOpen ? 'true' : 'false'}
+      onclick="fez.toggleMenu()"
+    >
+      <span></span><span></span><span></span>
+    </button>
+    <ul class:open={state.menuOpen}>
       {#each state.links as link}
         <li>
           {#if link.ext}
