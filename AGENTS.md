@@ -4,7 +4,7 @@
 
 - when you add new features, ensure related tests exists, demo and info in fez lib.
 - use bun, not npm
-- ignore ./dist folder in local search, all code is in ./src and demo is in ./demo
+- ./docs and ./dist are generated output: never edit them and skip them when searching for code. Source is in ./src, docs source in ./docs_src, demo in ./demo. Read ./docs or ./dist only to debug build output.
 
 ## Bundled Pjax navigation (since 0.6.0)
 
