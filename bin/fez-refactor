@@ -7,6 +7,9 @@ import { globSync } from 'glob';
 
 const INFO = 'Report legacy Fez syntax and JavaScript modernization candidates';
 const DEFAULT_PATHS = ['docs_src/root/fez', 'src', 'test'];
+// Dependencies and build output are not the author's to refactor, and a bundled
+// copy of an old component reports every issue a second time.
+const IGNORED_DIRS = ['node_modules', 'dist', 'build', 'tmp', '.next', '.git', 'coverage', 'vendor'];
 
 let values, positionals;
 try {
@@ -76,7 +79,14 @@ function collectFiles(inputs) {
     try {
       const stat = fs.statSync(input);
       if (stat.isDirectory()) {
-        files.push(...globSync('**/*.{fez,js,ts}', { cwd: input, absolute: true, nodir: true }));
+        files.push(
+          ...globSync('**/*.{fez,js,ts}', {
+            cwd: input,
+            absolute: true,
+            nodir: true,
+            ignore: IGNORED_DIRS.map((dir) => `**/${dir}/**`),
+          }),
+        );
       } else if (stat.isFile()) {
         files.push(path.resolve(input));
       }
