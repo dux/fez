@@ -23,22 +23,6 @@
   }
 </script>
 
-<input fez:bind="state.q" placeholder="filter features" />
-
-{#if !state.q}
-  <small>{state.all.length} features</small>
-{:else if state.hits.length}
-  <small>{state.hits.length} of {state.all.length}</small>
-{:else}
-  <small>nothing matches "{state.q}"</small>
-{/if}
-
-<div class="hits">
-  {#for name in state.hits}
-    <p key={name} fez:transition="slide, opacity=0">{name}</p>
-  {/for}
-</div>
-
 <style>
   display: grid;
   gap: 10px;
@@ -64,3 +48,19 @@
     font-size: 14px;
   }
 </style>
+
+<input fez:bind="state.q" placeholder="filter features" />
+
+{#if !state.q}
+  <small>{state.all.length} features</small>
+{:else if state.hits.length}
+  <small>{state.hits.length} of {state.all.length}</small>
+{:else}
+  <small>nothing matches "{state.q}"</small>
+{/if}
+
+<div class="hits">
+  {#for name in state.hits}
+    <p key={name} fez:transition="slide, opacity=0">{name}</p>
+  {/for}
+</div>

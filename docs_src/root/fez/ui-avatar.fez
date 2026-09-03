@@ -28,10 +28,10 @@
 
 <script>
   NAME = 'span'
+  PROPS = { size: { type: Number, default: 64 } }
 
   init(props) {
     this.copy('href', 'style')
-    this.size = (props.size || 64) + 'px'
     if (props.name) { props.src ||= `https://robohash.org/${escape(props.name)}.png` }
   }
 </script>
@@ -63,7 +63,7 @@
   <img
     src={props.src}
     class="avatar"
-    style="width: {size}; height: {size};"
+    style="width: {props.size}px; height: {props.size}px;"
   />
 {/block}
 

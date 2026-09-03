@@ -100,4 +100,20 @@ describe("fezReactiveStore { shallow: true }", () => {
     s.user.name = "Bob";
     expect(writes).toEqual([["name", "Bob"]]);
   });
+
+  test("handler receives the top-level key a nested write belongs to", () => {
+    const fez = new FezBase();
+    const roots = [];
+    const s = fez.fezReactiveStore({ list: [], user: { tags: { a: 1 } } }, (_t, _k, _v, _o, root) => {
+      roots.push(root);
+    });
+    s.list.push("x");
+    s.user.tags.a = 2;
+    s.top = 1;
+    expect(roots.filter((r) => r === "list").length).toBeGreaterThan(0);
+    expect(roots).toContain("user");
+    expect(roots).toContain("top");
+    expect(roots).not.toContain("tags");
+    expect(roots).not.toContain("a");
+  });
 });

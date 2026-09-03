@@ -24,14 +24,14 @@
     // no need to force update template, this is automatic because we are using reactiveStore()
     // the new row animates in on its own (fez:in on the <p>)
     this.state.tasks.push({
-      id: ++this.local.uid,
-      name: `new task ${this.local.uid}`,
+      id: ++this.state.uid,
+      name: `new task ${this.state.uid}`,
       done: false,
     })
   }
 
   init() {
-    this.local.uid = 3
+    this.state.uid = 3
     this.state.tasks = [
       {id: 1, name: 'First task', done: false},
       {id: 2, name: 'Second task', done: false},

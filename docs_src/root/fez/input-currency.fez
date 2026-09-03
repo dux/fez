@@ -37,7 +37,7 @@
     const clean = parts[0].replace(/[^0-9]/g, '')
     if (!clean) return ''
 
-    const sep = this.separator
+    const sep = this.props.separator
     const decSep = sep === '.' ? ',' : '.'
     let result = ''
     for (let i = clean.length - 1; i >= 0; i--) {
@@ -48,8 +48,8 @@
       result = clean[i] + result
     }
 
-    if (this.useCents) {
-      const cents = (parts[1] || this.defaultCents).replace(/[^0-9]/g, '').substring(0, 2).padEnd(2, '0')
+    if (this.props.cents !== 'no') {
+      const cents = (parts[1] || this.props.cents).replace(/[^0-9]/g, '').substring(0, 2).padEnd(2, '0')
       result += decSep + cents
     }
 
@@ -57,13 +57,13 @@
   }
 
   rawValue(displayValue) {
-    const decSep = this.separator === '.' ? ',' : '.'
+    const decSep = this.props.separator === '.' ? ',' : '.'
     const parts = String(displayValue).split(decSep)
     const integer = parts[0].replace(/[^0-9]/g, '')
     if (!integer) return ''
 
-    if (this.useCents) {
-      const cents = (parts[1] || this.defaultCents).replace(/[^0-9]/g, '').substring(0, 2).padEnd(2, '0')
+    if (this.props.cents !== 'no') {
+      const cents = (parts[1] || this.props.cents).replace(/[^0-9]/g, '').substring(0, 2).padEnd(2, '0')
       return integer + '.' + cents
     }
 
@@ -71,7 +71,7 @@
   }
 
   handleKeyup() {
-    const el = this.displayInput
+    const el = this.state.displayInput
     const oldVal = el.value
     const cursorPos = el.selectionStart
 
@@ -84,7 +84,7 @@
     const raw = this.rawValue(oldVal)
     const formatted = this.formatNumber(raw)
     el.value = formatted
-    this.hiddenInput.value = raw
+    this.state.hiddenInput.value = raw
 
     // restore cursor: find position after same number of digits
     let newPos = 0
@@ -96,23 +96,25 @@
     }
     el.setSelectionRange(newPos, newPos)
 
-    if (this.pingHandler) {
-      this.pingHandler(raw)
+    if (this.state.ping) {
+      this.state.ping(raw)
     }
   }
 
+  PROPS = {
+    separator: { type: String, default: '.' },
+    cents: { type: String, default: '50' },
+    ping: { type: Function, state: true },
+  }
+
   init(props) {
-    this.separator = props.separator || '.'
-    this.useCents = props.cents !== 'no'
-    this.defaultCents = props.cents && props.cents !== 'no' ? props.cents : '50'
-    this.pingHandler = Fez.getFunction(props.ping)
     this.state.formatted = this.formatNumber(props.value)
     this.state.value = this.rawValue(props.value || '')
   }
 
   onMount() {
-    this.displayInput = this.find('.display')
-    this.hiddenInput = this.find('.raw')
+    this.state.displayInput = this.find('.display')
+    this.state.hiddenInput = this.find('.raw')
   }
 </script>
 

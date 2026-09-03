@@ -129,12 +129,11 @@ const GlobalState = {
       if (keys.has(key)) return;
       const fn = (value, oldValue, _key, writer) => {
         component.onGlobalStateChange(key, value, oldValue);
-        // Mirror local state: a self-write during init or render is already
-        // part of the render in flight. Anything else (another component,
-        // Fez.state.set) coalesces with local state changes into one frame.
-        const selfWrite =
-          writer === component &&
-          (component._isRendering || component._isInitializing);
+        // Mirror local state: a self-write inside a silent scope (init, a
+        // render in flight) is already covered. Anything else (another
+        // component, Fez.state.set) coalesces with local state changes into
+        // one frame.
+        const selfWrite = writer === component && component._fezSilent;
         if (!selfWrite) {
           component.fezNextTick(component.fezRender, "fezRender");
         }

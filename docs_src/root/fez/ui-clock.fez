@@ -3,7 +3,7 @@
     <li>Analog clock with SVG rendering and smooth second hand</li>
     <li>Pure Fez, no external dependencies</li>
     <li>Supports timezone offset, auto-cleanup on destroy</li>
-    <li>Uses <code>this.local</code> for non-reactive local state</li>
+    <li>Uses <code>this.state</code> for values the template never renders - writing them never re-renders</li>
   </ul>
 </info>
 
@@ -23,7 +23,7 @@
 
   setVars() {
     // will only render once on next tick
-    let time = new Date(Date.now() - (this.local.offsetHours * 60 * 60 * 1000))
+    let time = new Date(Date.now() - (this.state.offsetHours * 60 * 60 * 1000))
     this.state.hours = time.getHours()
     this.state.minutes = time.getMinutes()
     this.state.seconds = time.getSeconds()
@@ -35,7 +35,7 @@
   }
 
   init(props) {
-    this.local.offsetHours = parseFloat(this.props.utc || 0)
+    this.state.offsetHours = parseFloat(this.props.utc || 0)
     this.setVars()
     this.setInterval(this.setVars, 1000)
   }

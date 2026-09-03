@@ -52,14 +52,14 @@
 
   // activate header tab and body tab
   activate(num) {
-    if (this.tabs[num]?.getAttribute('disabled')) return
+    if (this.state.tabs[num]?.getAttribute('disabled')) return
 
     this.activateNode(this.find(':scope > .header').children[num])
-    this.activateNode(this.tabs[num])
+    this.activateNode(this.state.tabs[num])
   }
 
   onInit() {
-    this.tabs = this.childNodes()
+    this.state.tabs = this.childNodes()
   }
 
   onMount() {
@@ -113,7 +113,7 @@
 </style>
 
 <div class="header">
-  {#for tab, index in tabs}
+  {#for tab, index in state.tabs}
     <span
       onclick={() => activate(index)}
       class={tab.getAttribute('disabled') ? 'disabled' : ''}

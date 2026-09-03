@@ -17,11 +17,11 @@
     this.state.easing = 'cubicOut'
     this.state.long = false
     this.state.paragraphs = [1]
-    this.local.next = 2
+    this.state.next = 2
   }
 
   add() {
-    this.state.paragraphs.push(this.local.next++)
+    this.state.paragraphs.push(this.state.next++)
   }
 
   remove() {

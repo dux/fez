@@ -2,17 +2,17 @@
   class {
 
     init() {
-      this._width = this.props.width || 'normal'
+      this.state.width = this.props.width || 'normal'
     }
 
     onMount() {
-      this.srcInput.value = this.props.src || ''
-      this.capInput.value = this.props.caption || ''
-      this.srcInput.focus()
+      this.state.srcInput.value = this.props.src || ''
+      this.state.capInput.value = this.props.caption || ''
+      this.state.srcInput.focus()
     }
 
     selectWidth(w) {
-      this._width = w
+      this.state.width = w
       this.root.querySelectorAll('.width-picker button').forEach((b) => {
         b.classList.toggle('active', b.textContent === w)
       })
@@ -22,9 +22,9 @@
       const cb = window[this.props.cb]
       if (cb) {
         cb.done({
-          src: this.srcInput.value.trim(),
-          caption: this.capInput.value.trim(),
-          width: this._width,
+          src: this.state.srcInput.value.trim(),
+          caption: this.state.capInput.value.trim(),
+          width: this.state.width,
         })
       }
     }

@@ -141,6 +141,9 @@ Rules:
 
 ## Component Structure
 
+Block order in a `.fez` file is fixed: `<info>`, `<demo>`, `<head>`, `<script>`, `<style>` / `<style global>`, and the template last.
+Never put a `<style>` block after the template. The same order applies inside every `<xmp fez="...">` of a multi-component file.
+
 The `<script>` block has two zones:
 
 1. **Module-level code** (BEFORE `class {}`) - imports, `Fez.head()` calls, shared variables. Like `<script context="module">` in Svelte.
@@ -202,16 +205,17 @@ The `<script>` block has two zones:
     }
 
     onMount(props) {
-      // runs AFTER template render - DOM is ready, fez:this refs work
-      this.editor = new Editor({
-        element: this.editorNode,
+      // runs AFTER template render - DOM is ready, fez:this refs are in this.state
+      // (the template never reads state.editor, so this write does not re-render)
+      this.state.editor = new Editor({
+        element: this.state.editorNode,
         extensions: [StarterKit],
       })
     }
 
     onDestroy() {
       // cleanup external resources
-      this.editor?.destroy()
+      this.state.editor?.destroy()
     }
 
     onRefresh(props) {
@@ -601,7 +605,7 @@ All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is con
 <!-- Two-way binding -->
 <input fez:bind="state.username" />
 
-<!-- Element reference via this.myElement (auto-generates stable ID for DOM diffing) -->
+<!-- Element reference via this.state.myElement (auto-generates stable ID for DOM diffing) -->
 <div fez:this="myElement">
   <!-- Preserve element across re-renders (wrap component in plain HTML element) -->
   <span fez:keep="child-{state.id}-{state.value}">
@@ -756,9 +760,9 @@ Caveats:
     speed:   { type: Number, default: 50 },             // "50" -> 50, "abc" -> error + default
     open:    Boolean,                                   // <x open> -> true, "false"/"0" -> false, missing -> false
     size:    { type: String, default: 'md', enum: ['sm', 'md', 'lg'] },
-    items:   { type: Array, default: () => [] },         // JSON string parsed, or pass :items="..."
+    items:   { type: Array, default: [] },               // JSON string parsed, or pass :items="..."; literal default copied per instance
     user:    { type: Object, required: true },          // missing -> Fez.onError('props', ...)
-    on_pick: { type: Function },                        // must come via :on_pick="..."
+    on_pick: { type: Function, state: true },           // :on_pick="fn" or on_pick="doIt()" -> this.state.on_pick
     since:   { type: Date },
     tags:    { type: Array, state: true,                // seeds this.state.tags before init()
                default: (raw) => (raw || '').split(/\s*,\s*/) },   // tags="a, b" -> ['a', 'b']
@@ -767,6 +771,8 @@ Caveats:
 
   - Types: `String`, `Number`, `Boolean`, `Array`, `Object`, `Function`, `Date`, or a custom `(raw, name) => value` function
   - Fields: `type`, `default` (value or fn), `state`, `required`, `enum`; order: transform -> coerce -> required -> enum -> default
+  - A literal `default: []` / `default: {}` is shallow-copied per instance, so instances never share one object - no need for `() => []`
+  - `Function` accepts a real function (`:on_pick="..."`) or a string handler (`on_pick="doIt()"`, resolved with `Fez.getFunction`); its `default` is always the handler itself, never a transform
   - **`default` as a transform**: a `default` function that *declares a parameter* receives the raw attribute value
     (`undefined` when the attribute is missing) and its result is what gets type checked - the way to accept
     `tags="a, b, c"` and hand the component an Array. A zero-arg `default` stays a lazy default, called only
@@ -780,6 +786,8 @@ Caveats:
     Seeding happens once, on connect; later parent renders update `props`, not the seeded state key.
     Arrays and plain objects are seeded as a shallow copy, so `this.state.list.push(...)` does not write back
     into `props` or into the object a parent passed with `:prop="..."` - nested objects are still shared.
+    Handler props go the same way: `{ type: Function, state: true }` replaces the `this.state.x = Fez.getFunction(props.x)` line.
+    Seeding works in `<slot unwrap />` components too (they render once, so only keys the template never reads may change later).
   - Errors go to `Fez.onError('props', ...)`, never throw; bad value is dropped and `default` applies
   - Keys not in `PROPS` pass through as strings; `onPropsChange(name, value)` receives the coerced value
   - Also works as `static PROPS = {...}`; schema is exposed on `Fez.index[name].props`
@@ -794,28 +802,24 @@ Caveats:
   ></my-component>
   ```
 
-- **ALWAYS use `Fez.getFunction()` for handler props** (onclick, ping, onselect, etc.):
-  Props can come as strings or functions, so always normalize them with `Fez.getFunction()`:
-  `Fez.getFunction()` returns void empty function for empty strings and nulls.
+- **Handler props (onclick, ping, onselect, etc.) go through the schema into `this.state`**:
+  they can arrive as strings (`ping="doIt()"`) or functions (`:ping="fn"`); `type: Function` resolves both
+  and `state: true` puts the callable where the component calls it from. `default: () => {}` makes it safe
+  to call when the attribute is missing. No template reads it, so it never causes a render.
 
   ```javascript
-  init(props) {
-    this.state.font_size = props.font_size || 24
-    this.state.background_color = props.background_color || '#000'
-    this.state.is_active = props.is_active !== undefined
-
-    // ALWAYS wrap handler props with Fez.getFunction()
-    // This handles both string and function values correctly
-    this.onClickHandler = Fez.getFunction(props.onclick)
-    this.pingHandler = Fez.getFunction(props.ping)
-    this.onSelectHandler = Fez.getFunction(props.onselect)
+  PROPS = {
+    onclick:  { type: Function, state: true, default: () => {} },
+    onselect: { type: Function, state: true, default: () => {} },
   }
 
   handleClick() {
-    // Safe to call - Fez.getFunction returns empty function if prop was undefined
-    this.onClickHandler()
+    this.state.onclick()
   }
   ```
+
+  Without a schema, normalize by hand with `Fez.getFunction(props.onclick)` (returns a no-op for empty
+  strings and nulls) and store the result in `this.state`.
 
 - For dynamic prop changes, use `onPropsChange(name, value)` method
 - Check prop existence: `if (props.is_loading !== undefined)`
@@ -826,7 +830,8 @@ Caveats:
 - Modify arrays/objects directly (they're deeply reactive)
 - Use `beforeRender()` for reactive computed/derived state (replacement for Svelte's `$:` reactive statements) - runs before every re-render
 - Use `onMount()` for updates that need mounted template
-- Use `this.local` for non-reactive per-instance values such as external library instances, normalized handler props, cached measurements, and parsed config. Mutating `this.local` does not refresh the component, and Fez clears it after `onDestroy()`.
+- **`this.state` is the only per-instance store, and a write re-renders only if the last render read that top-level key.** Library instances, `fez:this` refs (`this.state.name`), normalized handlers, timers, counters, measurements and parsed config all go in `state`; since no template reads them, writing them never renders. Fez records the keys each render reads (`{@json state}` / `Object.keys(state)` count as reading all), so the rule needs no help from the author. Class instances, DOM nodes, Date/Map/Set/Promise come back unwrapped; a plain-object library namespace (Leaflet's `L`) belongs in a module-level `let`, not in state. Never park data on bare `this` - it collides with the instance API.
+- **`init()`, every render (`beforeRender`, template, `afterRender`) and `onStateChange` run with state triggers off** - a state write inside them fires no `onStateChange` and schedules no render (derived state in `beforeRender` is exactly this). `onMount` is outside the scope on purpose: a write there to a rendered key paints. The same scope is available as `this.noChangeStateTrigger(() => { ... })` for bulk writes that must not paint; scopes nest and the function's return value comes back.
 - **NEVER bind state to form input values** - state changes trigger full re-render. Use `fez:this` instead:
 
   ```html
@@ -838,7 +843,7 @@ Caveats:
 
   ```javascript
   submit() {
-    const name = this.nameInput.value  // read when needed
+    const name = this.state.nameInput.value  // read when needed
   }
   ```
 
@@ -850,9 +855,12 @@ Caveats:
     this.state.onclick = props.onclick  // Don't do this!
   }
 
-  // CORRECT - keep handler props as props, use directly
+  // CORRECT - declare it, the schema puts the callable in this.state.onclick
+  PROPS = { onclick: { type: Function, state: true, default: () => {} } }
+
+  // also fine without a schema - the template never reads it, so no render
   init(props) {
-    this.local.onClickHandler = Fez.getFunction(props.onclick)
+    this.state.onclick = Fez.getFunction(props.onclick)
   }
   ```
 
@@ -899,21 +907,18 @@ The rest of the component stays reactive; the marked node is never touched by th
 
 ```javascript
 onMount() {
-  this.cells = []
-  for (const row of this.props.rows) this.grid.append(this.buildRow(row))
+  this.state.cells = []
+  for (const row of this.props.rows) this.state.grid.append(this.buildRow(row))
 }
 
 patch(i, value) {
-  this.cells[i].textContent = value   // no render, no diff, no hash
+  this.state.cells[i].textContent = value   // no render, no diff, no hash
 }
 ```
 
-**2. Plain instance fields instead of `this.state`**
+`state.cells` and `state.grid` are never read by the template, so writing them never schedules a render.
 
-Only `this.state` schedules a render. `this.rows = []` does not.
-Use plain fields for anything you intend to paint by hand and keep `this.state` for the parts you actually want re-rendered.
-
-**3. No template at all - the component is a pure controller**
+**2. No template at all - the component is a pure controller**
 
 Omit the template block entirely and `fezRender()` never runs (`instance.js` returns early when there is no template).
 The tag's original children are left alone and `this.root` is yours.
@@ -921,13 +926,13 @@ The tag's original children are left alone and `this.root` is yours.
 ```javascript
 class {
   onMount() {
-    this.cells = []
+    this.state.cells = []
     const tbody = document.createElement('tbody')
     for (let i = 0; i < 10000; i++) tbody.append(this.buildRow(i))
     this.root.append(this.n('table', tbody))
   }
 
-  patch(i, value) { this.cells[i].textContent = value }
+  patch(i, value) { this.state.cells[i].textContent = value }
 }
 ```
 
@@ -942,26 +947,23 @@ Below that, use `this.state` and do not think about it.
 When integrating libraries that create/manage their own DOM elements:
 
 - **Use template markup normally** - define your container structure in the template
-- **Get references with `this.find()`** - store element references in `onMount()`
+- **Get references with `fez:this`** (or `this.find()` in `onMount()`) - they live in `this.state`, next to the library instance; neither is read by the template, so neither write renders
 - **NEVER use `this.state` for UI updates** - state changes trigger DOM diffing which doesn't handle external DOM well
 - **Use direct DOM manipulation** to update UI elements:
 
 ```javascript
 // Template is fine:
-// <div class="container"></div>
-// <div class="loading-overlay">Loading...</div>
+// <div class="container" fez:this="container"></div>
+// <div class="loading-overlay" fez:this="overlay">Loading...</div>
 
 onMount() {
-  this.container = this.find('.container')
-  this.overlay = this.find('.loading-overlay')
-
   // External library creates canvas inside container
-  this.chart = new Chart(this.container)
+  this.state.chart = new Chart(this.state.container)
 }
 
 hideLoading() {
   // CORRECT - direct DOM manipulation
-  this.overlay.style.display = 'none'
+  this.state.overlay.style.display = 'none'
 
   // WRONG - state triggers DOM diff, breaks external DOM
   // this.state.loading = false
@@ -1152,7 +1154,7 @@ Most panels in a tool-style UI are shared-state readers; usually only one compon
 
 Use `<slot unwrap />` when children must be inserted without a wrapper div. By default, `<slot />` wraps children in a `<div class="fez-slot">`. With `unwrap`, the wrapper div is dissolved after filling, leaving children directly in the parent element.
 
-**Important:** Components using `<slot unwrap />` cannot use `this.state` - state changes trigger re-renders which would lose the unwrapped slot content. Setting state will log a console error.
+**Important:** Components using `<slot unwrap />` render once - a re-render would lose the unwrapped slot content. `this.state` works normally for keys the template never reads; a write to a key the render did read logs a console error and is not rendered.
 
 ```html
 <!-- Default slot: children wrapped in <div class="fez-slot"> -->
@@ -1192,12 +1194,13 @@ Use `<slot unwrap />` when children must be inserted without a wrapper div. By d
 - Using string interpolation in onclick instead of arrow functions
 - Direct DOM manipulation for simple reactive UI (use state instead) - BUT use direct DOM for external libraries (Three.js, charts, etc.) since DOM diffing doesn't handle them well
 - Missing `init()` for state initialization
-- **Putting non-render data in `state` or directly on `this`** - use `this.local` for non-reactive per-instance values like editor objects, normalized callbacks, measurements, timers, and parsed config. Keep module-level constants outside the component.
+- **Putting per-instance data on bare `this` to dodge re-renders** - `this.state` only re-renders for keys the template read, so editor objects, callbacks, measurements and timers belong in `state` too. Keep module-level constants and library namespaces outside the component.
 - Using `{#if}` blocks inside attributes (use ternary operators instead)
 - Writing flat CSS instead of nested SCSS syntax
 - Using `this.prop('name')` instead of `props.name` in `init()` and `onMount()`
 - Forgetting to use `{index}` or arrow functions for loop variables in event handlers
-- **Not using `Fez.getFunction()` for handler props** - props like `onclick`, `ping`, `onselect` can be strings or functions, always normalize them
+- **Calling handler props raw** - props like `onclick`, `ping`, `onselect` can be strings or functions; declare them `{ type: Function, state: true }` or normalize with `Fez.getFunction()`
+- **Keeping a plain-object library namespace in state** - `state.L = leaflet` gets proxied; use a module-level `let` for it. Class instances (a Three.js scene, a Tiptap editor) are fine in state
 - **Copying props to `this` or `state`** - use `props.style` directly in templates, not `this.style = props.style` which won't update
 - **Using `this.` in template expressions** - templates render in a deferred context where `this` is not bound. Use `fez.` prefix or curly brace syntax instead:
 
@@ -1243,7 +1246,7 @@ this.find('.selector'); // Scoped querySelector
 this.setTimeout(fn, 1000); // Auto-cleaned timeout
 this.setInterval(fn, 1000); // Auto-cleaned interval
 Fez.fetch('/data'); // Built-in cached fetch
-this.local.editor = editor; // Non-reactive per-instance storage
+this.state.editor = editor; // never rendered, so never re-renders
 this.formData(); // Get form values
 this.childNodes(); // Get child elements as array
 this.childNodes(fn); // Get children mapped with function

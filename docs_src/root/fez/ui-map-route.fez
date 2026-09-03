@@ -47,65 +47,52 @@
 </demo>
 
 <script>
+  // Leaflet namespace, module level: a plain object would be proxied by state
+  let L
+
   class {
 
-    init(props) {
-      this.height = parseInt(props.height) || 400
-      this.pathColor = props.path_color || '#667eea'
-      this.pathWidth = parseInt(props.path_width) || 3
-      this.animate = props.animate !== undefined
-      this.animateDuration = parseInt(props.animate_duration) || 5000
-      this.loop = props.loop !== undefined
-      this.theme = props.theme || 'color'
-      this.areaColor = props.area_color || '#667eea'
-      this.points = []
-      this.area = null
-
-      try {
-        if (props.points) {
-          this.points = JSON.parse(props.points)
-        }
-      } catch (e) {
-        console.warn('Invalid points JSON')
-      }
-
-      try {
-        if (props.area) {
-          this.area = JSON.parse(props.area)
-        }
-      } catch (e) {
-        console.warn('Invalid area JSON')
-      }
+    PROPS = {
+      height: { type: Number, default: 400 },
+      path_color: { type: String, default: '#667eea' },
+      path_width: { type: Number, default: 3 },
+      animate: Boolean,
+      animate_duration: { type: Number, default: 5000 },
+      loop: Boolean,
+      theme: { type: String, default: 'color' },
+      area_color: { type: String, default: '#667eea' },
+      points: { type: Array, default: [] },
+      area: Array,
     }
 
     onMount() {
-      this.container = this.find('.map-container')
-      this.loadButton = this.find('.load-button')
-      this.loadingOverlay = this.find('.loading-overlay')
-      this.isLoaded = false
+      this.state.container = this.find('.map-container')
+      this.state.loadButton = this.find('.load-button')
+      this.state.loadingOverlay = this.find('.loading-overlay')
+      this.state.isLoaded = false
 
       // Auto-load when visible on screen
-      this.observer = new IntersectionObserver((entries) => {
+      this.state.observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
-          if (entry.isIntersecting && !this.isLoaded) {
+          if (entry.isIntersecting && !this.state.isLoaded) {
             this.startLoading()
-            this.observer.disconnect()
+            this.state.observer.disconnect()
           }
         })
       }, { threshold: 0.2 })
 
-      this.observer.observe(this.root)
+      this.state.observer.observe(this.root)
 
       // Also allow manual click
-      this.loadButton.addEventListener('click', () => this.startLoading())
+      this.state.loadButton.addEventListener('click', () => this.startLoading())
     }
 
     async startLoading() {
-      if (this.isLoaded) return
-      this.isLoaded = true
+      if (this.state.isLoaded) return
+      this.state.isLoaded = true
 
-      this.loadButton.style.display = 'none'
-      this.loadingOverlay.querySelector('.spinner').style.display = 'block'
+      this.state.loadButton.style.display = 'none'
+      this.state.loadingOverlay.querySelector('.spinner').style.display = 'block'
 
       // Load Leaflet CSS
       if (!document.querySelector('link[href*="leaflet"]')) {
@@ -116,8 +103,7 @@
       }
 
       // Load Leaflet JS
-      const L = await import('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/+esm')
-      this.L = L.default
+      L = (await import('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/+esm')).default
 
       // Small delay for CSS to load
       await new Promise(r => setTimeout(r, 200))
@@ -126,7 +112,7 @@
       if (!this.isConnected) return
 
       this.initMap()
-      this.loadingOverlay.style.display = 'none'
+      this.state.loadingOverlay.style.display = 'none'
     }
 
     getTileLayer() {
@@ -144,14 +130,13 @@
           attribution: '&copy; OpenStreetMap &copy; CARTO'
         }
       }
-      return tiles[this.theme] || tiles.color
+      return tiles[this.props.theme] || tiles.color
     }
 
     initMap() {
-      const L = this.L
       const tile = this.getTileLayer()
 
-      this.map = L.map(this.container, {
+      this.state.map = L.map(this.state.container, {
         zoomControl: true,
         scrollWheelZoom: true
       })
@@ -159,10 +144,10 @@
       L.tileLayer(tile.url, {
         attribution: tile.attribution,
         maxZoom: 18
-      }).addTo(this.map)
+      }).addTo(this.state.map)
 
       // Draw area if defined
-      if (this.area && this.area.length > 0) {
+      if (this.props.area && this.props.area.length > 0) {
         this.drawArea()
       }
 
@@ -170,38 +155,37 @@
       this.addMarkers()
 
       // Calculate bounds and fit
-      const allCoords = this.points.map(p => [p.lat, p.lng])
-      if (this.area) {
-        allCoords.push(...this.area)
+      const allCoords = this.props.points.map(p => [p.lat, p.lng])
+      if (this.props.area) {
+        allCoords.push(...this.props.area)
       }
       if (allCoords.length > 0) {
         const bounds = L.latLngBounds(allCoords)
-        this.map.fitBounds(bounds, { padding: [50, 50] })
+        this.state.map.fitBounds(bounds, { padding: [50, 50] })
       }
 
       // Generate curved paths
-      this.allPathPoints = this.generateAllPaths()
+      this.state.allPathPoints = this.generateAllPaths()
 
-      if (this.animate) {
+      if (this.props.animate) {
         // Start animation after a short delay
         this.setTimeout(() => this.animatePath(), 500)
-      } else if (this.points.length > 1) {
+      } else if (this.props.points.length > 1) {
         // Draw full path immediately (only if we have route points)
         this.drawFullPath()
       }
     }
 
     drawArea() {
-      const L = this.L
 
-      L.polygon(this.area, {
-        color: this.areaColor,
+      L.polygon(this.props.area, {
+        color: this.props.area_color,
         weight: 2,
         opacity: 0.8,
-        fillColor: this.areaColor,
+        fillColor: this.props.area_color,
         fillOpacity: 0.15,
         dashArray: '5, 10'
-      }).addTo(this.map)
+      }).addTo(this.state.map)
     }
 
     getMarkerIcon(iconType) {
@@ -215,11 +199,10 @@
     }
 
     addMarkers() {
-      const L = this.L
 
-      this.points.forEach((point, index) => {
+      this.props.points.forEach((point, index) => {
         const isFirst = index === 0
-        const isLast = index === this.points.length - 1
+        const isLast = index === this.props.points.length - 1
 
         // Determine color and icon
         const color = point.color || (isFirst ? '#4ECDC4' : isLast ? '#FF6B6B' : '#667eea')
@@ -258,7 +241,7 @@
           iconAnchor: [size/2, size/2]
         })
 
-        const marker = L.marker([point.lat, point.lng], { icon }).addTo(this.map)
+        const marker = L.marker([point.lat, point.lng], { icon }).addTo(this.state.map)
 
         // Rich popup with image
         if (point.image || point.description) {
@@ -322,9 +305,9 @@
 
     generateAllPaths() {
       const allPoints = []
-      const pointsToConnect = this.loop
-        ? [...this.points, this.points[0]]  // Close the loop
-        : this.points
+      const pointsToConnect = this.props.loop
+        ? [...this.props.points, this.props.points[0]]  // Close the loop
+        : this.props.points
 
       for (let i = 0; i < pointsToConnect.length - 1; i++) {
         const start = pointsToConnect[i]
@@ -335,7 +318,7 @@
         segmentPoints.forEach((p, idx) => {
           allPoints.push({
             latlng: p,
-            color: start.color || this.pathColor,
+            color: start.color || this.props.path_color,
             segmentIndex: i,
             isFirst: idx === 0
           })
@@ -346,24 +329,23 @@
     }
 
     drawFullPath() {
-      const L = this.L
 
       // Draw each segment with its color
       let currentSegment = -1
       let currentPoints = []
 
-      this.allPathPoints.forEach((point, idx) => {
+      this.state.allPathPoints.forEach((point, idx) => {
         if (point.segmentIndex !== currentSegment) {
           // Draw previous segment
           if (currentPoints.length > 0) {
-            const prevColor = this.allPathPoints[idx - 1]?.color || this.pathColor
+            const prevColor = this.state.allPathPoints[idx - 1]?.color || this.props.path_color
             L.polyline(currentPoints, {
               color: prevColor,
-              weight: this.pathWidth,
+              weight: this.props.path_width,
               opacity: 0.8,
               lineCap: 'round',
               lineJoin: 'round'
-            }).addTo(this.map)
+            }).addTo(this.state.map)
           }
           currentSegment = point.segmentIndex
           currentPoints = []
@@ -373,21 +355,20 @@
 
       // Draw last segment
       if (currentPoints.length > 0) {
-        const lastColor = this.allPathPoints[this.allPathPoints.length - 1]?.color || this.pathColor
+        const lastColor = this.state.allPathPoints[this.state.allPathPoints.length - 1]?.color || this.props.path_color
         L.polyline(currentPoints, {
           color: lastColor,
-          weight: this.pathWidth,
+          weight: this.props.path_width,
           opacity: 0.8,
           lineCap: 'round',
           lineJoin: 'round'
-        }).addTo(this.map)
+        }).addTo(this.state.map)
       }
     }
 
     animatePath() {
-      const L = this.L
-      const totalPoints = this.allPathPoints.length
-      const msPerPoint = this.animateDuration / totalPoints
+      const totalPoints = this.state.allPathPoints.length
+      const msPerPoint = this.props.animate_duration / totalPoints
 
       // Create plane marker
       const planeIcon = L.divIcon({
@@ -401,26 +382,26 @@
         iconAnchor: [12, 12]
       })
 
-      const firstPoint = this.allPathPoints[0].latlng
-      this.planeMarker = L.marker(firstPoint, { icon: planeIcon }).addTo(this.map)
+      const firstPoint = this.state.allPathPoints[0].latlng
+      this.state.planeMarker = L.marker(firstPoint, { icon: planeIcon }).addTo(this.state.map)
 
       // Trail line
-      this.trailLine = L.polyline([], {
-        color: this.allPathPoints[0].color || this.pathColor,
-        weight: this.pathWidth,
+      this.state.trailLine = L.polyline([], {
+        color: this.state.allPathPoints[0].color || this.props.path_color,
+        weight: this.props.path_width,
         opacity: 0.8,
         lineCap: 'round',
         lineJoin: 'round'
-      }).addTo(this.map)
+      }).addTo(this.state.map)
 
       // Glow line (behind main line)
-      this.glowLine = L.polyline([], {
-        color: this.allPathPoints[0].color || this.pathColor,
-        weight: this.pathWidth + 6,
+      this.state.glowLine = L.polyline([], {
+        color: this.state.allPathPoints[0].color || this.props.path_color,
+        weight: this.props.path_width + 6,
         opacity: 0.2,
         lineCap: 'round',
         lineJoin: 'round'
-      }).addTo(this.map)
+      }).addTo(this.state.map)
 
       let currentIndex = 0
       let lastSegment = -1
@@ -428,29 +409,29 @@
 
       const animate = () => {
         if (currentIndex >= totalPoints) {
-          if (this.loop) {
+          if (this.props.loop) {
             // Reset and restart
             currentIndex = 0
             trailPoints.length = 0
-            this.trailLine.setLatLngs([])
-            this.glowLine.setLatLngs([])
+            this.state.trailLine.setLatLngs([])
+            this.state.glowLine.setLatLngs([])
             lastSegment = -1
             this.setTimeout(animate, 1000) // Pause before loop
           }
           return
         }
 
-        const point = this.allPathPoints[currentIndex]
+        const point = this.state.allPathPoints[currentIndex]
 
         // Update plane position
-        this.planeMarker.setLatLng(point.latlng)
+        this.state.planeMarker.setLatLng(point.latlng)
 
         // Rotate plane to face direction
         if (currentIndex < totalPoints - 1) {
-          const next = this.allPathPoints[currentIndex + 1].latlng
+          const next = this.state.allPathPoints[currentIndex + 1].latlng
           const angle = Math.atan2(next[0] - point.latlng[0], next[1] - point.latlng[1])
           const degrees = (angle * 180 / Math.PI) - 90
-          const planeEl = this.planeMarker.getElement()
+          const planeEl = this.state.planeMarker.getElement()
           if (planeEl) {
             planeEl.style.transform = planeEl.style.transform.replace(/rotate\([^)]*\)/, '') + ` rotate(${-degrees}deg)`
           }
@@ -459,32 +440,32 @@
         // Check if segment changed - update line color
         if (point.segmentIndex !== lastSegment && point.segmentIndex !== undefined) {
           lastSegment = point.segmentIndex
-          const color = point.color || this.pathColor
-          this.trailLine.setStyle({ color })
-          this.glowLine.setStyle({ color })
+          const color = point.color || this.props.path_color
+          this.state.trailLine.setStyle({ color })
+          this.state.glowLine.setStyle({ color })
         }
 
         // Add to trail
         trailPoints.push(point.latlng)
-        this.trailLine.setLatLngs(trailPoints)
-        this.glowLine.setLatLngs(trailPoints)
+        this.state.trailLine.setLatLngs(trailPoints)
+        this.state.glowLine.setLatLngs(trailPoints)
 
         currentIndex++
-        this.animationTimeout = setTimeout(animate, msPerPoint)
+        this.state.animationTimeout = setTimeout(animate, msPerPoint)
       }
 
       animate()
     }
 
     onDestroy() {
-      if (this.observer) {
-        this.observer.disconnect()
+      if (this.state.observer) {
+        this.state.observer.disconnect()
       }
-      if (this.animationTimeout) {
-        clearTimeout(this.animationTimeout)
+      if (this.state.animationTimeout) {
+        clearTimeout(this.state.animationTimeout)
       }
-      if (this.map) {
-        this.map.remove()
+      if (this.state.map) {
+        this.state.map.remove()
       }
     }
   }
@@ -653,7 +634,7 @@
 </style>
 
 <div class="map-wrapper">
-  <div class="map-container" style="height: {this.height}px;"></div>
+  <div class="map-container" style="height: {props.height}px;"></div>
   <div class="loading-overlay">
     <button class="load-button">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -15,9 +15,6 @@ type ReactiveState<T = Record<string, any>> = T;
 /** Global state proxy for cross-component communication */
 type GlobalState = Record<string, any>;
 
-/** Non-reactive per-instance storage */
-type LocalStore = Record<string, any>;
-
 /**
  * Component props. Plain HTML attributes arrive as strings unless the
  * component declares a PROPS schema entry for them (then they are coerced).
@@ -185,14 +182,15 @@ declare abstract class FezBase {
   // COMPONENT STATE
   // ===================================================================
 
-  /** Reactive local state - changes trigger re-renders */
+  /**
+   * Reactive component state. A write re-renders only when the last render
+   * read that top-level key, so refs, library instances and counters the
+   * template never reads are free to keep here.
+   */
   state: ReactiveState;
 
   /** Global state proxy - shared across components */
   globalState: GlobalState;
-
-  /** Non-reactive per-instance storage - changes do not trigger re-renders */
-  local: LocalStore;
 
   /**
    * Component props from HTML attributes (coerced through PROPS when declared).
@@ -286,6 +284,13 @@ declare abstract class FezBase {
 
   /** Alias for fezRefresh */
   refresh(): void;
+
+  /**
+   * Run func with state change triggers off: writes inside fire no
+   * onStateChange and schedule no render. Scopes nest; func's return value
+   * is passed back. Fez runs init(), every render and onStateChange in it.
+   */
+  noChangeStateTrigger<T>(func: (this: this) => T): T;
 
   /** Render the component template to DOM */
   fezRender(template?: string | Function | Node[]): void;

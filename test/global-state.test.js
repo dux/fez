@@ -10,8 +10,7 @@ function fakeComponent(name) {
     hookCalls: [],
     scheduled: [],
     renders: 0,
-    _isRendering: false,
-    _isInitializing: false,
+    _fezSilent: 0,
     get isConnected() {
       return this.connected;
     },
@@ -97,18 +96,15 @@ describe("GlobalState", () => {
     expect(new Set(comp.scheduled).size).toBe(1);
   });
 
-  test("self-write during init or render skips the scheduled render, hook still fires", () => {
+  test("self-write inside a silent scope (init, render) skips the scheduled render, hook still fires", () => {
     const key = uniq("self");
     const comp = fakeComponent("self");
     comp.globalState[key];
 
-    comp._isInitializing = true;
+    comp._fezSilent = 1;
     comp.globalState[key] = "init";
-    comp._isInitializing = false;
-
-    comp._isRendering = true;
     comp.globalState[key] = "render";
-    comp._isRendering = false;
+    comp._fezSilent = 0;
 
     expect(comp.hookCalls.map((c) => c[1])).toEqual(["init", "render"]);
     expect(comp.scheduled).toEqual([]);
@@ -123,9 +119,9 @@ describe("GlobalState", () => {
     const writer = fakeComponent("writer");
     reader.globalState[key];
 
-    reader._isRendering = true;
+    reader._fezSilent = 1;
     writer.globalState[key] = 1;
-    reader._isRendering = false;
+    reader._fezSilent = 0;
 
     expect(reader.scheduled).toEqual(["fezRender"]);
   });

@@ -2,16 +2,16 @@
   class {
 
     init() {
-      this._type = this.props.type || 'info'
+      this.state.type = this.props.type || 'info'
     }
 
     onMount() {
-      this.textInput.value = this.props.text || ''
-      this.textInput.focus()
+      this.state.textInput.value = this.props.text || ''
+      this.state.textInput.focus()
     }
 
     selectType(t) {
-      this._type = t
+      this.state.type = t
       this.root.querySelectorAll('.type-picker button').forEach((b) => {
         b.classList.toggle('active', b.dataset.type === t)
       })
@@ -21,8 +21,8 @@
       const cb = window[this.props.cb]
       if (cb) {
         cb.done({
-          type: this._type,
-          text: this.textInput.value.trim(),
+          type: this.state.type,
+          text: this.state.textInput.value.trim(),
         })
       }
     }

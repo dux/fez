@@ -14,6 +14,8 @@ beforeEach(() => {
       errors.push({ kind, message });
     },
     isTrue: (val) => ["1", "true", "on"].includes(String(val).toLowerCase()),
+    getFunction: (pointer) =>
+      typeof pointer === "function" ? pointer : new Function(pointer),
   };
 });
 
@@ -124,11 +126,13 @@ describe("FezBase.castProps - types", () => {
     expect(errors[0].message).toContain("invalid JSON");
   });
 
-  test("Function - passes functions, rejects strings", () => {
+  test("Function - passes functions, resolves string handlers, rejects the rest", () => {
     const K = klass({ on_pick: Function });
     const fn = () => {};
     expect(K.castProps({ on_pick: fn }).on_pick).toBe(fn);
-    expect(K.castProps({ on_pick: "doIt()" }, "x-foo").on_pick).toBeUndefined();
+    expect(typeof K.castProps({ on_pick: "doIt()" }).on_pick).toBe("function");
+    expect(K.castProps({ on_pick: "  " }).on_pick).toBeUndefined();
+    expect(K.castProps({ on_pick: 42 }, "x-foo").on_pick).toBeUndefined();
     expect(errors[0].message).toContain(':on_pick="..."');
   });
 
@@ -169,6 +173,23 @@ describe("FezBase.castProps - default / required / enum", () => {
     expect(a.size).toBe("md");
     expect(a.items).toEqual([]);
     expect(a.items).not.toBe(b.items);
+  });
+
+  test("literal array / object defaults are copied per cast", () => {
+    const items = [];
+    const config = { a: 1 };
+    const K = klass({
+      items: { type: Array, default: items },
+      config: { type: Object, default: config },
+    });
+    const a = K.castProps({});
+    const b = K.castProps({});
+    expect(a.items).toEqual([]);
+    expect(a.items).not.toBe(items);
+    expect(a.items).not.toBe(b.items);
+    expect(a.config).toEqual({ a: 1 });
+    expect(a.config).not.toBe(config);
+    expect(a.config).not.toBe(b.config);
   });
 
   test("default is not applied when value given", () => {

@@ -51,7 +51,7 @@ anywhere in HTML code
     }
 
     getSource() {
-      return this.codeNode.textContent
+      return this.state.codeNode.textContent
     }
 
     async copy() {
@@ -79,26 +79,28 @@ anywhere in HTML code
       }
     }
 
-    init(props) {
-      props.language ||= 'html'
+    PROPS = {
+      language: { type: String, default: 'html' },
+    }
 
+    init(props) {
       if (props.src) {
         Fez.fetch(props.src, (r)=>{
-          this.source = Fez.htmlEscape(r)
+          this.state.source = Fez.htmlEscape(r)
         })
       } else {
         const child = this.root.firstElementChild
         if (child?.nodeName == 'TEMPLATE' || child?.nodeName == 'XMP') {
-          this.source = Fez.htmlEscape(this.root.firstElementChild.innerHTML)
+          this.state.source = Fez.htmlEscape(this.root.firstElementChild.innerHTML)
         } else {
-          this.source = this.root.innerHTML
+          this.state.source = this.root.innerHTML
         }
       }
     }
 
     onMount() {
-      const node = this.codeNode = this.find('code')
-      node.innerHTML = this.reformatIndentation( this.source.trim() )
+      const node = this.state.codeNode = this.find('code')
+      node.innerHTML = this.reformatIndentation( this.state.source.trim() )
       hljs.highlightElement(node)
     }
   }

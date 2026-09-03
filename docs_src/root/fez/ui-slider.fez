@@ -82,8 +82,8 @@
     this.state.slide = parseInt(num)
 
     if (this.state.slide < 0) {
-      this.state.slide = this.slidesCount - 1
-    } else if (this.state.slide >= this.slidesCount) {
+      this.state.slide = this.state.slidesCount - 1
+    } else if (this.state.slide >= this.state.slidesCount) {
       this.state.slide = 0
     }
 
@@ -95,7 +95,7 @@
   }
 
   init() {
-    this.slidesCount = this.childNodes().length
+    this.state.slidesCount = this.childNodes().length
     this.setSlide(0)
     this.onWindowResize(this.resizeSelf, 100)
   }
@@ -218,7 +218,7 @@
 
 {#if props.dots}
   <div class="dots">
-    {#each Array(slidesCount).fill(0) as dot, index}
+    {#each Array(state.slidesCount).fill(0) as dot, index}
       <div class="dot {state.slide === index ? 'active' : ''}" onclick="fez.setSlide({index})"></div>
     {/each}
   </div>

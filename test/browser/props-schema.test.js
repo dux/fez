@@ -277,6 +277,91 @@ test('PROPS - { state: "name" } renames the state key, no flag means no copy', a
   }
 });
 
+test('PROPS - { state: true } seeds inside a <slot unwrap /> component, unread keys are writable', async () => {
+  const page = await createTestPage('<x-unwrap-seed tags=\'["a","b"]\'><b class="kid">slotted</b></x-unwrap-seed>');
+  try {
+    await page.evaluate(() => {
+      window.errors = [];
+      const original = console.error;
+      console.error = (...args) => { window.errors.push(args.join(' ')); original(...args); };
+      window.Fez('x-unwrap-seed', class {
+        PROPS = { tags: { type: Array, state: true } };
+        init() { window.testResults.tags = [...this.state.tags]; }
+        poke() { this.state.picker = { open: true }; this.state.label = 'b'; }
+        HTML = '<i class="lbl">{state.label || "a"}</i><slot unwrap />';
+      });
+    });
+    await page.waitForSelector('.kid');
+    expect(await page.evaluate(() => window.testResults.tags)).toEqual(['a', 'b']);
+
+    // picker is never rendered - silent; label is rendered and can never update - reported
+    await page.evaluate(() => document.querySelector('.fez-x-unwrap-seed').fez.poke());
+    await page.waitForTimeout(200);
+    expect(await page.evaluate(() => document.querySelectorAll('.kid').length)).toBe(1);
+    expect(await page.textContent('.lbl')).toBe('a');
+    const errors = await page.evaluate(() => window.errors);
+    expect(errors.length).toBe(1);
+    expect(errors[0]).toContain('state.label');
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('PROPS - Function accepts a string handler, state: true keeps it callable', async () => {
+  const page = await createTestPage('<x-handler ping="markPinged()"></x-handler>');
+  try {
+    await page.evaluate(() => {
+      window.markPinged = () => { window.testResults.pinged = true; };
+      window.Fez('x-handler', class {
+        PROPS = {
+          ping: { type: Function, state: true },
+          missing: { type: Function, state: true, default: () => {} },
+        };
+        init() {
+          window.testResults.types = [typeof this.state.ping, typeof this.state.missing];
+          this.state.ping();
+          this.state.missing();
+        }
+        HTML = '<b class="n">ok</b>';
+      });
+    });
+    await page.waitForSelector('.n');
+    expect(await page.evaluate(() => window.testResults.types)).toEqual(['function', 'function']);
+    expect(await page.evaluate(() => window.testResults.pinged)).toBe(true);
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('state - a write renders only when the last render read that key', async () => {
+  const page = await createTestPage('<x-reads></x-reads>');
+  try {
+    await page.evaluate(() => {
+      window.Fez('x-reads', class {
+        init() { this.state.shown = 0; this.state.hidden = 0; this.state.list = []; this.state.editor = { calls: 0 }; }
+        afterRender() { window.testResults.renders = (window.testResults.renders || 0) + 1; }
+        HTML = '<b class="n">{state.shown} / {state.list.length}</b>';
+      });
+    });
+    await page.waitForSelector('.n');
+    expect(await page.evaluate(() => window.testResults.renders)).toBe(1);
+
+    const fez = () => document.querySelector('.fez-x-reads').fez;
+    // unread keys: plain field, nested object, DOM node ref style value
+    await page.evaluate(() => { const f = (() => document.querySelector('.fez-x-reads').fez)(); f.state.hidden++; f.state.editor.calls++; f.state.node = document.body; });
+    await page.waitForTimeout(150);
+    expect(await page.evaluate(() => window.testResults.renders)).toBe(1);
+
+    // read keys, including a nested write on a rendered array
+    await page.evaluate(() => document.querySelector('.fez-x-reads').fez.state.shown++);
+    await page.waitForFunction(() => document.querySelector('.n').textContent === '1 / 0', { timeout: 3000 });
+    await page.evaluate(() => document.querySelector('.fez-x-reads').fez.state.list.push('a'));
+    await page.waitForFunction(() => document.querySelector('.n').textContent === '1 / 1', { timeout: 3000 });
+    expect(await page.evaluate(() => window.testResults.renders)).toBe(3);
+  } finally {
+    await closePage(page);
+  }
+});
 test('PROPS - a prop write does not re-render a <slot unwrap /> component', async () => {
   const page = await createTestPage('<x-unwrap label="a"><b class="kid">slotted</b></x-unwrap>');
   try {
@@ -390,21 +475,21 @@ test('PROPS - { state: true } seeds without firing onStateChange before init()',
     await page.evaluate(() => {
       window.Fez('x-hooks', class {
         PROPS = { tags: { type: Array, state: true, default: () => [] } };
-        init() { this.local.events = []; }
-        // would throw if it ran before init() created this.local.events
-        onStateChange(name) { this.local.events.push(name); }
+        init() { window.testResults.events = []; }
+        // would throw if it ran before init() created the list
+        onStateChange(name) { window.testResults.events.push(name); }
         add(tag) { this.state.tags = [...this.state.tags, tag]; }
         HTML = '<b class="n">{state.tags.length}</b>';
       });
     });
     await page.waitForSelector('.n');
     expect(await page.textContent('.n')).toBe('2');
-    expect(await page.evaluate(() => document.querySelector('.fez-x-hooks').fez.local.events)).toEqual([]);
+    expect(await page.evaluate(() => window.testResults.events)).toEqual([]);
 
     // hooks work normally once mounted
     await page.evaluate(() => document.querySelector('.fez-x-hooks').fez.add('c'));
     await page.waitForFunction(() => document.querySelector('.n').textContent === '3', { timeout: 3000 });
-    expect(await page.evaluate(() => document.querySelector('.fez-x-hooks').fez.local.events)).toEqual(['tags']);
+    expect(await page.evaluate(() => window.testResults.events)).toEqual(['tags']);
   } finally {
     await closePage(page);
   }

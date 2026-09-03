@@ -304,21 +304,19 @@ function connectNode(name, node) {
     fez._fezChildNodes = fez._fezSlotNodes.filter((n) => n.nodeType === 1);
   }
 
-  // Prevent state changes during init/mount from scheduling extra renders
-  fez._isInitializing = true;
+  // Seeding and init() write state silently - the first render is about to
+  // happen anyway. The render is its own silent scope; onMount is not, so a
+  // write there to a rendered key (a measured size) still paints.
+  fez.noChangeStateTrigger(() => {
+    // PROPS entries flagged { state: true } land in this.state before init()
+    fez.fezSeedProps();
 
-  // PROPS entries flagged { state: true } land in this.state before init()
-  fez.fezSeedStateProps();
+    // Init (supports multiple naming conventions)
+    const initMethod = fez.onInit || fez.init || fez.created || fez.connect;
+    initMethod.call(fez, fez.props);
+  });
 
-  // Init (supports multiple naming conventions)
-  const initMethod = fez.onInit || fez.init || fez.created || fez.connect;
-  initMethod.call(fez, fez.props);
-
-  // Render
   fez.fezRender();
-
-  // Done initializing - state changes in onMount will now trigger renders
-  fez._isInitializing = false;
 
   // Mount
   fez.onMount(fez.props);

@@ -191,6 +191,23 @@ export default class FezBase {
   }
 
   /**
+   * Shallow copy of an Array or plain object; anything else is returned as is.
+   * Used wherever a schema value must not be shared by reference (literal
+   * defaults, state seeding).
+   */
+  static cloneShallow(value) {
+    if (Array.isArray(value)) return [...value];
+    if (
+      value &&
+      typeof value === "object" &&
+      [Object.prototype, null].includes(Object.getPrototypeOf(value))
+    ) {
+      return { ...value };
+    }
+    return value;
+  }
+
+  /**
    * Cast a single prop through its PROPS entry. Unknown keys pass through
    * untouched. Errors are reported via Fez.onError("props", ...) and never
    * thrown - a bad attribute must not kill the page.
@@ -212,6 +229,7 @@ export default class FezBase {
     // it gets the raw attribute value (undefined when the attribute is
     // missing) and its result is what gets type checked. Zero-arg functions
     // stay lazy defaults, applied at the end only when nothing came in.
+    // A Function prop's default is always the handler itself, never a transform.
     const transform =
       typeof spec.default === "function" &&
       type !== Function &&
@@ -258,7 +276,11 @@ export default class FezBase {
         if (!ok) v = fail(`expected ${type.name}, got ${show(value)}`);
       }
     } else if (type === Function) {
-      if (typeof v !== "function") {
+      // string handlers (onclick="doIt()") resolve the same way inline
+      // template handlers do; anything else must arrive via :name="..."
+      if (typeof v === "string") {
+        v = v.trim() === "" ? undefined : Fez.getFunction(v);
+      } else if (typeof v !== "function") {
         v = fail(`expected Function (pass it with :${name}="..."), got ${show(v)}`);
       }
     } else if (type === Date) {
@@ -286,11 +308,12 @@ export default class FezBase {
       v = fail(`expected one of ${spec.enum.map(show).join(", ")}, got ${show(v)}`);
     }
 
-    // transform already had its say - calling it again would just repeat it
+    // transform already had its say - calling it again would just repeat it.
+    // A literal [] / {} default is copied so instances never share one object.
     if (v === undefined && spec.default !== undefined && !transform) {
       v = typeof spec.default === "function" && type !== Function
         ? spec.default()
-        : spec.default;
+        : FezBase.cloneShallow(spec.default);
     }
 
     // declared Boolean with no attribute and no default reads as false
@@ -360,7 +383,25 @@ export default class FezBase {
 
   n = parseNode;
   fezBlocks = {};
-  local = {};
+
+  // Depth of noChangeStateTrigger() scopes; while > 0, state and props writes
+  // land silently: no onStateChange, no render scheduling.
+  _fezSilent = 0;
+
+  /**
+   * Run func in this scope with state change triggers off. Fez runs
+   * seeding + init(), every render (beforeRender, template, afterRender) and
+   * onStateChange in it; components can use it for bulk writes that must not
+   * paint: this.noChangeStateTrigger(() => {...})
+   */
+  noChangeStateTrigger(func) {
+    this._fezSilent++;
+    try {
+      return func.call(this);
+    } finally {
+      this._fezSilent--;
+    }
+  }
 
   /**
    * Props are reactive: writing this.props.x schedules a render, exactly like
@@ -385,7 +426,7 @@ export default class FezBase {
     this._props = this.fezReactiveStore(this._propsRaw, (_t, _k, next, prev) => {
       if (next === prev) return;
       this.fezSyncPropsAttr();
-      if (this._isRendering || this._isInitializing) return;
+      if (this._fezSilent) return;
       // <slot unwrap /> dissolves the slot wrapper on first render and the
       // children can never be re-inserted, so those components render once -
       // the same reason this.state is disabled for them. The write lands,
@@ -492,7 +533,6 @@ export default class FezBase {
     // Call user's onDestroy hook
     this.onDestroy();
     this.onDestroy = () => {};
-    this.local = {};
 
     // Drop parked :attr values and loop handlers
     this.fezGlobals.clear();
@@ -573,8 +613,23 @@ export default class FezBase {
 
     if (!template || !this.root) return;
 
-    // Prevent re-render loops from state changes in beforeRender/afterRender
+    // A render is one silent scope: beforeRender, the template and afterRender
+    // may write state without firing onStateChange or scheduling another
+    // render. _isRendering only marks the window in which state reads are
+    // collected (fezReactiveStore).
     this._isRendering = true;
+    try {
+      this.noChangeStateTrigger(() => this.fezRenderPass(template));
+    } finally {
+      this._isRendering = false;
+    }
+  }
+
+  fezRenderPass(template) {
+    // Every top-level state key this render reads is collected here; a later
+    // write to a key that is not in the set schedules nothing (fezReactiveStore)
+    this._fezReads = new Set();
+    this._fezReadsAll = false;
 
     this.beforeRender();
 
@@ -616,7 +671,6 @@ export default class FezBase {
         const newHash = Fez.fnv1(parsedHtml);
         if (newHash === this._fezHash && !this.fezGlobals.valuesChanged) {
           this.fezGlobals.commitRender();
-          this._isRendering = false;
           return;
         }
         this._fezHash = newHash;
@@ -659,8 +713,6 @@ export default class FezBase {
     playFlip(flip);
     this.fezGlobals.commitRender();
     this.afterRender();
-
-    this._isRendering = false;
   }
 
   /**
@@ -677,9 +729,11 @@ export default class FezBase {
       });
     };
 
-    // fez-this="button" -> this.button = node
+    // fez-this="button" -> this.state.button = node. Written to the raw object:
+    // a ref is re-assigned on every render and must not fire onStateChange or
+    // schedule anything. Read it as this.state.button (nodes are never proxied).
     fetchAttr("fez-this", (value, n) => {
-      new Function("n", `this.${value} = n`).bind(this)(n);
+      new Function("n", `this._stateRaw.${value} = n`).bind(this)(n);
       // Mark element for value preservation on re-render
       n._fezThisName = value;
     });
@@ -842,18 +896,15 @@ export default class FezBase {
       Fez.globalCss(this.class.cssGlobal);
     }
 
+    // <slot unwrap /> dissolves the slot wrapper on first render and the
+    // children can never be re-inserted, so those components render once.
+    // State still works for everything the template does not read.
     if (this.class.fezSlotUnwrap) {
       this._fezStateDisabled = true;
-      this.state = new Proxy({}, {
-        set: (t, k, v) => {
-          console.error(`Fez: <${this.fezName}> uses <slot unwrap />, this.state is disabled`);
-          return true;
-        },
-        get: (t, k) => undefined,
-      });
-    } else if (!this.state) {
+    }
+    if (!this.state) {
       // _stateRaw is the object behind the store - writes that must not fire
-      // onStateChange or schedule a render (prop seeding) go straight to it
+      // onStateChange or schedule a render (prop seeding, fez:this) go straight to it
       this._stateRaw = {};
       this.state = this.fezReactiveStore(this._stateRaw);
     }
@@ -879,35 +930,29 @@ export default class FezBase {
   }
 
   /**
-   * Seed this.state from PROPS entries flagged with `state`.
+   * Seed this.state from PROPS entries flagged `state`.
    * `state: true` uses the prop name, `state: 'other_key'` renames it.
    * Runs once before init(), so a component that owns a list can declare it
    * as a prop and mutate this.state from there - no copy line in init().
    */
-  fezSeedStateProps() {
+  fezSeedProps() {
     const schema = this.class?.propsSchema?.();
     if (!schema) return;
-    // <slot unwrap /> components have no usable state
-    if (this._fezStateDisabled) return;
 
     for (const [name, spec] of Object.entries(schema)) {
       if (!spec.state) continue;
       // _propsRaw, not this.props - a value read through the props proxy
       // would land in state still wrapped in the props store
-      let value = this._propsRaw?.[name];
-      if (value === undefined) continue;
+      const raw = this._propsRaw?.[name];
+      if (raw === undefined) continue;
       // Seed with a copy: state owns the value from here, and an in place
       // this.state.list.push() must not write through to props (or to the
       // object the parent passed in with :prop="...").
-      if (Array.isArray(value)) {
-        value = [...value];
-      } else if (value && typeof value === "object" && [Object.prototype, null].includes(Object.getPrototypeOf(value))) {
-        value = { ...value };
-      }
-      // straight into the raw object: seeding happens before init(), so
-      // onStateChange must not fire on setup the component has not done yet
+      // Straight into the raw object: seeding happens before init(), so
+      // onStateChange must not fire on setup the component has not done yet.
       const target = this._stateRaw || this.state;
-      target[typeof spec.state === "string" ? spec.state : name] = value;
+      target[typeof spec.state === "string" ? spec.state : name] =
+        FezBase.cloneShallow(raw);
     }
   }
 
@@ -917,17 +962,27 @@ export default class FezBase {
   fezReactiveStore(obj, handler, options = {}) {
     obj ||= {};
 
-    handler ||= (o, k, v, oldValue) => {
-      if (v != oldValue) {
-        this.onStateChange(k, v, oldValue);
-        // Don't schedule re-render during init/mount or if already rendering
-        if (!this._isRendering && !this._isInitializing) {
-          this.fezNextTick(this.fezRender, "fezRender");
+    // Default handler (this.state): onStateChange fires for every write, but a
+    // render is scheduled only when the last render read the written key. A key
+    // no template reads (library instance, ref, counter) is free to write.
+    handler ||= (o, k, v, oldValue, rootKey) => {
+      if (v != oldValue && !this._fezSilent) {
+        // the hook may write state itself without recursing or rendering
+        this.noChangeStateTrigger(() => this.onStateChange(k, v, oldValue));
+        if (!this._fezReadsAll && !this._fezReads?.has(rootKey)) return;
+        // <slot unwrap /> renders once - a rendered key can never be updated
+        if (this._fezStateDisabled) {
+          console.error(
+            `Fez: <${this.fezName}> uses <slot unwrap /> and renders once, state.${rootKey} is rendered and cannot change`,
+          );
+          return;
         }
+        this.fezNextTick(this.fezRender, "fezRender");
       }
     };
 
     handler.bind(this);
+    const fez = this;
 
     // Only plain objects and arrays are wrapped. Everything with internal
     // slots (Date, Map, Set, RegExp, Promise, class instances, DOM nodes)
@@ -949,10 +1004,19 @@ export default class FezBase {
     // no value read out of the store ever compares equal to anything.
     // Props are values the parent owns and hands over whole, and they cross
     // component boundaries, so they keep plain identity instead.
-    function createReactive(obj, handler) {
+    // `rootKey` is the top-level key a nested proxy hangs off, so a nested
+    // write (state.list.push) is reported against the key the template reads.
+    // The top-level proxy (no rootKey) is also where render reads are tracked.
+    function createReactive(obj, handler, rootKey) {
       if (!shouldProxy(obj)) {
         return obj;
       }
+      const isRoot = rootKey === undefined;
+      const track = (property) => {
+        if (isRoot && fez._isRendering && typeof property !== "symbol") {
+          fez._fezReads?.add(property);
+        }
+      };
 
       return new Proxy(obj, {
         set(target, property, value, receiver) {
@@ -960,18 +1024,28 @@ export default class FezBase {
 
           if (currentValue !== value) {
             const result = Reflect.set(target, property, value, receiver);
-            handler(target, property, value, currentValue);
+            handler(target, property, value, currentValue, isRoot ? property : rootKey);
             return result;
           }
 
           return true;
         },
         get(target, property, receiver) {
+          track(property);
           const value = Reflect.get(target, property, receiver);
           if (!options.shallow && shouldProxy(value)) {
-            return createReactive(value, handler);
+            return createReactive(value, handler, isRoot ? property : rootKey);
           }
           return value;
+        },
+        has(target, property) {
+          track(property);
+          return Reflect.has(target, property);
+        },
+        ownKeys(target) {
+          // {@json state}, Object.keys(state), {...state}: every key counts as read
+          if (isRoot && fez._isRendering) fez._fezReadsAll = true;
+          return Reflect.ownKeys(target);
         },
       });
     }

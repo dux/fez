@@ -77,7 +77,7 @@
       }
 
       // Use wrap mode to handle custom trigger button
-      this.picker = flatpickr(this.find('.date-picker-wrapper'), {
+      this.state.picker = flatpickr(this.find('.date-picker-wrapper'), {
         wrap: true,
         onChange: (selectedDates, dateStr) => {
           this.setDate(dateStr)
@@ -89,20 +89,20 @@
     }
 
     onDestroy() {
-      this.picker?.destroy()
+      this.state.picker?.destroy()
     }
 
     setDate(value) {
       value ||= ''
       this.state.selectedDate = value
-      this.inputElement.value = value
+      this.state.inputElement.value = value
 
       if (this.state.oldValue != value) {
         this.state.oldValue = value
 
         // Trigger onchange handler if provided
         if (this.props.onchange) {
-          Fez.resolveFunction(this.props.onchange, this.inputElement)
+          Fez.resolveFunction(this.props.onchange, this.state.inputElement)
         }
       }
     }

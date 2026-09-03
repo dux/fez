@@ -272,33 +272,31 @@ The rest of the component stays reactive. The marked node is never touched by th
 
 ```javascript
 onMount() {
-  this.cells = []
-  for (const row of this.props.rows) this.grid.append(this.buildRow(row))
+  this.state.cells = []
+  for (const row of this.props.rows) this.state.grid.append(this.buildRow(row))
 }
 
 patch(i, value) {
-  this.cells[i].textContent = value   // no render, no diff, no hash
+  this.state.cells[i].textContent = value   // no render, no diff, no hash
 }
 ```
 
-**2. Plain instance fields instead of `this.state`**
+`state.cells` and `state.grid` are never read by the template, so writing them never schedules a render - see [state and props](#state-and-props).
 
-Only `this.state` schedules a render. `this.rows = []` does not. Use plain fields for anything you intend to paint by hand, and keep `this.state` for the parts you actually want re-rendered.
-
-**3. No template at all - the component is a pure controller**
+**2. No template at all - the component is a pure controller**
 
 Omit the template block and no render ever runs. The tag's original children are left alone and `this.root` is yours.
 
 ```javascript
 class {
   onMount() {
-    this.cells = []
+    this.state.cells = []
     const tbody = document.createElement('tbody')
     for (let i = 0; i < 10000; i++) tbody.append(this.buildRow(i))
     this.root.append(this.n('table', tbody))
   }
 
-  patch(i, value) { this.cells[i].textContent = value }
+  patch(i, value) { this.state.cells[i].textContent = value }
 }
 ```
 
@@ -719,12 +717,12 @@ Here's a simple counter component that demonstrates Fez's core features:
   class {
     // called when Fez node is connected to DOM
     init() {
-      this.MAX = 6
-      this.state.count = 0
+      this.state.max = 6      // never rendered, so changing it never re-renders
+      this.state.count = 0    // rendered below, changing it re-renders
     }
 
     isMax() {
-      return this.state.count >= this.MAX
+      return this.state.count >= this.state.max
     }
 
     // if state is changed, template is re-rendered
@@ -1298,8 +1296,8 @@ All parts are optional
     {@html data} <!-- unescaped HTML -->
     {@json data} <!-- JSON dump in PRE.json tag -->
 
-    <!-- fez:this will link DOM node to object property (inspired by Svelte) -->
-    <!-- links to -> this.listRoot -->
+    <!-- fez:this will link DOM node to this.state (inspired by Svelte) -->
+    <!-- links to -> this.state.listRoot, assigned silently on every render -->
     <!-- also auto-generates stable id="fez-{UID}-listRoot" for stable DOM diffing -->
     <ul fez:this="listRoot">
 
@@ -1355,7 +1353,7 @@ All parts are optional
     <slot />
 
     <!-- Slot unwrap: wrapper div dissolved, children directly in parent -->
-    <!-- Components with <slot unwrap /> cannot use this.state -->
+    <!-- Components with <slot unwrap /> render once: only state keys the template never reads may change -->
     <slot unwrap />
 
     <!-- :attribute for evaluated attributes (converts to JSON) -->
@@ -1363,6 +1361,53 @@ All parts are optional
   </div>
 </xmp>
 ```
+
+### state and props
+
+Every instance has two places to keep data, and one rule for when a write re-renders.
+
+| store        | who writes it           | on change                                                  |
+|--------------|-------------------------|------------------------------------------------------------|
+| `this.state` | the component           | re-render, but only if the last render read that key       |
+| `this.props` | the parent / HTML attrs | re-render, `onPropsChange`; read it, do not copy it        |
+
+Everything the instance owns goes in `this.state`: rendered values, `fez:this` refs, library instances, handlers, timers, counters.
+While the template renders, fez records every top-level `state` key it reads.
+A later write to a key that was read schedules a render (batched, one per frame); a write to any other key changes nothing on screen and costs nothing, `onStateChange` aside.
+The set is rebuilt on every render, so conditional branches stay exact.
+
+```javascript
+class {
+  PROPS = {
+    speed:   { type: Number, default: 50 },
+    onclick: { type: Function, state: true, default: () => {} },   // this.state.onclick, string or function
+  }
+
+  init() {
+    this.state.count = 0          // rendered below: writes re-render
+    this.state.ticks = 0          // never rendered: writes are free
+  }
+
+  onMount() {
+    this.state.chart = new Chart(this.state.canvas, { speed: this.props.speed })  // canvas = fez:this="canvas"
+    this.setInterval(() => this.state.ticks++, 100)                                // no render, ever
+  }
+
+  onDestroy() {
+    this.state.chart.destroy()
+  }
+}
+```
+
+Class instances, DOM nodes and anything with internal slots (Date, Map, Set, Promise) are handed back unwrapped, so a chart, an editor or a Three.js scene lives in state without any proxy in the way.
+Plain objects and arrays are wrapped deeply, so `state.items.push(x)` re-renders when `items` is rendered.
+A library namespace object such as Leaflet's `L` is a plain object; keep it in a module-level `let` above the class, it is shared and not instance data.
+`fez:this="name"` refs are assigned to `this.state.name` on every render without firing `onStateChange`, and a ref can never shadow a method.
+Do not park data on bare `this`; it collides with the instance API and gains nothing.
+
+`init()` (with prop seeding), every render (`beforeRender`, the template, `afterRender`) and `onStateChange` run with state triggers off: a write inside them fires no `onStateChange` and schedules nothing, so a hook may derive or correct state freely.
+`onMount` is deliberately outside, so measuring the DOM there and writing a rendered key still paints.
+The same scope is yours as `this.noChangeStateTrigger(() => { ... })` for a batch of writes that must not paint; scopes nest and the function's return value is passed back.
 
 ## Typed props (PROPS)
 
@@ -1378,9 +1423,9 @@ Props without a schema entry pass through untouched; components without `PROPS` 
         page:    { type: Number, default: 1 },
         open:    Boolean,                                    // <ui-pager open> -> true, missing -> false
         size:    { type: String, default: 'md', enum: ['sm', 'md', 'lg'] },
-        items:   { type: Array, default: () => [] },          // JSON string is parsed
+        items:   { type: Array, default: [] },                // JSON string is parsed; literal default is copied per instance
         user:    { type: Object, required: true },
-        on_pick: { type: Function },                         // only reachable via :on_pick="..."
+        on_pick: { type: Function, state: true },            // :on_pick="fn" or on_pick="doIt()" -> this.state.on_pick
         since:   { type: Date },
         tags:    (raw) => String(raw).split(','),             // any other function = custom caster
       }
@@ -1404,7 +1449,8 @@ Entry fields:
 | field      | meaning                                                                     |
 |------------|-----------------------------------------------------------------------------|
 | `type`     | `String`, `Number`, `Boolean`, `Array`, `Object`, `Function`, `Date`, or a custom `(raw, name) => value` function |
-| `default`  | used when the prop is missing or failed coercion; a function is called (`() => []`) |
+| `default`  | used when the prop is missing or failed coercion; a zero-arg function is called, a literal `[]` / `{}` is copied per instance, a one-arg function is a transform (see below) |
+| `state`    | `true` copies the coerced value into `this.state[name]` before `init()`, a string picks another key; the component owns it from then on. Also the home for handler props |
 | `required` | missing value reports a `props` error                                       |
 | `enum`     | allowed values, checked after coercion                                      |
 
@@ -1414,9 +1460,17 @@ Coercion rules (idempotent - values that already have the right type pass throug
 - `Number` - `Number(v)`; `NaN` is an error
 - `Boolean` - attribute present with no value (`<x open>`) and `open="open"` are `true`; `"false"`, `"0"`, `"off"`, `"no"`, `"null"` are `false`; a declared Boolean with no attribute is `false`
 - `Array` / `Object` - strings are `JSON.parse`d; wrong shape is an error
-- `Function` - must already be a function, pass it with `:on_pick="..."` or `Fez.pointer()`
+- `Function` - a function passes through (`:on_pick="..."`, `Fez.pointer()`); a string is resolved with `Fez.getFunction` like an inline `onclick`; anything else is an error
 - `Date` - ISO string or epoch number -> `Date`; invalid is an error
-- Order per key: coerce, `required`, `enum`, then `default`
+- Order per key: transform, coerce, `required`, `enum`, then `default`
+
+A `default` function that declares a parameter is a transform: it receives the raw attribute value (`undefined` when missing) and its result is what gets type checked.
+`tags: { type: Array, default: (raw) => (raw || '').split(',') }` turns `tags="a,b"` into `['a', 'b']`.
+A `Function` prop's `default` is always the handler itself, never a transform.
+
+`state` seeds once, on connect, with a shallow copy for arrays and plain objects, so an in place `this.state.list.push()` never writes back into `props`.
+Later parent renders update `props`, not the seeded key.
+Seeding works in `<slot unwrap />` components too; they render once, so only keys the template never reads may change afterwards.
 
 Errors never throw. They are reported through `Fez.onError('props', '<ui-pager> prop "page": expected Number, got "abc"')` (console by default, see [Custom Error Handler](#custom-error-handler)), the offending value is dropped and the `default` applies if there is one.
 

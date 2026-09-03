@@ -36,7 +36,7 @@
 
     init() {
       this.state.toasts = []
-      this.local.uid = 0
+      this.state.uid = 0
     }
 
     error(text) {
@@ -44,7 +44,7 @@
     }
 
     info(text, klass) {
-      const id = ++this.local.uid
+      const id = ++this.state.uid
       this.state.toasts.unshift({ id, text, klass: klass || 'info' })
       // dropping it from the list plays fez:out, the rest glide up via fez:animate
       this.setTimeout(() => this.remove(id), 4000)
