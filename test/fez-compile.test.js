@@ -263,6 +263,50 @@ describe('fez compile', () => {
     });
   });
 
+  describe('invalid files - removed APIs', () => {
+    test('rejects this.local', async () => {
+      const result = await compile('test/fixtures/invalid/test-api-local.fez');
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('this.local was removed');
+    });
+
+    test('rejects a fez:this ref read off the instance', async () => {
+      const result = await compile('test/fixtures/invalid/test-api-fez-this-ref.fez');
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('this.state.nameInput');
+    });
+
+    test('rejects a fez:this ref read from a template handler', async () => {
+      const result = await compile('test/fixtures/invalid/test-api-fez-this-template.fez');
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('this.state.uploadInput');
+    });
+
+    test('rejects Fez.css()', async () => {
+      const result = await compile('test/fixtures/invalid/test-api-fez-css.fez');
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('Fez.cssClass()');
+    });
+
+    test('allows a fez:this ref the component assigns itself', async () => {
+      const result = await compile('test/fixtures/valid/test-api-fez-this-assigned.fez');
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('ignores removed APIs quoted in demo and info blocks', async () => {
+      const file = fixture(
+        'ui-docs.fez',
+        [
+          '<info>Old code used <code>this.local.x</code> and Fez.css()</info>',
+          '<demo><ui-docs></ui-docs></demo>',
+          '<button>hi</button>',
+        ].join('\n'),
+      );
+      const result = await compile(file);
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
   describe('invalid files - template errors', () => {
     test('detects unmatched {{if}} block', async () => {
       const result = await compile('test/fixtures/invalid/test-unmatched-if.fez');

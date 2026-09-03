@@ -1,0 +1,13 @@
+<script>
+  class {
+    onMount() {
+      this.dateInput = this.find('input.date')
+    }
+
+    submit() {
+      return this.dateInput.value
+    }
+  }
+</script>
+
+<input fez:this="dateInput" class="date" type="text" />

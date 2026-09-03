@@ -1,0 +1,9 @@
+<script>
+  class {
+    submit() {
+      return this.nameInput.value
+    }
+  }
+</script>
+
+<input fez:this="nameInput" type="text" />

@@ -1,0 +1,10 @@
+<script>
+  class {
+    init() {
+      this.state.ready = true
+    }
+  }
+</script>
+
+<input fez:this="uploadInput" type="file" />
+<button onclick="fez.uploadInput.click()">Upload</button>

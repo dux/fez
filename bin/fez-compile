@@ -181,6 +181,8 @@ async function compileUnit(filePath, unit, options) {
     ...validateScript(parsed.script, filePath, (script?.contentLine || 1) + unit.lineOffset),
   );
 
+  errors.push(...validateRemovedApi(parsed, unit.source, filePath, unit.lineOffset));
+
   for (const block of parsed.blocks.filter(
     (item) => item.type === 'style' || item.type === 'styleGlobal',
   )) {
@@ -273,6 +275,68 @@ function withoutComments(style) {
       /^([ \t]*)\/\/[^\n]*/gm,
       (match, indent) => indent + ' '.repeat(match.length - indent.length),
     );
+}
+
+// Blank out <demo> and <info> bodies while keeping line numbers, so documented
+// examples of the old API are never reported as real usage.
+function withoutDocBlocks(source) {
+  return source.replace(/(<(demo|info)\b[^>]*>)([\s\S]*?)(<\/\2>)/gi, (all, open, tag, body, close) =>
+    open + body.replace(/[^\n]/g, ' ') + close,
+  );
+}
+
+/**
+ * APIs removed by the 0.6.x state consolidation. These fail at runtime, not at
+ * compile time - `this.local` throws, a stale fez:this ref reads undefined and
+ * silently no-ops behind optional chaining - so the CLI is the only place that
+ * can catch them before a page is loaded.
+ *
+ * Deliberately not mirrored into src/fez/compile.js: a throw there aborts
+ * registration and leaves the raw custom tag visible on the page. A migration
+ * aid should not take the page down.
+ */
+function validateRemovedApi(parsed, rawSource, filePath, lineOffset) {
+  const errors = [];
+  const source = withoutComments(withoutDocBlocks(rawSource));
+  const add = (regex, message) => {
+    const index = source.search(regex);
+    if (index < 0) {
+      return false;
+    }
+    errors.push({
+      message,
+      file: filePath,
+      kind: 'API',
+      line: lineOffset + source.slice(0, index).split('\n').length,
+    });
+    return true;
+  };
+
+  add(
+    /\b(?:this|fez)\.local\b/,
+    'this.local was removed. Move per-instance data to this.state - a write to a key the template never reads schedules no render.',
+  );
+
+  add(/\bFez\.css\(/, 'Fez.css() was removed. Use Fez.cssClass().');
+
+  // fez:this="name" now lands on this.state.name (src/fez/instance.js, fetchAttr
+  // writes this._stateRaw). Reading it off the instance yields undefined.
+  const refs = new Set(
+    [...parsed.html.matchAll(/fez[:-]this="([A-Za-z_$][\w$]*)"/g)].map((match) => match[1]),
+  );
+  for (const ref of refs) {
+    // A file that assigns the ref itself (this.el = this.find('input')) still
+    // works - the assignment wins. That is redundancy, which `fez refactor` reports.
+    if (new RegExp(`\\bthis\\.${ref}\\s*=[^=]`).test(source)) {
+      continue;
+    }
+    add(
+      new RegExp(`\\b(?:this|fez)\\.${ref}\\b`),
+      `fez:this="${ref}" lands on this.state.${ref}. Read it as this.state.${ref} (fez.state.${ref} in template handlers).`,
+    );
+  }
+
+  return errors;
 }
 
 function validateStyleScope(rawStyle, filePath, isGlobal, lineOffset) {

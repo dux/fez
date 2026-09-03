@@ -1,0 +1,9 @@
+<script>
+  class {
+    init() {
+      this.state.cls = Fez.css('color: red')
+    }
+  }
+</script>
+
+<button class={state.cls}>hi</button>
