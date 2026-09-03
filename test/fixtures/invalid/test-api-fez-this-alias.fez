@@ -1,0 +1,13 @@
+<script>
+  class {
+    onMount() {
+      const me = this
+      this.state.check = function () {
+        if (me.local.expanded) return
+        me.moreBtn.hidden = true
+      }
+    }
+  }
+</script>
+
+<div fez:this="moreBtn">more</div>

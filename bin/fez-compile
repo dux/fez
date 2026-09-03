@@ -312,8 +312,16 @@ function validateRemovedApi(parsed, rawSource, filePath, lineOffset) {
     return true;
   };
 
+  // `const me = this` is common in older components, and a ref or a .local read
+  // through the alias breaks exactly the same way - so the alias counts as `this`.
+  const instance = ['this', 'fez'];
+  for (const match of source.matchAll(/\b(?:var|const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*this\b/g)) {
+    instance.push(match[1]);
+  }
+  const onInstance = (property) => new RegExp(`\\b(?:${instance.join('|')})\\.${property}\\b`);
+
   add(
-    /\b(?:this|fez)\.local\b/,
+    onInstance('local'),
     'this.local was removed. Move per-instance data to this.state - a write to a key the template never reads schedules no render.',
   );
 
@@ -331,7 +339,7 @@ function validateRemovedApi(parsed, rawSource, filePath, lineOffset) {
       continue;
     }
     add(
-      new RegExp(`\\b(?:this|fez)\\.${ref}\\b`),
+      onInstance(ref),
       `fez:this="${ref}" lands on this.state.${ref}. Read it as this.state.${ref} (fez.state.${ref} in template handlers).`,
     );
   }

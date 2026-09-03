@@ -282,6 +282,13 @@ describe('fez compile', () => {
       expect(result.stderr).toContain('this.state.uploadInput');
     });
 
+    test('sees removed APIs through a this alias', async () => {
+      const result = await compile('test/fixtures/invalid/test-api-fez-this-alias.fez');
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('this.local was removed');
+      expect(result.stderr).toContain('this.state.moreBtn');
+    });
+
     test('rejects Fez.css()', async () => {
       const result = await compile('test/fixtures/invalid/test-api-fez-css.fez');
       expect(result.exitCode).toBe(1);
