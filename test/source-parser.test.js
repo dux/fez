@@ -4,6 +4,7 @@ import {
   hasFezDefinitions,
   parseFezSource,
   stripFezDefinitions,
+  stripGeneratedNotice,
 } from '../src/fez/lib/source-parser.js';
 
 describe('Fez source parser', () => {
@@ -18,6 +19,15 @@ describe('Fez source parser', () => {
     expect(parsed.script).toContain("NAME = 'span'");
     expect(parsed.html.trim()).toBe('');
     expect(parseFezSource('<!-- authored comment -->').html).toBe('<!-- authored comment -->');
+  });
+
+  test('stripGeneratedNotice handles the HTML and JS notice forms', () => {
+    const html = '<!-- generated from src: web_src/root/fez/a.fez | DO NOT EDIT OR READ THIS FILE -->\n<p>a</p>';
+    const js = '// generated from src: web_src/root/app.js | DO NOT EDIT OR READ THIS FILE\nlet a = 1';
+
+    expect(stripGeneratedNotice(html)).toBe('<p>a</p>');
+    expect(stripGeneratedNotice(js)).toBe('let a = 1');
+    expect(stripGeneratedNotice('// authored\nlet a = 1')).toBe('// authored\nlet a = 1');
   });
 
   test('preserves normal header elements in template HTML', () => {

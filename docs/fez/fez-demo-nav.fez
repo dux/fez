@@ -18,9 +18,12 @@
 
 <script>
   class {
+    PROPS = {
+      for: { type: String, default: '' },
+      offset: { type: Number, default: 16 },
+    }
+
     init(props) {
-      this.for = props.for || ""
-      this.offset = Number(props.offset ?? 16)
       this.state.items = []
       this.state.activeIndex = -1
       this.state.markerTop = 0
@@ -50,8 +53,8 @@
       // the page renders a fresh picker wherever the selection moves - the one
       // placed above the selected section brings itself into view, the one at
       // the top does so only after a clear (flag set by clearSelection)
-      if (this.for) {
-        if (this.for === this.globalState.demoSelected) {
+      if (this.props.for) {
+        if (this.props.for === this.globalState.demoSelected) {
           this.whenSectionsReady(() => this.reveal())
         }
       } else if (Fez.state.get("demoNavReveal")) {
@@ -201,7 +204,7 @@
 
     scrollTo(node) {
       if (!node?.getBoundingClientRect) return
-      const top = node.getBoundingClientRect().top + window.scrollY - this.offset
+      const top = node.getBoundingClientRect().top + window.scrollY - this.props.offset
       window.scrollTo({ top: Math.max(top, 0), behavior: "auto" })
     }
 
@@ -484,7 +487,7 @@
   }
 </style>
 
-<nav class="fez-demo-nav-box {globalState.demoSelected ? 'is-selected' : ''}" data-for="{fez.for}" aria-label="Demo components">
+<nav class="fez-demo-nav-box {globalState.demoSelected ? 'is-selected' : ''}" data-for="{props.for}" aria-label="Demo components">
   <div class="fez-demo-nav-control">
     <button
       class="fez-demo-nav-toggle"

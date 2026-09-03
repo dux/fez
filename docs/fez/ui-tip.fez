@@ -26,18 +26,6 @@
   }
 </script>
 
-<label>
-  bill
-  <input type="number" min="0" step="1" fez:bind="state.bill" />
-</label>
-
-<input type="range" min="0" max="30" fez:bind="state.tip" style="--pct: {state.tip / 30 * 100}%" />
-
-<p class="out">
-  <span>{state.tip}% tip is <b>${state.tip_sum}</b></span>
-  <span class="total">total <b>${state.total}</b></span>
-</p>
-
 <style>
   display: grid;
   gap: 12px;
@@ -114,3 +102,15 @@
     }
   }
 </style>
+
+<label>
+  bill
+  <input type="number" min="0" step="1" fez:bind="state.bill" />
+</label>
+
+<input type="range" min="0" max="30" fez:bind="state.tip" style="--pct: {state.tip / 30 * 100}%" />
+
+<p class="out">
+  <span>{state.tip}% tip is <b>${state.tip_sum}</b></span>
+  <span class="total">total <b>${state.total}</b></span>
+</p>

@@ -18,7 +18,7 @@
     this.state.effect = 'fly'
     this.state.items = [1, 2, 3]
     this.state.panel = true
-    this.local.next = 4
+    this.state.next = 4
 
     // custom transition, registered once
     Fez.transitions.jelly ||= (node, params) => ({
@@ -33,7 +33,7 @@
   }
 
   add() {
-    this.state.items.push(this.local.next++)
+    this.state.items.push(this.state.next++)
   }
 
   remove(id) {

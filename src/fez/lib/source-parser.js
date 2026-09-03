@@ -2,8 +2,13 @@ const BLOCK_TAG_RE = /(^|\n)[ \t]*<(demo|info|script|head|style)\b([^>]*)>/gi;
 const DEFINITION_TAG_RE = /<(xmp|template)\b([^>]*)>/gi;
 const GLOBAL_ATTR = /(?:^|\s)global(?:\s*=\s*(?:""|''|"global"|'global'|global))?(?=\s|$)/i;
 const FEZ_ATTR = /(?:^|\s)fez\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/i;
+// `fez static` prepends this to every built file (HTML comment, or `//` for JS)
 const GENERATED_NOTICE_RE =
-  /^<!-- generated from src: [^\r\n|]* \| DO NOT EDIT OR READ THIS FILE -->\r?\n?/;
+  /^(?:<!-- |\/\/ )generated from src: [^\r\n|]* \| DO NOT EDIT OR READ THIS FILE(?: -->)?\r?\n?/;
+
+export function stripGeneratedNotice(source) {
+  return source.replace(GENERATED_NOTICE_RE, '');
+}
 
 function lineAt(source, index) {
   return source.slice(0, index).split('\n').length;
@@ -120,7 +125,7 @@ export function parseFezSource(source, { dedentDocs = false } = {}) {
   }
 
   result.html += source.slice(cursor);
-  result.html = result.html.replace(GENERATED_NOTICE_RE, '');
+  result.html = stripGeneratedNotice(result.html);
   return result;
 }
 

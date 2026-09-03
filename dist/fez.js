@@ -2433,6 +2433,18 @@ ${demo}
       return false;
     }
     /**
+     * Shallow copy of an Array or plain object; anything else is returned as is.
+     * Used wherever a schema value must not be shared by reference (literal
+     * defaults, state seeding).
+     */
+    static cloneShallow(value) {
+      if (Array.isArray(value)) return [...value];
+      if (value && typeof value === "object" && [Object.prototype, null].includes(Object.getPrototypeOf(value))) {
+        return { ...value };
+      }
+      return value;
+    }
+    /**
      * Cast a single prop through its PROPS entry. Unknown keys pass through
      * untouched. Errors are reported via Fez.onError("props", ...) and never
      * thrown - a bad attribute must not kill the page.
@@ -2478,7 +2490,9 @@ ${demo}
           if (!ok) v = fail(`expected ${type.name}, got ${show(value)}`);
         }
       } else if (type === Function) {
-        if (typeof v !== "function") {
+        if (typeof v === "string") {
+          v = v.trim() === "" ? void 0 : Fez.getFunction(v);
+        } else if (typeof v !== "function") {
           v = fail(`expected Function (pass it with :${name}="..."), got ${show(v)}`);
         }
       } else if (type === Date) {
@@ -2503,7 +2517,7 @@ ${demo}
         v = fail(`expected one of ${spec.enum.map(show).join(", ")}, got ${show(v)}`);
       }
       if (v === void 0 && spec.default !== void 0 && !transform) {
-        v = typeof spec.default === "function" && type !== Function ? spec.default() : spec.default;
+        v = typeof spec.default === "function" && type !== Function ? spec.default() : _FezBase.cloneShallow(spec.default);
       }
       if (v === void 0 && type === Boolean) {
         v = false;
@@ -2564,7 +2578,23 @@ ${demo}
     }
     n = n;
     fezBlocks = {};
-    local = {};
+    // Depth of noChangeStateTrigger() scopes; while > 0, state and props writes
+    // land silently: no onStateChange, no render scheduling.
+    _fezSilent = 0;
+    /**
+     * Run func in this scope with state change triggers off. Fez runs
+     * seeding + init(), every render (beforeRender, template, afterRender) and
+     * onStateChange in it; components can use it for bulk writes that must not
+     * paint: this.noChangeStateTrigger(() => {...})
+     */
+    noChangeStateTrigger(func) {
+      this._fezSilent++;
+      try {
+        return func.call(this);
+      } finally {
+        this._fezSilent--;
+      }
+    }
     /**
      * Props are reactive: writing this.props.x schedules a render, exactly like
      * this.state.x. A component that owns a list can render props.items straight
@@ -2583,7 +2613,7 @@ ${demo}
       this._props = this.fezReactiveStore(this._propsRaw, (_t, _k, next, prev) => {
         if (next === prev) return;
         this.fezSyncPropsAttr();
-        if (this._isRendering || this._isInitializing) return;
+        if (this._fezSilent) return;
         if (this._fezStateDisabled) return;
         this.fezNextTick(this.fezRender, "fezRender");
       }, { shallow: true });
@@ -2682,7 +2712,6 @@ ${demo}
       this.onDestroy();
       this.onDestroy = () => {
       };
-      this.local = {};
       this.fezGlobals.clear();
       const handle = this.class?.GLOBAL;
       if (handle && window[handle] === this) delete window[handle];
@@ -2747,6 +2776,15 @@ ${demo}
       template ||= this.fezHtmlFunc || this?.class?.fezHtmlFunc;
       if (!template || !this.root) return;
       this._isRendering = true;
+      try {
+        this.noChangeStateTrigger(() => this.fezRenderPass(template));
+      } finally {
+        this._isRendering = false;
+      }
+    }
+    fezRenderPass(template) {
+      this._fezReads = /* @__PURE__ */ new Set();
+      this._fezReadsAll = false;
       this.beforeRender();
       const nodeName = typeof this.class.nodeName == "function" ? this.class.nodeName(this.root) : this.class.nodeName;
       const newNode = document.createElement(nodeName || "div");
@@ -2773,7 +2811,6 @@ ${demo}
           const newHash = Fez.fnv1(parsedHtml);
           if (newHash === this._fezHash && !this.fezGlobals.valuesChanged) {
             this.fezGlobals.commitRender();
-            this._isRendering = false;
             return;
           }
           this._fezHash = newHash;
@@ -2806,7 +2843,6 @@ ${demo}
       playFlip(flip);
       this.fezGlobals.commitRender();
       this.afterRender();
-      this._isRendering = false;
     }
     /**
      * Post-render processing for fez-* attributes
@@ -2822,7 +2858,7 @@ ${demo}
         });
       };
       fetchAttr("fez-this", (value, n2) => {
-        new Function("n", `this.${value} = n`).bind(this)(n2);
+        new Function("n", `this._stateRaw.${value} = n`).bind(this)(n2);
         n2._fezThisName = value;
       });
       fetchAttr("fez-use", (value, n2) => {
@@ -2950,14 +2986,8 @@ ${demo}
       }
       if (this.class.fezSlotUnwrap) {
         this._fezStateDisabled = true;
-        this.state = new Proxy({}, {
-          set: (t, k, v) => {
-            console.error(`Fez: <${this.fezName}> uses <slot unwrap />, this.state is disabled`);
-            return true;
-          },
-          get: (t, k) => void 0
-        });
-      } else if (!this.state) {
+      }
+      if (!this.state) {
         this._stateRaw = {};
         this.state = this.fezReactiveStore(this._stateRaw);
       }
@@ -2981,26 +3011,20 @@ ${demo}
       methods.forEach((name) => this[name] = this[name].bind(this));
     }
     /**
-     * Seed this.state from PROPS entries flagged with `state`.
+     * Seed this.state from PROPS entries flagged `state`.
      * `state: true` uses the prop name, `state: 'other_key'` renames it.
      * Runs once before init(), so a component that owns a list can declare it
      * as a prop and mutate this.state from there - no copy line in init().
      */
-    fezSeedStateProps() {
+    fezSeedProps() {
       const schema = this.class?.propsSchema?.();
       if (!schema) return;
-      if (this._fezStateDisabled) return;
       for (const [name, spec] of Object.entries(schema)) {
         if (!spec.state) continue;
-        let value = this._propsRaw?.[name];
-        if (value === void 0) continue;
-        if (Array.isArray(value)) {
-          value = [...value];
-        } else if (value && typeof value === "object" && [Object.prototype, null].includes(Object.getPrototypeOf(value))) {
-          value = { ...value };
-        }
+        const raw = this._propsRaw?.[name];
+        if (raw === void 0) continue;
         const target = this._stateRaw || this.state;
-        target[typeof spec.state === "string" ? spec.state : name] = value;
+        target[typeof spec.state === "string" ? spec.state : name] = _FezBase.cloneShallow(raw);
       }
     }
     /**
@@ -3008,15 +3032,21 @@ ${demo}
      */
     fezReactiveStore(obj, handler, options = {}) {
       obj ||= {};
-      handler ||= (o, k, v, oldValue) => {
-        if (v != oldValue) {
-          this.onStateChange(k, v, oldValue);
-          if (!this._isRendering && !this._isInitializing) {
-            this.fezNextTick(this.fezRender, "fezRender");
+      handler ||= (o, k, v, oldValue, rootKey) => {
+        if (v != oldValue && !this._fezSilent) {
+          this.noChangeStateTrigger(() => this.onStateChange(k, v, oldValue));
+          if (!this._fezReadsAll && !this._fezReads?.has(rootKey)) return;
+          if (this._fezStateDisabled) {
+            console.error(
+              `Fez: <${this.fezName}> uses <slot unwrap /> and renders once, state.${rootKey} is rendered and cannot change`
+            );
+            return;
           }
+          this.fezNextTick(this.fezRender, "fezRender");
         }
       };
       handler.bind(this);
+      const fez = this;
       function shouldProxy(obj2) {
         if (typeof obj2 !== "object" || obj2 === null) return false;
         if (obj2.nodeType) return false;
@@ -3024,26 +3054,41 @@ ${demo}
         const proto = Object.getPrototypeOf(obj2);
         return proto === Object.prototype || proto === null;
       }
-      function createReactive(obj2, handler2) {
+      function createReactive(obj2, handler2, rootKey) {
         if (!shouldProxy(obj2)) {
           return obj2;
         }
+        const isRoot = rootKey === void 0;
+        const track = (property) => {
+          if (isRoot && fez._isRendering && typeof property !== "symbol") {
+            fez._fezReads?.add(property);
+          }
+        };
         return new Proxy(obj2, {
           set(target, property, value, receiver) {
             const currentValue = Reflect.get(target, property, receiver);
             if (currentValue !== value) {
               const result = Reflect.set(target, property, value, receiver);
-              handler2(target, property, value, currentValue);
+              handler2(target, property, value, currentValue, isRoot ? property : rootKey);
               return result;
             }
             return true;
           },
           get(target, property, receiver) {
+            track(property);
             const value = Reflect.get(target, property, receiver);
             if (!options.shallow && shouldProxy(value)) {
-              return createReactive(value, handler2);
+              return createReactive(value, handler2, isRoot ? property : rootKey);
             }
             return value;
+          },
+          has(target, property) {
+            track(property);
+            return Reflect.has(target, property);
+          },
+          ownKeys(target) {
+            if (isRoot && fez._isRendering) fez._fezReadsAll = true;
+            return Reflect.ownKeys(target);
           }
         });
       }
@@ -4503,12 +4548,12 @@ type: ${originalType}`);
       fez._fezSlotNodes = Array.from(fez.root.childNodes);
       fez._fezChildNodes = fez._fezSlotNodes.filter((n2) => n2.nodeType === 1);
     }
-    fez._isInitializing = true;
-    fez.fezSeedStateProps();
-    const initMethod = fez.onInit || fez.init || fez.created || fez.connect;
-    initMethod.call(fez, fez.props);
+    fez.noChangeStateTrigger(() => {
+      fez.fezSeedProps();
+      const initMethod = fez.onInit || fez.init || fez.created || fez.connect;
+      initMethod.call(fez, fez.props);
+    });
     fez.fezRender();
-    fez._isInitializing = false;
     fez.onMount(fez.props);
     fez.onRefresh(fez.props);
     if (fez.onSubmit) {
@@ -4533,7 +4578,10 @@ type: ${originalType}`);
   var DEFINITION_TAG_RE = /<(xmp|template)\b([^>]*)>/gi;
   var GLOBAL_ATTR = /(?:^|\s)global(?:\s*=\s*(?:""|''|"global"|'global'|global))?(?=\s|$)/i;
   var FEZ_ATTR = /(?:^|\s)fez\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/i;
-  var GENERATED_NOTICE_RE = /^<!-- generated from src: [^\r\n|]* \| DO NOT EDIT OR READ THIS FILE -->\r?\n?/;
+  var GENERATED_NOTICE_RE = /^(?:<!-- |\/\/ )generated from src: [^\r\n|]* \| DO NOT EDIT OR READ THIS FILE(?: -->)?\r?\n?/;
+  function stripGeneratedNotice(source) {
+    return source.replace(GENERATED_NOTICE_RE, "");
+  }
   function lineAt(source, index2) {
     return source.slice(0, index2).split("\n").length;
   }
@@ -4631,7 +4679,7 @@ ${content}`;
       BLOCK_TAG_RE.lastIndex = cursor;
     }
     result.html += source.slice(cursor);
-    result.html = result.html.replace(GENERATED_NOTICE_RE, "");
+    result.html = stripGeneratedNotice(result.html);
     return result;
   }
   function protectedRanges(source) {
@@ -4746,6 +4794,7 @@ ${content}`;
     if (arguments.length === 1) {
       return compileBulk(tagName);
     }
+    html = stripGeneratedNotice(html);
     if (hasTopLevelFezElements(html)) {
       if (tagName) {
         Fez.index.ensure(tagName).source = html;
@@ -5052,7 +5101,7 @@ ${after})`;
         if (keys.has(key)) return;
         const fn = (value, oldValue, _key, writer) => {
           component.onGlobalStateChange(key, value, oldValue);
-          const selfWrite = writer === component && (component._isRendering || component._isInitializing);
+          const selfWrite = writer === component && component._fezSilent;
           if (!selfWrite) {
             component.fezNextTick(component.fezRender, "fezRender");
           }
@@ -5766,6 +5815,7 @@ ${after})`;
   utility_default(Fez2);
   css_mixin_default(Fez2);
   Fez2.compile = compile;
+  Fez2.stripGeneratedNotice = stripGeneratedNotice;
   Fez2.createTemplate = createTemplate;
   Fez2.state = global_state_default;
   Fez2.log = dump_default;

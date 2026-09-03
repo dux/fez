@@ -36,7 +36,7 @@
 
 <script>
   activate(index) {
-    const childNode = this.navButtons[index]
+    const childNode = this.state.navButtons[index]
     if (!childNode || childNode.getAttribute('disabled')) return
 
     this.state.activeIndex = index
@@ -64,7 +64,7 @@
   }
 
   handleClick(index, event) {
-    const button = this.navButtons[index]
+    const button = this.state.navButtons[index]
     if (!button) return
 
     this.activate(index)
@@ -92,10 +92,10 @@
 
   init() {
     this.state.activeIndex = 0
-    this.navButtons = this.childNodes()
+    this.state.navButtons = this.childNodes()
 
     // Extract clean text for each button
-    this.navButtons.forEach(button => {
+    this.state.navButtons.forEach(button => {
       if (!button.getAttribute('label') && button.textContent) {
         button._cleanText = button.textContent.trim()
       }
@@ -108,7 +108,7 @@
   onMount() {
     // Initialize mask after DOM is ready and rendered
     setTimeout(() => {
-      if (this.navButtons.length > 0) {
+      if (this.state.navButtons.length > 0) {
         this.activate(0)
       }
     }, 10)
@@ -181,7 +181,7 @@
 <div class="button-nav">
   <div class="nav-mask"></div>
 
-  {#for button, index in navButtons}
+  {#for button, index in state.navButtons}
     <span
       class="nav-button {state.activeIndex === index ? 'active' : ''} {button.getAttribute('disabled') ? 'disabled' : ''}"
       onclick={(e) => handleClick(index, e)}

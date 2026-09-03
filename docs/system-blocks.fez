@@ -146,7 +146,7 @@
       this.name = props.name
       Fez.fetch(`./fez/${props.name}.fez`, (res) => {
         Fez.compile(props.name, res)
-        this.state.code = res
+        this.state.code = Fez.index[props.name].source
           .replaceAll('fez.', 'fez․') // hack to hide dot
 
         // Get info from Fez.index after component is compiled

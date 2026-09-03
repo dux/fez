@@ -252,6 +252,23 @@ value = "ok"
       true,
     );
   });
+
+  test("Fez.index source omits the static build notice", () => {
+    const Fez = getFez();
+    const oldGlobalFez = globalThis.Fez;
+    globalThis.Fez = Fez;
+
+    try {
+      Fez.compile(
+        "test-notice-source",
+        "<!-- generated from src: docs_src/root/fez/x.fez | DO NOT EDIT OR READ THIS FILE -->\n<div>Body</div>",
+      );
+    } finally {
+      globalThis.Fez = oldGlobalFez;
+    }
+
+    expect(Fez.index["test-notice-source"].source).toBe("<div>Body</div>");
+  });
 });
 
 describe("demo section parsing", () => {

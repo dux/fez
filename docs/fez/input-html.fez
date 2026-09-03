@@ -402,32 +402,32 @@ Just a simple text area with **markdown** support.
   class {
     init() {
       // capture initial content before template renders over it
-      this._initialMd = (this.props.value || this.root.textContent || '').trim()
+      this.state.initialMd = (this.props.value || this.root.textContent || '').trim()
     }
 
     onMount() {
-      this.turndown = new TurndownService({
+      this.state.turndown = new TurndownService({
         headingStyle: 'atx',
         bulletListMarker: '*',
         codeBlockStyle: 'fenced',
         emDelimiter: '*',
       })
 
-      this.turndown.addRule('strikethrough', {
+      this.state.turndown.addRule('strikethrough', {
         filter: ['del', 's', 'strike'],
         replacement: (content) => `~~${content}~~`
       })
 
       // Tiptap wraps li content in <p> tags, strip them for clean markdown
-      this.turndown.addRule('listItemParagraph', {
+      this.state.turndown.addRule('listItemParagraph', {
         filter: (node) => node.nodeName === 'P' && node.parentNode?.nodeName === 'LI',
         replacement: (content) => content
       })
 
-      const initialHtml = this._initialMd ? this.mdToHtml(this._initialMd) : ''
+      const initialHtml = this.state.initialMd ? this.mdToHtml(this.state.initialMd) : ''
 
       // serialize any block as {@block:type {json}} in markdown
-      this.turndown.addRule('fezBlock', {
+      this.state.turndown.addRule('fezBlock', {
         filter: (node) => node.nodeName === 'DIV' && node.getAttribute('data-block'),
         replacement: (content, node) => {
           const type = node.getAttribute('data-block')
@@ -441,8 +441,8 @@ Just a simple text area with **markdown** support.
         }
       })
 
-      this.editor = new Editor({
-        element: this.editorNode,
+      this.state.editor = new Editor({
+        element: this.state.editorNode,
         extensions: [
           StarterKit,
           Link.configure({ openOnClick: false }),
@@ -452,31 +452,31 @@ Just a simple text area with **markdown** support.
         ],
         content: initialHtml,
         onUpdate: () => {
-          if (!this._mdMode) this.syncMarkdown()
+          if (!this.state.mdMode) this.syncMarkdown()
         },
       })
 
       this.updateHiddenInput()
-      this._ready = true
+      this.state.ready = true
 
       // populate toolbar block buttons from discovered BLOCK_TYPES
-      if (this.blockButtons) {
+      if (this.state.blockButtons) {
         BLOCK_TYPES.forEach((b) => {
           const btn = document.createElement('button')
           btn.type = 'button'
           btn.title = b.label
           btn.textContent = b.icon
           btn.onclick = () => this.tbInsertBlock(b.type)
-          this.blockButtons.appendChild(btn)
+          this.state.blockButtons.appendChild(btn)
         })
       }
     }
 
     updateHiddenInput() {
-      const html = this.editor.getHTML()
-      let md = this.turndown.turndown(html)
+      const html = this.state.editor.getHTML()
+      let md = this.state.turndown.turndown(html)
       md = md.replace(/\n{3,}/g, '\n\n').trim()
-      this.hiddenInput.value = md
+      this.state.hiddenInput.value = md
       return md
     }
 
@@ -501,75 +501,75 @@ Just a simple text area with **markdown** support.
     syncMarkdown() {
       const md = this.updateHiddenInput()
 
-      if (this._ready && this.props.onchange) {
+      if (this.state.ready && this.props.onchange) {
         Fez.getFunction(this.props.onchange)(md)
       }
     }
 
     toggleMode() {
-      this._mdMode = !this._mdMode
+      this.state.mdMode = !this.state.mdMode
 
-      if (this._mdMode) {
+      if (this.state.mdMode) {
         // WYSIWYG -> Markdown
         this.syncMarkdown()
-        this.mdTextarea.value = this.hiddenInput.value
-        this.editorNode.style.display = 'none'
-        this.mdTextarea.style.display = ''
-        if (this.toolbarBtns) this.toolbarBtns.style.display = 'none'
-        if (this.modeBtn) {
-          this.modeBtn.textContent = 'Rich'
-          this.modeBtn.classList.add('active')
+        this.state.mdTextarea.value = this.state.hiddenInput.value
+        this.state.editorNode.style.display = 'none'
+        this.state.mdTextarea.style.display = ''
+        if (this.state.toolbarBtns) this.state.toolbarBtns.style.display = 'none'
+        if (this.state.modeBtn) {
+          this.state.modeBtn.textContent = 'Rich'
+          this.state.modeBtn.classList.add('active')
         }
       } else {
         // Markdown -> WYSIWYG
-        const md = this.mdTextarea.value
-        this.hiddenInput.value = md
+        const md = this.state.mdTextarea.value
+        this.state.hiddenInput.value = md
         const html = md ? this.mdToHtml(md) : '<p></p>'
-        this.editor.commands.setContent(html)
-        this.mdTextarea.style.display = 'none'
-        this.editorNode.style.display = ''
-        if (this.toolbarBtns) this.toolbarBtns.style.display = ''
-        if (this.modeBtn) {
-          this.modeBtn.textContent = 'MD'
-          this.modeBtn.classList.remove('active')
+        this.state.editor.commands.setContent(html)
+        this.state.mdTextarea.style.display = 'none'
+        this.state.editorNode.style.display = ''
+        if (this.state.toolbarBtns) this.state.toolbarBtns.style.display = ''
+        if (this.state.modeBtn) {
+          this.state.modeBtn.textContent = 'MD'
+          this.state.modeBtn.classList.remove('active')
         }
       }
     }
 
     // toolbar actions
-    tbBold()       { this.editor.chain().focus().toggleBold().run() }
-    tbItalic()     { this.editor.chain().focus().toggleItalic().run() }
-    tbStrike()     { this.editor.chain().focus().toggleStrike().run() }
-    tbCode()       { this.editor.chain().focus().toggleCode().run() }
-    tbH1()         { this.editor.chain().focus().toggleHeading({ level: 1 }).run() }
-    tbH2()         { this.editor.chain().focus().toggleHeading({ level: 2 }).run() }
-    tbH3()         { this.editor.chain().focus().toggleHeading({ level: 3 }).run() }
-    tbBulletList() { this.editor.chain().focus().toggleBulletList().run() }
-    tbOrderedList(){ this.editor.chain().focus().toggleOrderedList().run() }
-    tbBlockquote() { this.editor.chain().focus().toggleBlockquote().run() }
-    tbHr()         { this.editor.chain().focus().setHorizontalRule().run() }
-    tbCodeBlock()  { this.editor.chain().focus().toggleCodeBlock().run() }
+    tbBold()       { this.state.editor.chain().focus().toggleBold().run() }
+    tbItalic()     { this.state.editor.chain().focus().toggleItalic().run() }
+    tbStrike()     { this.state.editor.chain().focus().toggleStrike().run() }
+    tbCode()       { this.state.editor.chain().focus().toggleCode().run() }
+    tbH1()         { this.state.editor.chain().focus().toggleHeading({ level: 1 }).run() }
+    tbH2()         { this.state.editor.chain().focus().toggleHeading({ level: 2 }).run() }
+    tbH3()         { this.state.editor.chain().focus().toggleHeading({ level: 3 }).run() }
+    tbBulletList() { this.state.editor.chain().focus().toggleBulletList().run() }
+    tbOrderedList(){ this.state.editor.chain().focus().toggleOrderedList().run() }
+    tbBlockquote() { this.state.editor.chain().focus().toggleBlockquote().run() }
+    tbHr()         { this.state.editor.chain().focus().setHorizontalRule().run() }
+    tbCodeBlock()  { this.state.editor.chain().focus().toggleCodeBlock().run() }
 
     tbLink() {
-      const prev = this.editor.getAttributes('link').href
+      const prev = this.state.editor.getAttributes('link').href
       const url = prompt('URL', prev || 'https://')
       if (url === null) return
       if (url === '') {
-        this.editor.chain().focus().unsetLink().run()
+        this.state.editor.chain().focus().unsetLink().run()
       } else {
-        this.editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+        this.state.editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
       }
     }
 
     tbInsertBlock(type) {
       const cmd = 'set' + type.charAt(0).toUpperCase() + type.slice(1) + 'Block'
-      if (this.editor.commands[cmd]) {
-        this.editor.chain().focus()[cmd]({}).run()
+      if (this.state.editor.commands[cmd]) {
+        this.state.editor.chain().focus()[cmd]({}).run()
       }
     }
 
     onDestroy() {
-      if (this.editor) this.editor.destroy()
+      if (this.state.editor) this.state.editor.destroy()
     }
   }
 </script>
@@ -842,4 +842,4 @@ Just a simple text area with **markdown** support.
 {/if}
 
 <div fez:this="editorNode" class="ih-editor"></div>
-<textarea fez:this="mdTextarea" class="ih-md-textarea" style="display:none" oninput="fez.hiddenInput.value = this.value"></textarea>
+<textarea fez:this="mdTextarea" class="ih-md-textarea" style="display:none" oninput="fez.state.hiddenInput.value = this.value"></textarea>

@@ -126,7 +126,7 @@
         // plain fetch: Fez.fetch resolves a 404 page as text, we want the failure
         fetch(url)
           .then(res => { if (!res.ok) throw new Error(`${res.status} ${res.statusText}`); return res.text() })
-          .then(text => this.start(name || STARTER_NAME, text))
+          .then(text => this.start(name || STARTER_NAME, Fez.stripGeneratedNotice(text)))
           .catch(e => {
             this.capture('error', `Could not load ${url} (${e.message}) - starting with the blank component`)
             fetch(STARTER).then(res => res.text()).then(text => this.start(STARTER_NAME, text))

@@ -20,6 +20,7 @@ import {
   hasFezDefinitions,
   parseFezSource,
   stripFezDefinitions,
+  stripGeneratedNotice,
 } from "./lib/source-parser.js";
 
 const compileCache = new Map();
@@ -102,6 +103,9 @@ export default function compile(tagName, html) {
   if (arguments.length === 1) {
     return compileBulk(tagName);
   }
+
+  // Build notice is never part of the component source shown to users
+  html = stripGeneratedNotice(html);
 
   // Multiple xmp/template tags in html? Process them
   // Check for top-level fez definitions (not ones inside <demo> blocks)

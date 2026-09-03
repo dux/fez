@@ -24,6 +24,7 @@ import objectDump from './utils/dump.js';
 import highlightAll from './utils/highlight_all.js';
 import connect from './connect.js';
 import compile from './compile.js';
+import { stripGeneratedNotice } from './lib/source-parser.js';
 import { WINDOW_EVENTS } from './instance.js';
 import state from './lib/global-state.js';
 import createTemplate from './lib/template.js';
@@ -319,6 +320,7 @@ addUtilities(Fez);
 cssMixin(Fez);
 
 Fez.compile = compile;
+Fez.stripGeneratedNotice = stripGeneratedNotice;
 Fez.createTemplate = createTemplate;
 Fez.state = state;
 Fez.log = objectDump;
