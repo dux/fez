@@ -147,6 +147,16 @@ export default class FezBase {
   }
 
   /**
+   * Fresh root element for this component. NAME may be a tag string or a
+   * function of the source node (connect) / current root (render).
+   */
+  static createRootNode(node) {
+    const name =
+      typeof this.nodeName === "function" ? this.nodeName(node) : this.nodeName;
+    return document.createElement(name || "div");
+  }
+
+  /**
    * Normalized PROPS schema for this class: shorthand `name: String` becomes
    * `{ type: String }`. Memoized per class (own property, so subclasses with
    * their own PROPS do not inherit a parent's cache).
@@ -404,6 +414,20 @@ export default class FezBase {
   }
 
   /**
+   * Seed state from PROPS and run the user's init hook. Both write state
+   * silently: the first render follows right after. onMount is outside the
+   * scope on purpose, so a write there to a rendered key (a measured size)
+   * still paints.
+   */
+  fezInit() {
+    this.noChangeStateTrigger(() => {
+      this.fezSeedProps();
+      const init = this.onInit || this.init || this.created || this.connect;
+      init.call(this, this.props);
+    });
+  }
+
+  /**
    * Props are reactive: writing this.props.x schedules a render, exactly like
    * this.state.x. A component that owns a list can render props.items straight
    * from the template instead of copying it into state first.
@@ -423,8 +447,7 @@ export default class FezBase {
     // identity they had before they became reactive (including across
     // component boundaries). Writing a nested field does not re-render,
     // assign the container instead: this.props.user = { ...this.props.user }
-    this._props = this.fezReactiveStore(this._propsRaw, (_t, _k, next, prev) => {
-      if (next === prev) return;
+    this._props = this.fezReactiveStore(this._propsRaw, () => {
       this.fezSyncPropsAttr();
       if (this._fezSilent) return;
       // <slot unwrap /> dissolves the slot wrapper on first render and the
@@ -590,10 +613,11 @@ export default class FezBase {
   }
 
   /**
-   * Force a re-render on next frame
+   * Force a re-render on next frame. Same tick as state writes, so a refresh
+   * and a write in one frame still produce a single render.
    */
   fezRefresh() {
-    this.fezNextTick(() => this.fezRender(), "refresh");
+    this.fezNextTick(this.fezRender, "fezRender");
   }
 
   /**
@@ -609,7 +633,7 @@ export default class FezBase {
    */
   fezRender(template) {
     // Check instance-level template first, then class-level
-    template ||= this.fezHtmlFunc || this?.class?.fezHtmlFunc;
+    template ||= this.fezHtmlFunc || this.class?.fezHtmlFunc;
 
     if (!template || !this.root) return;
 
@@ -633,11 +657,7 @@ export default class FezBase {
 
     this.beforeRender();
 
-    const nodeName =
-      typeof this.class.nodeName == "function"
-        ? this.class.nodeName(this.root)
-        : this.class.nodeName;
-    const newNode = document.createElement(nodeName || "div");
+    const newNode = this.class.createRootNode(this.root);
 
     this.fezGlobals.beginRender();
 
@@ -682,37 +702,42 @@ export default class FezBase {
 
     this.fezKeepNode(newNode);
 
-    // Save input values for fez-this/fez-bind bound elements before morph
-    const savedInputValues = new Map();
-    this.root.querySelectorAll("input, textarea, select").forEach((el) => {
-      if (el._fezThisName) {
-        savedInputValues.set(el._fezThisName, {
-          value: el.value,
-          checked: el.checked,
-        });
-      }
-    });
-
+    const inputValues = this.fezSaveInputValues();
     // fez-animate: where were the kept nodes before the morph moved them
     const flip = measureFlip(this._fezFlipNodes);
 
     Fez.morphdom(this.root, newNode);
 
-    // Restore input values after morph
-    if (savedInputValues.size) {
-      this.root.querySelectorAll("input, textarea, select").forEach((el) => {
-        const saved = el._fezThisName && savedInputValues.get(el._fezThisName);
-        if (saved) {
-          el.value = saved.value;
-          if (saved.checked !== undefined) el.checked = saved.checked;
-        }
-      });
-    }
-
+    this.fezRestoreInputValues(inputValues);
     this.fezRenderPostProcess();
     playFlip(flip);
     this.fezGlobals.commitRender();
     this.afterRender();
+  }
+
+  /**
+   * Values typed into fez-this / fez-bind inputs survive the morph: the
+   * differ syncs the template's value attribute, which would wipe them.
+   */
+  fezSaveInputValues() {
+    const saved = new Map();
+    for (const el of this.root.querySelectorAll("input, textarea, select")) {
+      if (el._fezThisName) {
+        saved.set(el._fezThisName, { value: el.value, checked: el.checked });
+      }
+    }
+    return saved;
+  }
+
+  fezRestoreInputValues(saved) {
+    if (!saved.size) return;
+    for (const el of this.root.querySelectorAll("input, textarea, select")) {
+      const entry = el._fezThisName && saved.get(el._fezThisName);
+      if (entry) {
+        el.value = entry.value;
+        if (entry.checked !== undefined) el.checked = entry.checked;
+      }
+    }
   }
 
   /**
@@ -902,12 +927,10 @@ export default class FezBase {
     if (this.class.fezSlotUnwrap) {
       this._fezStateDisabled = true;
     }
-    if (!this.state) {
-      // _stateRaw is the object behind the store - writes that must not fire
-      // onStateChange or schedule a render (prop seeding, fez:this) go straight to it
-      this._stateRaw = {};
-      this.state = this.fezReactiveStore(this._stateRaw);
-    }
+    // _stateRaw is the object behind the store - writes that must not fire
+    // onStateChange or schedule a render (prop seeding, fez:this) go straight to it
+    this._stateRaw = {};
+    this.state = this.fezReactiveStore(this._stateRaw);
     this.globalState = Fez.state.createProxy(this);
     this.fezRegisterBindMethods();
   }
@@ -950,9 +973,8 @@ export default class FezBase {
       // object the parent passed in with :prop="...").
       // Straight into the raw object: seeding happens before init(), so
       // onStateChange must not fire on setup the component has not done yet.
-      const target = this._stateRaw || this.state;
-      target[typeof spec.state === "string" ? spec.state : name] =
-        FezBase.cloneShallow(raw);
+      const key = typeof spec.state === "string" ? spec.state : name;
+      this._stateRaw[key] = FezBase.cloneShallow(raw);
     }
   }
 
@@ -965,23 +987,22 @@ export default class FezBase {
     // Default handler (this.state): onStateChange fires for every write, but a
     // render is scheduled only when the last render read the written key. A key
     // no template reads (library instance, ref, counter) is free to write.
+    // The proxy only calls the handler when the value actually changed.
     handler ||= (o, k, v, oldValue, rootKey) => {
-      if (v != oldValue && !this._fezSilent) {
-        // the hook may write state itself without recursing or rendering
-        this.noChangeStateTrigger(() => this.onStateChange(k, v, oldValue));
-        if (!this._fezReadsAll && !this._fezReads?.has(rootKey)) return;
-        // <slot unwrap /> renders once - a rendered key can never be updated
-        if (this._fezStateDisabled) {
-          console.error(
-            `Fez: <${this.fezName}> uses <slot unwrap /> and renders once, state.${rootKey} is rendered and cannot change`,
-          );
-          return;
-        }
-        this.fezNextTick(this.fezRender, "fezRender");
+      if (this._fezSilent) return;
+      // the hook may write state itself without recursing or rendering
+      this.noChangeStateTrigger(() => this.onStateChange(k, v, oldValue));
+      if (!this._fezReadsAll && !this._fezReads?.has(rootKey)) return;
+      // <slot unwrap /> renders once - a rendered key can never be updated
+      if (this._fezStateDisabled) {
+        console.error(
+          `Fez: <${this.fezName}> uses <slot unwrap /> and renders once, state.${rootKey} is rendered and cannot change`,
+        );
+        return;
       }
+      this.fezNextTick(this.fezRender, "fezRender");
     };
 
-    handler.bind(this);
     const fez = this;
 
     // Only plain objects and arrays are wrapped. Everything with internal
@@ -1018,17 +1039,28 @@ export default class FezBase {
         }
       };
 
+      const changed = (target, property, value, currentValue) =>
+        handler(target, property, value, currentValue, isRoot ? property : rootKey);
+
       return new Proxy(obj, {
         set(target, property, value, receiver) {
           const currentValue = Reflect.get(target, property, receiver);
 
           if (currentValue !== value) {
             const result = Reflect.set(target, property, value, receiver);
-            handler(target, property, value, currentValue, isRoot ? property : rootKey);
+            changed(target, property, value, currentValue);
             return result;
           }
 
           return true;
+        },
+        deleteProperty(target, property) {
+          // delete state.x is a write to undefined as far as the template cares
+          if (!Object.prototype.hasOwnProperty.call(target, property)) return true;
+          const currentValue = target[property];
+          const result = Reflect.deleteProperty(target, property);
+          changed(target, property, undefined, currentValue);
+          return result;
         },
         get(target, property, receiver) {
           track(property);

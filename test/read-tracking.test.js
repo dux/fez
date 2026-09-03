@@ -57,6 +57,29 @@ test("'in' counts as a read, ownKeys marks every key as read", () => {
   expect(scheduled).toBe(2);
 });
 
+test("delete notifies like a write, for rendered keys only", () => {
+  const seen = [];
+  fez.onStateChange = (k, v) => seen.push([k, v]);
+  fez._stateRaw.a = 1;
+  fez._stateRaw.b = 1;
+  render(() => fez.state.a);
+  delete fez.state.a;
+  delete fez.state.b;
+  delete fez.state.missing;
+  expect(seen).toEqual([["a", undefined], ["b", undefined]]);
+  expect(scheduled).toBe(1);
+  expect("a" in fez._stateRaw).toBe(false);
+});
+
+test("refresh() and a state write share one render tick", () => {
+  const names = [];
+  fez.fezNextTick = (fn, name) => names.push(name);
+  render(() => fez.state.a);
+  fez.fezRefresh();
+  fez.state.a = 1;
+  expect(names).toEqual(["fezRender", "fezRender"]);
+});
+
 test("the read set is rebuilt on every render", () => {
   render(() => fez.state.a);
   render(() => fez.state.b);

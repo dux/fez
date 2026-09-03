@@ -227,20 +227,14 @@ function ensureFezBase(Fez, name, klass) {
 function connectNode(name, node) {
   if (!node.isConnected) return;
   if (node.classList?.contains("fez")) return;
-
-  const klass = Fez.index[name]?.class;
-  const nodeName =
-    typeof klass.nodeName === "function"
-      ? klass.nodeName(node)
-      : klass.nodeName;
-  const newNode = document.createElement(nodeName || "div");
-
-  newNode.classList.add("fez", `fez-${name}`);
-
   if (!node.parentNode) {
     console.warn(`Fez: ${name} has no parent, skipping`);
     return;
   }
+
+  const klass = Fez.index[name]?.class;
+  const newNode = klass.createRootNode(node);
+  newNode.classList.add("fez", `fez-${name}`);
 
   // Replace custom element with component node
   node.parentNode.replaceChild(newNode, node);
@@ -275,27 +269,21 @@ function connectNode(name, node) {
   // jQuery compatibility
   if (window.$) fez.$root = $(newNode);
 
-  // Copy ID
   if (fez.props.id) newNode.setAttribute("id", fez.props.id);
 
-  // Copy compiler/user key for DOM differ preservation
-  const key = node.getAttribute("key");
-  if (key) newNode.setAttribute("key", key);
+  // Identity attributes the differ matches on: `key` from the compiler or the
+  // user, `fez-key` as the explicit opt-in for server-rendered HTML (a matched
+  // component is preserved and gets a props refresh instead of destroy +
+  // recreate, even when attrs or content changed), `fez-keep` for plain
+  // preservation.
+  for (const attr of ["key", "fez-key", "fez-keep"]) {
+    const value = node.getAttribute(attr);
+    if (value) newNode.setAttribute(attr, value);
+  }
   if (node._fezKey !== undefined) newNode._fezKey = node._fezKey;
-
-  // fez-key attr is the explicit identity opt-in for server-rendered HTML:
-  // matched components are preserved and get a props refresh instead of a
-  // destroy + recreate, even when attrs or content changed.
-  const fezKey = node.getAttribute("fez-key");
-  if (fezKey) newNode.setAttribute("fez-key", fezKey);
-
-  // Copy fez-keep for DOM differ preservation
-  const fezKeep = node.getAttribute("fez-keep");
-  if (fezKeep) newNode.setAttribute("fez-keep", fezKeep);
 
   // === LIFECYCLE ===
 
-  // Setup reactive state
   fez.fezRegister();
 
   // Capture children before rendering replaces them
@@ -304,21 +292,8 @@ function connectNode(name, node) {
     fez._fezChildNodes = fez._fezSlotNodes.filter((n) => n.nodeType === 1);
   }
 
-  // Seeding and init() write state silently - the first render is about to
-  // happen anyway. The render is its own silent scope; onMount is not, so a
-  // write there to a rendered key (a measured size) still paints.
-  fez.noChangeStateTrigger(() => {
-    // PROPS entries flagged { state: true } land in this.state before init()
-    fez.fezSeedProps();
-
-    // Init (supports multiple naming conventions)
-    const initMethod = fez.onInit || fez.init || fez.created || fez.connect;
-    initMethod.call(fez, fez.props);
-  });
-
+  fez.fezInit();
   fez.fezRender();
-
-  // Mount
   fez.onMount(fez.props);
   fez.onRefresh(fez.props);
 
@@ -333,11 +308,10 @@ function connectNode(name, node) {
     }
   }
 
-  // Watch for attribute changes
-  if (fez.onPropsChange) {
-    attrObserver.observe(newNode, { attributes: true });
-    for (const [key, value] of Object.entries(fez.props)) {
-      fez.onPropsChange(key, value);
-    }
+  // Attribute writes on the root feed this.props (see attrObserver), with or
+  // without an onPropsChange hook; the hook also sees every initial prop once.
+  attrObserver.observe(newNode, { attributes: true });
+  for (const [key, value] of Object.entries(fez.props)) {
+    fez.onPropsChange(key, value);
   }
 }

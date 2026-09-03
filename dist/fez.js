@@ -2394,6 +2394,14 @@ ${demo}
       return this.castProps(attrs, tagName);
     }
     /**
+     * Fresh root element for this component. NAME may be a tag string or a
+     * function of the source node (connect) / current root (render).
+     */
+    static createRootNode(node) {
+      const name = typeof this.nodeName === "function" ? this.nodeName(node) : this.nodeName;
+      return document.createElement(name || "div");
+    }
+    /**
      * Normalized PROPS schema for this class: shorthand `name: String` becomes
      * `{ type: String }`. Memoized per class (own property, so subclasses with
      * their own PROPS do not inherit a parent's cache).
@@ -2596,6 +2604,19 @@ ${demo}
       }
     }
     /**
+     * Seed state from PROPS and run the user's init hook. Both write state
+     * silently: the first render follows right after. onMount is outside the
+     * scope on purpose, so a write there to a rendered key (a measured size)
+     * still paints.
+     */
+    fezInit() {
+      this.noChangeStateTrigger(() => {
+        this.fezSeedProps();
+        const init = this.onInit || this.init || this.created || this.connect;
+        init.call(this, this.props);
+      });
+    }
+    /**
      * Props are reactive: writing this.props.x schedules a render, exactly like
      * this.state.x. A component that owns a list can render props.items straight
      * from the template instead of copying it into state first.
@@ -2610,8 +2631,7 @@ ${demo}
     }
     set props(value) {
       this._propsRaw = value || {};
-      this._props = this.fezReactiveStore(this._propsRaw, (_t, _k, next, prev) => {
-        if (next === prev) return;
+      this._props = this.fezReactiveStore(this._propsRaw, () => {
         this.fezSyncPropsAttr();
         if (this._fezSilent) return;
         if (this._fezStateDisabled) return;
@@ -2757,10 +2777,11 @@ ${demo}
       }
     }
     /**
-     * Force a re-render on next frame
+     * Force a re-render on next frame. Same tick as state writes, so a refresh
+     * and a write in one frame still produce a single render.
      */
     fezRefresh() {
-      this.fezNextTick(() => this.fezRender(), "refresh");
+      this.fezNextTick(this.fezRender, "fezRender");
     }
     /**
      * Alias for fezRefresh - can be overwritten
@@ -2773,7 +2794,7 @@ ${demo}
      * Uses component-aware DOM differ with hash-based skip
      */
     fezRender(template) {
-      template ||= this.fezHtmlFunc || this?.class?.fezHtmlFunc;
+      template ||= this.fezHtmlFunc || this.class?.fezHtmlFunc;
       if (!template || !this.root) return;
       this._isRendering = true;
       try {
@@ -2786,8 +2807,7 @@ ${demo}
       this._fezReads = /* @__PURE__ */ new Set();
       this._fezReadsAll = false;
       this.beforeRender();
-      const nodeName = typeof this.class.nodeName == "function" ? this.class.nodeName(this.root) : this.class.nodeName;
-      const newNode = document.createElement(nodeName || "div");
+      const newNode = this.class.createRootNode(this.root);
       this.fezGlobals.beginRender();
       let renderedTpl;
       if (Array.isArray(template)) {
@@ -2819,30 +2839,37 @@ ${demo}
         }
       }
       this.fezKeepNode(newNode);
-      const savedInputValues = /* @__PURE__ */ new Map();
-      this.root.querySelectorAll("input, textarea, select").forEach((el) => {
-        if (el._fezThisName) {
-          savedInputValues.set(el._fezThisName, {
-            value: el.value,
-            checked: el.checked
-          });
-        }
-      });
+      const inputValues = this.fezSaveInputValues();
       const flip = measureFlip(this._fezFlipNodes);
       Fez.morphdom(this.root, newNode);
-      if (savedInputValues.size) {
-        this.root.querySelectorAll("input, textarea, select").forEach((el) => {
-          const saved = el._fezThisName && savedInputValues.get(el._fezThisName);
-          if (saved) {
-            el.value = saved.value;
-            if (saved.checked !== void 0) el.checked = saved.checked;
-          }
-        });
-      }
+      this.fezRestoreInputValues(inputValues);
       this.fezRenderPostProcess();
       playFlip(flip);
       this.fezGlobals.commitRender();
       this.afterRender();
+    }
+    /**
+     * Values typed into fez-this / fez-bind inputs survive the morph: the
+     * differ syncs the template's value attribute, which would wipe them.
+     */
+    fezSaveInputValues() {
+      const saved = /* @__PURE__ */ new Map();
+      for (const el of this.root.querySelectorAll("input, textarea, select")) {
+        if (el._fezThisName) {
+          saved.set(el._fezThisName, { value: el.value, checked: el.checked });
+        }
+      }
+      return saved;
+    }
+    fezRestoreInputValues(saved) {
+      if (!saved.size) return;
+      for (const el of this.root.querySelectorAll("input, textarea, select")) {
+        const entry = el._fezThisName && saved.get(el._fezThisName);
+        if (entry) {
+          el.value = entry.value;
+          if (entry.checked !== void 0) el.checked = entry.checked;
+        }
+      }
     }
     /**
      * Post-render processing for fez-* attributes
@@ -2987,10 +3014,8 @@ ${demo}
       if (this.class.fezSlotUnwrap) {
         this._fezStateDisabled = true;
       }
-      if (!this.state) {
-        this._stateRaw = {};
-        this.state = this.fezReactiveStore(this._stateRaw);
-      }
+      this._stateRaw = {};
+      this.state = this.fezReactiveStore(this._stateRaw);
       this.globalState = Fez.state.createProxy(this);
       this.fezRegisterBindMethods();
     }
@@ -3023,8 +3048,8 @@ ${demo}
         if (!spec.state) continue;
         const raw = this._propsRaw?.[name];
         if (raw === void 0) continue;
-        const target = this._stateRaw || this.state;
-        target[typeof spec.state === "string" ? spec.state : name] = _FezBase.cloneShallow(raw);
+        const key = typeof spec.state === "string" ? spec.state : name;
+        this._stateRaw[key] = _FezBase.cloneShallow(raw);
       }
     }
     /**
@@ -3033,19 +3058,17 @@ ${demo}
     fezReactiveStore(obj, handler, options = {}) {
       obj ||= {};
       handler ||= (o, k, v, oldValue, rootKey) => {
-        if (v != oldValue && !this._fezSilent) {
-          this.noChangeStateTrigger(() => this.onStateChange(k, v, oldValue));
-          if (!this._fezReadsAll && !this._fezReads?.has(rootKey)) return;
-          if (this._fezStateDisabled) {
-            console.error(
-              `Fez: <${this.fezName}> uses <slot unwrap /> and renders once, state.${rootKey} is rendered and cannot change`
-            );
-            return;
-          }
-          this.fezNextTick(this.fezRender, "fezRender");
+        if (this._fezSilent) return;
+        this.noChangeStateTrigger(() => this.onStateChange(k, v, oldValue));
+        if (!this._fezReadsAll && !this._fezReads?.has(rootKey)) return;
+        if (this._fezStateDisabled) {
+          console.error(
+            `Fez: <${this.fezName}> uses <slot unwrap /> and renders once, state.${rootKey} is rendered and cannot change`
+          );
+          return;
         }
+        this.fezNextTick(this.fezRender, "fezRender");
       };
-      handler.bind(this);
       const fez = this;
       function shouldProxy(obj2) {
         if (typeof obj2 !== "object" || obj2 === null) return false;
@@ -3064,15 +3087,23 @@ ${demo}
             fez._fezReads?.add(property);
           }
         };
+        const changed = (target, property, value, currentValue) => handler2(target, property, value, currentValue, isRoot ? property : rootKey);
         return new Proxy(obj2, {
           set(target, property, value, receiver) {
             const currentValue = Reflect.get(target, property, receiver);
             if (currentValue !== value) {
               const result = Reflect.set(target, property, value, receiver);
-              handler2(target, property, value, currentValue, isRoot ? property : rootKey);
+              changed(target, property, value, currentValue);
               return result;
             }
             return true;
+          },
+          deleteProperty(target, property) {
+            if (!Object.prototype.hasOwnProperty.call(target, property)) return true;
+            const currentValue = target[property];
+            const result = Reflect.deleteProperty(target, property);
+            changed(target, property, void 0, currentValue);
+            return result;
           },
           get(target, property, receiver) {
             track(property);
@@ -4511,14 +4542,13 @@ type: ${originalType}`);
   function connectNode(name, node) {
     if (!node.isConnected) return;
     if (node.classList?.contains("fez")) return;
-    const klass = Fez.index[name]?.class;
-    const nodeName = typeof klass.nodeName === "function" ? klass.nodeName(node) : klass.nodeName;
-    const newNode = document.createElement(nodeName || "div");
-    newNode.classList.add("fez", `fez-${name}`);
     if (!node.parentNode) {
       console.warn(`Fez: ${name} has no parent, skipping`);
       return;
     }
+    const klass = Fez.index[name]?.class;
+    const newNode = klass.createRootNode(node);
+    newNode.classList.add("fez", `fez-${name}`);
     node.parentNode.replaceChild(newNode, node);
     const fez = new klass();
     fez.UID = ++Fez.instanceCount;
@@ -4536,23 +4566,17 @@ type: ${originalType}`);
     }
     if (window.$) fez.$root = $(newNode);
     if (fez.props.id) newNode.setAttribute("id", fez.props.id);
-    const key = node.getAttribute("key");
-    if (key) newNode.setAttribute("key", key);
+    for (const attr of ["key", "fez-key", "fez-keep"]) {
+      const value = node.getAttribute(attr);
+      if (value) newNode.setAttribute(attr, value);
+    }
     if (node._fezKey !== void 0) newNode._fezKey = node._fezKey;
-    const fezKey = node.getAttribute("fez-key");
-    if (fezKey) newNode.setAttribute("fez-key", fezKey);
-    const fezKeep = node.getAttribute("fez-keep");
-    if (fezKeep) newNode.setAttribute("fez-keep", fezKeep);
     fez.fezRegister();
     if (fez.root.childNodes.length) {
       fez._fezSlotNodes = Array.from(fez.root.childNodes);
       fez._fezChildNodes = fez._fezSlotNodes.filter((n2) => n2.nodeType === 1);
     }
-    fez.noChangeStateTrigger(() => {
-      fez.fezSeedProps();
-      const initMethod = fez.onInit || fez.init || fez.created || fez.connect;
-      initMethod.call(fez, fez.props);
-    });
+    fez.fezInit();
     fez.fezRender();
     fez.onMount(fez.props);
     fez.onRefresh(fez.props);
@@ -4565,11 +4589,9 @@ type: ${originalType}`);
         };
       }
     }
-    if (fez.onPropsChange) {
-      attrObserver.observe(newNode, { attributes: true });
-      for (const [key2, value] of Object.entries(fez.props)) {
-        fez.onPropsChange(key2, value);
-      }
+    attrObserver.observe(newNode, { attributes: true });
+    for (const [key, value] of Object.entries(fez.props)) {
+      fez.onPropsChange(key, value);
     }
   }
 
