@@ -288,7 +288,7 @@ declare abstract class FezBase {
   /**
    * Run func with state change triggers off: writes inside fire no
    * onStateChange and schedule no render. Scopes nest; func's return value
-   * is passed back. Fez runs init(), every render and onStateChange in it.
+   * is passed back. Fez runs init() and every render in it.
    */
   noChangeStateTrigger<T>(func: (this: this) => T): T;
 

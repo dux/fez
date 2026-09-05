@@ -134,15 +134,42 @@ test("noChangeStateTrigger: writes inside the scope fire nothing, scopes nest", 
   expect(scheduled).toBe(1);
 });
 
-test("a state write inside onStateChange does not recurse or render", () => {
+test("a state write inside onStateChange does not re-enter the hook", () => {
   const seen = [];
+  const ticks = new Set();
+  fez.fezNextTick = (fn, name) => ticks.add(name);
   fez.onStateChange = (k) => { seen.push(k); fez.state.log = (fez.state.log || 0) + 1; fez.state.a = 99; };
   render(() => { fez.state.a; fez.state.log; });
   fez.state.a = 1;
   expect(seen).toEqual(["a"]);
   expect(fez.state.log).toBe(1);
   expect(fez.state.a).toBe(99);
+  // the hook's own writes schedule too, all on the one debounced fezRender tick
+  expect([...ticks]).toEqual(["fezRender"]);
+});
+
+test("onStateChange deriving a rendered key from an unread key still paints", () => {
+  fez.onStateChange = (k) => { if (k === "raw") fez.state.derived = `D:${fez.state.raw}`; };
+  render(() => fez.state.derived);
+  fez.state.raw = "x";
+  expect(fez.state.derived).toBe("D:x");
   expect(scheduled).toBe(1);
+  // an unread key derived from an unread key is still free
+  fez.onStateChange = (k) => { if (k === "raw") fez.state.other = 1; };
+  fez.state.raw = "y";
+  expect(scheduled).toBe(1);
+});
+
+test("fez:this refs are written to the raw object: no hook, no render", () => {
+  const seen = [];
+  fez.onStateChange = (k) => seen.push(k);
+  render(() => fez.state.input);
+  const node = { nodeType: 1 };
+  // what fezRenderPostProcess does for fez-this="input"
+  new Function("n", "this._stateRaw.input = n").bind(fez)(node);
+  expect(fez.state.input).toBe(node);
+  expect(seen).toEqual([]);
+  expect(scheduled).toBe(0);
 });
 
 test("<slot unwrap /> component: unread keys write silently, a rendered key reports", () => {

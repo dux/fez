@@ -398,11 +398,14 @@ export default class FezBase {
   // land silently: no onStateChange, no render scheduling.
   _fezSilent = 0;
 
+  // True while onStateChange runs, so a write inside it does not re-enter the hook
+  _fezInStateHook = false;
+
   /**
    * Run func in this scope with state change triggers off. Fez runs
-   * seeding + init(), every render (beforeRender, template, afterRender) and
-   * onStateChange in it; components can use it for bulk writes that must not
-   * paint: this.noChangeStateTrigger(() => {...})
+   * seeding + init() and every render (beforeRender, template, afterRender)
+   * in it; components can use it for bulk writes that must not paint:
+   * this.noChangeStateTrigger(() => {...})
    */
   noChangeStateTrigger(func) {
     this._fezSilent++;
@@ -990,8 +993,17 @@ export default class FezBase {
     // The proxy only calls the handler when the value actually changed.
     handler ||= (o, k, v, oldValue, rootKey) => {
       if (this._fezSilent) return;
-      // the hook may write state itself without recursing or rendering
-      this.noChangeStateTrigger(() => this.onStateChange(k, v, oldValue));
+      // A write made by the hook itself skips the hook (no recursion) but
+      // still goes through the read check below - deriving a rendered key
+      // from one the template never reads must paint.
+      if (!this._fezInStateHook) {
+        this._fezInStateHook = true;
+        try {
+          this.onStateChange(k, v, oldValue);
+        } finally {
+          this._fezInStateHook = false;
+        }
+      }
       if (!this._fezReadsAll && !this._fezReads?.has(rootKey)) return;
       // <slot unwrap /> renders once - a rendered key can never be updated
       if (this._fezStateDisabled) {
