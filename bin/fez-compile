@@ -286,7 +286,7 @@ function withoutDocBlocks(source) {
 }
 
 /**
- * APIs removed by the 0.6.x state consolidation. These fail at runtime, not at
+ * APIs removed by the 0.7.0 state consolidation. These fail at runtime, not at
  * compile time - `this.local` throws, a stale fez:this ref reads undefined and
  * silently no-ops behind optional chaining - so the CLI is the only place that
  * can catch them before a page is loaded.
@@ -318,7 +318,9 @@ function validateRemovedApi(parsed, rawSource, filePath, lineOffset) {
   for (const match of source.matchAll(/\b(?:var|const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*this\b/g)) {
     instance.push(match[1]);
   }
-  const onInstance = (property) => new RegExp(`\\b(?:${instance.join('|')})\\.${property}\\b`);
+  // `this.name(` is a method call, not a ref read - a ref may share a method's name
+  const onInstance = (property) =>
+    new RegExp(`\\b(?:${instance.join('|')})\\.${property}\\b(?!\\s*\\()`);
 
   add(
     onInstance('local'),

@@ -300,6 +300,23 @@ describe('fez compile', () => {
       expect(result.exitCode).toBe(0);
     });
 
+    test('allows a method call that shares a fez:this ref name', async () => {
+      const file = fixture(
+        'ui-toggle.fez',
+        [
+          '<script>',
+          '  class {',
+          '    toggle() { this.state.toggle.hidden = !this.state.toggle.hidden }',
+          '    onMount() { this.toggle() }',
+          '  }',
+          '</script>',
+          '<div fez:this="toggle">hi</div>',
+        ].join('\n'),
+      );
+      const result = await compile(file);
+      expect(result.exitCode).toBe(0);
+    });
+
     test('ignores removed APIs quoted in demo and info blocks', async () => {
       const file = fixture(
         'ui-docs.fez',
