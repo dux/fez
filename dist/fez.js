@@ -1,4 +1,4 @@
-// v: 0.6.1
+// v: 0.7.0
 (() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -2589,11 +2589,13 @@ ${demo}
     // Depth of noChangeStateTrigger() scopes; while > 0, state and props writes
     // land silently: no onStateChange, no render scheduling.
     _fezSilent = 0;
+    // True while onStateChange runs, so a write inside it does not re-enter the hook
+    _fezInStateHook = false;
     /**
      * Run func in this scope with state change triggers off. Fez runs
-     * seeding + init(), every render (beforeRender, template, afterRender) and
-     * onStateChange in it; components can use it for bulk writes that must not
-     * paint: this.noChangeStateTrigger(() => {...})
+     * seeding + init() and every render (beforeRender, template, afterRender)
+     * in it; components can use it for bulk writes that must not paint:
+     * this.noChangeStateTrigger(() => {...})
      */
     noChangeStateTrigger(func) {
       this._fezSilent++;
@@ -3059,7 +3061,14 @@ ${demo}
       obj ||= {};
       handler ||= (o, k, v, oldValue, rootKey) => {
         if (this._fezSilent) return;
-        this.noChangeStateTrigger(() => this.onStateChange(k, v, oldValue));
+        if (!this._fezInStateHook) {
+          this._fezInStateHook = true;
+          try {
+            this.onStateChange(k, v, oldValue);
+          } finally {
+            this._fezInStateHook = false;
+          }
+        }
         if (!this._fezReadsAll && !this._fezReads?.has(rootKey)) return;
         if (this._fezStateDisabled) {
           console.error(

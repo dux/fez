@@ -1,6 +1,6 @@
 {
   "name": "@dinoreic/fez",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Runtime custom DOM elements lib",
   "main": "dist/fez.js",
   "type": "module",
@@ -68,7 +68,8 @@
     "lint:fix": "eslint src/**/*.js --fix",
     "format": "prettier --write \"src/**/*.js\"",
     "format:check": "prettier --check \"src/**/*.js\"",
-    "test": "bun test test/*.test.js && bun test test/browser/*.test.js",
+    "test": "bun test test/*.test.js && bun test/browser/run.js",
+    "test:browser": "bun test/browser/run.js",
     "test:coverage": "bun test --coverage",
     "prepublishOnly": "bun run build && bun run test",
     "release": "bun publish --access public",

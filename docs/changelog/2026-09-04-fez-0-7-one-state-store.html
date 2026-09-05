@@ -1,0 +1,70 @@
+<!-- generated from src: docs_src/root/[changelog]/2026-09-04-fez-0-7-one-state-store.md | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <base href="../">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="this.local is gone: this.state is read-tracked, so a write re-renders only when the last render read that key, and fez:this refs land in state.">
+<title>Fez 0.7 keeps one store per instance - Fez</title>
+<link rel="icon" href="fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="fez.min.js"></script>
+
+  <script fez="site.fez"></script>
+
+  <script fez="fez/fez-control.fez"></script>
+
+
+<link rel="stylesheet" href="css/full.css">
+<link rel="stylesheet" href="css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax site-wrap site-text site-md">
+      <pre><code class="language-html">&lt;script&gt;
+  class {
+    PROPS = {
+      on_pick: { type: Function, state: true, default: () =&gt; {} },
+    }
+
+    init() {
+      this.state.count = 0     // rendered below: a write re-renders
+      this.state.ticks = 0     // never rendered: writes are free
+    }
+
+    onMount() {
+      this.state.chart = new Chart(this.state.canvas)
+      this.setInterval(() =&gt; this.state.ticks++, 100)
+    }
+
+    onDestroy() {
+      this.state.chart.destroy()
+    }
+  }
+&lt;/script&gt;
+
+&lt;canvas fez:this=&quot;canvas&quot;&gt;&lt;/canvas&gt;
+&lt;button onclick=&quot;fez.state.count++&quot;&gt;{state.count}&lt;/button&gt;
+</code></pre>
+<p>Breaking changes:</p>
+<ul>
+<li><code>this.local</code> is removed. Everything the instance owns goes in <code>this.state</code>; each render records the keys it read and a write to any other key schedules nothing.</li>
+<li><code>fez:this=&quot;name&quot;</code> lands on <code>this.state.name</code>, written silently on every render, instead of on the instance.</li>
+<li><code>Fez.css()</code> is removed, use <code>Fez.cssClass()</code>.</li>
+<li><code>GLOBAL</code> only names the window handle; <code>MOUNT = true</code> is the auto-mount.</li>
+</ul>
+<p>Also new: <code>this.noChangeStateTrigger(fn)</code> for bulk writes that must not paint, <code>PROPS</code> entries of <code>type: Function</code> accept string handlers, and literal <code>[]</code> / <code>{}</code> defaults are copied per instance.
+<code>fez compile</code> reports the removed APIs and <code>fez refactor</code> flags <code>FAST</code>, <code>GLOBAL</code> without <code>MOUNT</code>, and redundant ref lookups.</p>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

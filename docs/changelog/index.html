@@ -35,6 +35,49 @@
 
   <div class="changelog-list">
 
+      <article class="changelog-row">
+        <time class="changelog-date" datetime="2026-09-04">2026-09-04</time>
+        <div class="changelog-body">
+          <h2><a href="changelog/2026-09-04-fez-0-7-one-state-store.html">Fez 0.7 keeps one store per instance</a></h2>
+          <p>this.local is gone: this.state is read-tracked, so a write re-renders only when the last render read that key, and fez:this refs land in state.</p>
+
+          <div class="changelog-code"><pre><code class="language-html">&lt;script&gt;
+  class {
+    PROPS = {
+      on_pick: { type: Function, state: true, default: () =&gt; {} },
+    }
+
+    init() {
+      this.state.count = 0     // rendered below: a write re-renders
+      this.state.ticks = 0     // never rendered: writes are free
+    }
+
+    onMount() {
+      this.state.chart = new Chart(this.state.canvas)
+      this.setInterval(() =&gt; this.state.ticks++, 100)
+    }
+
+    onDestroy() {
+      this.state.chart.destroy()
+    }
+  }
+&lt;/script&gt;
+
+&lt;canvas fez:this=&quot;canvas&quot;&gt;&lt;/canvas&gt;
+&lt;button onclick=&quot;fez.state.count++&quot;&gt;{state.count}&lt;/button&gt;
+</code></pre>
+<p>Breaking changes:</p>
+<ul>
+<li><code>this.local</code> is removed. Everything the instance owns goes in <code>this.state</code>; each render records the keys it read and a write to any other key schedules nothing.</li>
+<li><code>fez:this=&quot;name&quot;</code> lands on <code>this.state.name</code>, written silently on every render, instead of on the instance.</li>
+<li><code>Fez.css()</code> is removed, use <code>Fez.cssClass()</code>.</li>
+<li><code>GLOBAL</code> only names the window handle; <code>MOUNT = true</code> is the auto-mount.</li>
+</ul>
+<p>Also new: <code>this.noChangeStateTrigger(fn)</code> for bulk writes that must not paint, <code>PROPS</code> entries of <code>type: Function</code> accept string handlers, and literal <code>[]</code> / <code>{}</code> defaults are copied per instance.
+<code>fez compile</code> reports the removed APIs and <code>fez refactor</code> flags <code>FAST</code>, <code>GLOBAL</code> without <code>MOUNT</code>, and redundant ref lookups.</p></div>
+        </div>
+      </article>
+
       <article class="changelog-row has-image">
         <time class="changelog-date" datetime="2026-08-22">2026-08-22</time>
         <div class="changelog-body">

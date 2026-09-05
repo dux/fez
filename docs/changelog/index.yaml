@@ -1,3 +1,27 @@
+- title: Fez 0.7 keeps one store per instance
+  description: "this.local is gone: this.state is read-tracked, so a write re-renders only when the last render read that key, and fez:this refs land in state."
+  date: 2026-09-04
+  slug: fez-0-7-one-state-store
+  author: Dino Reic
+  authors:
+    - name: Dino Reic
+      url: https://github.com/dux
+  tags:
+    - release
+    - state
+    - cli
+  commits:
+    - 5470ddb
+    - c3b494a
+    - c84a42d
+    - 0a843c5
+  format: md
+  collection: changelog
+  layout: default
+  url: /changelog/2026-09-04-fez-0-7-one-state-store.html
+  href: /changelog/2026-09-04-fez-0-7-one-state-store.html
+  base: ../
+  source_path: "[changelog]/2026-09-04-fez-0-7-one-state-store.md"
 - title: Fez 0.6 added typed boundaries and native motion
   description: "Typed PROPS, element transitions, FLIP reordering, and content-size animation rounded out the 0.6 runtime."
   date: 2026-08-22

@@ -7,10 +7,12 @@ This directory contains tests for the Fez reactive library.
 To run the tests, use:
 
 ```bash
-bun run test
-# or
-npm run test
+bun run test            # unit suite, then every browser file in its own process
+bun run test:browser    # Playwright files only (test/browser/run.js)
+bun test test/browser/integration.test.js   # one browser file
 ```
+
+Browser files must not share one `bun test` process: Playwright hangs mid-file under contention, so `test/browser/run.js` spawns `bun test` per file.
 
 ## Test Structure
 
