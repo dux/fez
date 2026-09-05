@@ -253,13 +253,13 @@ In React or Vue, reaching for `element.textContent = x` is an anti-pattern - you
 
 It creates new HTML tags using native Autonomous Custom Elements, supported for years in [all major browsers](https://caniuse.com/custom-elementsv1). There is nothing to "fight", overload or monkey-patch.
 
-### `this.state` is opt-in, not mandatory
+### The template render is opt-out, not mandatory
 
-A render rebuilds the component's whole template and morphs it, so the cost is proportional to the **template size**, not to how much actually changed. That is a deliberate trade: one mental model - *change `this.state`, the component re-renders* - that is correct and fast enough for ~99% of components, with no hooks, no runes, no dependency arrays and no memo tuning.
+A render rebuilds the component's whole template and morphs it, so the cost is proportional to the **template size**, not to how much actually changed. That is a deliberate trade: one mental model - *write a state key the template reads, the component re-renders* - that is correct and fast enough for ~99% of components, with no hooks, no runes, no dependency arrays and no memo tuning.
 
-It is **not** a ceiling. If you hit a component that genuinely needs raw DOM throughput - a 10k-row table, a live log, a canvas overlay, a spreadsheet - the answer is never "don't use Fez". The answer is "this one component should not use `this.state`". You drop out of state and diffing for that component alone, and every other component on the page is unaffected.
+It is **not** a ceiling. If you hit a component that genuinely needs raw DOM throughput - a 10k-row table, a live log, a canvas overlay, a spreadsheet - the answer is never "don't use Fez". The answer is "this one component should not render through `this.state`". The data still lives in `this.state`, the template just never reads it, so you drop out of the render and the diff for that component alone, and every other component on the page is unaffected.
 
-Three escape hatches, in order of how much of the reactive model you give up:
+Two escape hatches, in order of how much of the reactive model you give up:
 
 **1. Keep the template, protect one subtree with `fez:keep`**
 
@@ -1405,7 +1405,12 @@ A library namespace object such as Leaflet's `L` is a plain object; keep it in a
 `fez:this="name"` refs are assigned to `this.state.name` on every render without firing `onStateChange`, and a ref can never shadow a method.
 Do not park data on bare `this`; it collides with the instance API and gains nothing.
 
-`init()` (with prop seeding), every render (`beforeRender`, the template, `afterRender`) and `onStateChange` run with state triggers off: a write inside them fires no `onStateChange` and schedules nothing, so a hook may derive or correct state freely.
+Two costs to know.
+Plain objects and arrays come back proxied on every read, so `state.cfg !== state.cfg`: pull a big blob into a local before a hot loop, and never use one as a Map key or compare it to an object a library handed you.
+A write to a key the template did read still rebuilds and morphs the whole template, even when the output is identical; read tracking prunes writes, it does not shrink renders, so a large template with frequent rendered-key writes still wants a [hatch](#the-template-render-is-opt-out-not-mandatory).
+
+`init()` (with prop seeding) and every render (`beforeRender`, the template, `afterRender`) run with state triggers off: a write inside them fires no `onStateChange` and schedules nothing, so a hook may derive or correct state freely.
+A write inside `onStateChange` does not re-enter the hook, but it still paints when the key is rendered.
 `onMount` is deliberately outside, so measuring the DOM there and writing a rendered key still paints.
 The same scope is yours as `this.noChangeStateTrigger(() => { ... })` for a batch of writes that must not paint; scopes nest and the function's return value is passed back.
 

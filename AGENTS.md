@@ -138,6 +138,7 @@ Rules:
 9. **ALWAYS** use lowercase with underscores for props (e.g., `fill_color`, `read_only`, `stroke_width`)
    * Declare a `PROPS` schema for any prop that is not a plain string (`PROPS = { count: { type: Number, default: 0 }, open: Boolean }`) - never `parseInt`/`=== 'true'` props by hand when a schema entry does it
 10. **PREFER `onclick="fez.func({value})"`** for event handlers with inline template values - use function pointers only when passing complex data (objects, arrays)
+11. **`this.state` is the only per-instance store.** A write re-renders only if the last render read that top-level key, so editors, charts, timers, handlers and `fez:this` refs (`this.state.name`) all go in `state` and cost nothing until a template reads them. There is no `this.local`, and never park data on bare `this`.
 
 ## Component Structure
 
@@ -615,23 +616,13 @@ All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is con
   <!-- DOM hook -->
 
   <!-- IMPORTANT: Use colon prefix for evaluated attributes (functions, objects, etc.) -->
-  <ui-emoji :onselect="handleEmojiSelect">
-    <!-- Pass function reference -->
-    <my-component :config="{foo: 'bar'}">
-      <!-- Pass object literal -->
-      <user-card :user="state.currentUser">
-        <!-- Pass state object -->
-        <toggle :checked="state.isActive">
-          <!-- Pass boolean -->
+  <ui-emoji :onselect="handleEmojiSelect" />         <!-- function reference -->
+  <my-component :config="{foo: 'bar'}" />            <!-- object literal -->
+  <user-card :user="state.currentUser" />            <!-- state object -->
+  <ui-toggle :checked="state.isActive" />            <!-- boolean -->
 
-          <!-- Without colon, values are treated as strings -->
-          <my-component title="Hello World">
-            <!-- String value (no colon needed) --></my-component
-          ></toggle
-        ></user-card
-      ></my-component
-    ></ui-emoji
-  >
+  <!-- Without colon, values are treated as strings -->
+  <my-component title="Hello World" />
 </div>
 ```
 
@@ -831,8 +822,9 @@ Caveats:
 - Use `beforeRender()` for reactive computed/derived state (replacement for Svelte's `$:` reactive statements) - runs before every re-render
 - Use `onMount()` for updates that need mounted template
 - **`this.state` is the only per-instance store, and a write re-renders only if the last render read that top-level key.** Library instances, `fez:this` refs (`this.state.name`), normalized handlers, timers, counters, measurements and parsed config all go in `state`; since no template reads them, writing them never renders. Fez records the keys each render reads (`{@json state}` / `Object.keys(state)` count as reading all), so the rule needs no help from the author. Class instances, DOM nodes, Date/Map/Set/Promise come back unwrapped; a plain-object library namespace (Leaflet's `L`) belongs in a module-level `let`, not in state. Never park data on bare `this` - it collides with the instance API.
-- **`init()`, every render (`beforeRender`, template, `afterRender`) and `onStateChange` run with state triggers off** - a state write inside them fires no `onStateChange` and schedules no render (derived state in `beforeRender` is exactly this). `onMount` is outside the scope on purpose: a write there to a rendered key paints. The same scope is available as `this.noChangeStateTrigger(() => { ... })` for bulk writes that must not paint; scopes nest and the function's return value comes back.
-- **NEVER bind state to form input values** - state changes trigger full re-render. Use `fez:this` instead:
+  Two costs to know: plain objects and arrays come back proxied on every read, so `state.cfg !== state.cfg` (pull a big blob into a local before a hot loop, never use it as a Map key), and a write to a key the template did read still rebuilds and morphs the whole template even when the output is identical - read tracking prunes writes, it does not shrink renders.
+- **`init()` and every render (`beforeRender`, template, `afterRender`) run with state triggers off** - a state write inside them fires no `onStateChange` and schedules no render (derived state in `beforeRender` is exactly this). `onMount` is outside the scope on purpose: a write there to a rendered key paints. A write inside `onStateChange` does not re-enter the hook, but it still paints when the key is rendered. The same scope is available as `this.noChangeStateTrigger(() => { ... })` for bulk writes that must not paint; scopes nest and the function's return value comes back.
+- **NEVER bind form input values to a rendered state key** - the template reads the key, so every keystroke re-renders the whole component. Use `fez:this` instead:
 
   ```html
   <!-- WRONG -->
@@ -884,17 +876,18 @@ Caveats:
 
 - Use throttled events: `this.on('scroll', callback, { throttle: 100 })`
 
-#### Fez does not own the page - `this.state` is opt-in, not mandatory
+#### Fez does not own the page - the template render is opt-out, not mandatory
 
 A render rebuilds the component's whole template and morphs it, so the cost is proportional to the **template size**, not to how much actually changed.
 That is a deliberate trade: one mental model that is correct and fast enough for ~99% of components.
 It is **not** a ceiling.
 
 Never conclude "this data set is too big for Fez".
-Conclude "this one component should not use `this.state`".
-Fez is a DOM node helper, not a page owner - the live DOM is always yours to write to directly, and dropping out of state and diffing for a single component costs you nothing elsewhere.
+Conclude "this one component should not render through `this.state`".
+Fez is a DOM node helper, not a page owner - the live DOM is always yours to write to directly, and dropping out of the template render for a single component costs you nothing elsewhere.
+The data still lives in `this.state`; it is just never read by a template, so writing it never renders.
 
-Three escape hatches, in order of how much of the reactive model you give up:
+Two escape hatches, in order of how much of the reactive model you give up:
 
 **1. Keep the template, protect one subtree with `fez:keep`**
 
@@ -948,7 +941,7 @@ When integrating libraries that create/manage their own DOM elements:
 
 - **Use template markup normally** - define your container structure in the template
 - **Get references with `fez:this`** (or `this.find()` in `onMount()`) - they live in `this.state`, next to the library instance; neither is read by the template, so neither write renders
-- **NEVER use `this.state` for UI updates** - state changes trigger DOM diffing which doesn't handle external DOM well
+- **NEVER drive the library's DOM through a key the template reads** - a rendered-key write morphs the template, and the differ does not know about DOM the library created. Keys the template never reads (the instance, refs, measurements) are fine in `state`
 - **Use direct DOM manipulation** to update UI elements:
 
 ```javascript
@@ -1206,12 +1199,13 @@ Use `<slot unwrap />` when children must be inserted without a wrapper div. By d
 
   ```html
   <!-- WRONG - this is not available in template context -->
-  <child-component :name="this.name">
-    <!-- CORRECT - use curly braces to capture values at render time -->
-    <child-component name="{name}" data="{state.items}">
-      <!-- CORRECT - fez. prefix works (fez is bound to this in templates) -->
-      <child-component :data="fez.state.items"></child-component></child-component
-  ></child-component>
+  <child-component :name="this.name" />
+
+  <!-- CORRECT - curly braces capture values at render time -->
+  <child-component name="{name}" data="{state.items}" />
+
+  <!-- CORRECT - fez. prefix works (fez is bound to this in templates) -->
+  <child-component :data="fez.state.items" />
   ```
 
   Note: `:attr="expr"` parks the value in the parent's render slots (`fezGlobals`, see `./src/fez/lib/render-slots.js`) and the HTML carries only a positional key.

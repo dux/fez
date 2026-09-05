@@ -217,7 +217,7 @@ Fez.head({ fez: './components.txt' })
             <p class="site-feature-group-number">02 / 10</p>
             <div>
               <h2 class="site-h2">State and props</h2>
-              <p class="site-lead">Reactive values are explicit: local UI goes in <code>state</code>, shared values in <code>globalState</code>, durable non-render data in <code>local</code>, and input from the parent in <code>props</code>.</p>
+              <p class="site-lead">Everything the instance owns goes in <code>state</code>, shared values in <code>globalState</code>, and input from the parent in <code>props</code>. A state write re-renders only when the last render read that key.</p>
             </div>
           </div>
 
@@ -253,23 +253,25 @@ makeDraft() {
               </site-live>
             </article>
 
-            <article class="site-feature-row" id="local-store">
+            <article class="site-feature-row" id="read-tracked-state">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">this.local</p>
-                <h3>Non-reactive instance storage</h3>
-                <p>Editors, charts, cached measurements, timers and normalized callbacks belong in <code>local</code>. Writes do not render, and Fez clears the store after <code>onDestroy()</code>.</p>
+                <p class="site-feature-kicker">this.state · read tracking</p>
+                <h3>Unrendered keys are free</h3>
+                <p>Editors, charts, cached measurements, timers and normalized callbacks live in <code>state</code> too. Each render records the keys it read, so a write to a key the template never reads schedules nothing.</p>
               </div>
-              <site-live title="local data" right-title="no render">
+              <site-live title="unrendered keys" right-title="no render">
                 <div class="src"><pre><code>onMount() {
-  this.local.chart = new Chart(this.canvas)
-  this.local.last_width = this.root.offsetWidth
+  this.state.chart = new Chart(this.state.canvas)
+  this.state.last_width = this.root.offsetWidth
 }
 
 resize() {
-  this.local.last_width = this.root.offsetWidth
-}</code></pre></div>
-                <div class="out feature-result"><span class="result-chip">0 renders</span><span>external objects stay outside the template cycle</span></div>
-                <div class="out-label">per-instance, non-reactive and automatically discarded</div>
+  this.state.last_width = this.root.offsetWidth
+}
+
+&lt;canvas fez:this="canvas"&gt;&lt;/canvas&gt;</code></pre></div>
+                <div class="out feature-result"><span class="result-chip">0 renders</span><span>the template reads neither chart nor last_width</span></div>
+                <div class="out-label">one store, and the render itself decides what is reactive</div>
               </site-live>
             </article>
 
@@ -358,8 +360,8 @@ rename(name) {
 
 &lt;user-card data-props='{"name":"Ada"}' /&gt;
 
-init(props) {
-  this.local.on_pick = Fez.getFunction(props.on_pick)
+PROPS = {
+  on_pick: { type: Function, state: true, default: () =&gt; {} },
 }</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">Object identity kept</span><span class="result-chip">Function callable</span></div>
                 <div class="out-label">plain attributes stay strings; colon attributes stay JavaScript values</div>
@@ -409,7 +411,7 @@ Fez.state.createProxy(component)
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">&#123;expression} · attributes</p>
                 <h3>Escaped expressions</h3>
-                <p>Read <code>state</code>, <code>props</code>, <code>local</code>, <code>globalState</code> and component methods in text or attributes. Text is HTML-escaped and expression attributes are quoted automatically.</p>
+                <p>Read <code>state</code>, <code>props</code>, <code>globalState</code> and component methods in text or attributes. Text is HTML-escaped and expression attributes are quoted automatically.</p>
               </div>
               <site-live title="expressions" right-title="escaped by default">
                 <div class="src"><pre><code>&lt;h2&gt;{props.title}&lt;/h2&gt;
@@ -679,18 +681,18 @@ Fez.fezAwait(promise, { pending, then, catch })</code></pre></div>
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">fez:this · stable auto-ID</p>
                 <h3>Direct element references</h3>
-                <p><code>fez:this</code> exposes the live node on the component instance after render. Static reference names also receive a stable generated ID, helping the differ preserve typed values and focus.</p>
+                <p><code>fez:this</code> puts the live node in <code>this.state</code> after every render, silently: the ref write fires no hook and schedules no render. Static reference names also receive a stable generated ID, helping the differ preserve typed values and focus.</p>
               </div>
               <site-live title="element refs" right-title="DOM ready">
                 <div class="src"><pre><code>&lt;input fez:this="name_input" /&gt;
 
 submit() {
-  const name = this.name_input.value
+  const name = this.state.name_input.value
 }
 
 // generated automatically
 // id="fez-42-name_input"</code></pre></div>
-                <div class="out feature-result"><span class="result-chip">this.name_input</span><span>points to the preserved input node</span></div>
+                <div class="out feature-result"><span class="result-chip">this.state.name_input</span><span>points to the preserved input node</span></div>
                 <div class="out-label">refs are ready in onMount(), not init()</div>
               </site-live>
             </article>
@@ -1080,7 +1082,7 @@ Fez.animateSize(node, 'width, duration=180')</code></pre></div>
                 <div class="src"><pre><code>init(props) {
   this.state.count = props.start || 0
   this.state.open = false
-  this.local.on_save = Fez.getFunction(props.on_save)
+  this.state.on_save = Fez.getFunction(props.on_save)
 }</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">props typed</span><span class="result-chip">state ready</span><span>template has not rendered yet</span></div>
                 <div class="out-label">PROPS state seeding happens just before init</div>
@@ -1114,16 +1116,16 @@ Fez.animateSize(node, 'width, duration=180')</code></pre></div>
               </div>
               <site-live title="onMount" right-title="3 · DOM ready">
                 <div class="src"><pre><code>onMount(props) {
-  this.name_input.focus()
-  this.local.editor = new Editor({
-    element: this.editor_root,
+  this.state.name_input.focus()
+  this.state.editor = new Editor({
+    element: this.state.editor_root,
   })
 }
 
 &lt;input fez:this="name_input" /&gt;
 &lt;div fez:this="editor_root"&gt;&lt;/div&gt;</code></pre></div>
                 <div class="out feature-result"><span class="result-dot"></span><span>refs point to connected, rendered elements</span></div>
-                <div class="out-label">external library instances stay in this.local</div>
+                <div class="out-label">the template never reads state.editor, so the write never renders</div>
               </site-live>
             </article>
 
@@ -1153,8 +1155,8 @@ Fez.animateSize(node, 'width, duration=180')</code></pre></div>
               </div>
               <site-live title="onRefresh" right-title="parent preserve">
                 <div class="src"><pre><code>onRefresh(props) {
-  if (props.revision !== this.local.revision) {
-    this.local.revision = props.revision
+  if (props.revision !== this.state.revision) {
+    this.state.revision = props.revision
     this.refresh()
   }
 }</code></pre></div>
@@ -1235,8 +1237,8 @@ onGlobalStateChange(key, value, oldValue) {
               </div>
               <site-live title="onDestroy" right-title="final hook">
                 <div class="src"><pre><code>onDestroy() {
-  this.local.editor?.destroy()
-  this.local.chart?.dispose()
+  this.state.editor?.destroy()
+  this.state.chart?.dispose()
 }
 
 onMount() {
