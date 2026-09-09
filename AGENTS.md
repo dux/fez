@@ -138,7 +138,7 @@ Rules:
 9. **ALWAYS** use lowercase with underscores for props (e.g., `fill_color`, `read_only`, `stroke_width`)
    * Declare a `PROPS` schema for any prop that is not a plain string (`PROPS = { count: { type: Number, default: 0 }, open: Boolean }`) - never `parseInt`/`=== 'true'` props by hand when a schema entry does it
 10. **PREFER `onclick="fez.func({value})"`** for event handlers with inline template values - use function pointers only when passing complex data (objects, arrays)
-11. **`this.state` is the only per-instance store.** A write re-renders only if the last render read that top-level key, so editors, charts, timers, handlers and `fez:this` refs (`this.state.name`) all go in `state` and cost nothing until a template reads them. There is no `this.local`, and never park data on bare `this`.
+11. **`this.state` is the only per-instance store.** A write re-renders only if the last render read that top-level key, so editors, charts, timers, handlers and `fez:this` refs (`this.state.name`) all go in `state` and cost nothing until a template reads them. Never park data on bare `this`.
 
 ## Component Structure
 
@@ -1297,25 +1297,3 @@ Fez.state.get('key'); // Check global state
 - Access elements via `fez:this` instead of querySelector
 - Put DOM-dependent logic in `onMount()` not `init()`
 - Prefer simple `fez.` prefix for handlers: `onclick="fez.method()"`
-
----
-
-## Legacy Syntax (Still Supported)
-
-The original double-brace syntax `{{ }}` is still supported for backward compatibility:
-
-```html
-<!-- Legacy expressions -->
-{{ state.name }}
-
-<!-- Legacy conditionals -->
-{{if state.show}}...{{else}}...{{/if}}
-
-<!-- Legacy loops -->
-{{for item in state.items}}...{{/for}}
-
-<!-- Legacy event handlers -->
-<button onclick="fez.remove({{index}})">Remove</button>
-```
-
-New components should use the Svelte-like syntax documented above.

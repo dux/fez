@@ -1,9 +1,0 @@
-<script>
-  class {
-    onMount() {
-      this.local.timer = setInterval(() => this.tick(), 1000)
-    }
-  }
-</script>
-
-<button>hi</button>

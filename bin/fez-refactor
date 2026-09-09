@@ -126,61 +126,6 @@ function auditFile(file) {
     if (/\bvar\s+[A-Za-z_$]/.test(stripLineComment(line))) {
       report(index + 1, 'Legacy var declaration', 'Review assignments and choose const or let manually.');
     }
-    if (/^\s*(?:static\s+)?FAST\s*=/.test(stripLineComment(line))) {
-      report(
-        index + 1,
-        'FAST was removed in 0.5.3',
-        'Nothing reads it. Delete the line - every render is next-frame now.',
-      );
-    }
-  }
-
-  if (isFez) {
-    issues.push(...auditSingleton(content, file));
-    issues.push(...auditRedundantRefs(content, file));
-  }
-
-  return issues;
-}
-
-// GLOBAL used to mean "auto-mount and expose"; since the MOUNT split it only
-// names the window handle. A component relying on the old auto-mount is never
-// appended to body, with no console output at all.
-function auditSingleton(content, file) {
-  if (/^\s*(?:static\s+)?MOUNT\s*=/m.test(content)) {
-    return [];
-  }
-  const index = content.search(/^\s*(?:static\s+)?GLOBAL\s*=\s*['"]/m);
-  if (index < 0) {
-    return [];
-  }
-  return [
-    {
-      file: displayPath(file),
-      line: content.slice(0, index).split('\n').length,
-      message: 'GLOBAL without MOUNT no longer auto-mounts',
-      suggestion: 'Add MOUNT = true if the page does not place this tag itself.',
-    },
-  ];
-}
-
-// fez:this refs land in this.state on their own; a matching this.name = find()
-// still works but re-does the lookup and hides which store the ref lives in.
-function auditRedundantRefs(content, file) {
-  const issues = [];
-  const refs = new Set([...content.matchAll(/fez[:-]this="([A-Za-z_$][\w$]*)"/g)].map((m) => m[1]));
-
-  for (const ref of refs) {
-    const match = content.match(new RegExp(`^.*\\bthis\\.${ref}\\s*=[^=].*$`, 'm'));
-    if (!match) {
-      continue;
-    }
-    issues.push({
-      file: displayPath(file),
-      line: content.slice(0, match.index).split('\n').length,
-      message: `Redundant assignment to a fez:this ref: ${ref}`,
-      suggestion: `Drop the lookup - the ref is already delivered as this.state.${ref}.`,
-    });
   }
 
   return issues;

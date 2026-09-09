@@ -659,20 +659,15 @@ Fez.fezAwait(promise, { pending, then, catch })</code></pre></div>
 
             <article class="site-feature-row" id="self-closing-elements">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">self-closing custom tags · legacy syntax</p>
-                <h3>HTML correction and legacy templates</h3>
-                <p>Self-closing custom elements are expanded to valid paired tags before the browser can mis-nest them. Older double-brace expressions, conditions and loops remain supported for existing components.</p>
+                <p class="site-feature-kicker">self-closing custom tags</p>
+                <h3>HTML correction</h3>
+                <p>Self-closing custom elements are expanded to valid paired tags before the browser can mis-nest them.</p>
               </div>
-              <site-live title="compatibility" right-title="corrected HTML">
+              <site-live title="self-closing tags" right-title="corrected HTML">
                 <div class="src"><pre><code>&lt;ui-icon name="star" /&gt;
-&lt;user-card :user="state.user" /&gt;
-
-// legacy, still supported
-{{ state.name }}
-{{if state.open}}...{{else}}...{{/if}}
-{{for item in state.items}}...{{/for}}</code></pre></div>
+&lt;user-card :user="state.user" /&gt;</code></pre></div>
                 <div class="out feature-result"><code>&lt;ui-icon name="star"&gt;&lt;/ui-icon&gt;</code></div>
-                <div class="out-label">new code uses the single-brace Svelte-like syntax</div>
+                <div class="out-label">write the short form, the browser sees the paired tags</div>
               </site-live>
             </article>
           </div>
@@ -1284,7 +1279,7 @@ onMount() {
 // this.setTimeout(...)
 // this.setInterval(...)
 // this.subscribe(...)</code></pre></div>
-                <div class="out feature-result"><span class="result-chip">listeners removed</span><span class="result-chip">timers cleared</span><span class="result-chip">local cleared</span></div>
+                <div class="out feature-result"><span class="result-chip">listeners removed</span><span class="result-chip">timers cleared</span><span class="result-chip">subscriptions dropped</span></div>
                 <div class="out-label">cleanup runs once, even if the node is removed more than once</div>
               </site-live>
             </article>
