@@ -2853,12 +2853,20 @@ ${demo}
     /**
      * Values typed into fez-this / fez-bind inputs survive the morph: the
      * differ syncs the template's value attribute, which would wipe them.
+     * The template's own value (defaultValue / defaultChecked) is saved too:
+     * when a render changes it, the template wins and nothing is restored -
+     * otherwise a `value={state.value}` input could never leave its first value.
      */
     fezSaveInputValues() {
       const saved = /* @__PURE__ */ new Map();
       for (const el of this.root.querySelectorAll("input, textarea, select")) {
         if (el._fezThisName) {
-          saved.set(el._fezThisName, { value: el.value, checked: el.checked });
+          saved.set(el._fezThisName, {
+            value: el.value,
+            checked: el.checked,
+            defaultValue: el.defaultValue,
+            defaultChecked: el.defaultChecked
+          });
         }
       }
       return saved;
@@ -2867,9 +2875,10 @@ ${demo}
       if (!saved.size) return;
       for (const el of this.root.querySelectorAll("input, textarea, select")) {
         const entry = el._fezThisName && saved.get(el._fezThisName);
-        if (entry) {
-          el.value = entry.value;
-          if (entry.checked !== void 0) el.checked = entry.checked;
+        if (!entry) continue;
+        if (el.defaultValue === entry.defaultValue) el.value = entry.value;
+        if (entry.checked !== void 0 && el.defaultChecked === entry.defaultChecked) {
+          el.checked = entry.checked;
         }
       }
     }
