@@ -4995,9 +4995,22 @@ function dedent(text) {
 function isGlobalStyleTag(attributes) {
   return GLOBAL_ATTR.test(attributes || "");
 }
+var LANG_ATTR = /\blang\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
+var TYPE_ATTR = /\btype\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
+var TS_LANGS = /* @__PURE__ */ new Set(["ts", "typescript"]);
+var TS_TYPES = /* @__PURE__ */ new Set(["ts", "text/typescript"]);
+function isTypeScriptTag(attributes) {
+  const lang = LANG_ATTR.exec(attributes || "");
+  if (lang && TS_LANGS.has((lang[1] ?? lang[2] ?? lang[3] ?? "").toLowerCase())) {
+    return true;
+  }
+  const type = TYPE_ATTR.exec(attributes || "");
+  return !!type && TS_TYPES.has((type[1] ?? type[2] ?? type[3] ?? "").toLowerCase());
+}
 function parseFezSource(source, { dedentDocs = false } = {}) {
   const result = {
     script: "",
+    scriptLang: null,
     style: "",
     styleGlobal: "",
     html: "",
@@ -5044,10 +5057,15 @@ function parseFezSource(source, { dedentDocs = false } = {}) {
         line: lineAt(source, openStart)
       });
     }
+    const lang = type === "script" && isTypeScriptTag(match[3]) ? "ts" : null;
+    if (lang) {
+      result.scriptLang = lang;
+    }
     const block = {
       type,
       tag,
       content,
+      lang,
       line: lineAt(source, openStart),
       contentLine: contentLine(source, rawStart, raw)
     };
@@ -5193,7 +5211,15 @@ function compile(tagName, html) {
   if (cached?.html === html && Fez.index[tagName]?.class) {
     return Fez.index[tagName].class;
   }
-  const classCode = generateClassCode(tagName, compileToClass(html));
+  const parts = compileToClass(html);
+  if (parts.scriptLang === "ts") {
+    Fez.onError(
+      "compile",
+      `"${tagName}" uses <script lang="ts">. Compile it with the Vite/Rollup plugin or \`fez compile\` - the browser cannot strip TypeScript types.`
+    );
+    return;
+  }
+  const classCode = generateClassCode(tagName, parts);
   hideCustomElement(tagName);
   executeClassCode(tagName, classCode);
   compileCache.set(tagName, { html });
