@@ -17,6 +17,14 @@ export default function awaitHelper(component, awaitId, promiseOrValue) {
   // Initialize await states map on the component
   component._awaitStates ||= new Map();
 
+  // Release resolved values when the component is destroyed
+  if (!component._awaitStatesCleanupAdded) {
+    component._awaitStatesCleanupAdded = true;
+    component.addOnDestroy?.(() => {
+      component._awaitStates = null;
+    });
+  }
+
   // Check if we already have state for this await block
   const existing = component._awaitStates.get(awaitId);
 

@@ -35,7 +35,9 @@
 // subs carry their instance so forEach() and liveness pruning can see it;
 // plain subscribe() subs are just the function.
 const GlobalState = {
-  data: {},
+  // Null-prototype: a key named `__proto__` / `constructor` must not touch
+  // Object.prototype or hit inherited members.
+  data: Object.create(null),
   subs: new Map(), // key -> Set of { fn, fez? }
   anySubs: new Set(), // Set of fn listening to every key
 
@@ -106,6 +108,10 @@ const GlobalState = {
     if (typeof keyOrFunc === 'function') {
       this.anySubs.add(keyOrFunc);
       return () => this.anySubs.delete(keyOrFunc);
+    }
+    if (typeof func !== 'function') {
+      console.error(`Fez.state.subscribe("${keyOrFunc}") expects a function`);
+      return () => {};
     }
     return this.addSub(keyOrFunc, { fn: func });
   },

@@ -20,8 +20,10 @@
 const globalSubs = new Map();
 
 // Component subscriptions: channel -> [[component, callback], ...]
-// Used for parent-child bubbling (this.publish)
-const componentSubs = {};
+// Used for parent-child bubbling (this.publish).
+// Null-prototype: a channel named `__proto__` / `constructor` must not touch
+// Object.prototype or hit inherited members.
+const componentSubs = Object.create(null);
 
 // =============================================================================
 // GLOBAL PUB/SUB
@@ -167,14 +169,23 @@ function componentSubscribe(component, channel, callback) {
  */
 function componentPublish(component, channel, ...args) {
   const handlePublish = (comp) => {
-    if (componentSubs[channel]) {
-      const sub = componentSubs[channel].find(([c]) => c === comp);
-      if (sub) {
-        sub[1].bind(comp)(...args);
-        return true;
+    const subs = componentSubs[channel];
+    if (!subs) {
+      return false;
+    }
+    let handled = false;
+    for (const [c, cb] of subs) {
+      if (c !== comp) {
+        continue;
+      }
+      handled = true;
+      try {
+        cb.bind(comp)(...args);
+      } catch (e) {
+        console.error(`Fez pubsub error on "${channel}":`, e);
       }
     }
-    return false;
+    return handled;
   };
 
   // Check current component first

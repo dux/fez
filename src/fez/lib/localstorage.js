@@ -12,10 +12,16 @@
  * localStorage.get('missing', 'default') // 'default'
  */
 
-const storage = () => globalThis.localStorage || window.localStorage;
+const storage = () => globalThis.localStorage;
 
 function set(key, value) {
   try {
+    // JSON.stringify(undefined) is the string "undefined", which fails to parse
+    // on read - treat it as a removal.
+    if (value === undefined) {
+      storage().removeItem(key);
+      return;
+    }
     storage().setItem(key, JSON.stringify(value));
   } catch (e) {
     console.error(`Fez localStorage: Failed to set "${key}"`, e);
@@ -36,11 +42,19 @@ function get(key, defaultValue = null) {
 }
 
 function remove(key) {
-  storage().removeItem(key);
+  try {
+    storage().removeItem(key);
+  } catch (e) {
+    console.error(`Fez localStorage: Failed to remove "${key}"`, e);
+  }
 }
 
 function clear() {
-  storage().clear();
+  try {
+    storage().clear();
+  } catch (e) {
+    console.error('Fez localStorage: Failed to clear', e);
+  }
 }
 
 export default { set, get, remove, clear };

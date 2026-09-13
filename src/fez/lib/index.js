@@ -22,6 +22,13 @@ function createDomNode(html) {
   return node;
 }
 
+// Entry keys that would shadow a helper method (a component/file named `info`,
+// `get`, ...). Valid component names must contain a dash, so this only guards
+// file-derived names; they are stored under a prefix and resolved by get().
+const ENTRY_PREFIX = '_entry_';
+let reservedNames = new Set();
+let entryKey = (name) => name;
+
 const index = {
   // Component entries stored directly: index['ui-btn'] = { class, meta, ... }
 
@@ -31,8 +38,9 @@ const index = {
    * @returns {{ class: Function|null, meta: Object|null, demo: string|null, info: string|null, source: string|null }}
    */
   ensure(name) {
-    if (!this[name] || typeof this[name] !== 'object' || !('class' in this[name])) {
-      this[name] = {
+    const key = entryKey(name);
+    if (!this[key] || typeof this[key] !== 'object' || !('class' in this[key])) {
+      this[key] = {
         class: null,
         meta: null,
         demo: null,
@@ -40,7 +48,7 @@ const index = {
         source: null,
       };
     }
-    return this[name];
+    return this[key];
   },
 
   /**
@@ -49,7 +57,7 @@ const index = {
    * @returns {{ class: Function|null, meta: Object|null, demo: HTMLDivElement|null, info: HTMLDivElement|null, source: string|null }}
    */
   get(name) {
-    const entry = this[name];
+    const entry = this[entryKey(name)];
     if (!entry || typeof entry !== 'object' || !('class' in entry)) {
       return { class: null, meta: null, demo: null, info: null, source: null };
     }
@@ -71,7 +79,7 @@ const index = {
    * @returns {boolean} - True if demo was found and applied
    */
   apply(name, target) {
-    const entry = this[name];
+    const entry = this[entryKey(name)];
     if (!entry?.demo || !target) {
       return false;
     }
@@ -101,9 +109,9 @@ const index = {
    * @returns {string[]}
    */
   names() {
-    return Object.keys(this).filter(
-      (k) => typeof this[k] === 'object' && this[k] !== null && 'class' in this[k],
-    );
+    return Object.keys(this)
+      .filter((k) => typeof this[k] === 'object' && this[k] !== null && 'class' in this[k])
+      .map((k) => (k.startsWith(ENTRY_PREFIX) ? k.slice(ENTRY_PREFIX.length) : k));
   },
 
   /**
@@ -111,7 +119,7 @@ const index = {
    * @returns {string[]}
    */
   withDemo() {
-    return this.names().filter((name) => this[name].demo);
+    return this.names().filter((name) => this[entryKey(name)].demo);
   },
 
   /**
@@ -133,5 +141,8 @@ const index = {
     console.log('Fez components:', this.names());
   },
 };
+
+reservedNames = new Set(Object.keys(index).filter((k) => typeof index[k] === 'function'));
+entryKey = (name) => (reservedNames.has(name) ? ENTRY_PREFIX + name : name);
 
 export default index;

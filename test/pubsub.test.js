@@ -1,16 +1,15 @@
-import { test, expect } from 'bun:test';
+import { test, expect } from "bun:test";
+import { componentSubscribe, componentPublish } from "../src/fez/lib/pubsub.js";
 
 // =============================================================================
 // BASIC FUNCTIONALITY
 // =============================================================================
 
-test('Publish/Subscribe - Basic functionality', async () => {
+test("Publish/Subscribe - Basic functionality", async () => {
   const Fez = globalThis.window.Fez;
 
   let receivedData = null;
-  const callback = (data) => {
-    receivedData = data;
-  };
+  const callback = (data) => { receivedData = data; };
 
   // Subscribe to an event
   const unsubscribe = Fez.subscribe('test-event', callback);
@@ -24,16 +23,12 @@ test('Publish/Subscribe - Basic functionality', async () => {
   unsubscribe();
 });
 
-test('Publish/Subscribe - Multiple subscribers', async () => {
+test("Publish/Subscribe - Multiple subscribers", async () => {
   const Fez = globalThis.window.Fez;
 
   let count = 0;
-  const callback1 = () => {
-    count += 1;
-  };
-  const callback2 = () => {
-    count += 10;
-  };
+  const callback1 = () => { count += 1; };
+  const callback2 = () => { count += 10; };
 
   // Subscribe multiple callbacks
   const unsub1 = Fez.subscribe('multi-event', callback1);
@@ -49,13 +44,11 @@ test('Publish/Subscribe - Multiple subscribers', async () => {
   unsub2();
 });
 
-test('Publish/Subscribe - Multiple arguments', async () => {
+test("Publish/Subscribe - Multiple arguments", async () => {
   const Fez = globalThis.window.Fez;
 
   let receivedArgs = [];
-  const callback = (...args) => {
-    receivedArgs = args;
-  };
+  const callback = (...args) => { receivedArgs = args; };
 
   // Subscribe
   const unsubscribe = Fez.subscribe('args-event', callback);
@@ -69,13 +62,11 @@ test('Publish/Subscribe - Multiple arguments', async () => {
   unsubscribe();
 });
 
-test('Publish/Subscribe - Unsubscribe functionality', async () => {
+test("Publish/Subscribe - Unsubscribe functionality", async () => {
   const Fez = globalThis.window.Fez;
 
   let callCount = 0;
-  const callback = () => {
-    callCount++;
-  };
+  const callback = () => { callCount++; };
 
   // Subscribe
   const unsubscribe = Fez.subscribe('unsub-event', callback);
@@ -92,13 +83,11 @@ test('Publish/Subscribe - Unsubscribe functionality', async () => {
   expect(callCount).toBe(1);
 });
 
-test('Publish/Subscribe - Replace subscription with same callback', async () => {
+test("Publish/Subscribe - Replace subscription with same callback", async () => {
   const Fez = globalThis.window.Fez;
 
   let callCount = 0;
-  const callback = () => {
-    callCount++;
-  };
+  const callback = () => { callCount++; };
 
   // Subscribe twice with same callback
   Fez.subscribe('replace-event', callback);
@@ -114,13 +103,11 @@ test('Publish/Subscribe - Replace subscription with same callback', async () => 
 // NODE REFERENCE SUBSCRIPTIONS
 // =============================================================================
 
-test('Publish/Subscribe - Node reference subscription', async () => {
+test("Publish/Subscribe - Node reference subscription", async () => {
   const Fez = globalThis.window.Fez;
 
   let receivedData = null;
-  const callback = (data) => {
-    receivedData = data;
-  };
+  const callback = (data) => { receivedData = data; };
 
   // Use a mock node
   const mockNode = { isConnected: true, id: 'testNode' };
@@ -137,13 +124,11 @@ test('Publish/Subscribe - Node reference subscription', async () => {
   unsubscribe();
 });
 
-test('Publish/Subscribe - Disconnected node skipped', async () => {
+test("Publish/Subscribe - Disconnected node skipped", async () => {
   const Fez = globalThis.window.Fez;
 
   let callCount = 0;
-  const callback = () => {
-    callCount++;
-  };
+  const callback = () => { callCount++; };
 
   // Create a disconnected node
   const disconnectedNode = { isConnected: false };
@@ -157,14 +142,12 @@ test('Publish/Subscribe - Disconnected node skipped', async () => {
   expect(callCount).toBe(0);
 });
 
-test('Publish/Subscribe - Context binding with node', async () => {
+test("Publish/Subscribe - Context binding with node", async () => {
   const Fez = globalThis.window.Fez;
 
   let contextCheck = null;
   const node = { isConnected: true, id: 'contextNode' };
-  const callback = function () {
-    contextCheck = this;
-  };
+  const callback = function() { contextCheck = this; };
 
   // Subscribe with specific node
   const unsubscribe = Fez.subscribe(node, 'context-event', callback);
@@ -183,21 +166,17 @@ test('Publish/Subscribe - Context binding with node', async () => {
 // SELECTOR SUBSCRIPTIONS (resolved at publish time)
 // =============================================================================
 
-test('Publish/Subscribe - Selector subscription (found)', async () => {
+test("Publish/Subscribe - Selector subscription (found)", async () => {
   const Fez = globalThis.window.Fez;
 
   let callCount = 0;
-  const callback = () => {
-    callCount++;
-  };
+  const callback = () => { callCount++; };
 
   // Mock document.querySelector to return a node
   const originalQuerySelector = document.querySelector;
   const mockNode = { isConnected: true, id: 'found-node' };
   document.querySelector = (selector) => {
-    if (selector === '#test-selector') {
-      return mockNode;
-    }
+    if (selector === '#test-selector') return mockNode;
     return originalQuerySelector.call(document, selector);
   };
 
@@ -217,20 +196,16 @@ test('Publish/Subscribe - Selector subscription (found)', async () => {
   }
 });
 
-test('Publish/Subscribe - Selector subscription (not found)', async () => {
+test("Publish/Subscribe - Selector subscription (not found)", async () => {
   const Fez = globalThis.window.Fez;
 
   let callCount = 0;
-  const callback = () => {
-    callCount++;
-  };
+  const callback = () => { callCount++; };
 
   // Mock document.querySelector to return null (not found)
   const originalQuerySelector = document.querySelector;
   document.querySelector = (selector) => {
-    if (selector === '#missing-selector') {
-      return null;
-    }
+    if (selector === '#missing-selector') return null;
     return originalQuerySelector.call(document, selector);
   };
 
@@ -250,13 +225,11 @@ test('Publish/Subscribe - Selector subscription (not found)', async () => {
   }
 });
 
-test('Publish/Subscribe - Selector resolved at publish time', async () => {
+test("Publish/Subscribe - Selector resolved at publish time", async () => {
   const Fez = globalThis.window.Fez;
 
   let callCount = 0;
-  const callback = () => {
-    callCount++;
-  };
+  const callback = () => { callCount++; };
 
   // Track querySelector calls
   let queryCount = 0;
@@ -290,21 +263,17 @@ test('Publish/Subscribe - Selector resolved at publish time', async () => {
   }
 });
 
-test('Publish/Subscribe - Selector context binding', async () => {
+test("Publish/Subscribe - Selector context binding", async () => {
   const Fez = globalThis.window.Fez;
 
   let contextCheck = null;
-  const callback = function () {
-    contextCheck = this;
-  };
+  const callback = function() { contextCheck = this; };
 
   // Mock querySelector
   const originalQuerySelector = document.querySelector;
   const mockNode = { isConnected: true, id: 'selector-context-node' };
   document.querySelector = (selector) => {
-    if (selector === '#context-selector') {
-      return mockNode;
-    }
+    if (selector === '#context-selector') return mockNode;
     return originalQuerySelector.call(document, selector);
   };
 
@@ -329,13 +298,11 @@ test('Publish/Subscribe - Selector context binding', async () => {
 // GLOBAL SUBSCRIPTION (no node)
 // =============================================================================
 
-test('Publish/Subscribe - Global subscription (no node check)', async () => {
+test("Publish/Subscribe - Global subscription (no node check)", async () => {
   const Fez = globalThis.window.Fez;
 
   let callCount = 0;
-  const callback = () => {
-    callCount++;
-  };
+  const callback = () => { callCount++; };
 
   // Subscribe without node
   const unsubscribe = Fez.subscribe('global-event', callback);
@@ -351,13 +318,11 @@ test('Publish/Subscribe - Global subscription (no node check)', async () => {
   unsubscribe();
 });
 
-test('Publish/Subscribe - Global subscription context is null', async () => {
+test("Publish/Subscribe - Global subscription context is null", async () => {
   const Fez = globalThis.window.Fez;
 
   let contextCheck = 'not-set';
-  const callback = function () {
-    contextCheck = this;
-  };
+  const callback = function() { contextCheck = this; };
 
   // Subscribe without node
   const unsubscribe = Fez.subscribe('global-context-event', callback);
@@ -370,4 +335,29 @@ test('Publish/Subscribe - Global subscription context is null', async () => {
 
   // Cleanup
   unsubscribe();
+});
+
+test("component publish fires every subscription on a channel", () => {
+  const calls = [];
+  const comp = { isConnected: true, root: null };
+  const un1 = componentSubscribe(comp, "multi-comp", () => calls.push(1));
+  const un2 = componentSubscribe(comp, "multi-comp", () => calls.push(2));
+
+  expect(componentPublish(comp, "multi-comp")).toBe(true);
+  expect(calls).toEqual([1, 2]);
+
+  un1();
+  un2();
+});
+
+test("a channel named __proto__ is isolated", () => {
+  const calls = [];
+  const comp = { isConnected: true, root: null };
+  const un = componentSubscribe(comp, "__proto__", () => calls.push(1));
+
+  expect(componentPublish(comp, "__proto__")).toBe(true);
+  expect(calls).toEqual([1]);
+  expect({}.polluted).toBeUndefined();
+
+  un();
 });
