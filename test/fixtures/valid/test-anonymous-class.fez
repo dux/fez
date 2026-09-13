@@ -1,0 +1,14 @@
+<script>
+  class {
+    init() {
+      const Inner = class {
+        value() {
+          return 42
+        }
+      }
+      this.state.value = new Inner().value()
+    }
+  }
+</script>
+
+<div>{{ state.value }}</div>

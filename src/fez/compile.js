@@ -22,6 +22,7 @@ import {
   stripFezDefinitions,
   stripGeneratedNotice,
 } from './lib/source-parser.js';
+import { assertStyleScope } from './lib/validate.js';
 
 const compileCache = new Map();
 
@@ -29,49 +30,8 @@ const compileCache = new Map();
 // HELPERS
 // =============================================================================
 
-// Keep these messages in sync with validateStyle() in bin/fez-compile.
-const STYLE_SCOPE_ERRORS = {
-  body: 'body { } in a scoped <style>. Move these rules to <style global>.',
-  host: ':host is not supported. <style> is already scoped - use `&` for the root node.',
-  fez: ':fez is no longer an author-facing selector. <style> is already scoped - use `&` for the root node.',
-  globalInGlobal:
-    ':global() inside <style global>. These rules are already global - drop the wrapper.',
-};
-
-// Blank out comments while keeping length and line breaks, so scope checks
-// never fire on prose - "was :fez before" in a comment is not an error.
-function withoutComments(style) {
-  return style
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
-    .replace(/^([ \t]*)\/\/[^\n]*/gm, (m, indent) => indent + ' '.repeat(m.length - indent.length));
-}
-
 function escapeTemplateLiteral(value) {
   return String(value).replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('$', '\\$');
-}
-
-function assertStyleScope(tagName, rawStyle, isGlobal) {
-  if (!rawStyle) {
-    return;
-  }
-  const style = withoutComments(rawStyle);
-
-  const fail = (message) => {
-    throw new Error(`<${tagName}> style error: ${message}`);
-  };
-
-  if (!isGlobal && /(?:^|\s)body\s*\{/.test(style)) {
-    fail(STYLE_SCOPE_ERRORS.body);
-  }
-  if (/:host\b/.test(style)) {
-    fail(STYLE_SCOPE_ERRORS.host);
-  }
-  if (/:fez\b/.test(style)) {
-    fail(STYLE_SCOPE_ERRORS.fez);
-  }
-  if (isGlobal && /:global\(/.test(style)) {
-    fail(STYLE_SCOPE_ERRORS.globalInGlobal);
-  }
 }
 
 // =============================================================================
@@ -196,7 +156,7 @@ function compileFromUrl(url) {
 
       if (fezElements.length > 0) {
         // Extract top-level info/demo before the xmp elements (for multi-component files)
-        const fileName = url.split('/').pop().split('.')[0];
+        const fileName = Fez.nameFromPath(url);
         indexFileDocs(fileName, content);
 
         // Multiple components in file
@@ -210,7 +170,7 @@ function compileFromUrl(url) {
         });
       } else {
         // Single component, derive name from URL
-        const name = url.split('/').pop().split('.')[0];
+        const name = Fez.nameFromPath(url);
         compile(name, content);
       }
     })
@@ -340,8 +300,11 @@ function generateClassCode(tagName, parts) {
     Fez.index.ensure(tagName).info = closeCustomTags(parts.info);
   }
 
-  // Wrap in Fez call
-  const [before, after] = klass.split(/class\s+\{/, 2);
+  // Wrap in Fez call. Split at the first `class {` only - split(re, 2) would
+  // drop everything after a second occurrence in the component script.
+  const classMatch = klass.match(/class\s+\{/);
+  const before = classMatch ? klass.slice(0, classMatch.index) : '';
+  const after = classMatch ? klass.slice(classMatch.index + classMatch[0].length) : klass;
   return `${before};\n\nwindow.Fez('${tagName}', class {\n${after})`;
 }
 

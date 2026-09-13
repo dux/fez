@@ -57,6 +57,11 @@ describe('fez compile', () => {
       expect(result.exitCode).toBe(0);
     });
 
+    test('compiles a component whose script contains a nested anonymous class', async () => {
+      const result = await compile('test/fixtures/valid/test-anonymous-class.fez');
+      expect(result.exitCode).toBe(0);
+    });
+
     test('compiles files containing multiple component definitions', async () => {
       const result = await $`bin/fez-compile -o docs/fez/bubble-alerter.fez`.quiet().nothrow();
       const stdout = result.stdout.toString();

@@ -1,8 +1,9 @@
 /**
- * Convert self-closing custom tags to full open+close format
+ * Convert self-closing tags to full open+close format
  * <my-comp /> -> <my-comp></my-comp>
- * Uses (?:[^>]|=>) to skip => (arrow functions) inside attributes
- * Preserves standard HTML void elements (input, br, img, etc.)
+ * Standard HTML void elements (input, br, img, ...) are left as-is.
+ * The (?:=>|[^>])* group skips `=>` (arrow functions) inside attributes and the
+ * `i` flag covers uppercase custom tags (<My-Comp />).
  */
 
 const SELF_CLOSING_TAGS = new Set([
@@ -22,11 +23,11 @@ const SELF_CLOSING_TAGS = new Set([
 ]);
 
 export default function closeCustomTags(html) {
-  return html.replace(/<([a-z][a-z-]*)\b((?:=>|[^>])*)>/g, (match, tag, attrs) => {
+  return html.replace(/<([a-z][a-z0-9-]*)\b((?:=>|[^>])*)>/gi, (match, tag, attrs) => {
     if (!attrs.trimEnd().endsWith('/')) {
       return match;
     }
-    if (SELF_CLOSING_TAGS.has(tag)) {
+    if (SELF_CLOSING_TAGS.has(tag.toLowerCase())) {
       return match;
     }
     return `<${tag}${attrs.replace(/\s*\/$/, '')}></${tag}>`;

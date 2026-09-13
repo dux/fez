@@ -30,24 +30,16 @@ const cache = new Map();
  * @returns {Function} Render function (ctx) => html
  */
 export default function createTemplate(text, opts = {}) {
-  if (cache.has(text)) {
-    return cache.get(text);
-  }
-
-  const cacheKey = normalizeTemplateText(text, opts);
+  // Cache key includes opts: the same template text compiled for a different
+  // component (name) or strict mode yields a different render function.
+  const cacheKey = `${opts.name || ''}\u0000${opts.strict ? 1 : 0}\u0000${text}`;
   if (cache.has(cacheKey)) {
-    const fn = cache.get(cacheKey);
-    cache.set(text, fn);
-    return fn;
+    return cache.get(cacheKey);
   }
 
-  // Compile
-  const fn = createTemplateCompiler(cacheKey, opts);
+  const normalized = normalizeTemplateText(text, opts);
+  const fn = createTemplateCompiler(normalized, opts);
   cache.set(cacheKey, fn);
-  if (cacheKey !== text) {
-    cache.set(text, fn);
-  }
-
   return fn;
 }
 
@@ -76,11 +68,8 @@ function normalizeTemplateText(text, opts = {}) {
  * Check if text uses old {{ }} or [[ ]] syntax
  */
 function hasLegacySyntax(text) {
-  return (
-    (text.includes('{{') && text.includes('}}')) || (text.includes('[[') && text.includes(']]'))
-  );
+  return text.includes('{{') && text.includes('}}');
 }
-
 /**
  * Convert {{ }}/[[ ]] syntax to { } syntax
  *
@@ -94,9 +83,6 @@ function hasLegacySyntax(text) {
  *   {{block x}}     -> {@block x}
  */
 function convertLegacySyntax(text, componentName) {
-  // Normalize [[ ]] to {{ }}
-  text = text.replaceAll('[[', '{{').replaceAll(']]', '}}');
-
   // Blocks
   text = text.replace(/\{\{block\s+(\w+)\s*\}\}/g, '{@block $1}');
   text = text.replace(/\{\{\/block\}\}/g, '{/block}');

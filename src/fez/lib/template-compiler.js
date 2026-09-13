@@ -25,6 +25,7 @@ import {
   getAttributeContext,
   getEventAttributeContext,
 } from './template-compiler-lib.js';
+import closeCustomTags from './close-custom-tags.js';
 
 /**
  * Compile template to a function that returns HTML string
@@ -130,20 +131,14 @@ export default function createTemplateCompiler(text, opts = {}) {
       // Remove HTML comments
       text = text.replace(/<!--[\s\S]*?-->/g, '');
 
-      // Normalize whitespace between tags
-      text = text.replace(/>\s+</g, '><').trim();
+      // Normalize whitespace between tags. Only join tags separated by a line
+      // break (template indentation); a same-line space is intentional and
+      // must survive (e.g. inline elements `<b>a</b> <b>b</b>`).
+      text = text.replace(/>[ \t]*\r?\n[ \t]*</g, '><').trim();
     }
 
-    // Convert self-closing custom elements to paired tags
-    // <ui-icon name="foo" /> -> <ui-icon name="foo"></ui-icon>
-    // Custom elements contain a hyphen in the tag name
-    // Uses (?:[^>]|=>) to skip => (arrow functions) inside attributes
-    text = text.replace(/<([a-z][a-z0-9]*-[a-z0-9-]*)((?:=>|[^>])*)>/gi, (match, tag, attrs) => {
-      if (attrs.trimEnd().endsWith('/')) {
-        return `<${tag}${attrs.replace(/\s*\/$/, '')}></${tag}>`;
-      }
-      return match;
-    });
+    // Convert self-closing tags to paired tags (shared with connect/compile)
+    text = closeCustomTags(text);
 
     // Convert self-closing <slot /> to <slot></slot>
     text = text.replace(/<slot\s*\/>/gi, '<slot></slot>');
@@ -303,11 +298,17 @@ export default function createTemplateCompiler(text, opts = {}) {
           if (isEach) {
             const rest = expr.slice(6);
             const asIdx = rest.indexOf(' as ');
+            if (asIdx < 0) {
+              throw new Error(`{#each} is missing " as ": {${expr}}`);
+            }
             collection = rest.slice(0, asIdx).trim();
             binding = rest.slice(asIdx + 4).trim();
           } else {
             const rest = expr.slice(5);
             const inIdx = rest.indexOf(' in ');
+            if (inIdx < 0) {
+              throw new Error(`{#for} is missing " in ": {${expr}}`);
+            }
             binding = rest.slice(0, inIdx).trim();
             collection = rest.slice(inIdx + 4).trim();
           }
@@ -317,7 +318,7 @@ export default function createTemplateCompiler(text, opts = {}) {
 
           // Track loop variables for arrow function transformation
           loopVarStack.push(getLoopVarNames(binding));
-          loopItemVarStack.push(getLoopItemVars(binding));
+          loopItemVarStack.push(getLoopItemVars(binding, !isEach));
 
           // Track loop info for :else support
           // Use a wrapper that allows checking length and provides else support
@@ -703,13 +704,6 @@ function autoInjectKeys(text) {
       }
 
       const tag = text.slice(pos, j + 1);
-
-      // Skip closing tags
-      if (text[pos + 1] === '/') {
-        result += tag;
-        pos = j + 1;
-        continue;
-      }
 
       // Skip if already has key=
       if (/\bkey\s*=/.test(tag)) {

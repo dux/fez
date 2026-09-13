@@ -5,6 +5,7 @@ const JS_GLOBALS = new Set([
   'console',
   'window',
   'document',
+  'globalThis',
   'Math',
   'JSON',
   'Date',
@@ -13,8 +14,35 @@ const JS_GLOBALS = new Set([
   'String',
   'Number',
   'Boolean',
+  'RegExp',
+  'Error',
+  'TypeError',
+  'RangeError',
+  'Promise',
+  'Map',
+  'Set',
+  'WeakMap',
+  'WeakSet',
+  'Symbol',
+  'Intl',
+  'URL',
+  'URLSearchParams',
+  'FormData',
+  'Blob',
+  'CustomEvent',
+  'localStorage',
   'parseInt',
   'parseFloat',
+  'isNaN',
+  'isFinite',
+  'encodeURIComponent',
+  'decodeURIComponent',
+  'encodeURI',
+  'decodeURI',
+  'structuredClone',
+  'queueMicrotask',
+  'requestAnimationFrame',
+  'cancelAnimationFrame',
   'setTimeout',
   'setInterval',
   'clearTimeout',
@@ -26,9 +54,30 @@ const JS_GLOBALS = new Set([
   'event',
 ]);
 
+// Control-flow keywords that can be followed by `(`; prefixing them would
+// produce `fez.if(`, `fez.return(` and the like.
+const JS_KEYWORDS = new Set([
+  'if',
+  'for',
+  'while',
+  'switch',
+  'catch',
+  'return',
+  'typeof',
+  'function',
+  'new',
+  'delete',
+  'void',
+  'do',
+  'else',
+  'in',
+  'of',
+  'instanceof',
+]);
+
 function prefixBareCalls(body) {
   return body.replace(/(?<![.\w])([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g, (match, funcName) =>
-    JS_GLOBALS.has(funcName) ? match : `fez.${funcName}(`,
+    JS_GLOBALS.has(funcName) || JS_KEYWORDS.has(funcName) ? match : `fez.${funcName}(`,
   );
 }
 
@@ -80,11 +129,12 @@ export function getLoopVarNames(binding) {
  * Get loop item variables (non-index) from binding
  * These are variables that could be objects/arrays (not primitives like indices)
  */
-export function getLoopItemVars(binding) {
+export function getLoopItemVars(binding, objectPairs = false) {
   const parsed = parseLoopBinding(binding);
-  // For 2-param destructuring: [value, index] - only first is item var
+  // 2-param binding: for `{#each arr as value, index}` only the first is an
+  // item; for `{#for key, value in obj}` both are (object keys/values).
   if (parsed.isDestructured && parsed.params.length === 2) {
-    return [parsed.params[0]];
+    return objectPairs ? [parsed.params[0], parsed.params[1]] : [parsed.params[0]];
   }
   // For other destructured bindings, all params are item vars
   if (parsed.isDestructured) {

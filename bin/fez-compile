@@ -220,9 +220,11 @@ function validateScript(script, filePath, sourceLine) {
   const hasExplicitClass = /class\s+\{/.test(script);
 
   if (hasExplicitClass) {
-    const parts = script.split(/class\s+\{/, 2);
-    const preamble = parts[0] || '';
-    const classBody = parts[1] ? `class {\n${parts[1]}` : '';
+    const classMatch = script.match(/class\s+\{/);
+    const preamble = classMatch ? script.slice(0, classMatch.index) : '';
+    const classBody = classMatch
+      ? `class {\n${script.slice(classMatch.index + classMatch[0].length)}`
+      : '';
 
     if (preamble.trim()) {
       const withoutImports = preamble.replace(/^\s*import\s+.*$/gm, '// import removed');
@@ -559,9 +561,11 @@ function generateCompiledJS(parsed, componentName) {
     klass = klass.replace(/\}\s*$/, `\n  HTML = \`${html}\`\n}`);
   }
 
-  const parts = klass.split(/class\s+\{/, 2);
-  const preamble = parts[0] || '';
-  const classBody = parts[1] ? `class {\n${parts[1]}` : klass;
+  const classMatch = klass.match(/class\s+\{/);
+  const preamble = classMatch ? klass.slice(0, classMatch.index) : '';
+  const classBody = classMatch
+    ? `class {\n${klass.slice(classMatch.index + classMatch[0].length)}`
+    : klass;
   return `${preamble.trim() ? preamble.trim() + '\n\n' : ''}Fez('${componentName}', ${classBody})`;
 }
 

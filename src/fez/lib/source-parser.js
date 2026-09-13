@@ -90,11 +90,10 @@ export function parseFezSource(source, { dedentDocs = false } = {}) {
 
     const raw = source.slice(rawStart, close.index);
     let content = blockContent(raw);
+    // Script/style/head keep their relative indentation - per-line trim would
+    // corrupt multi-line strings and template literals.
     if (type !== 'demo' && type !== 'info') {
-      content = content
-        .split('\n')
-        .map((line) => line.trim())
-        .join('\n');
+      content = dedent(content);
     }
     if (dedentDocs && (type === 'demo' || type === 'info')) {
       content = dedent(content);
