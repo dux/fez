@@ -29,11 +29,36 @@ All documentation and demos go INSIDE the .fez file (no separate .html files) us
 ## CDN
 
 ```html
-<script src="https://raw.githubusercontent.com/dux/fez/main/dist/fez.js"></script>
+<script src="https://dux.github.io/fez/dist/fez.js"></script>
 
 <!-- Load components with fez attribute (NOT type="fez" src="...") -->
 <script fez="path/to/component.fez"></script>
 ```
+
+## Bundlers (Vite / Rollup)
+
+Prefer this path in bundled apps: it compiles `.fez` to ES modules at build time (name,
+script, style scope and template checks) and removes the runtime fetch.
+
+```js
+// vite.config.js or rollup.config.js
+import fez from '@dinoreic/fez/plugin';
+export default { plugins: [fez()] };
+```
+
+```js
+import './components/ui-button.fez'; // side-effect: registers <ui-button>
+import Button from './components/ui-button.fez'; // default export is the class
+```
+
+- Component name comes from the filename (`ui-button.fez` -> `ui-button`); `<xmp fez="...">`
+  files compile every definition.
+- `minify` (default `false`; Vite defaults to `true` when `mode === 'production'`) drops
+  `<info>` / `<demo>` metadata from the emitted module.
+- `runtime` (default `@dinoreic/fez`) sets the specifier the emitted module imports `Fez` from.
+- One plugin for both bundlers: Vite-only hooks (`enforce`, `configResolved`) are ignored by
+  Rollup, so minify follows Vite's mode and is false for Rollup.
+- The `<script fez>` runtime loading above still works.
 
 ## CLI Tools
 
@@ -147,7 +172,7 @@ Never put a `<style>` block after the template. The same order applies inside ev
 
 The `<script>` block has two zones:
 
-1. **Module-level code** (BEFORE `class {}`) - imports, `Fez.head()` calls, shared variables. Like `<script context="module">` in Svelte.
+1. **Module-level code** (BEFORE `class {}`) - imports, `Fez.head()` calls, shared variables. Like `<script context="module">` in Svelte. These bindings close over class methods, but template expressions cannot see them (templates run as `with (this)`). Expose module data to a template via a class field or `state`.
 2. **Component class** (MUST be the LAST thing in `<script>`) - all component logic. **NEVER put code after `class {}`**.
 
 **CRITICAL: ALL class properties (META, NAME) go INSIDE `class {}`, never outside it.**
