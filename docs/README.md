@@ -755,14 +755,17 @@ Here's a simple counter component that demonstrates Fez's core features:
 <button onclick="{() => more()}" disabled="{isMax()}">+</button>
 {#if state.count > 0}
 <span>&mdash;</span>
-{#if state.count == MAX} MAX {:else} {#if state.count % 2} odd {:else} even {/if} {/if} {/if}
+{#if isMax()} MAX {:else} {#if state.count % 2} odd {:else} even {/if} {/if} {/if}
 ```
+
+> Template expressions resolve against the component instance, so `isMax()` (a method) works.
+> A bare module-level `const MAX` would not - see "Template scope".
 
 To use this component in your HTML:
 
 ```html
 <!-- Load Fez library -->
-<script src="https://raw.githubusercontent.com/dux/fez/main/dist/fez.js"></script>
+<script src="https://dux.github.io/fez/dist/fez.js"></script>
 
 <!-- Load component via template tag -->
 <template fez="/fez-libs/ex-counter.fez"></template>
@@ -1214,6 +1217,68 @@ At compile time, Fez rewrites bare specifiers to full URLs (e.g. `from 'three'` 
   {...}
 </script>
 <foo-bar data-json-template="true"></foo-bar>
+```
+
+## Bundler imports (Vite / Rollup)
+
+Compile `.fez` files to ES modules at build time so components bundle into the app.
+
+```bash
+bun add @dinoreic/fez
+```
+
+```js
+// vite.config.js
+import fez from '@dinoreic/fez/plugin';
+export default { plugins: [fez()] };
+```
+
+```js
+// rollup.config.js
+import fez from '@dinoreic/fez/plugin';
+export default { plugins: [fez()] };
+```
+
+```js
+import './components/ui-button.fez'; // registers <ui-button>
+import Button from './components/ui-button.fez'; // or import the class
+```
+
+- The component name comes from the filename (`ui-button.fez` -> `ui-button`). A file that
+  contains `<xmp fez="...">` definitions compiles every definition.
+- Build-time checks run for the component name, script syntax, style scope and template
+  compilation, so a broken component fails the build instead of the browser.
+- `minify` (default `false`; the Vite plugin defaults it to `true` in production) drops
+  `<info>` / `<demo>` metadata from the emitted module.
+- `runtime` (default `@dinoreic/fez`) sets the specifier the emitted module imports `Fez` from.
+
+Vite and Rollup both import the same plugin from `@dinoreic/fez/plugin`: `enforce`/`configResolved`
+are Vite-only and ignored by Rollup, so `minify` follows Vite's mode and stays `false` for Rollup.
+The runtime `<script fez="...">` loading above still works; both paths are supported.
+
+## Template scope
+
+Template expressions execute as `const fez = this; with (this) { ... }`, so a template can
+read anything on the component instance:
+
+- `state`, `props`, `globalState`
+- methods (`isMax()`, event handlers)
+- class fields (`SECTIONS = [...]`, `ICONS = {...}`)
+
+A module-level `const`/`let` is available to class methods (they close over module scope) but
+**not** to template expressions. Put lookup tables used by a template in a class field or in
+`state`.
+
+```html
+<script>
+  const ROWS = ['a', 'b']; // ok in methods, not in the template
+
+  class {
+    ROWS = ROWS; // expose module data to the template
+  }
+</script>
+
+{#each ROWS as row}<span>{row}</span>{/each}
 ```
 
 ## Component structure
