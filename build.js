@@ -51,6 +51,17 @@ else if (kind === 'b') {
     entryNames: '[name].min',
     minify: true
   })
+  await esbuild.build({
+    ...opts,
+    format: 'esm',
+    entryNames: '[name].esm'
+  })
+  await esbuild.build({
+    ...opts,
+    format: 'esm',
+    entryNames: '[name].esm.min',
+    minify: true
+  })
 }
 else {
   console.error('ERROR: OPT w|b not selected')

@@ -8,9 +8,10 @@
   "exports": {
     ".": {
       "types": "./fez.d.ts",
-      "import": "./dist/fez.js"
+      "import": "./dist/fez.esm.js",
+      "default": "./dist/fez.js"
     },
-    "./rollup": "./src/rollup.js",
+    "./plugin": "./src/fez/plugin.js",
     "./log": "./src/log.js",
     "./svelte": "./src/svelte-cde-adapter.coffee",
     "./package.json": "./package.json"
