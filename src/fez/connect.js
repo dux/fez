@@ -12,24 +12,24 @@
  * 3. connectNode() - creates instance, renders, calls lifecycle
  */
 
-import createTemplate from "./lib/template.js";
-import closeCustomTags from "./lib/close-custom-tags.js";
-import FezBase, { PROPS_ATTR } from "./instance.js";
+import createTemplate from './lib/template.js';
+import closeCustomTags from './lib/close-custom-tags.js';
+import FezBase, { PROPS_ATTR } from './instance.js';
 
 // Attribute observer for reactive props
 const attrObserver = new MutationObserver((mutations) => {
   for (const mutation of mutations) {
-    if (mutation.type === "attributes") {
+    if (mutation.type === 'attributes') {
       const fez = mutation.target.fez;
       if (fez) {
         const name = mutation.attributeName;
         // the inspector mirror of this.props - written by fez, never a prop
-        if (name === PROPS_ATTR) continue;
+        if (name === PROPS_ATTR) {
+          continue;
+        }
         const raw = mutation.target.getAttribute(name);
         // run through PROPS schema so onPropsChange sees the same typed value as init()
-        const value = fez.class?.castProp
-          ? fez.class.castProp(name, raw, fez.fezName)
-          : raw;
+        const value = fez.class?.castProp ? fez.class.castProp(name, raw, fez.fezName) : raw;
         fez.props[name] = value;
         fez.onPropsChange(name, value);
       }
@@ -58,7 +58,7 @@ export default function connect(name, klass) {
   const Fez = globalThis.window?.Fez || globalThis.Fez;
 
   // Validate name
-  if (!name.includes("-")) {
+  if (!name.includes('-')) {
     console.error(`Fez: Invalid name "${name}". Must contain a dash.`);
     return;
   }
@@ -81,11 +81,8 @@ export default function connect(name, klass) {
     // this.state. unwrap exists for layout transparency (flex/grid/ul/table), at
     // the cost of reactivity; the two modes are a trade, not redundancy.
     klass.html = klass.html
-      .replace(
-        /<slot(\s[^>]*)?>/,
-        `<div class="fez-slot" fez-keep="default-slot"$1>`,
-      )
-      .replace("</slot>", `</div>`);
+      .replace(/<slot(\s[^>]*)?>/, '<div class="fez-slot" fez-keep="default-slot"$1>')
+      .replace('</slot>', '</div>');
 
     klass.fezHtmlFunc = createTemplate(klass.html, { name });
   }
@@ -110,7 +107,7 @@ export default function connect(name, klass) {
       name,
       class extends HTMLElement {
         connectedCallback() {
-          if (document.readyState === "loading") {
+          if (document.readyState === 'loading') {
             requestAnimationFrame(() => connectNode(name, this));
           } else {
             connectNode(name, this);
@@ -132,8 +129,12 @@ export default function connect(name, klass) {
 function ensureFezBase(Fez, name, klass) {
   // Already a FezBase subclass
   if (klass.prototype instanceof FezBase) {
-    if (klass.html) klass.html = closeCustomTags(klass.html);
-    if (klass.PROPS) Fez.index.ensure(name).props = klass.PROPS;
+    if (klass.html) {
+      klass.html = closeCustomTags(klass.html);
+    }
+    if (klass.PROPS) {
+      Fez.index.ensure(name).props = klass.PROPS;
+    }
     return klass;
   }
 
@@ -145,7 +146,7 @@ function ensureFezBase(Fez, name, klass) {
   const props = [
     ...Object.getOwnPropertyNames(instance),
     ...Object.getOwnPropertyNames(klass.prototype),
-  ].filter((p) => p !== "constructor" && p !== "prototype");
+  ].filter((p) => p !== 'constructor' && p !== 'prototype');
 
   for (const prop of props) {
     newKlass.prototype[prop] = instance[prop];
@@ -153,34 +154,32 @@ function ensureFezBase(Fez, name, klass) {
 
   // Map config properties
   const configMap = {
-    GLOBAL: "GLOBAL",
-    MOUNT: "MOUNT",
-    NAME: "nodeName",
-    PROPS: "PROPS",
+    GLOBAL: 'GLOBAL',
+    MOUNT: 'MOUNT',
+    NAME: 'nodeName',
+    PROPS: 'PROPS',
   };
   for (const [from, to] of Object.entries(configMap)) {
     // instance field (`PROPS = {...}`) or static (`static PROPS = {...}`) on a plain class
     const value = instance[from] || klass[from];
-    if (value) newKlass[to] = value;
+    if (value) {
+      newKlass[to] = value;
+    }
   }
 
   // Handle CSS (can be string or function)
   if (instance.CSS) {
-    newKlass.css =
-      typeof instance.CSS === "function" ? instance.CSS() : instance.CSS;
+    newKlass.css = typeof instance.CSS === 'function' ? instance.CSS() : instance.CSS;
   }
 
   if (instance.CSS_GLOBAL) {
     newKlass.cssGlobal =
-      typeof instance.CSS_GLOBAL === "function"
-        ? instance.CSS_GLOBAL()
-        : instance.CSS_GLOBAL;
+      typeof instance.CSS_GLOBAL === 'function' ? instance.CSS_GLOBAL() : instance.CSS_GLOBAL;
   }
 
   // Handle HTML (can be string or function)
   if (instance.HTML) {
-    const html =
-      typeof instance.HTML === "function" ? instance.HTML() : instance.HTML;
+    const html = typeof instance.HTML === 'function' ? instance.HTML() : instance.HTML;
     newKlass.html = closeCustomTags(html);
   }
 
@@ -196,9 +195,9 @@ function ensureFezBase(Fez, name, klass) {
   }
 
   // GLOBAL only names the instance (window[name]); MOUNT is the singleton body-append
-  if (newKlass.GLOBAL && typeof newKlass.GLOBAL !== "string") {
+  if (newKlass.GLOBAL && typeof newKlass.GLOBAL !== 'string') {
     Fez.onError(
-      "compile",
+      'compile',
       `<${name}>: GLOBAL must be a window name string, use MOUNT = true to auto-mount`,
     );
     delete newKlass.GLOBAL;
@@ -225,8 +224,12 @@ function ensureFezBase(Fez, name, klass) {
  * Initialize component instance from DOM node
  */
 function connectNode(name, node) {
-  if (!node.isConnected) return;
-  if (node.classList?.contains("fez")) return;
+  if (!node.isConnected) {
+    return;
+  }
+  if (node.classList?.contains('fez')) {
+    return;
+  }
   if (!node.parentNode) {
     console.warn(`Fez: ${name} has no parent, skipping`);
     return;
@@ -234,7 +237,7 @@ function connectNode(name, node) {
 
   const klass = Fez.index[name]?.class;
   const newNode = klass.createRootNode(node);
-  newNode.classList.add("fez", `fez-${name}`);
+  newNode.classList.add('fez', `fez-${name}`);
 
   // Replace custom element with component node
   node.parentNode.replaceChild(newNode, node);
@@ -267,20 +270,28 @@ function connectNode(name, node) {
   }
 
   // jQuery compatibility
-  if (window.$) fez.$root = $(newNode);
+  if (window.$) {
+    fez.$root = $(newNode);
+  }
 
-  if (fez.props.id) newNode.setAttribute("id", fez.props.id);
+  if (fez.props.id) {
+    newNode.setAttribute('id', fez.props.id);
+  }
 
   // Identity attributes the differ matches on: `key` from the compiler or the
   // user, `fez-key` as the explicit opt-in for server-rendered HTML (a matched
   // component is preserved and gets a props refresh instead of destroy +
   // recreate, even when attrs or content changed), `fez-keep` for plain
   // preservation.
-  for (const attr of ["key", "fez-key", "fez-keep"]) {
+  for (const attr of ['key', 'fez-key', 'fez-keep']) {
     const value = node.getAttribute(attr);
-    if (value) newNode.setAttribute(attr, value);
+    if (value) {
+      newNode.setAttribute(attr, value);
+    }
   }
-  if (node._fezKey !== undefined) newNode._fezKey = node._fezKey;
+  if (node._fezKey !== undefined) {
+    newNode._fezKey = node._fezKey;
+  }
 
   // === LIFECYCLE ===
 
@@ -299,7 +310,7 @@ function connectNode(name, node) {
 
   // Form submit handling
   if (fez.onSubmit) {
-    const form = fez.root.nodeName === "FORM" ? fez.root : fez.find("form");
+    const form = fez.root.nodeName === 'FORM' ? fez.root : fez.find('form');
     if (form) {
       form.onsubmit = (e) => {
         e.preventDefault();

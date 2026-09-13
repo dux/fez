@@ -17,7 +17,7 @@
  */
 
 function createDomNode(html) {
-  const node = document.createElement("div");
+  const node = document.createElement('div');
   node.innerHTML = html;
   return node;
 }
@@ -31,11 +31,7 @@ const index = {
    * @returns {{ class: Function|null, meta: Object|null, demo: string|null, info: string|null, source: string|null }}
    */
   ensure(name) {
-    if (
-      !this[name] ||
-      typeof this[name] !== "object" ||
-      !("class" in this[name])
-    ) {
+    if (!this[name] || typeof this[name] !== 'object' || !('class' in this[name])) {
       this[name] = {
         class: null,
         meta: null,
@@ -54,7 +50,7 @@ const index = {
    */
   get(name) {
     const entry = this[name];
-    if (!entry || typeof entry !== "object" || !("class" in entry)) {
+    if (!entry || typeof entry !== 'object' || !('class' in entry)) {
       return { class: null, meta: null, demo: null, info: null, source: null };
     }
 
@@ -76,13 +72,15 @@ const index = {
    */
   apply(name, target) {
     const entry = this[name];
-    if (!entry?.demo || !target) return false;
+    if (!entry?.demo || !target) {
+      return false;
+    }
 
-    const tempDiv = document.createElement("div");
+    const tempDiv = document.createElement('div');
     tempDiv.innerHTML = entry.demo;
 
     // Execute top-level scripts first (before DOM parsing triggers components)
-    tempDiv.querySelectorAll(":scope > script").forEach((script) => {
+    tempDiv.querySelectorAll(':scope > script').forEach((script) => {
       const content = script.textContent;
       if (content.trim()) {
         try {
@@ -104,8 +102,7 @@ const index = {
    */
   names() {
     return Object.keys(this).filter(
-      (k) =>
-        typeof this[k] === "object" && this[k] !== null && "class" in this[k],
+      (k) => typeof this[k] === 'object' && this[k] !== null && 'class' in this[k],
     );
   },
 
@@ -133,7 +130,7 @@ const index = {
    * Print registered components to console
    */
   info() {
-    console.log("Fez components:", this.names());
+    console.log('Fez components:', this.names());
   },
 };
 

@@ -695,7 +695,10 @@ describe('Pjax module', () => {
     target.innerHTML = '<div class="flex"><div class="sidebar">old</div></div>';
     document.body.appendChild(target);
 
-    Pjax.morphInto(target, '<div class="flex"><div class="sidebar">S</div><div class="content">C</div></div>');
+    Pjax.morphInto(
+      target,
+      '<div class="flex"><div class="sidebar">S</div><div class="content">C</div></div>',
+    );
 
     expect(target.children.length).toBe(1);
     expect(target.firstElementChild.className).toBe('flex');

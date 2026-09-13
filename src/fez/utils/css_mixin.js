@@ -15,32 +15,32 @@
 // Substitution is textual and needs the trailing space: `:dark {` expands,
 // `:dark{` does not.
 
-const CssMixins = {}
+const CssMixins = {};
 
-const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // `:name;` / `@include name;` at declaration position only - the lead guard
 // keeps `pointer-events:none;` intact when a mixin named `none` exists
-const declRe = (key) => new RegExp(`(^|[\\s{;])(?::|@include\\s+)${escapeRe(key)}\\s*;`, 'g')
+const declRe = (key) => new RegExp(`(^|[\\s{;])(?::|@include\\s+)${escapeRe(key)}\\s*;`, 'g');
 
 export default (Fez) => {
   Fez.cssMixin = (name, content) => {
     if (content) {
-      CssMixins[name] = content
+      CssMixins[name] = content;
     } else {
-      Object.entries(CssMixins).forEach(([key, val])=>{
-        name = name.replace(declRe(key), (_, lead) => `${lead}${val.replace(/;\s*$/, '')};`)
-        name = name.replaceAll(`:${key} `, `${val} `)
-        name = name.replaceAll(`@include ${key} `, `${val} `)
-      })
+      Object.entries(CssMixins).forEach(([key, val]) => {
+        name = name.replace(declRe(key), (_, lead) => `${lead}${val.replace(/;\s*$/, '')};`);
+        name = name.replaceAll(`:${key} `, `${val} `);
+        name = name.replaceAll(`@include ${key} `, `${val} `);
+      });
 
-      return name
+      return name;
     }
-  }
+  };
 
-  Fez.cssMixin('mobile', '@media (max-width: 767px)')
-  Fez.cssMixin('tablet', '@media (min-width: 768px) and (max-width: 1023px)')
-  Fez.cssMixin('desktop', '@media (min-width:  1200px)')
+  Fez.cssMixin('mobile', '@media (max-width: 767px)');
+  Fez.cssMixin('tablet', '@media (min-width: 768px) and (max-width: 1023px)');
+  Fez.cssMixin('desktop', '@media (min-width:  1200px)');
 
   // Dark theme, driven by a .dark class on <html>. Selector-shaped rather than
   // a media query so the app can flip themes at runtime; register
@@ -51,5 +51,5 @@ export default (Fez) => {
   // specificity, so :dark ties with the rule it overrides and wins on source
   // order alone - nested blocks always serialize after their parent's
   // declarations. Without it every dark rule would outrank plain ones.
-  Fez.cssMixin('dark', '&:where(.dark, .dark *)')
-}
+  Fez.cssMixin('dark', '&:where(.dark, .dark *)');
+};

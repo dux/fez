@@ -58,8 +58,7 @@ function syncAttributes(oldNode, newNode) {
   const newAttrs = newNode.attributes;
 
   // Check if this is a focused form input - skip value/checked sync
-  const isActiveInput =
-    oldNode === document.activeElement && isFormInput(oldNode);
+  const isActiveInput = oldNode === document.activeElement && isFormInput(oldNode);
 
   // Remove attributes not present in new node
   // Exception: preserve `style` if new node doesn't set it AND both nodes
@@ -68,14 +67,16 @@ function syncAttributes(oldNode, newNode) {
   // matching empty class is not identity (soft-matched bare tags like <th>
   // must not keep a previous column's width). If class changed, the node is
   // being repurposed (e.g. pjax page swap), so stale style must be cleared.
-  const newHasStyle = newNode.hasAttribute("style");
-  const oldClass = oldNode.getAttribute("class") || "";
-  const newClass = newNode.getAttribute("class") || "";
-  const sameNamedClass = oldClass !== "" && oldClass === newClass;
+  const newHasStyle = newNode.hasAttribute('style');
+  const oldClass = oldNode.getAttribute('class') || '';
+  const newClass = newNode.getAttribute('class') || '';
+  const sameNamedClass = oldClass !== '' && oldClass === newClass;
   for (let i = oldAttrs.length - 1; i >= 0; i--) {
     const name = oldAttrs[i].name;
     if (!newNode.hasAttribute(name)) {
-      if (name === "style" && !newHasStyle && sameNamedClass) continue;
+      if (name === 'style' && !newHasStyle && sameNamedClass) {
+        continue;
+      }
       oldNode.removeAttribute(name);
     }
   }
@@ -85,18 +86,18 @@ function syncAttributes(oldNode, newNode) {
     const attr = newAttrs[i];
 
     // Skip value/checked on focused form inputs
-    if (isActiveInput && (attr.name === "value" || attr.name === "checked")) {
+    if (isActiveInput && (attr.name === 'value' || attr.name === 'checked')) {
       continue;
     }
 
     if (oldNode.getAttribute(attr.name) !== attr.value) {
-      if (attr.name === "class") {
+      if (attr.name === 'class') {
         syncClassList(oldNode, newNode);
       } else {
         try {
           oldNode.setAttribute(attr.name, attr.value);
         } catch (error) {
-          console.error("Error setting attribute:", {
+          console.error('Error setting attribute:', {
             node: oldNode,
             attribute: attr.name,
             error: error.message,
@@ -108,7 +109,9 @@ function syncAttributes(oldNode, newNode) {
 }
 
 function syncInternalKeys(oldNode, newNode) {
-  if (oldNode.nodeType !== 1 || newNode.nodeType !== 1) return;
+  if (oldNode.nodeType !== 1 || newNode.nodeType !== 1) {
+    return;
+  }
   if (newNode._fezKey !== undefined) {
     oldNode._fezKey = newNode._fezKey;
   } else {
@@ -120,12 +123,8 @@ function syncInternalKeys(oldNode, newNode) {
  * Sync classes using classList.add/remove to preserve CSS animations.
  */
 function syncClassList(oldNode, newNode) {
-  const oldClasses = new Set(
-    (oldNode.getAttribute("class") || "").split(/\s+/).filter(Boolean),
-  );
-  const newClasses = new Set(
-    (newNode.getAttribute("class") || "").split(/\s+/).filter(Boolean),
-  );
+  const oldClasses = new Set((oldNode.getAttribute('class') || '').split(/\s+/).filter(Boolean));
+  const newClasses = new Set((newNode.getAttribute('class') || '').split(/\s+/).filter(Boolean));
 
   for (const cls of oldClasses) {
     if (!newClasses.has(cls)) {
@@ -141,7 +140,7 @@ function syncClassList(oldNode, newNode) {
 
 function isFormInput(node) {
   const tag = node.nodeName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
 }
 
 // ---------------------------------------------------------------------------
@@ -153,25 +152,35 @@ function isFormInput(node) {
  * Returns { key, preserve } or null.
  */
 function builtinKey(node) {
-  if (node.nodeType !== 1) return null;
+  if (node.nodeType !== 1) {
+    return null;
+  }
 
-  const keepKey = node.getAttribute?.("fez-keep");
-  if (keepKey) return { key: "keep-" + keepKey, preserve: true };
+  const keepKey = node.getAttribute?.('fez-keep');
+  if (keepKey) {
+    return { key: 'keep-' + keepKey, preserve: true };
+  }
 
   if (node._fezKey !== undefined) {
-    return { key: "key-" + node._fezKey, preserve: false };
+    return { key: 'key-' + node._fezKey, preserve: false };
   }
 
   // Attribute form: compiled templates promote fez-key to _fezKey before the
   // morph, so this only fires for server-rendered HTML (pjax swaps).
-  const fezKey = node.getAttribute?.("fez-key");
-  if (fezKey) return { key: "key-" + fezKey, preserve: false };
+  const fezKey = node.getAttribute?.('fez-key');
+  if (fezKey) {
+    return { key: 'key-' + fezKey, preserve: false };
+  }
 
-  const key = node.getAttribute?.("key");
-  if (key) return { key: "key-" + key, preserve: false };
+  const key = node.getAttribute?.('key');
+  if (key) {
+    return { key: 'key-' + key, preserve: false };
+  }
 
   const id = node.id;
-  if (id) return { key: "id-" + id, preserve: false };
+  if (id) {
+    return { key: 'id-' + id, preserve: false };
+  }
 
   return null;
 }
@@ -183,7 +192,9 @@ function builtinKey(node) {
 function describeOld(node, opts) {
   if (opts.describeOld) {
     const d = opts.describeOld(node);
-    if (d) return d;
+    if (d) {
+      return d;
+    }
   }
   return builtinKey(node);
 }
@@ -195,7 +206,9 @@ function describeOld(node, opts) {
 function describeNewKey(node, opts) {
   if (opts.describeNew) {
     const k = opts.describeNew(node);
-    if (k) return k;
+    if (k) {
+      return k;
+    }
   }
   const b = builtinKey(node);
   return b ? b.key : null;
@@ -211,7 +224,9 @@ function diffChildren(target, newParent, opts) {
   const oldChildren = Array.from(target.childNodes).filter(isLive);
   const newChildren = Array.from(newParent.childNodes);
 
-  if (oldChildren.length === 0 && newChildren.length === 0) return;
+  if (oldChildren.length === 0 && newChildren.length === 0) {
+    return;
+  }
 
   // Fast path: no old children, just append all new
   if (oldChildren.length === 0) {
@@ -234,12 +249,16 @@ function diffChildren(target, newParent, opts) {
   const oldByKey = new Map();
   const oldDescriptors = new Map(); // node -> descriptor
   const addOldKey = (key, child) => {
-    if (!oldByKey.has(key)) oldByKey.set(key, []);
+    if (!oldByKey.has(key)) {
+      oldByKey.set(key, []);
+    }
     oldByKey.get(key).push(child);
   };
   for (const child of oldChildren) {
     const desc = describeOld(child, opts);
-    if (!desc) continue;
+    if (!desc) {
+      continue;
+    }
     oldDescriptors.set(child, desc);
     addOldKey(desc.key, child);
     if (desc.aliases) {
@@ -293,14 +312,18 @@ function diffChildren(target, newParent, opts) {
   const candidates = [];
 
   for (let i = 0; i < matches.length; i++) {
-    if (matches[i].old) continue; // already matched
+    if (matches[i].old) {
+      continue;
+    } // already matched
 
     const newChild = matches[i].new;
     // Don't soft-match new nodes that have a preserve key (e.g. fez-keep).
     // They were keyed for an exact match; soft-matching by tag would be wrong.
     if (newChild.nodeType === 1) {
       const b = builtinKey(newChild);
-      if (b?.preserve) continue;
+      if (b?.preserve) {
+        continue;
+      }
     }
 
     for (let j = 0; j < unmatchedOld.length; j++) {
@@ -308,8 +331,12 @@ function diffChildren(target, newParent, opts) {
       // Caller can opt nodes out of soft-matching (e.g. fez components, fez-keep)
       if (candidate.nodeType === 1) {
         const desc = oldDescriptors.get(candidate);
-        if (desc?.preserve) continue;
-        if (desc && desc.softMatch === false) continue;
+        if (desc?.preserve) {
+          continue;
+        }
+        if (desc && desc.softMatch === false) {
+          continue;
+        }
       }
       const score = scoreSoftMatch(candidate, newChild);
       if (score > 0) {
@@ -325,7 +352,9 @@ function diffChildren(target, newParent, opts) {
   const usedOldIdx = new Set();
   const assignedMatch = new Set();
   for (const c of candidates) {
-    if (assignedMatch.has(c.matchIdx) || usedOldIdx.has(c.oldIdx)) continue;
+    if (assignedMatch.has(c.matchIdx) || usedOldIdx.has(c.oldIdx)) {
+      continue;
+    }
     matches[c.matchIdx].old = unmatchedOld[c.oldIdx];
     usedOld.add(unmatchedOld[c.oldIdx]);
     usedOldIdx.add(c.oldIdx);
@@ -357,7 +386,9 @@ function diffChildren(target, newParent, opts) {
           cursor = nextLive(newChild.nextSibling);
           continue;
         }
-        if (opts.onPreserve) opts.onPreserve(oldChild, newChild);
+        if (opts.onPreserve) {
+          opts.onPreserve(oldChild, newChild);
+        }
         syncInternalKeys(oldChild, newChild);
         // preserve entirely, just ensure position
         if (oldChild !== cursor) {
@@ -419,42 +450,51 @@ function diffChildren(target, newParent, opts) {
 }
 
 function syncDomProperties(oldNode, newNode) {
-  if (oldNode.nodeType !== 1 || newNode.nodeType !== 1) return;
-
-  const isActiveInput =
-    oldNode === document.activeElement && isFormInput(oldNode);
-  const tag = oldNode.nodeName;
-
-  if ("disabled" in oldNode) {
-    syncBooleanProperty(oldNode, newNode, "disabled");
+  if (oldNode.nodeType !== 1 || newNode.nodeType !== 1) {
+    return;
   }
 
-  if (tag === "INPUT") {
-    const type = (oldNode.getAttribute("type") || "").toLowerCase();
-    if (!isActiveInput && newNode.hasAttribute("value")) {
-      oldNode.value = newNode.getAttribute("value");
+  const isActiveInput = oldNode === document.activeElement && isFormInput(oldNode);
+  const tag = oldNode.nodeName;
+
+  if ('disabled' in oldNode) {
+    syncBooleanProperty(oldNode, newNode, 'disabled');
+  }
+
+  if (tag === 'INPUT') {
+    const type = (oldNode.getAttribute('type') || '').toLowerCase();
+    if (!isActiveInput && newNode.hasAttribute('value')) {
+      oldNode.value = newNode.getAttribute('value');
     }
-    if (!isActiveInput && (type === "checkbox" || type === "radio")) {
-      syncBooleanProperty(oldNode, newNode, "checked");
+    if (!isActiveInput && (type === 'checkbox' || type === 'radio')) {
+      syncBooleanProperty(oldNode, newNode, 'checked');
     }
-  } else if (tag === "TEXTAREA") {
-    if (!isActiveInput) oldNode.value = newNode.value;
-  } else if (tag === "SELECT") {
-    if (!isActiveInput) oldNode.value = newNode.value;
-  } else if (tag === "OPTION") {
-    syncBooleanProperty(oldNode, newNode, "selected");
+  } else if (tag === 'TEXTAREA') {
+    if (!isActiveInput) {
+      oldNode.value = newNode.value;
+    }
+  } else if (tag === 'SELECT') {
+    if (!isActiveInput) {
+      oldNode.value = newNode.value;
+    }
+  } else if (tag === 'OPTION') {
+    syncBooleanProperty(oldNode, newNode, 'selected');
   }
 }
 
 function booleanAttrEnabled(node, attr) {
-  if (!node.hasAttribute(attr)) return false;
-  return !["false", "null", "undefined"].includes(node.getAttribute(attr));
+  if (!node.hasAttribute(attr)) {
+    return false;
+  }
+  return !['false', 'null', 'undefined'].includes(node.getAttribute(attr));
 }
 
 function syncBooleanProperty(oldNode, newNode, attr) {
   const enabled = booleanAttrEnabled(newNode, attr);
   oldNode[attr] = enabled;
-  if (!enabled) oldNode.removeAttribute(attr);
+  if (!enabled) {
+    oldNode.removeAttribute(attr);
+  }
 }
 
 /**
@@ -469,17 +509,25 @@ function syncBooleanProperty(oldNode, newNode, attr) {
  *  +2  for same number of attributes
  */
 function getClassSet(node) {
-  if (node._morphClassSet) return node._morphClassSet;
-  const raw = node.getAttribute?.("class");
+  if (node._morphClassSet) {
+    return node._morphClassSet;
+  }
+  const raw = node.getAttribute?.('class');
   const result = raw ? new Set(raw.split(/\s+/).filter(Boolean)) : null;
   node._morphClassSet = result;
   return result;
 }
 
 function scoreSoftMatch(oldNode, newNode) {
-  if (oldNode.nodeType !== newNode.nodeType) return 0;
-  if (oldNode.nodeType !== 1) return 1;
-  if (oldNode.nodeName !== newNode.nodeName) return 0;
+  if (oldNode.nodeType !== newNode.nodeType) {
+    return 0;
+  }
+  if (oldNode.nodeType !== 1) {
+    return 1;
+  }
+  if (oldNode.nodeName !== newNode.nodeName) {
+    return 0;
+  }
 
   let score = 1;
 
@@ -487,7 +535,9 @@ function scoreSoftMatch(oldNode, newNode) {
   const newSet = getClassSet(newNode);
   if (oldSet && newSet) {
     for (const cls of newSet) {
-      if (oldSet.has(cls)) score += 3;
+      if (oldSet.has(cls)) {
+        score += 3;
+      }
     }
   } else if (!oldSet && !newSet) {
     score += 1;
@@ -508,10 +558,12 @@ function scoreSoftMatch(oldNode, newNode) {
  * Call beforeRemove on a node and all fez components inside it.
  */
 function callBeforeRemoveDeep(node, opts) {
-  if (!opts.beforeRemove) return;
+  if (!opts.beforeRemove) {
+    return;
+  }
   opts.beforeRemove(node);
   if (node.querySelectorAll) {
-    node.querySelectorAll(".fez").forEach((child) => {
+    node.querySelectorAll('.fez').forEach((child) => {
       opts.beforeRemove(child);
     });
   }
@@ -539,7 +591,9 @@ function isLive(node) {
 
 /** First node at or after `node` that is not mid-outro. */
 function nextLive(node) {
-  while (node && node._fezLeaving) node = node.nextSibling;
+  while (node && node._fezLeaving) {
+    node = node.nextSibling;
+  }
   return node;
 }
 

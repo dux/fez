@@ -10,32 +10,34 @@
 // Nesting is now the browser's job. Component CSS is already scoped by the
 // .fez.fez-<name> selector the compiler emits, so the text can go in verbatim.
 
-const injected = new Set()
-const chunks = []
+const injected = new Set();
+const chunks = [];
 
-let sheet = null
+let sheet = null;
 
 // FNV-ish rolling hash - collision odds are irrelevant here, we only need a
 // stable key per distinct stylesheet
 export const cssHash = (text) => {
-  let hash = 11
+  let hash = 11;
   for (let i = 0; i < text.length; i++) {
-    hash = (101 * hash + text.charCodeAt(i)) >>> 0
+    hash = (101 * hash + text.charCodeAt(i)) >>> 0;
   }
-  return 'fez-' + hash.toString(36)
-}
+  return 'fez-' + hash.toString(36);
+};
 
 const styleNode = () => {
-  if (sheet && sheet.isConnected !== false) return sheet
-
-  sheet = document.getElementById('fez-css')
-  if (!sheet) {
-    sheet = document.createElement('style')
-    sheet.id = 'fez-css'
-    document.head.appendChild(sheet)
+  if (sheet && sheet.isConnected !== false) {
+    return sheet;
   }
-  return sheet
-}
+
+  sheet = document.getElementById('fez-css');
+  if (!sheet) {
+    sheet = document.createElement('style');
+    sheet.id = 'fez-css';
+    document.head.appendChild(sheet);
+  }
+  return sheet;
+};
 
 /**
  * Append CSS to the shared stylesheet. Repeat calls with identical text are
@@ -44,24 +46,26 @@ const styleNode = () => {
  * @returns {string} stable key for this text
  */
 export const injectCss = (text) => {
-  const key = cssHash(text)
-  if (injected.has(key)) return key
-  injected.add(key)
-  chunks.push(text)
+  const key = cssHash(text);
+  if (injected.has(key)) {
+    return key;
+  }
+  injected.add(key);
+  chunks.push(text);
 
   // No DOM (unit tests) - the hash is still a useful return value
   try {
-    const node = styleNode()
-    node.textContent = `${node.textContent || ''}${text}\n`
+    const node = styleNode();
+    node.textContent = `${node.textContent || ''}${text}\n`;
   } catch {}
 
-  return key
-}
+  return key;
+};
 
 /**
  * Everything injected so far, in injection order. Useful for SSR and tests.
  * @returns {string}
  */
-export const extractCss = () => chunks.join('\n')
+export const extractCss = () => chunks.join('\n');
 
-export default injectCss
+export default injectCss;

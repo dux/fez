@@ -259,7 +259,8 @@ describe('PjaxOnClick', () => {
   });
 
   test('opens links with target attribute in named window', () => {
-    document.body.innerHTML = '<a href="mailto:test@x.com" target="_blank" id="target-link">Mail</a>';
+    document.body.innerHTML =
+      '<a href="mailto:test@x.com" target="_blank" id="target-link">Mail</a>';
 
     let opened = null;
     let openedTarget = null;

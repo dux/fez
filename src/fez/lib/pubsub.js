@@ -17,11 +17,11 @@
 // =============================================================================
 
 // Global subscriptions: channel -> Set of { selector, node, callback }
-const globalSubs = new Map()
+const globalSubs = new Map();
 
 // Component subscriptions: channel -> [[component, callback], ...]
 // Used for parent-child bubbling (this.publish)
-const componentSubs = {}
+const componentSubs = {};
 
 // =============================================================================
 // GLOBAL PUB/SUB
@@ -41,43 +41,43 @@ const componentSubs = {}
  *   subscribe(document.body, 'resize', () => ...)
  */
 function subscribe(nodeOrSelector, channelOrCallback, callback) {
-  let selector = null
-  let node = null
-  let channel
+  let selector = null;
+  let node = null;
+  let channel;
 
   // Normalize arguments
   if (typeof channelOrCallback === 'function') {
     // subscribe('event', callback)
-    channel = nodeOrSelector
-    callback = channelOrCallback
+    channel = nodeOrSelector;
+    callback = channelOrCallback;
   } else {
     // subscribe(node/selector, 'event', callback)
-    channel = channelOrCallback
+    channel = channelOrCallback;
     if (typeof nodeOrSelector === 'string') {
-      selector = nodeOrSelector  // Store selector, resolve at publish time
+      selector = nodeOrSelector; // Store selector, resolve at publish time
     } else {
-      node = nodeOrSelector  // Store node reference
+      node = nodeOrSelector; // Store node reference
     }
   }
 
   if (!globalSubs.has(channel)) {
-    globalSubs.set(channel, new Set())
+    globalSubs.set(channel, new Set());
   }
 
-  const channelSubs = globalSubs.get(channel)
+  const channelSubs = globalSubs.get(channel);
 
   // Remove duplicate (same selector/node + callback)
   for (const sub of channelSubs) {
     if (sub.callback === callback && sub.selector === selector && sub.node === node) {
-      channelSubs.delete(sub)
+      channelSubs.delete(sub);
     }
   }
 
-  const subscription = { selector, node, callback }
-  channelSubs.add(subscription)
+  const subscription = { selector, node, callback };
+  channelSubs.add(subscription);
 
   // Return unsubscribe function
-  return () => channelSubs.delete(subscription)
+  return () => channelSubs.delete(subscription);
 }
 
 /**
@@ -87,29 +87,31 @@ function subscribe(nodeOrSelector, channelOrCallback, callback) {
  * @param {...any} args - Arguments to pass to callbacks
  */
 function publish(channel, ...args) {
-  const channelSubs = globalSubs.get(channel)
+  const channelSubs = globalSubs.get(channel);
   if (channelSubs) {
     for (const sub of channelSubs) {
-      let target = null
+      let target = null;
 
       if (sub.selector) {
         // Resolve selector at publish time
-        target = document.querySelector(sub.selector)
-        if (!target) continue  // Skip if not found
+        target = document.querySelector(sub.selector);
+        if (!target) {
+          continue;
+        } // Skip if not found
       } else if (sub.node) {
         // Check node connection
         if (!sub.node.isConnected) {
-          channelSubs.delete(sub)  // Auto-cleanup disconnected
-          continue
+          channelSubs.delete(sub); // Auto-cleanup disconnected
+          continue;
         }
-        target = sub.node
+        target = sub.node;
       }
 
       // Call with target as context (or null for global)
       try {
-        sub.callback.call(target, ...args)
+        sub.callback.call(target, ...args);
       } catch (e) {
-        console.error(`Fez pubsub error on "${channel}":`, e)
+        console.error(`Fez pubsub error on "${channel}":`, e);
       }
     }
   }
@@ -118,9 +120,9 @@ function publish(channel, ...args) {
   if (componentSubs[channel]) {
     componentSubs[channel].forEach(([comp, cb]) => {
       if (comp.isConnected) {
-        cb.bind(comp)(...args)
+        cb.bind(comp)(...args);
       }
-    })
+    });
   }
 }
 
@@ -138,20 +140,20 @@ function publish(channel, ...args) {
  * @returns {Function} Unsubscribe function
  */
 function componentSubscribe(component, channel, callback) {
-  componentSubs[channel] ||= []
+  componentSubs[channel] ||= [];
 
   // Clean up disconnected components
-  componentSubs[channel] = componentSubs[channel].filter(([comp]) => comp.isConnected)
+  componentSubs[channel] = componentSubs[channel].filter(([comp]) => comp.isConnected);
 
   // Add subscription
-  componentSubs[channel].push([component, callback])
+  componentSubs[channel].push([component, callback]);
 
   // Return unsubscribe function
   return () => {
     componentSubs[channel] = componentSubs[channel].filter(
-      ([comp, cb]) => !(comp === component && cb === callback)
-    )
-  }
+      ([comp, cb]) => !(comp === component && cb === callback),
+    );
+  };
 }
 
 /**
@@ -166,43 +168,36 @@ function componentSubscribe(component, channel, callback) {
 function componentPublish(component, channel, ...args) {
   const handlePublish = (comp) => {
     if (componentSubs[channel]) {
-      const sub = componentSubs[channel].find(([c]) => c === comp)
+      const sub = componentSubs[channel].find(([c]) => c === comp);
       if (sub) {
-        sub[1].bind(comp)(...args)
-        return true
+        sub[1].bind(comp)(...args);
+        return true;
       }
     }
-    return false
-  }
+    return false;
+  };
 
   // Check current component first
   if (handlePublish(component)) {
-    return true
+    return true;
   }
 
   // Bubble up to parent components
-  let parent = component.root?.parentElement
+  let parent = component.root?.parentElement;
   while (parent) {
     if (parent.fez) {
       if (handlePublish(parent.fez)) {
-        return true
+        return true;
       }
     }
-    parent = parent.parentElement
+    parent = parent.parentElement;
   }
 
-  return false
+  return false;
 }
 
 // =============================================================================
 // EXPORTS
 // =============================================================================
 
-export {
-  subscribe,
-  publish,
-  componentSubscribe,
-  componentPublish,
-  globalSubs,
-  componentSubs
-}
+export { subscribe, publish, componentSubscribe, componentPublish, globalSubs, componentSubs };

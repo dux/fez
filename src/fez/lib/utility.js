@@ -20,21 +20,21 @@ export default (Fez) => {
   //   Fez.head(domNode)
   Fez.head = (config, callback) => {
     if (config.nodeName) {
-      if (config.nodeName == "SCRIPT") {
+      if (config.nodeName == 'SCRIPT') {
         Fez.head({ script: config.innerText });
         config.remove();
       } else {
-        config.querySelectorAll("script").forEach((n) => Fez.head(n));
+        config.querySelectorAll('script').forEach((n) => Fez.head(n));
         config
-          .querySelectorAll("template[fez], xmp[fez], script[fez]")
+          .querySelectorAll('template[fez], xmp[fez], script[fez]')
           .forEach((n) => Fez.compile(n));
       }
 
       return;
     }
 
-    if (typeof config !== "object" || config === null) {
-      throw new Error("head requires an object parameter");
+    if (typeof config !== 'object' || config === null) {
+      throw new Error('head requires an object parameter');
     }
 
     let src,
@@ -50,16 +50,16 @@ export default (Fez) => {
       const fezPath = config.fez;
 
       // If it's a txt file, load it as a component list
-      if (fezPath.endsWith(".txt")) {
+      if (fezPath.endsWith('.txt')) {
         Fez.fetch(fezPath).then((content) => {
           // Get base path from txt file location
-          const basePath = fezPath.substring(0, fezPath.lastIndexOf("/") + 1);
+          const basePath = fezPath.substring(0, fezPath.lastIndexOf('/') + 1);
 
           // Parse lines, filter empty lines and comments
           const lines = content
-            .split("\n")
+            .split('\n')
             .map((line) => line.trim())
-            .filter((line) => line && !line.startsWith("#"));
+            .filter((line) => line && !line.startsWith('#'));
 
           // Load each component
           let loaded = 0;
@@ -70,21 +70,23 @@ export default (Fez) => {
             // - If starts with /, it's absolute from root
             // - Otherwise, relative to txt file location
             let componentPath;
-            if (line.startsWith("/")) {
+            if (line.startsWith('/')) {
               componentPath = line;
             } else {
               // Add .fez extension if not present
-              const path = line.endsWith(".fez") ? line : line + ".fez";
+              const path = line.endsWith('.fez') ? line : line + '.fez';
               componentPath = basePath + path;
             }
 
             // Extract component name from path
-            const name = componentPath.split("/").pop().split(".")[0];
+            const name = componentPath.split('/').pop().split('.')[0];
 
             Fez.fetch(componentPath).then((componentContent) => {
               Fez.compile(name, componentContent);
               loaded++;
-              if (loaded === total && callback) callback();
+              if (loaded === total && callback) {
+                callback();
+              }
             });
           });
         });
@@ -93,58 +95,64 @@ export default (Fez) => {
 
       // Single .fez component
       Fez.fetch(fezPath).then((content) => {
-        const name = fezPath.split("/").pop().split(".")[0];
+        const name = fezPath.split('/').pop().split('.')[0];
         Fez.compile(name, content);
-        if (callback) callback();
+        if (callback) {
+          callback();
+        }
       });
       return;
     }
 
     if (config.script) {
-      if (config.script.includes("import ")) {
+      if (config.script.includes('import ')) {
         // Evaluate inline script in module context.
         // The module's import graph resolves asynchronously - fire callback
         // on the script element's load/error events so callers know when
         // top-level code has actually run.
-        const script = document.createElement("script");
-        script.type = "module";
+        const script = document.createElement('script');
+        script.type = 'module';
         script.textContent = config.script;
         if (callback) {
-          script.addEventListener("load", () => callback(null));
-          script.addEventListener("error", (e) => callback(e?.error || new Error("module script error")));
+          script.addEventListener('load', () => callback(null));
+          script.addEventListener('error', (e) =>
+            callback(e?.error || new Error('module script error')),
+          );
         }
         document.head.appendChild(script);
         requestAnimationFrame(() => script.remove());
       } else {
         try {
           new Function(config.script)();
-          if (callback) callback();
+          if (callback) {
+            callback();
+          }
         } catch (error) {
-          Fez.consoleError("Error executing script:", error);
+          Fez.consoleError('Error executing script:', error);
           console.log(config.script);
         }
       }
       return;
     } else if (config.js) {
       src = config.js;
-      elementType = "script";
+      elementType = 'script';
       // Copy all properties except 'js' as attributes
       for (const [key, value] of Object.entries(config)) {
-        if (key !== "js" && key !== "module") {
+        if (key !== 'js' && key !== 'module') {
           attributes[key] = value;
         }
       }
       // Handle module loading
       if (config.module) {
-        attributes.type = "module";
+        attributes.type = 'module';
       }
     } else if (config.css) {
       src = config.css;
-      elementType = "link";
-      attributes.rel = "stylesheet";
+      elementType = 'link';
+      attributes.rel = 'stylesheet';
       // Copy all properties except 'css' as attributes
       for (const [key, value] of Object.entries(config)) {
-        if (key !== "css") {
+        if (key !== 'css') {
           attributes[key] = value;
         }
       }
@@ -156,13 +164,15 @@ export default (Fez) => {
       `${elementType}[src="${src}"], ${elementType}[href="${src}"]`,
     );
     if (existingNode) {
-      if (callback) callback();
+      if (callback) {
+        callback();
+      }
       return existingNode;
     }
 
     const element = document.createElement(elementType);
 
-    if (elementType === "link") {
+    if (elementType === 'link') {
       element.href = src;
     } else {
       element.src = src;
@@ -175,17 +185,18 @@ export default (Fez) => {
     if (callback || config.module) {
       element.onload = () => {
         // If module name is provided, import it and assign to window
-        if (config.module && elementType === "script") {
+        if (config.module && elementType === 'script') {
           import(src)
             .then((module) => {
-              window[config.module] =
-                module.default || module[config.module] || module;
+              window[config.module] = module.default || module[config.module] || module;
             })
             .catch((error) => {
               console.error(`Error importing module ${config.module}:`, error);
             });
         }
-        if (callback) callback();
+        if (callback) {
+          callback();
+        }
       };
     }
 
@@ -213,12 +224,12 @@ export default (Fez) => {
     // Initialize cache if not exists
     Fez._fetchCache ||= new Map();
 
-    let method = "GET";
+    let method = 'GET';
     let url;
     let callback;
 
     // Check if first arg is HTTP method (uppercase letters)
-    if (typeof args[0] === "string" && /^[A-Z]+$/.test(args[0])) {
+    if (typeof args[0] === 'string' && /^[A-Z]+$/.test(args[0])) {
       method = args.shift();
     }
 
@@ -226,24 +237,24 @@ export default (Fez) => {
     url = args.shift();
 
     // Check for data/options object
-    let opts = {};
+    const opts = {};
     let data = null;
-    if (typeof args[0] === "object") {
+    if (typeof args[0] === 'object') {
       data = args.shift();
     }
 
     // Check for callback function
-    if (typeof args[0] === "function") {
+    if (typeof args[0] === 'function') {
       callback = args.shift();
     }
 
     // Handle data based on method
     if (data) {
-      if (method === "GET") {
+      if (method === 'GET') {
         // For GET, append data as query parameters
         const params = new URLSearchParams(data);
-        url += (url.includes("?") ? "&" : "?") + params.toString();
-      } else if (method === "POST") {
+        url += (url.includes('?') ? '&' : '?') + params.toString();
+      } else if (method === 'POST') {
         // For POST, convert to FormData
         const formData = new FormData();
         for (const [key, value] of Object.entries(data)) {
@@ -257,7 +268,7 @@ export default (Fez) => {
     opts.method = method;
 
     // mark as a programmatic request so the server's request.xhr? is reliable
-    opts.headers = { "x-requested-with": "XMLHttpRequest", ...opts.headers };
+    opts.headers = { 'x-requested-with': 'XMLHttpRequest', ...opts.headers };
 
     // Create cache key from method, url, and stringified opts
     const cacheKey = `${method}:${url}:${JSON.stringify(opts)}`;
@@ -266,7 +277,7 @@ export default (Fez) => {
     // (FormData) is not captured by cacheKey - JSON.stringify(opts) drops it -
     // so caching or sharing a POST would silently return a stale response and
     // swallow later submissions. POSTs must always hit the network.
-    const isGet = method === "GET";
+    const isGet = method === 'GET';
 
     // Check cache first (with TTL validation)
     const cached = isGet ? Fez._fetchCache.get(cacheKey) : null;
@@ -281,7 +292,7 @@ export default (Fez) => {
 
     // Helper to process and cache response
     const processResponse = (response) => {
-      if (response.headers.get("content-type")?.includes("application/json")) {
+      if (response.headers.get('content-type')?.includes('application/json')) {
         return response.json();
       }
       return response.text();
@@ -314,7 +325,9 @@ export default (Fez) => {
       request = fetch(url, opts)
         .then(processResponse)
         .then((data) => {
-          if (isGet) storeInCache(cacheKey, data);
+          if (isGet) {
+            storeInCache(cacheKey, data);
+          }
           return data;
         });
 
@@ -330,9 +343,7 @@ export default (Fez) => {
 
     // If callback provided, execute and handle
     if (callback) {
-      request
-        .then((data) => callback(data))
-        .catch((error) => Fez.onError("fetch", error));
+      request.then((data) => callback(data)).catch((error) => Fez.onError('fetch', error));
       return;
     }
 
@@ -348,13 +359,13 @@ export default (Fez) => {
 
   Fez.darkenColor = (color, percent = 20) => {
     // Convert hex to RGB
-    const num = parseInt(color.replace("#", ""), 16);
+    const num = parseInt(color.replace('#', ''), 16);
     const amt = Math.round(2.55 * percent);
     const R = (num >> 16) - amt;
     const G = ((num >> 8) & 0x00ff) - amt;
     const B = (num & 0x0000ff) - amt;
     return (
-      "#" +
+      '#' +
       (
         0x1000000 +
         (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
@@ -368,13 +379,13 @@ export default (Fez) => {
 
   Fez.lightenColor = (color, percent = 20) => {
     // Convert hex to RGB
-    const num = parseInt(color.replace("#", ""), 16);
+    const num = parseInt(color.replace('#', ''), 16);
     const amt = Math.round(2.55 * percent);
     const R = (num >> 16) + amt;
     const G = ((num >> 8) & 0x00ff) + amt;
     const B = (num & 0x0000ff) + amt;
     return (
-      "#" +
+      '#' +
       (
         0x1000000 +
         (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
@@ -391,20 +402,20 @@ export default (Fez) => {
    * Also strips font-family styles (common source of XSS via CSS)
    */
   Fez.htmlEscape = (text) => {
-    if (typeof text === "string") {
+    if (typeof text === 'string') {
       return text
-        .replace(/font-family\s*:\s*(?:&[^;]+;|[^;])*?;/gi, "") // Strip font-family (CSS safety)
-        .replaceAll("&", "&amp;")
-        .replaceAll("'", "&apos;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;");
+        .replace(/font-family\s*:\s*(?:&[^;]+;|[^;])*?;/gi, '') // Strip font-family (CSS safety)
+        .replaceAll('&', '&amp;')
+        .replaceAll("'", '&apos;')
+        .replaceAll('"', '&quot;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
     }
-    return text === undefined ? "" : text;
+    return text === undefined ? '' : text;
   };
 
   // create dom root and return it
-  Fez.domRoot = (data, name = "div") => {
+  Fez.domRoot = (data, name = 'div') => {
     if (data instanceof Node) {
       return data;
     } else {
@@ -415,8 +426,10 @@ export default (Fez) => {
   };
 
   // add class by name to node and remove it from siblings
-  Fez.activateNode = (node, klass = "active") => {
-    if (!node || !node.parentElement) return;
+  Fez.activateNode = (node, klass = 'active') => {
+    if (!node || !node.parentElement) {
+      return;
+    }
     Array.from(node.parentElement.children).forEach((child) => {
       child.classList.remove(klass);
     });
@@ -424,13 +437,13 @@ export default (Fez) => {
   };
 
   Fez.isTrue = (val) => {
-    return ["1", "true", "on"].includes(String(val).toLowerCase());
+    return ['1', 'true', 'on'].includes(String(val).toLowerCase());
   };
 
   // public utility - do not remove
   Fez.uid = (() => {
     let seq = 111;
-    return () => "fez_uid_" + (++seq).toString(32);
+    return () => 'fez_uid_' + (++seq).toString(32);
   })();
 
   // get global function pointer, used to pass functions to nested or inline elements
@@ -441,7 +454,7 @@ export default (Fez) => {
   Fez.POINTER = {};
   Fez.POINTER_CREATED = {};
   Fez.pointer = (func, opts = {}) => {
-    if (typeof func == "function") {
+    if (typeof func === 'function') {
       const uid = ++Fez.POINTER_SEQ;
 
       if (opts.persist) {
@@ -476,17 +489,17 @@ export default (Fez) => {
   Fez.getFunction = (pointer) => {
     if (!pointer) {
       return () => {};
-    } else if (typeof pointer === "function") {
+    } else if (typeof pointer === 'function') {
       return pointer;
-    } else if (typeof pointer === "string") {
+    } else if (typeof pointer === 'string') {
       // Check if it's a function expression (arrow function or function keyword)
       // Arrow function: (args) => or args =>
       const arrowFuncPattern = /^\s*\(?\s*\w+(\s*,\s*\w+)*\s*\)?\s*=>/;
       const functionPattern = /^\s*function\s*\(/;
 
       if (arrowFuncPattern.test(pointer) || functionPattern.test(pointer)) {
-        return new Function("return " + pointer)();
-      } else if (pointer.includes(".") && !pointer.includes("(")) {
+        return new Function('return ' + pointer)();
+      } else if (pointer.includes('.') && !pointer.includes('(')) {
         // It's a property access like "this.focus" - return a function that calls it
         return new Function(`return function() { return ${pointer}(); }`);
       } else {
@@ -498,9 +511,9 @@ export default (Fez) => {
 
   // Execute a function when DOM is ready or immediately if already loaded
   Fez.onReady = (callback) => {
-    if (document.readyState === "loading") {
+    if (document.readyState === 'loading') {
       document.addEventListener(
-        "DOMContentLoaded",
+        'DOMContentLoaded',
         () => {
           callback();
         },
@@ -513,14 +526,14 @@ export default (Fez) => {
 
   // get unique id from string
   Fez.fnv1 = (str) => {
-    let FNV_OFFSET_BASIS = 2166136261;
-    let FNV_PRIME = 16777619;
+    const FNV_OFFSET_BASIS = 2166136261;
+    const FNV_PRIME = 16777619;
     let hash = FNV_OFFSET_BASIS;
     for (let i = 0; i < str.length; i++) {
       hash ^= str.charCodeAt(i);
       hash *= FNV_PRIME;
     }
-    return hash.toString(36).replaceAll("-", "");
+    return hash.toString(36).replaceAll('-', '');
   };
 
   // execute function until it returns true
@@ -564,8 +577,12 @@ export default (Fez) => {
   // Enhanced truthiness check for template conditionals (#if, #unless)
   // Empty arrays and empty objects are falsy, everything else uses standard JS truthiness
   Fez.isTruthy = (v) => {
-    if (Array.isArray(v)) return v.length > 0;
-    if (v && typeof v === "object") return Object.keys(v).length > 0;
+    if (Array.isArray(v)) {
+      return v.length > 0;
+    }
+    if (v && typeof v === 'object') {
+      return Object.keys(v).length > 0;
+    }
     return !!v;
   };
 
@@ -573,26 +590,42 @@ export default (Fez) => {
   // Array: ['a', 'b'] → [['a', 0], ['b', 1]] (value, index)
   // Object: {x: 1} → [['x', 1]] (key, value)
   Fez.toPairs = (c) => {
-    if (Array.isArray(c)) return c.map((v, i) => [v, i]);
-    if (c && typeof c === "object") return Object.entries(c);
+    if (Array.isArray(c)) {
+      return c.map((v, i) => [v, i]);
+    }
+    if (c && typeof c === 'object') {
+      return Object.entries(c);
+    }
     return [];
   };
 
   // public utility - do not remove
-  Fez.tag = (tag, opts = {}, html = "") => {
+  Fez.tag = (tag, opts = {}, html = '') => {
     const json = encodeURIComponent(JSON.stringify(opts));
     return `<${tag} data-props="${json}">${html}</${tag}>`;
   };
 
   // public utility - do not remove
   Fez.typeof = (data) => {
-    if (data === null || data === undefined) return "u";
-    if (Array.isArray(data)) return "a";
+    if (data === null || data === undefined) {
+      return 'u';
+    }
+    if (Array.isArray(data)) {
+      return 'a';
+    }
     const t = typeof data;
-    if (t === "function") return "f";
-    if (t === "string") return "s";
-    if (t === "number") return Number.isInteger(data) ? "i" : "n";
-    if (t === "object") return "o";
+    if (t === 'function') {
+      return 'f';
+    }
+    if (t === 'string') {
+      return 's';
+    }
+    if (t === 'number') {
+      return Number.isInteger(data) ? 'i' : 'n';
+    }
+    if (t === 'object') {
+      return 'o';
+    }
     return t[0];
   };
 };

@@ -56,7 +56,9 @@ const Fez = (name, klass) => {
   // Find by UID
   if (typeof name === 'number') {
     const fez = Fez.instances.get(name);
-    if (fez) return fez;
+    if (fez) {
+      return fez;
+    }
     Fez.onError(
       'lookup',
       `Instance with UID "${name}" not found. Component may have been destroyed or never created.`,
@@ -151,12 +153,16 @@ Fez.find = (onode, name) => {
   let node = typeof onode === 'string' ? document.body.querySelector(onode) : onode;
 
   // jQuery compatibility
-  if (typeof node.val === 'function') node = node[0];
+  if (typeof node.val === 'function') {
+    node = node[0];
+  }
 
   const selector = name ? `.fez.fez-${name}` : '.fez';
   const closestNode = node.closest(selector);
 
-  if (closestNode?.fez) return closestNode.fez;
+  if (closestNode?.fez) {
+    return closestNode.fez;
+  }
 
   Fez.onError('find', `Node connector not found. Selector: "${selector}", node: ${onode}`, {
     original: onode,
@@ -193,14 +199,18 @@ Fez.extractCss = extractCss;
  * @returns {string} Generated class name
  */
 Fez.globalCss = (cssClass, opts = {}) => {
-  if (typeof cssClass === 'function') cssClass = cssClass();
+  if (typeof cssClass === 'function') {
+    cssClass = cssClass();
+  }
 
   let text = cssClass
     .split('\n')
     .filter((line) => !/^\s*\/\//.test(line))
     .join('\n');
 
-  if (opts.wrap) text = `:fez { ${text} }`;
+  if (opts.wrap) {
+    text = `:fez { ${text} }`;
+  }
 
   // Expand style macros here rather than at compile time - user mixins are
   // registered at runtime, so a build-time pass could never see them.
@@ -208,7 +218,9 @@ Fez.globalCss = (cssClass, opts = {}) => {
 
   // /g matters: a block with more than one :fez rule used to keep every
   // occurrence past the first as a literal (invalid) pseudo-class.
-  if (opts.name) text = text.replace(/:fez\b/g, `.fez.fez-${opts.name}`);
+  if (opts.name) {
+    text = text.replace(/:fez\b/g, `.fez.fez-${opts.name}`);
+  }
 
   // Flatten here, not in the compiler: this is the one path every stylesheet
   // takes - both compile paths, component CSS() getters and public callers -
@@ -286,7 +298,9 @@ Fez.onError = (kind, message, context) => {
   // Try to extract component name from message if not in context
   if (!componentName && typeof message === 'string') {
     const match = message.match(/<([^>]+)>/);
-    if (match) componentName = match[1];
+    if (match) {
+      componentName = match[1];
+    }
   }
 
   // Format the error message with component context

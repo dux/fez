@@ -1,4 +1,4 @@
-import { test, expect, beforeEach } from "bun:test";
+import { test, expect, beforeEach } from 'bun:test';
 
 const Fez = globalThis.window.Fez;
 
@@ -11,7 +11,7 @@ beforeEach(() => {
 // BASIC TYPES
 // =============================================================================
 
-test("localStorage - stores and retrieves integers", () => {
+test('localStorage - stores and retrieves integers', () => {
   Fez.localStorage.set('int', 42);
   const result = Fez.localStorage.get('int');
 
@@ -19,7 +19,7 @@ test("localStorage - stores and retrieves integers", () => {
   expect(typeof result).toBe('number');
 });
 
-test("localStorage - stores and retrieves floats", () => {
+test('localStorage - stores and retrieves floats', () => {
   Fez.localStorage.set('float', 3.14159);
   const result = Fez.localStorage.get('float');
 
@@ -27,7 +27,7 @@ test("localStorage - stores and retrieves floats", () => {
   expect(typeof result).toBe('number');
 });
 
-test("localStorage - stores and retrieves strings", () => {
+test('localStorage - stores and retrieves strings', () => {
   Fez.localStorage.set('str', 'hello world');
   const result = Fez.localStorage.get('str');
 
@@ -35,7 +35,7 @@ test("localStorage - stores and retrieves strings", () => {
   expect(typeof result).toBe('string');
 });
 
-test("localStorage - stores and retrieves booleans", () => {
+test('localStorage - stores and retrieves booleans', () => {
   Fez.localStorage.set('bool_true', true);
   Fez.localStorage.set('bool_false', false);
 
@@ -44,7 +44,7 @@ test("localStorage - stores and retrieves booleans", () => {
   expect(typeof Fez.localStorage.get('bool_true')).toBe('boolean');
 });
 
-test("localStorage - stores and retrieves null", () => {
+test('localStorage - stores and retrieves null', () => {
   Fez.localStorage.set('null_val', null);
   const result = Fez.localStorage.get('null_val');
 
@@ -55,7 +55,7 @@ test("localStorage - stores and retrieves null", () => {
 // OBJECTS AND ARRAYS
 // =============================================================================
 
-test("localStorage - stores and retrieves objects", () => {
+test('localStorage - stores and retrieves objects', () => {
   const obj = { name: 'John', age: 30, active: true };
   Fez.localStorage.set('user', obj);
   const result = Fez.localStorage.get('user');
@@ -66,10 +66,10 @@ test("localStorage - stores and retrieves objects", () => {
   expect(result.active).toBe(true);
 });
 
-test("localStorage - stores and retrieves nested objects", () => {
+test('localStorage - stores and retrieves nested objects', () => {
   const obj = {
     user: { name: 'John', profile: { bio: 'Developer' } },
-    settings: { theme: 'dark', notifications: true }
+    settings: { theme: 'dark', notifications: true },
   };
   Fez.localStorage.set('data', obj);
   const result = Fez.localStorage.get('data');
@@ -78,7 +78,7 @@ test("localStorage - stores and retrieves nested objects", () => {
   expect(result.user.profile.bio).toBe('Developer');
 });
 
-test("localStorage - stores and retrieves arrays", () => {
+test('localStorage - stores and retrieves arrays', () => {
   const arr = [1, 2, 3, 'four', { five: 5 }];
   Fez.localStorage.set('arr', arr);
   const result = Fez.localStorage.get('arr');
@@ -92,17 +92,17 @@ test("localStorage - stores and retrieves arrays", () => {
 // DEFAULT VALUES
 // =============================================================================
 
-test("localStorage - returns default value for missing key", () => {
+test('localStorage - returns default value for missing key', () => {
   const result = Fez.localStorage.get('missing', 'default');
   expect(result).toBe('default');
 });
 
-test("localStorage - returns null for missing key without default", () => {
+test('localStorage - returns null for missing key without default', () => {
   const result = Fez.localStorage.get('missing');
   expect(result).toBe(null);
 });
 
-test("localStorage - default value can be any type", () => {
+test('localStorage - default value can be any type', () => {
   expect(Fez.localStorage.get('missing', 42)).toBe(42);
   expect(Fez.localStorage.get('missing', { a: 1 })).toEqual({ a: 1 });
   expect(Fez.localStorage.get('missing', [1, 2])).toEqual([1, 2]);
@@ -112,7 +112,7 @@ test("localStorage - default value can be any type", () => {
 // REMOVE AND CLEAR
 // =============================================================================
 
-test("localStorage - remove deletes a key", () => {
+test('localStorage - remove deletes a key', () => {
   Fez.localStorage.set('toremove', 'value');
   expect(Fez.localStorage.get('toremove')).toBe('value');
 
@@ -120,7 +120,7 @@ test("localStorage - remove deletes a key", () => {
   expect(Fez.localStorage.get('toremove')).toBe(null);
 });
 
-test("localStorage - clear removes all keys", () => {
+test('localStorage - clear removes all keys', () => {
   Fez.localStorage.set('key1', 'value1');
   Fez.localStorage.set('key2', 'value2');
 
@@ -134,12 +134,12 @@ test("localStorage - clear removes all keys", () => {
 // EDGE CASES
 // =============================================================================
 
-test("localStorage - handles empty string", () => {
+test('localStorage - handles empty string', () => {
   Fez.localStorage.set('empty', '');
   expect(Fez.localStorage.get('empty')).toBe('');
 });
 
-test("localStorage - handles zero", () => {
+test('localStorage - handles zero', () => {
   Fez.localStorage.set('zero', 0);
   const result = Fez.localStorage.get('zero');
 
@@ -147,17 +147,17 @@ test("localStorage - handles zero", () => {
   expect(typeof result).toBe('number');
 });
 
-test("localStorage - handles empty array", () => {
+test('localStorage - handles empty array', () => {
   Fez.localStorage.set('empty_arr', []);
   expect(Fez.localStorage.get('empty_arr')).toEqual([]);
 });
 
-test("localStorage - handles empty object", () => {
+test('localStorage - handles empty object', () => {
   Fez.localStorage.set('empty_obj', {});
   expect(Fez.localStorage.get('empty_obj')).toEqual({});
 });
 
-test("localStorage - overwrites existing value", () => {
+test('localStorage - overwrites existing value', () => {
   Fez.localStorage.set('key', 'first');
   Fez.localStorage.set('key', 'second');
 

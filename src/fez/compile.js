@@ -15,13 +15,13 @@
 
 // Note: Uses Fez.index directly (set up in root.js)
 
-import closeCustomTags from "./lib/close-custom-tags.js";
+import closeCustomTags from './lib/close-custom-tags.js';
 import {
   hasFezDefinitions,
   parseFezSource,
   stripFezDefinitions,
   stripGeneratedNotice,
-} from "./lib/source-parser.js";
+} from './lib/source-parser.js';
 
 const compileCache = new Map();
 
@@ -31,30 +31,29 @@ const compileCache = new Map();
 
 // Keep these messages in sync with validateStyle() in bin/fez-compile.
 const STYLE_SCOPE_ERRORS = {
-  body: "body { } in a scoped <style>. Move these rules to <style global>.",
-  host: ":host is not supported. <style> is already scoped - use `&` for the root node.",
-  fez: ":fez is no longer an author-facing selector. <style> is already scoped - use `&` for the root node.",
+  body: 'body { } in a scoped <style>. Move these rules to <style global>.',
+  host: ':host is not supported. <style> is already scoped - use `&` for the root node.',
+  fez: ':fez is no longer an author-facing selector. <style> is already scoped - use `&` for the root node.',
   globalInGlobal:
-    ":global() inside <style global>. These rules are already global - drop the wrapper.",
+    ':global() inside <style global>. These rules are already global - drop the wrapper.',
 };
 
 // Blank out comments while keeping length and line breaks, so scope checks
 // never fire on prose - "was :fez before" in a comment is not an error.
 function withoutComments(style) {
   return style
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
-    .replace(/^([ \t]*)\/\/[^\n]*/gm, (m, indent) => indent + " ".repeat(m.length - indent.length));
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+    .replace(/^([ \t]*)\/\/[^\n]*/gm, (m, indent) => indent + ' '.repeat(m.length - indent.length));
 }
 
 function escapeTemplateLiteral(value) {
-  return String(value)
-    .replaceAll("\\", "\\\\")
-    .replaceAll("`", "\\`")
-    .replaceAll("$", "\\$");
+  return String(value).replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('$', '\\$');
 }
 
 function assertStyleScope(tagName, rawStyle, isGlobal) {
-  if (!rawStyle) return;
+  if (!rawStyle) {
+    return;
+  }
   const style = withoutComments(rawStyle);
 
   const fail = (message) => {
@@ -118,15 +117,8 @@ export default function compile(tagName, html) {
   }
 
   // Validate component name
-  if (
-    tagName &&
-    !tagName.includes("-") &&
-    !tagName.includes(".") &&
-    !tagName.includes("/")
-  ) {
-    console.error(
-      `Fez: Invalid name "${tagName}". Must contain a dash (e.g., 'my-element').`,
-    );
+  if (tagName && !tagName.includes('-') && !tagName.includes('.') && !tagName.includes('/')) {
+    console.error(`Fez: Invalid name "${tagName}". Must contain a dash (e.g., 'my-element').`);
     return;
   }
 
@@ -163,15 +155,15 @@ function compileBulk(data) {
     const node = data;
     node.remove();
 
-    const fezName = node.getAttribute("fez");
+    const fezName = node.getAttribute('fez');
 
     // URL reference
-    if (fezName?.includes(".") || fezName?.includes("/")) {
+    if (fezName?.includes('.') || fezName?.includes('/')) {
       return compileFromUrl(fezName);
     }
 
     // Validate name
-    if (fezName && !fezName.includes("-")) {
+    if (fezName && !fezName.includes('-')) {
       console.error(`Fez: Invalid name "${fezName}". Must contain a dash.`);
       return;
     }
@@ -181,9 +173,7 @@ function compileBulk(data) {
 
   // HTML string or document
   const root = data ? Fez.domRoot(data) : document.body;
-  root
-    .querySelectorAll("template[fez], xmp[fez]")
-    .forEach((n) => compileBulk(n));
+  root.querySelectorAll('template[fez], xmp[fez]').forEach((n) => compileBulk(n));
 }
 
 /**
@@ -194,30 +184,25 @@ function compileFromUrl(url) {
   Fez.consoleLog(`Loading from ${url}`);
 
   // Handle .txt files as component lists
-  if (url.endsWith(".txt")) {
+  if (url.endsWith('.txt')) {
     Fez.head({ fez: url });
     return;
   }
 
   Fez.fetch(url)
     .then((content) => {
-      const doc = new DOMParser().parseFromString(content, "text/html");
-      const fezElements = doc.querySelectorAll("template[fez], xmp[fez]");
+      const doc = new DOMParser().parseFromString(content, 'text/html');
+      const fezElements = doc.querySelectorAll('template[fez], xmp[fez]');
 
       if (fezElements.length > 0) {
         // Extract top-level info/demo before the xmp elements (for multi-component files)
-        const fileName = url.split("/").pop().split(".")[0];
+        const fileName = url.split('/').pop().split('.')[0];
         indexFileDocs(fileName, content);
 
         // Multiple components in file
         fezElements.forEach((el) => {
-          const name = el.getAttribute("fez");
-          if (
-            name &&
-            !name.includes("-") &&
-            !name.includes(".") &&
-            !name.includes("/")
-          ) {
+          const name = el.getAttribute('fez');
+          if (name && !name.includes('-') && !name.includes('.') && !name.includes('/')) {
             console.error(`Fez: Invalid name "${name}". Must contain a dash.`);
             return;
           }
@@ -225,12 +210,12 @@ function compileFromUrl(url) {
         });
       } else {
         // Single component, derive name from URL
-        const name = url.split("/").pop().split(".")[0];
+        const name = url.split('/').pop().split('.')[0];
         compile(name, content);
       }
     })
     .catch((error) => {
-      Fez.onError("compile", `Load error for "${url}": ${error.message}`);
+      Fez.onError('compile', `Load error for "${url}": ${error.message}`);
     });
 }
 
@@ -245,11 +230,13 @@ export { compileFromUrl as compile_from_url };
  */
 function compileToClass(html) {
   const result = parseFezSource(html, { dedentDocs: true });
-  if (result.errors.length) throw new Error(result.errors[0].message);
+  if (result.errors.length) {
+    throw new Error(result.errors[0].message);
+  }
   result.html = result.html
-    .split("\n")
+    .split('\n')
     .map((line) => line.trim())
-    .join("\n");
+    .join('\n');
 
   // Process head elements (scripts, links, etc.)
   if (result.head) {
@@ -285,19 +272,16 @@ function processHeadElements(headHtml) {
   const container = Fez.domRoot(headHtml);
 
   Array.from(container.children).forEach((node) => {
-    if (node.tagName === "SCRIPT") {
-      const script = document.createElement("script");
+    if (node.tagName === 'SCRIPT') {
+      const script = document.createElement('script');
       Array.from(node.attributes).forEach((attr) => {
         script.setAttribute(attr.name, attr.value);
       });
-      script.type ||= "text/javascript";
+      script.type ||= 'text/javascript';
 
       if (node.src) {
         document.head.appendChild(script);
-      } else if (
-        script.type.includes("javascript") ||
-        script.type === "module"
-      ) {
+      } else if (script.type.includes('javascript') || script.type === 'module') {
         script.textContent = node.textContent;
         document.head.appendChild(script);
       }
@@ -330,19 +314,19 @@ function generateClassCode(tagName, parts) {
 
   // :global(...) and non-nestable at-rules are lifted out by the flattener at
   // injection time, so the compiler just labels the two channels.
-  if (String(parts.style).includes(":")) {
+  if (String(parts.style).includes(':')) {
     const css = escapeTemplateLiteral(parts.style);
     klass = klass.replace(/\}\s*$/, `\n  CSS = \`:fez {\n${css}\n}\`\n}`);
   }
 
-  if (String(parts.styleGlobal).includes(":")) {
+  if (String(parts.styleGlobal).includes(':')) {
     const cssGlobal = escapeTemplateLiteral(parts.styleGlobal);
     klass = klass.replace(/\}\s*$/, `\n  CSS_GLOBAL = \`${cssGlobal}\`\n}`);
   }
 
   // Add HTML
   if (/\w/.test(String(parts.html))) {
-    const html = parts.html.replaceAll("`", "&#x60;").replaceAll("$", "\\$");
+    const html = parts.html.replaceAll('`', '&#x60;').replaceAll('$', '\\$');
     klass = klass.replace(/\}\s*$/, `\n  HTML = \`${html}\`\n}`);
   }
 
@@ -366,7 +350,7 @@ function generateClassCode(tagName, parts) {
  */
 function executeClassCode(tagName, code) {
   // Module imports require script tag
-  if (code.includes("import ")) {
+  if (code.includes('import ')) {
     // Extract importmap and rewrite bare import specifiers to full URLs.
     // We do BOTH:
     //  1. Textual rewrite of the component's own `from 'spec'` imports
@@ -374,8 +358,7 @@ function executeClassCode(tagName, code) {
     //     resolve bare specifiers in TRANSITIVELY loaded modules (e.g.
     //     three/addons/*.js fetched from a CDN that doesn't rewrite
     //     bare imports).
-    const importmapRe =
-      /Fez\.head\(\s*\{\s*importmap\s*:\s*(\{[\s\S]*?\})\s*\}\s*\)\s*;?/g;
+    const importmapRe = /Fez\.head\(\s*\{\s*importmap\s*:\s*(\{[\s\S]*?\})\s*\}\s*\)\s*;?/g;
     const collectedImports = {};
     let match;
     while ((match = importmapRe.exec(code)) !== null) {
@@ -383,22 +366,17 @@ function executeClassCode(tagName, code) {
         const imports = new Function(`return ${match[1]}`)();
         Object.assign(collectedImports, imports);
         // Sort by length descending so "three/addons/" matches before "three"
-        const sorted = Object.entries(imports).sort(
-          (a, b) => b[0].length - a[0].length,
-        );
+        const sorted = Object.entries(imports).sort((a, b) => b[0].length - a[0].length);
         for (const [specifier, url] of sorted) {
-          const escaped = specifier.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&");
-          code = code.replace(
-            new RegExp(`(from\\s+['"])${escaped}`, "g"),
-            `$1${url}`,
-          );
+          const escaped = specifier.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&');
+          code = code.replace(new RegExp(`(from\\s+['"])${escaped}`, 'g'), `$1${url}`);
         }
       } catch (e) {
         Fez.consoleError(`importmap parse error: ${e.message}`);
       }
     }
     // Remove the Fez.head({importmap:...}) calls
-    code = code.replace(importmapRe, "");
+    code = code.replace(importmapRe, '');
 
     // Install / merge a page-level importmap so transitively loaded
     // modules (e.g. CDN files that import 'three' internally) resolve.
@@ -450,16 +428,22 @@ function executeClassCode(tagName, code) {
  * `from 'spec'` imports works in all cases and is the primary mechanism.
  */
 function installImportmap(imports) {
-  if (typeof document === "undefined") return;
-  if (!document.head?.appendChild) return;
+  if (typeof document === 'undefined') {
+    return;
+  }
+  if (!document.head?.appendChild) {
+    return;
+  }
   // If the page already has an importmap (declared in HTML or installed
   // earlier), don't add another. Firefox warns about multiple importmaps,
   // and most browsers honor only the first regardless. The textual
   // rewrite of the component's own imports already covers the common case.
-  if (document.querySelector('script[type="importmap"]')) return;
+  if (document.querySelector('script[type="importmap"]')) {
+    return;
+  }
   try {
-    const el = document.createElement("script");
-    el.type = "importmap";
+    const el = document.createElement('script');
+    el.type = 'importmap';
     el.textContent = JSON.stringify({ imports });
     document.head.insertBefore(el, document.head.firstChild);
   } catch {}
@@ -470,15 +454,17 @@ function installImportmap(imports) {
  */
 const hiddenTags = new Set();
 function hideCustomElement(tagName) {
-  if (!tagName || hiddenTags.has(tagName)) return;
+  if (!tagName || hiddenTags.has(tagName)) {
+    return;
+  }
   hiddenTags.add(tagName);
 
-  let styleEl = document.getElementById("fez-hidden-styles");
+  let styleEl = document.getElementById('fez-hidden-styles');
   if (!styleEl) {
-    styleEl = document.createElement("style");
-    styleEl.id = "fez-hidden-styles";
+    styleEl = document.createElement('style');
+    styleEl.id = 'fez-hidden-styles';
     document.head.appendChild(styleEl);
   }
 
-  styleEl.textContent = `${[...hiddenTags].sort().join(", ")} { display: none; }\n`;
+  styleEl.textContent = `${[...hiddenTags].sort().join(', ')} { display: none; }\n`;
 }

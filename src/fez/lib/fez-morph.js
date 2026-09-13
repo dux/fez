@@ -35,7 +35,9 @@ function hashText(text) {
 }
 
 function signatureHash(node) {
-  if (node._fezSigHash) return node._fezSigHash;
+  if (node._fezSigHash) {
+    return node._fezSigHash;
+  }
   const text = String(node?._fezSignature ?? node?.outerHTML ?? '').trim();
   const result = hashText(text);
   node._fezSigHash = result;
@@ -51,7 +53,9 @@ function innerFromOuterHtml(html) {
   const src = String(html || '');
   const start = src.indexOf('>');
   const end = src.lastIndexOf('<');
-  if (start < 0 || end <= start) return '';
+  if (start < 0 || end <= start) {
+    return '';
+  }
   return src.slice(start + 1, end);
 }
 
@@ -64,13 +68,16 @@ function innerFromOuterHtml(html) {
  * Attribute-only changes still preserve and go through props refresh.
  */
 function shouldPreserveFezComponent(oldNode, newNode) {
-  if (!oldNode?.fez || oldNode.fez._destroyed) return true;
-  if (oldNode._fezSignature == null) return true;
-  if (!newNode || newNode.nodeType !== 1) return true;
-  return (
-    hashText(innerFromOuterHtml(oldNode._fezSignature)) ===
-    hashText(newNode.innerHTML)
-  );
+  if (!oldNode?.fez || oldNode.fez._destroyed) {
+    return true;
+  }
+  if (oldNode._fezSignature == null) {
+    return true;
+  }
+  if (!newNode || newNode.nodeType !== 1) {
+    return true;
+  }
+  return hashText(innerFromOuterHtml(oldNode._fezSignature)) === hashText(newNode.innerHTML);
 }
 
 /**
@@ -83,8 +90,12 @@ function explicitFezKey(node) {
 }
 
 function fezKeyAlias(internalKey, keyAttr, base, node) {
-  if (internalKey !== undefined) return 'key-' + internalKey;
-  if (keyAttr) return 'key-' + keyAttr;
+  if (internalKey !== undefined) {
+    return 'key-' + internalKey;
+  }
+  if (keyAttr) {
+    return 'key-' + keyAttr;
+  }
   return `${base}:sig-${signatureHash(node)}`;
 }
 
@@ -96,18 +107,28 @@ function fezKeyAlias(internalKey, keyAttr, base, node) {
  *  - exclude from soft-matching
  */
 function fezDescribeOld(node) {
-  if (node.nodeType !== 1) return null;
-  if (!node.classList?.contains('fez') || !node.fez) return null;
+  if (node.nodeType !== 1) {
+    return null;
+  }
+  if (!node.classList?.contains('fez') || !node.fez) {
+    return null;
+  }
 
   const aliases = [];
-  if (node.id) aliases.push('id-' + node.id);
+  if (node.id) {
+    aliases.push('id-' + node.id);
+  }
   // Compiler-injected internal keys disambiguate fez component siblings inside loops.
   // Without this alias, multiple <my-comp> siblings all collapse onto the first
   // old child via the shared 'fez-class-fez-my-comp' alias.
   const internalKey = explicitFezKey(node);
-  if (internalKey !== undefined) aliases.push('key-' + internalKey);
+  if (internalKey !== undefined) {
+    aliases.push('key-' + internalKey);
+  }
   const keyAttr = node.getAttribute?.('key');
-  if (keyAttr) aliases.push('key-' + keyAttr);
+  if (keyAttr) {
+    aliases.push('key-' + keyAttr);
+  }
   if (node.classList) {
     for (const cls of node.classList) {
       if (cls.startsWith('fez-') && cls !== 'fez') {
@@ -126,7 +147,9 @@ function fezDescribeOld(node) {
 
 function refreshPreservedComponent(oldNode, newNode) {
   const fez = oldNode.fez;
-  if (!fez || fez._destroyed) return;
+  if (!fez || fez._destroyed) {
+    return;
+  }
 
   // _propsRaw, not fez.props - reading an object through the reactive props
   // proxy returns a new wrapper every time, so identity comparison below
@@ -137,13 +160,12 @@ function refreshPreservedComponent(oldNode, newNode) {
   }
 
   const prevProps = fez._propsRaw || fez.props || {};
-  const keys = new Set([
-    ...Object.keys(prevProps),
-    ...Object.keys(nextProps),
-  ]);
+  const keys = new Set([...Object.keys(prevProps), ...Object.keys(nextProps)]);
   const changedKeys = [];
   for (const key of keys) {
-    if (prevProps[key] !== nextProps[key]) changedKeys.push(key);
+    if (prevProps[key] !== nextProps[key]) {
+      changedKeys.push(key);
+    }
   }
 
   fez.props = nextProps;
@@ -168,7 +190,9 @@ export default function attachMorph(Fez) {
    *   3. fez= attribute:  <div fez="my-comp">       (server-rendered placeholder)
    */
   function fezDescribeNew(node) {
-    if (node.nodeType !== 1) return null;
+    if (node.nodeType !== 1) {
+      return null;
+    }
 
     // Compiler-injected internal keys disambiguate fez component siblings inside loops.
     // Prefer it over the shared tag-based alias so each new placeholder maps to
@@ -282,8 +306,8 @@ export default function attachMorph(Fez) {
       if (
         wrapper.children.length === 1 &&
         wrapper.firstElementChild.tagName === tagName &&
-        Array.from(wrapper.childNodes).every((node) =>
-          node.nodeType !== 3 || !node.textContent.trim(),
+        Array.from(wrapper.childNodes).every(
+          (node) => node.nodeType !== 3 || !node.textContent.trim(),
         )
       ) {
         newNode = wrapper.firstElementChild;

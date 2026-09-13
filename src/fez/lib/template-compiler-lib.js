@@ -2,16 +2,33 @@
 // Extracted to keep main parser file smaller
 
 const JS_GLOBALS = new Set([
-  "console", "window", "document", "Math", "JSON", "Date", "Array", "Object",
-  "String", "Number", "Boolean", "parseInt", "parseFloat", "setTimeout",
-  "setInterval", "clearTimeout", "clearInterval", "alert", "confirm", "prompt",
-  "fetch", "event",
+  'console',
+  'window',
+  'document',
+  'Math',
+  'JSON',
+  'Date',
+  'Array',
+  'Object',
+  'String',
+  'Number',
+  'Boolean',
+  'parseInt',
+  'parseFloat',
+  'setTimeout',
+  'setInterval',
+  'clearTimeout',
+  'clearInterval',
+  'alert',
+  'confirm',
+  'prompt',
+  'fetch',
+  'event',
 ]);
 
 function prefixBareCalls(body) {
-  return body.replace(
-    /(?<![.\w])([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g,
-    (match, funcName) => JS_GLOBALS.has(funcName) ? match : `fez.${funcName}(`,
+  return body.replace(/(?<![.\w])([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g, (match, funcName) =>
+    JS_GLOBALS.has(funcName) ? match : `fez.${funcName}(`,
   );
 }
 
@@ -19,20 +36,20 @@ function prefixBareCalls(body) {
  * Parse loop binding to get params and detect object iteration
  */
 export function parseLoopBinding(binding) {
-  const isDestructured = binding.startsWith("[");
+  const isDestructured = binding.startsWith('[');
 
   if (isDestructured) {
     const match = binding.match(/^\[([^\]]+)\](?:\s*,\s*(\w+))?$/);
     if (match) {
       return {
-        params: match[1].split(",").map((s) => s.trim()),
+        params: match[1].split(',').map((s) => s.trim()),
         indexParam: match[2] || null,
         isDestructured: true,
       };
     }
   }
 
-  const parts = binding.split(",").map((s) => s.trim());
+  const parts = binding.split(',').map((s) => s.trim());
 
   // 2 params without brackets = destructuring
   // Runtime auto-converts: Array.isArray(c) ? c : Object.entries(c)
@@ -49,9 +66,13 @@ export function parseLoopBinding(binding) {
 export function getLoopVarNames(binding) {
   const parsed = parseLoopBinding(binding);
   const names = [...parsed.params];
-  if (parsed.indexParam) names.push(parsed.indexParam);
+  if (parsed.indexParam) {
+    names.push(parsed.indexParam);
+  }
   // Add implicit i for single-param
-  if (parsed.params.length === 1 && !names.includes("i")) names.push("i");
+  if (parsed.params.length === 1 && !names.includes('i')) {
+    names.push('i');
+  }
   return names;
 }
 
@@ -111,25 +132,24 @@ export function buildLoopParams(binding) {
   const parsed = parseLoopBinding(binding);
 
   if (parsed.isDestructured) {
-    const destructure = "[" + parsed.params.join(", ") + "]";
-    const indexName =
-      parsed.indexParam || (parsed.params.includes("i") ? "_i" : "i");
-    return destructure + ", " + indexName;
+    const destructure = '[' + parsed.params.join(', ') + ']';
+    const indexName = parsed.indexParam || (parsed.params.includes('i') ? '_i' : 'i');
+    return destructure + ', ' + indexName;
   }
 
   if (parsed.params.length >= 3) {
     const params = [...parsed.params];
     const index = params.pop();
-    return "[" + params.join(", ") + "], " + index;
+    return '[' + params.join(', ') + '], ' + index;
   }
 
   if (parsed.params.length === 2) {
-    return parsed.params.join(", ");
+    return parsed.params.join(', ');
   }
 
   // If loop var is 'i', use '_i' for index to avoid collision
-  const indexName = parsed.params[0] === "i" ? "_i" : "i";
-  return parsed.params[0] + ", " + indexName;
+  const indexName = parsed.params[0] === 'i' ? '_i' : 'i';
+  return parsed.params[0] + ', ' + indexName;
 }
 
 /**
@@ -151,25 +171,19 @@ export function isArrowFunction(expr) {
  * Output for index-only: "fez.removeTask(${index})"
  * Output for item refs: "${'Fez(' + UID + ').fezGlobals.handler(' + fez.fezGlobals.setHandler((event) => fez.removeTask(item)) + ')(event)'}"
  */
-export function transformArrowToHandler(
-  expr,
-  loopVars = [],
-  loopItemVars = [],
-) {
+export function transformArrowToHandler(expr, loopVars = [], loopItemVars = []) {
   // Extract the arrow function body
-  const arrowMatch = expr.match(
-    /^\s*(?:\([^)]*\)|[a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>\s*(.+)$/s,
-  );
-  if (!arrowMatch) return expr;
+  const arrowMatch = expr.match(/^\s*(?:\([^)]*\)|[a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>\s*(.+)$/s);
+  if (!arrowMatch) {
+    return expr;
+  }
 
   let body = arrowMatch[1].trim();
 
   // Check if arrow has event param: (e) => or (event) => or e =>
-  const paramMatch = expr.match(
-    /^\s*\(?\s*([a-zA-Z_$][a-zA-Z0-9_$]*)?\s*(?:,\s*[^)]+)?\)?\s*=>/,
-  );
+  const paramMatch = expr.match(/^\s*\(?\s*([a-zA-Z_$][a-zA-Z0-9_$]*)?\s*(?:,\s*[^)]+)?\)?\s*=>/);
   const eventParam = paramMatch?.[1];
-  const hasEventParam = eventParam && ["e", "event", "ev"].includes(eventParam);
+  const hasEventParam = eventParam && ['e', 'event', 'ev'].includes(eventParam);
 
   // Check if body references loop item variables (non-index vars that could be objects)
   const usedItemVars = loopItemVars.filter((varName) => {
@@ -181,9 +195,9 @@ export function transformArrowToHandler(
   // This ensures object references are captured at render time
   if (usedItemVars.length > 0) {
     // Replace event param with 'event' in the body if needed
-    if (hasEventParam && eventParam !== "event") {
-      const eventRegex = new RegExp(`\\b${eventParam}\\b`, "g");
-      body = body.replace(eventRegex, "event");
+    if (hasEventParam && eventParam !== 'event') {
+      const eventRegex = new RegExp(`\\b${eventParam}\\b`, 'g');
+      body = body.replace(eventRegex, 'event');
     }
 
     body = prefixBareCalls(body);
@@ -194,13 +208,13 @@ export function transformArrowToHandler(
   }
 
   // No item variables - use simple interpolation for indices (original behavior)
-  if (hasEventParam && eventParam !== "event") {
-    const eventRegex = new RegExp(`\\b${eventParam}\\b`, "g");
-    body = body.replace(eventRegex, "event");
+  if (hasEventParam && eventParam !== 'event') {
+    const eventRegex = new RegExp(`\\b${eventParam}\\b`, 'g');
+    body = body.replace(eventRegex, 'event');
   }
 
   for (const varName of loopVars) {
-    const varRegex = new RegExp(`(?<!\\$\\{)\\b${varName}\\b(?![^{]*\\})`, "g");
+    const varRegex = new RegExp(`(?<!\\$\\{)\\b${varName}\\b(?![^{]*\\})`, 'g');
     body = body.replace(varRegex, `\${${varName}}`);
   }
 
@@ -218,19 +232,21 @@ export function extractBracedExpression(text, startIndex) {
 
   while (i < text.length) {
     const char = text[i];
-    if (char === "{") {
+    if (char === '{') {
       depth++;
-    } else if (char === "}") {
+    } else if (char === '}') {
       depth--;
       if (depth === 0) {
         return { expression: text.slice(startIndex + 1, i), endIndex: i };
       }
-    } else if (char === '"' || char === "'" || char === "`") {
+    } else if (char === '"' || char === "'" || char === '`') {
       // Skip string literals
       const quote = char;
       i++;
       while (i < text.length && text[i] !== quote) {
-        if (text[i] === "\\") i++;
+        if (text[i] === '\\') {
+          i++;
+        }
         i++;
       }
     }
@@ -248,15 +264,20 @@ export function getAttributeContext(text, pos) {
   // We need to find the last '=' before pos that's preceded by an attribute name
   let j = pos - 1;
   // Skip whitespace and opening brace
-  while (j >= 0 && (text[j] === "{" || text[j] === " " || text[j] === "\t"))
+  while (j >= 0 && (text[j] === '{' || text[j] === ' ' || text[j] === '\t')) {
     j--;
-  if (j >= 0 && text[j] === "=") {
+  }
+  if (j >= 0 && text[j] === '=') {
     // Found '=', now look for attribute name
     j--;
-    while (j >= 0 && (text[j] === " " || text[j] === "\t")) j--;
+    while (j >= 0 && (text[j] === ' ' || text[j] === '\t')) {
+      j--;
+    }
     // Extract attribute name
-    let attrEnd = j + 1;
-    while (j >= 0 && /[a-zA-Z0-9_:-]/.test(text[j])) j--;
+    const attrEnd = j + 1;
+    while (j >= 0 && /[a-zA-Z0-9_:-]/.test(text[j])) {
+      j--;
+    }
     const attrName = text.slice(j + 1, attrEnd);
     if (
       attrName &&
@@ -276,16 +297,20 @@ export function getAttributeContext(text, pos) {
  * match is plain text, not an unquoted attr={expr}.
  */
 function insideQuotedAttrValue(text, pos) {
-  const tagStart = text.lastIndexOf("<", pos);
-  if (tagStart < 0) return false;
+  const tagStart = text.lastIndexOf('<', pos);
+  if (tagStart < 0) {
+    return false;
+  }
   let quote = null;
   for (let k = tagStart; k <= pos; k++) {
     const ch = text[k];
     if (quote) {
-      if (ch === quote) quote = null;
+      if (ch === quote) {
+        quote = null;
+      }
     } else if (ch === '"' || ch === "'") {
       quote = ch;
-    } else if (ch === ">") {
+    } else if (ch === '>') {
       return false; // tag closed before pos - we are in text content
     }
   }

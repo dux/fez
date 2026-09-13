@@ -7,7 +7,7 @@
 // Licence MIT
 
 export default function n(name, attrs = {}, data) {
-  if (typeof attrs === "string") {
+  if (typeof attrs === 'string') {
     [attrs, data] = [data, attrs];
     attrs ||= {};
   }
@@ -19,18 +19,18 @@ export default function n(name, attrs = {}, data) {
 
   if (Array.isArray(name)) {
     data = name;
-    name = "div";
+    name = 'div';
   }
 
-  if (typeof attrs !== "object" || Array.isArray(attrs)) {
+  if (typeof attrs !== 'object' || Array.isArray(attrs)) {
     data = attrs;
     attrs = {};
   }
 
-  if (name.includes(".")) {
-    const parts = name.split(".");
-    name = parts.shift() || "div";
-    const c = parts.join(" ");
+  if (name.includes('.')) {
+    const parts = name.split('.');
+    name = parts.shift() || 'div';
+    const c = parts.join(' ');
     if (attrs.class) {
       attrs.class += ` ${c}`;
     } else {
@@ -41,25 +41,25 @@ export default function n(name, attrs = {}, data) {
   const node = document.createElement(name);
 
   const booleanAttrs = [
-    "checked",
-    "disabled",
-    "selected",
-    "readonly",
-    "required",
-    "hidden",
-    "multiple",
-    "autofocus",
+    'checked',
+    'disabled',
+    'selected',
+    'readonly',
+    'required',
+    'hidden',
+    'multiple',
+    'autofocus',
   ];
 
   for (const [k, v] of Object.entries(attrs)) {
-    if (typeof v === "function") {
+    if (typeof v === 'function') {
       node[k] = v.bind(this);
     } else if (booleanAttrs.includes(k)) {
       if (v) {
         node.setAttribute(k, k);
       }
     } else {
-      const value = String(v).replaceAll("fez.", this.fezHtmlRoot);
+      const value = String(v).replaceAll('fez.', this.fezHtmlRoot);
       node.setAttribute(k, value);
     }
   }

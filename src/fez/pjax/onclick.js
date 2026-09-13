@@ -8,7 +8,9 @@ export default function createOnClick(Pjax) {
       const node = event.target.closest(
         '*[click]:not([click=""]), *[href]:not([href=""]), *[pjax-refresh]:not([pjax-refresh=""])',
       );
-      if (!node) return;
+      if (!node) {
+        return;
+      }
 
       const href = node.getAttribute('href');
       if (
@@ -42,12 +44,16 @@ export default function createOnClick(Pjax) {
         if (result && typeof result.then === 'function') {
           result
             .then((ok) => {
-              if (ok) proceed();
+              if (ok) {
+                proceed();
+              }
             })
             .catch((err) => Pjax.error(`confirm rejected: ${err}`));
           return;
         }
-        if (!result) return;
+        if (!result) {
+          return;
+        }
       }
 
       proceed();
@@ -120,8 +126,11 @@ export default function createOnClick(Pjax) {
     // otherwise navigate the current tab. Kept as a seam so tests can stub it -
     // DOM test environments forbid assigning window.location.
     leave(href, target) {
-      if (target) window.open(href, target);
-      else window.location.href = href;
+      if (target) {
+        window.open(href, target);
+      } else {
+        window.location.href = href;
+      }
     },
   };
 

@@ -12,33 +12,35 @@
  * localStorage.get('missing', 'default') // 'default'
  */
 
-const storage = () => globalThis.localStorage || window.localStorage
+const storage = () => globalThis.localStorage || window.localStorage;
 
 function set(key, value) {
   try {
-    storage().setItem(key, JSON.stringify(value))
+    storage().setItem(key, JSON.stringify(value));
   } catch (e) {
-    console.error(`Fez localStorage: Failed to set "${key}"`, e)
+    console.error(`Fez localStorage: Failed to set "${key}"`, e);
   }
 }
 
 function get(key, defaultValue = null) {
   try {
-    const item = storage().getItem(key)
-    if (item === null) return defaultValue
-    return JSON.parse(item)
+    const item = storage().getItem(key);
+    if (item === null) {
+      return defaultValue;
+    }
+    return JSON.parse(item);
   } catch (e) {
-    console.error(`Fez localStorage: Failed to get "${key}"`, e)
-    return defaultValue
+    console.error(`Fez localStorage: Failed to get "${key}"`, e);
+    return defaultValue;
   }
 }
 
 function remove(key) {
-  storage().removeItem(key)
+  storage().removeItem(key);
 }
 
 function clear() {
-  storage().clear()
+  storage().clear();
 }
 
-export default { set, get, remove, clear }
+export default { set, get, remove, clear };

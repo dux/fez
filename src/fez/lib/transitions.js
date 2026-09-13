@@ -508,8 +508,16 @@ function playSize(node, prev, next, observer) {
     cs.boxSizing === 'border-box'
       ? { width: 0, height: 0 }
       : {
-          width: px(cs.paddingLeft) + px(cs.paddingRight) + px(cs.borderLeftWidth) + px(cs.borderRightWidth),
-          height: px(cs.paddingTop) + px(cs.paddingBottom) + px(cs.borderTopWidth) + px(cs.borderBottomWidth),
+          width:
+            px(cs.paddingLeft) +
+            px(cs.paddingRight) +
+            px(cs.borderLeftWidth) +
+            px(cs.borderRightWidth),
+          height:
+            px(cs.paddingTop) +
+            px(cs.paddingBottom) +
+            px(cs.borderTopWidth) +
+            px(cs.borderBottomWidth),
         };
 
   const { axes, params } = node._fezSize;

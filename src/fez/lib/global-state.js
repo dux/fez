@@ -43,7 +43,9 @@ const GlobalState = {
   // so its own listener can tell a self-write apart from an outside one
   set(key, value, writer) {
     const oldValue = this.data[key];
-    if (oldValue === value) return;
+    if (oldValue === value) {
+      return;
+    }
     this.data[key] = value;
     this.notify(key, value, oldValue, writer);
   },
@@ -75,19 +77,25 @@ const GlobalState = {
       try {
         fn(key, value, oldValue);
       } catch (error) {
-        console.error("Error in global subscriber:", error);
+        console.error('Error in global subscriber:', error);
       }
     }
   },
 
   addSub(key, sub) {
-    if (!this.subs.has(key)) this.subs.set(key, new Set());
+    if (!this.subs.has(key)) {
+      this.subs.set(key, new Set());
+    }
     this.subs.get(key).add(sub);
     return () => {
       const subs = this.subs.get(key);
-      if (!subs) return;
+      if (!subs) {
+        return;
+      }
       subs.delete(sub);
-      if (subs.size === 0) this.subs.delete(key);
+      if (subs.size === 0) {
+        this.subs.delete(key);
+      }
     };
   },
 
@@ -95,7 +103,7 @@ const GlobalState = {
   //   Fez.state.subscribe(func)      - listen to all changes
   //   Fez.state.subscribe(key, func) - listen to specific key changes
   subscribe(keyOrFunc, func) {
-    if (typeof keyOrFunc === "function") {
+    if (typeof keyOrFunc === 'function') {
       this.anySubs.add(keyOrFunc);
       return () => this.anySubs.delete(keyOrFunc);
     }
@@ -105,9 +113,13 @@ const GlobalState = {
   // Execute function for each connected component listening to a key
   forEach(key, func) {
     const subs = this.subs.get(key);
-    if (!subs) return;
+    if (!subs) {
+      return;
+    }
     for (const sub of subs) {
-      if (!sub.fez) continue;
+      if (!sub.fez) {
+        continue;
+      }
       if (sub.fez.isConnected) {
         func(sub.fez);
       } else {
@@ -126,7 +138,9 @@ const GlobalState = {
     });
 
     const listen = (key) => {
-      if (keys.has(key)) return;
+      if (keys.has(key)) {
+        return;
+      }
       const fn = (value, oldValue, _key, writer) => {
         component.onGlobalStateChange(key, value, oldValue);
         // Mirror local state: a self-write inside a silent scope (init, a
@@ -135,7 +149,7 @@ const GlobalState = {
         // one frame.
         const selfWrite = writer === component && component._fezSilent;
         if (!selfWrite) {
-          component.fezNextTick(component.fezRender, "fezRender");
+          component.fezNextTick(component.fezRender, 'fezRender');
         }
       };
       keys.set(key, this.addSub(key, { fn, fez: component }));
@@ -145,15 +159,19 @@ const GlobalState = {
       {},
       {
         get: (_, key) => {
-          if (typeof key === "symbol") return undefined;
+          if (typeof key === 'symbol') {
+            return undefined;
+          }
           listen(key);
           return this.data[key];
         },
         set: (_, key, value) => {
-          if (typeof key !== "symbol") this.set(key, value, component);
+          if (typeof key !== 'symbol') {
+            this.set(key, value, component);
+          }
           return true;
         },
-        has: (_, key) => typeof key !== "symbol" && key in this.data,
+        has: (_, key) => typeof key !== 'symbol' && key in this.data,
       },
     );
   },

@@ -40,9 +40,13 @@ export default class RenderSlots {
   }
 
   commitRender() {
-    if (!this.liveHandlers) return;
+    if (!this.liveHandlers) {
+      return;
+    }
     for (const key of this.handlers.keys()) {
-      if (!this.liveHandlers.has(key)) this.handlers.delete(key);
+      if (!this.liveHandlers.has(key)) {
+        this.handlers.delete(key);
+      }
     }
     this.liveHandlers = null;
   }
@@ -52,9 +56,13 @@ export default class RenderSlots {
   get valuesChanged() {
     const prev = this.prevValues;
     const next = this.renderValues;
-    if (prev.length !== next.length) return true;
+    if (prev.length !== next.length) {
+      return true;
+    }
     for (let i = 0; i < next.length; i++) {
-      if (prev[i] !== next[i]) return true;
+      if (prev[i] !== next[i]) {
+        return true;
+      }
     }
     return false;
   }

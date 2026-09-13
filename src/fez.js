@@ -11,27 +11,27 @@
 // EXPORTS
 // =============================================================================
 
-import FezBase from './fez/instance.js'
-import Fez from './fez/root.js'
-import bootPjax from './fez/pjax/boot.js'
+import FezBase from './fez/instance.js';
+import Fez from './fez/root.js';
+import bootPjax from './fez/pjax/boot.js';
 
 // Expose to window. Rollup inlines the fez dist IIFE into every app bundle that
 // contains a .fez component, so this module can run several times on one page.
 // Only the first run may claim window.Fez / load defaults / start the observer:
 // custom elements are defined against that first instance and connectNode reads
 // the global window.Fez.index, so a later copy resetting it orphans those elements.
-const fezPrimary = typeof window !== 'undefined' && !window.Fez
+const fezPrimary = typeof window !== 'undefined' && !window.Fez;
 
 if (fezPrimary) {
-  window.FezBase = FezBase
-  window.Fez = Fez
+  window.FezBase = FezBase;
+  window.Fez = Fez;
 
   // Load default components
-  import('./fez/defaults.js')
+  import('./fez/defaults.js');
 
   // Pjax navigation - exposes window.Pjax, binds handlers only when the page
   // has a pjax container (see fez/pjax/boot.js)
-  bootPjax()
+  bootPjax();
 }
 
 // =============================================================================
@@ -39,28 +39,32 @@ if (fezPrimary) {
 // =============================================================================
 
 // Watch for template/xmp/script[fez] elements and compile them
-const observer = new MutationObserver(mutations => {
+const observer = new MutationObserver((mutations) => {
   for (const { addedNodes, removedNodes } of mutations) {
     // Compile new fez templates
-    addedNodes.forEach(node => {
-      if (node.nodeType !== 1) return
-
-      if (node.matches?.('template[fez], xmp[fez], script[fez]')) {
-        Fez.compile(node)
-        node.remove()
+    addedNodes.forEach((node) => {
+      if (node.nodeType !== 1) {
+        return;
       }
 
-      node.querySelectorAll?.('template[fez], xmp[fez], script[fez]').forEach(tpl => {
-        Fez.compile(tpl)
-        tpl.remove()
-      })
-    })
+      if (node.matches?.('template[fez], xmp[fez], script[fez]')) {
+        Fez.compile(node);
+        node.remove();
+      }
+
+      node.querySelectorAll?.('template[fez], xmp[fez], script[fez]').forEach((tpl) => {
+        Fez.compile(tpl);
+        tpl.remove();
+      });
+    });
 
     // Cleanup removed components
     // Use microtask to check if node was just moved (will be reconnected)
     // vs actually removed from the document
-    removedNodes.forEach(node => {
-      if (node.nodeType !== 1) return
+    removedNodes.forEach((node) => {
+      if (node.nodeType !== 1) {
+        return;
+      }
 
       // Helper to cleanup a single element
       const cleanup = (el) => {
@@ -69,29 +73,31 @@ const observer = new MutationObserver(mutations => {
           queueMicrotask(() => {
             // If still not connected and not destroyed, cleanup
             if (!el.isConnected && el.fez && !el.fez._destroyed) {
-              el.fez.fezOnDestroy()
+              el.fez.fezOnDestroy();
             }
-          })
+          });
         }
-      }
+      };
 
       // Check if removed node itself is a fez component
-      cleanup(node)
+      cleanup(node);
 
       // Check all children for fez components
-      node.querySelectorAll?.('.fez')?.forEach(cleanup)
-    })
+      node.querySelectorAll?.('.fez')?.forEach(cleanup);
+    });
   }
-})
+});
 
-if (fezPrimary) observer.observe(document.documentElement, {
-  childList: true,
-  subtree: true
-})
+if (fezPrimary) {
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+  });
+}
 
 // =============================================================================
 // MODULE EXPORTS
 // =============================================================================
 
-export default Fez
-export { Fez, FezBase }
+export default Fez;
+export { Fez, FezBase };

@@ -10,19 +10,24 @@
 import createPjax from './pjax.js';
 
 export default function bootPjax() {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return;
+  }
 
   // an app still loading the standalone dux-pjax package wins - never double-bind
-  if (window.Pjax) return;
+  if (window.Pjax) {
+    return;
+  }
 
   const Pjax = createPjax();
   window.Pjax = Pjax;
 
   const boot = () => {
     const container =
-      document.getElementsByTagName?.('pjax')[0] ||
-      document.getElementsByClassName?.('pjax')[0];
-    if (container) Pjax.start();
+      document.getElementsByTagName?.('pjax')[0] || document.getElementsByClassName?.('pjax')[0];
+    if (container) {
+      Pjax.start();
+    }
   };
 
   if (!document.readyState || document.readyState === 'loading') {

@@ -2,21 +2,23 @@
 const highlightAll = () => {
   // Only work if Fez.DEV is true OR (port is above 2999 and Fez.DEV is not false)
   const port = parseInt(window.location.port) || 80;
-  if (!(Fez.DEV === true || (port > 2999 && Fez.DEV !== false))) return;
+  if (!(Fez.DEV === true || (port > 2999 && Fez.DEV !== false))) {
+    return;
+  }
 
   // Check if highlights already exist
   const existingHighlights = document.querySelectorAll('.fez-highlight-overlay');
 
   if (existingHighlights.length > 0) {
     // Remove existing highlights
-    existingHighlights.forEach(el => el.remove());
+    existingHighlights.forEach((el) => el.remove());
     return;
   }
 
   // Find all Fez and Svelte elements
   const allElements = document.querySelectorAll('.fez, .svelte');
 
-  allElements.forEach(el => {
+  allElements.forEach((el) => {
     let componentName = null;
     let componentType = null;
 
@@ -82,7 +84,7 @@ const highlightAll = () => {
       document.body.appendChild(overlay);
     }
   });
-}
+};
 
 // Bind Ctrl+E to highlightAll
 document.addEventListener('keydown', (event) => {
@@ -95,4 +97,4 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-export default highlightAll
+export default highlightAll;
