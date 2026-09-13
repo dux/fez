@@ -16,9 +16,6 @@ const RAW_REGION_PATTERN =
   /(<!--[\s\S]*?-->)|(<(script|style|pre|code|xmp|fez-inline)\b[^>]*>)([\s\S]*?)(<\/\3\s*>)/gi;
 const STATIC_CONTENT_MARKER = '\uE002FEZ_STATIC_CONTENT\uE003';
 const STATIC_INCLUDE_MARKER_PATTERN = /<template data-fez-static-include="(\d+)"><\/template>/g;
-const LIVE_RELOAD_CHANNEL = 'fez-static-reload';
-const LIVE_RELOAD_SCRIPT_PATH = '/__fez_static/reload.js';
-const LIVE_RELOAD_SOCKET_PATH = '/__fez_static/reload';
 
 const STATIC_FEZ = {
   htmlEscape(value) {
@@ -188,6 +185,9 @@ export function initStaticSite(options = {}) {
   const configFile = resolveConfigFile(rootDir);
   const config = readStaticConfig(configFile);
   const siteDir = path.resolve(rootDir, config.source_dir);
+  if (siteDir === rootDir || !isPathInside(rootDir, siteDir)) {
+    throw new Error('Static source_dir must remain inside the project root: ' + siteDir);
+  }
   if (fs.existsSync(siteDir)) {
     throw new Error('Static site already exists: ' + siteDir);
   }
@@ -336,180 +336,6 @@ export function cleanStaticSite(options = {}) {
   return { outputDir: paths.outputDir, removed: existed };
 }
 
-export async function watchStaticSite(options = {}, callbacks = {}) {
-  const onBuild = callbacks.onBuild || (() => {});
-  const onError = callbacks.onError || (() => {});
-  let watchers = [];
-  let closed = false;
-  let timer = null;
-  let building = false;
-  let queued = false;
-
-  const schedule = (_event, filename, watchedFile = null, watchDir = null) => {
-    const changedName = String(filename || '');
-    if (closed || changedName.includes('.tmp.')) {
-      return;
-    }
-    if (
-      watchedFile &&
-      changedName &&
-      path.resolve(watchDir, changedName) !== path.resolve(watchedFile)
-    ) {
-      return;
-    }
-    clearTimeout(timer);
-    timer = setTimeout(() => void run(), 60);
-  };
-
-  const syncWatchers = () => {
-    for (const watcher of watchers) {
-      watcher.close();
-    }
-    watchers = [];
-
-    for (const target of staticWatchTargets(resolveStaticPaths(options))) {
-      const watcher = fs.watch(
-        target.directory,
-        { recursive: target.recursive },
-        (event, filename) => schedule(event, filename, target.file, target.directory),
-      );
-      watchers.push(watcher);
-    }
-  };
-
-  const run = async () => {
-    if (closed) {
-      return;
-    }
-    if (building) {
-      queued = true;
-      return;
-    }
-
-    building = true;
-    try {
-      const result = await buildStaticSite(options);
-      syncWatchers();
-      onBuild(result);
-    } catch (error) {
-      onError(error);
-    } finally {
-      building = false;
-      if (queued && !closed) {
-        queued = false;
-        void run();
-      }
-    }
-  };
-
-  const initial = await buildStaticSite(options);
-  syncWatchers();
-  onBuild(initial);
-
-  return {
-    initial,
-    close() {
-      closed = true;
-      clearTimeout(timer);
-      for (const watcher of watchers) {
-        watcher.close();
-      }
-      watchers = [];
-    },
-  };
-}
-
-export function serveStaticSite(options = {}) {
-  const paths = resolveStaticPaths(options);
-  const { config } = paths;
-  const served = resolveServeRoot(paths);
-  const liveReload = options.liveReload === true;
-  const port = Number(options.port || 3000);
-  if (!Number.isInteger(port) || port < 0 || port > 65535) {
-    throw new Error('Port must be an integer between 0 and 65535');
-  }
-
-  const serverOptions = {
-    hostname: options.host || '127.0.0.1',
-    port,
-    async fetch(request) {
-      let pathname;
-      try {
-        pathname = decodeURIComponent(new URL(request.url).pathname);
-      } catch {
-        return new Response('Bad request', { status: 400 });
-      }
-
-      if (pathname.includes('\0')) {
-        return new Response('Bad request', { status: 400 });
-      }
-
-      if (liveReload && pathname === LIVE_RELOAD_SOCKET_PATH) {
-        if (server.upgrade(request)) {
-          return;
-        }
-        return new Response('WebSocket upgrade required', { status: 426 });
-      }
-      if (liveReload && pathname === LIVE_RELOAD_SCRIPT_PATH) {
-        return new Response(liveReloadScript(), {
-          headers: {
-            'cache-control': 'no-store',
-            'content-type': 'text/javascript; charset=utf-8',
-          },
-        });
-      }
-
-      const prefix = config.serve_prefix;
-      if (prefix) {
-        if (pathname === prefix || pathname.startsWith(prefix + '/')) {
-          pathname = pathname.slice(prefix.length) || '/';
-        } else {
-          const location =
-            prefix + (pathname === '/' ? (config.site.base_url || '') + '/' : pathname);
-          return Response.redirect(new URL(location, request.url), 302);
-        }
-      }
-
-      const filePath = findServedFile(
-        served.dir,
-        served.stripBase ? stripStaticBaseUrl(pathname, config.site.base_url) : pathname,
-      );
-      if (!filePath) {
-        return new Response('Not found', { status: 404 });
-      }
-
-      const file = Bun.file(filePath);
-      const headers = {
-        'cache-control': 'no-store',
-        'content-type': file.type || 'application/octet-stream',
-      };
-      if (request.method === 'HEAD') {
-        return new Response(null, { headers });
-      }
-      if (liveReload && file.type.startsWith('text/html')) {
-        return new Response(injectLiveReload(await file.text()), { headers });
-      }
-      return new Response(file, { headers });
-    },
-  };
-
-  if (liveReload) {
-    serverOptions.websocket = {
-      open(socket) {
-        socket.subscribe(LIVE_RELOAD_CHANNEL);
-      },
-      message() {},
-    };
-  }
-
-  const server = Bun.serve(serverOptions);
-  return server;
-}
-
-export function reloadStaticSiteClients(server) {
-  return server.publish(LIVE_RELOAD_CHANNEL, 'reload');
-}
-
 export function resolveStaticPaths(options = {}) {
   const rootDir = path.resolve(options.root || process.cwd());
   const configFile = resolveConfigFile(rootDir);
@@ -567,6 +393,30 @@ function validateBuildPaths(paths) {
   ) {
     throw new Error('Static root and output directories must not contain each other');
   }
+
+  // Resolve symlinks on the output path's existing prefix: a symlinked
+  // target_dir would otherwise pass the string check and write outside root.
+  const realRoot = fs.realpathSync(paths.rootDir);
+  const realOutput = realpathOfExistingPrefix(paths.outputDir);
+  if (realOutput && (realOutput === realRoot || !isPathInside(realRoot, realOutput))) {
+    throw new Error('Static target_dir resolves outside the project root: ' + paths.outputDir);
+  }
+}
+
+// realpath of the deepest existing ancestor, with the non-existent remainder
+// appended. Lets an as-yet-uncreated target_dir be checked for symlink escape.
+function realpathOfExistingPrefix(target) {
+  let current = path.resolve(target);
+  const suffix = [];
+  while (!fs.existsSync(current)) {
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return null;
+    }
+    suffix.unshift(path.basename(current));
+    current = parent;
+  }
+  return path.join(fs.realpathSync(current), ...suffix);
 }
 
 function resolveConfigFile(rootDir) {
@@ -821,7 +671,7 @@ function listCopiedFiles(directory) {
   return files;
 }
 
-function staticWatchTargets(paths) {
+export function staticWatchTargets(paths) {
   const targets = [{ directory: paths.siteDir, recursive: true, file: null }];
   const seen = new Set([paths.siteDir + '\0']);
 
@@ -1143,7 +993,7 @@ function normalizeServeRoot(value) {
   return source;
 }
 
-function resolveServeRoot(paths) {
+export function resolveServeRoot(paths) {
   const configured = paths.config.serve_root;
   if (!configured) {
     return { dir: paths.outputDir, stripBase: true };
@@ -1344,15 +1194,9 @@ function extractStaticBaseHref(html) {
 
 function extractStaticReferences(html) {
   const references = [];
-  const protectedHtml = protectRawRegions(html).text;
-  const tagPattern = /<([a-z][\w:-]*)\b([^<>]*?)\/?\s*>/gi;
-  let match;
-
-  while ((match = tagPattern.exec(protectedHtml))) {
-    const tag = match[1].toLowerCase();
-    const attributes = parseStaticAttributes(match[2]);
+  eachStaticTag(html, (tag, attributes) => {
     if (attributes.has('data-fez-static-ignore')) {
-      continue;
+      return;
     }
 
     const names = staticReferenceAttributes(tag);
@@ -1369,20 +1213,14 @@ function extractStaticReferences(html) {
         references.push({ attribute: name, value });
       }
     }
-  }
+  });
 
   return references;
 }
 
 function extractStaticAnchors(html) {
   const anchors = new Set();
-  const protectedHtml = protectRawRegions(html).text;
-  const tagPattern = /<([a-z][\w:-]*)\b([^<>]*?)\/?\s*>/gi;
-  let match;
-
-  while ((match = tagPattern.exec(protectedHtml))) {
-    const tag = match[1].toLowerCase();
-    const attributes = parseStaticAttributes(match[2]);
+  eachStaticTag(html, (tag, attributes) => {
     const id = attributes.get('id');
     if (id) {
       anchors.add(decodeStaticAttribute(id));
@@ -1391,9 +1229,20 @@ function extractStaticAnchors(html) {
     if (name) {
       anchors.add(decodeStaticAttribute(name));
     }
-  }
+  });
 
   return anchors;
+}
+
+// Walk every tag in the document outside protected raw regions, handing the
+// tag name and parsed attributes to the callback.
+function eachStaticTag(html, callback) {
+  const protectedHtml = protectRawRegions(html).text;
+  const tagPattern = /<([a-z][\w:-]*)\b([^<>]*?)\/?\s*>/gi;
+  let match;
+  while ((match = tagPattern.exec(protectedHtml))) {
+    callback(match[1].toLowerCase(), parseStaticAttributes(match[2]));
+  }
 }
 
 function parseStaticAttributes(source) {
@@ -1527,7 +1376,7 @@ function renderPage(page, context, paths) {
   } else {
     content =
       page.extension === '.md'
-        ? Bun.markdown.html(page.body)
+        ? (context.page?.content ?? Bun.markdown.html(page.body))
         : renderStaticTemplate(page.body, context, page.relativePath);
     content = expandStaticIncludes(content, context, path.dirname(page.absolutePath), [], paths);
   }
@@ -1721,7 +1570,7 @@ function assertLiteralIncludePath(argumentsSource, label) {
 function expandStaticIncludes(html, context, currentDir, stack, paths) {
   const protectedHtml = protectRawRegions(html);
   let expanded = replaceIncludeDirectives(protectedHtml.text, (argumentsSource) => {
-    argumentsSource = decodeStaticEntities(argumentsSource);
+    argumentsSource = decodeStaticAttribute(argumentsSource);
     assertLiteralIncludePath(argumentsSource, context.fezName);
     const [partPath, values] = evaluateIncludeArguments(argumentsSource, context);
     return context.Fez.staticInclude(partPath, values);
@@ -1787,16 +1636,6 @@ function expandStaticIncludes(html, context, currentDir, stack, paths) {
   return protectedHtml.restore(expanded);
 }
 
-function decodeStaticEntities(value) {
-  return value
-    .replaceAll('&quot;', '"')
-    .replaceAll('&#39;', "'")
-    .replaceAll('&#x27;', "'")
-    .replaceAll('&lt;', '<')
-    .replaceAll('&gt;', '>')
-    .replaceAll('&amp;', '&');
-}
-
 function evaluateIncludeArguments(argumentsSource, context) {
   const names = Object.keys(context).filter((name) => /^[A-Za-z_$][\w$]*$/.test(name));
   let values;
@@ -1831,7 +1670,9 @@ function resolvePartFile(partPath, currentDir, partsDir) {
 function insertStaticContent(layout, content, label) {
   const protectedLayout = protectRawRegions(layout);
   const count = protectedLayout.text.split(STATIC_CONTENT_MARKER).length - 1;
-  const result = protectedLayout.text.replace(STATIC_CONTENT_MARKER, content);
+  // Replacer function: page content may contain `$&` / `$1`, which a string
+  // replacement would interpret as a replacement pattern.
+  const result = protectedLayout.text.replace(STATIC_CONTENT_MARKER, () => content);
   if (count !== 1) {
     throw new Error('Layout ' + label + ' must contain exactly one {@content} directive');
   }
@@ -1867,7 +1708,7 @@ function protectRawRegions(source) {
     text,
     restore(value) {
       for (const [token, raw] of values) {
-        value = value.replaceAll(token, raw);
+        value = value.replaceAll(token, () => raw);
       }
       return value;
     },
@@ -1945,34 +1786,7 @@ function replaceOutputDirectory(stageDir, outputDir) {
   }
 }
 
-function injectLiveReload(html) {
-  const script = '<script src="' + LIVE_RELOAD_SCRIPT_PATH + '" defer></script>';
-  if (/<\/body\s*>/i.test(html)) {
-    return html.replace(/<\/body\s*>/i, script + '\n</body>');
-  }
-  return html + script + '\n';
-}
-
-function liveReloadScript() {
-  return [
-    '(() => {',
-    '  const connect = () => {',
-    "    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';",
-    "    const socket = new WebSocket(protocol + '//' + location.host + '" +
-      LIVE_RELOAD_SOCKET_PATH +
-      "');",
-    "    socket.addEventListener('message', (event) => {",
-    "      if (event.data === 'reload') location.reload();",
-    '    });',
-    "    socket.addEventListener('close', () => setTimeout(connect, 500));",
-    '  };',
-    '  connect();',
-    '})();',
-    '',
-  ].join('\n');
-}
-
-function stripStaticBaseUrl(pathname, baseUrl) {
+export function stripStaticBaseUrl(pathname, baseUrl) {
   if (typeof baseUrl !== 'string' || !baseUrl.startsWith('/')) {
     return pathname;
   }
@@ -1983,7 +1797,7 @@ function stripStaticBaseUrl(pathname, baseUrl) {
   return pathname.startsWith(prefix + '/') ? pathname.slice(prefix.length) : pathname;
 }
 
-function findServedFile(outputDir, pathname) {
+export function findServedFile(outputDir, pathname) {
   const relative = pathname.replace(/^\/+/, '');
   const base = path.resolve(outputDir, relative);
   if (!isPathInside(outputDir, base)) {
@@ -2046,7 +1860,10 @@ function addGeneratedNotice(value, sourcePath, paths) {
 }
 
 function stripTrailingWhitespace(value) {
-  return value.replace(/[ \t]+$/gm, '');
+  // Trailing spaces inside <pre>/<code>/<script>/comments are significant -
+  // blank them out before stripping line ends, then put them back.
+  const protectedValue = protectRawRegions(value);
+  return protectedValue.restore(protectedValue.text.replace(/[ \t]+$/gm, ''));
 }
 
 function toPosix(value) {

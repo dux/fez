@@ -6,11 +6,13 @@ import {
   cleanStaticSite,
   doctorStaticSite,
   initStaticSite,
-  reloadStaticSiteClients,
   resolveStaticPaths,
+} from '../src/static.js';
+import {
+  reloadStaticSiteClients,
   serveStaticSite,
   watchStaticSite,
-} from '../src/static.js';
+} from '../src/static/serve.js';
 
 const INFO = 'Build Markdown, HTML, layouts, and Fez components into a static site';
 const COMMANDS = new Set(['build', 'clean', 'dev', 'doctor', 'init', 'serve']);

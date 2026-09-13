@@ -7,10 +7,12 @@ import {
   cleanStaticSite,
   doctorStaticSite,
   initStaticSite,
+} from '../src/static.js';
+import {
   reloadStaticSiteClients,
   serveStaticSite,
   watchStaticSite,
-} from '../src/static.js';
+} from '../src/static/serve.js';
 
 const FEZ = path.resolve(import.meta.dir, '../bin/fez');
 const roots = [];
