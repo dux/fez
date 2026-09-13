@@ -91,7 +91,16 @@ export default function compile(tagName, html) {
   }
 
   // Extract and compile
-  const classCode = generateClassCode(tagName, compileToClass(html));
+  const parts = compileToClass(html);
+  if (parts.scriptLang === 'ts') {
+    Fez.onError(
+      'compile',
+      `"${tagName}" uses <script lang="ts">. Compile it with the Vite/Rollup plugin or ` +
+        '`fez compile` - the browser cannot strip TypeScript types.',
+    );
+    return;
+  }
+  const classCode = generateClassCode(tagName, parts);
 
   // Hide custom element until compiled
   hideCustomElement(tagName);

@@ -13,6 +13,7 @@
 import path from 'node:path';
 import { extractFezDefinitions, parseFezSource } from './lib/source-parser.js';
 import { assertStyleScope } from './lib/validate.js';
+import { stripTypeScript } from './lib/strip-types.js';
 import createTemplate from './lib/template.js';
 
 const DEFAULT_RUNTIME = '@dinoreic/fez';
@@ -83,13 +84,16 @@ function compileUnit(name, source, { minify }) {
   }
 
   assertName(name);
-  assertScriptSyntax(name, parts.script);
+  let klass = parts.script;
+  if (parts.scriptLang === 'ts') {
+    klass = stripTypeScript(klass);
+  }
+  assertScriptSyntax(name, klass);
   assertStyleScope(name, parts.style, false);
   assertStyleScope(name, parts.styleGlobal, true);
   parts.html = normalizeHtml(parts.html);
   assertTemplate(name, parts.html);
 
-  let klass = parts.script;
   if (!/class\s+\{/.test(klass)) {
     klass = `class {\n${klass}\n}`;
   }

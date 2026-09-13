@@ -7,6 +7,7 @@ import { globSync } from 'glob';
 import prettier from 'prettier';
 import createTemplate, { clearTemplateCache } from '../src/fez/lib/template.js';
 import { extractFezDefinitions, parseFezSource } from '../src/fez/lib/source-parser.js';
+import { stripTypeScript } from '../src/fez/lib/strip-types.js';
 
 const INFO = 'Compile Fez components and report errors';
 
@@ -175,6 +176,20 @@ async function compileUnit(filePath, unit, options) {
       line: error.line + unit.lineOffset,
     })),
   );
+
+  if (parsed.scriptLang === 'ts') {
+    try {
+      parsed.script = stripTypeScript(parsed.script);
+    } catch (error) {
+      errors.push({
+        message: error.message,
+        file: filePath,
+        kind: 'Script',
+        line: unit.lineOffset + 1,
+      });
+      return { errors, compiled: null };
+    }
+  }
 
   const script = parsed.blocks.find((block) => block.type === 'script');
   errors.push(

@@ -52,9 +52,26 @@ export function isGlobalStyleTag(attributes) {
   return GLOBAL_ATTR.test(attributes || '');
 }
 
+const LANG_ATTR = /\blang\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
+const TYPE_ATTR = /\btype\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
+const TS_LANGS = new Set(['ts', 'typescript']);
+const TS_TYPES = new Set(['ts', 'text/typescript']);
+
+// `<script lang="ts">` (or type="text/typescript") marks a block the bundler
+// plugin or CLI must strip before the runtime can evaluate it.
+export function isTypeScriptTag(attributes) {
+  const lang = LANG_ATTR.exec(attributes || '');
+  if (lang && TS_LANGS.has((lang[1] ?? lang[2] ?? lang[3] ?? '').toLowerCase())) {
+    return true;
+  }
+  const type = TYPE_ATTR.exec(attributes || '');
+  return !!type && TS_TYPES.has((type[1] ?? type[2] ?? type[3] ?? '').toLowerCase());
+}
+
 export function parseFezSource(source, { dedentDocs = false } = {}) {
   const result = {
     script: '',
+    scriptLang: null,
     style: '',
     styleGlobal: '',
     html: '',
@@ -109,10 +126,16 @@ export function parseFezSource(source, { dedentDocs = false } = {}) {
       });
     }
 
+    const lang = type === 'script' && isTypeScriptTag(match[3]) ? 'ts' : null;
+    if (lang) {
+      result.scriptLang = lang;
+    }
+
     const block = {
       type,
       tag,
       content,
+      lang,
       line: lineAt(source, openStart),
       contentLine: contentLine(source, rawStart, raw),
     };

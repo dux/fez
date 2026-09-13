@@ -86,5 +86,13 @@
     "glob": "^13.0.0",
     "playwright": "^1.57.0",
     "prettier": "^3.8.1"
+  },
+  "peerDependencies": {
+    "esbuild": ">=0.18"
+  },
+  "peerDependenciesMeta": {
+    "esbuild": {
+      "optional": true
+    }
   }
 }

@@ -38,15 +38,11 @@ describe('compile-module', () => {
   });
 
   test('rejects invalid script syntax', () => {
-    expect(() => compile('<script>class { const = }</script><div></div>')).toThrow(
-      /script error/,
-    );
+    expect(() => compile('<script>class { const = }</script><div></div>')).toThrow(/script error/);
   });
 
   test('rejects body styles on a scoped block', () => {
-    expect(() => compile('<style>body { color: red; }</style><div></div>')).toThrow(
-      /style error/,
-    );
+    expect(() => compile('<style>body { color: red; }</style><div></div>')).toThrow(/style error/);
   });
 
   test('rejects an invalid template', () => {
@@ -77,6 +73,41 @@ describe('compile-module', () => {
     expect(code).toContain("Fez('ui-one'");
     expect(code).toContain("Fez('ui-two'");
   });
+
+  test('strips TypeScript types from <script lang="ts">', () => {
+    const source = [
+      '<script lang="ts">',
+      "  import type { User } from './types'",
+      '  interface Props { name: string }',
+      '  const LIMIT: number = 3',
+      '  class {',
+      '    count: number = 0',
+      '    greet(name: string): string { return `hi ${name}` }',
+      '  }',
+      '</script>',
+      '<div>{state.count}</div>',
+    ].join('\n');
+
+    const code = compile(source);
+    expect(code).not.toContain('interface Props');
+    expect(code).not.toContain('import type');
+    expect(code).toContain('const LIMIT = 3');
+    expect(code).toContain('count = 0');
+    expect(code).toContain('greet(name)');
+  });
+
+  test('accepts type="text/typescript"', () => {
+    const code = compile(
+      '<script type="text/typescript">class { n: number = 1 }</script><div></div>',
+    );
+    expect(code).toContain('n = 1');
+  });
+
+  test('reports a TypeScript syntax error', () => {
+    expect(() => compile('<script lang="ts">class { n: number = }</script><div></div>')).toThrow(
+      /TypeScript error/,
+    );
+  });
 });
 
 describe('fez plugin', () => {
@@ -92,5 +123,15 @@ describe('fez plugin', () => {
 
   test('ignores non-fez modules', () => {
     expect(createFezPlugin().load('/tmp/app.js')).toBe(null);
+  });
+
+  test('load() compiles a TypeScript component', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fez-plugin-ts-'));
+    const file = path.join(dir, 'ui-typed.fez');
+    fs.writeFileSync(file, '<script lang="ts">class { n: number = 1 }</script><div></div>');
+    const result = createFezPlugin().load(file);
+    expect(result.code).toContain("Fez('ui-typed'");
+    expect(result.code).toContain('n = 1');
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 });

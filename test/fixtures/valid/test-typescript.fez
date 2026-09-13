@@ -1,0 +1,21 @@
+<script lang="ts">
+  import type { Item } from './types'
+
+  interface Config {
+    maxItems: number
+  }
+
+  const CONFIG: Config = { maxItems: 10 }
+
+  class {
+    count: number = 0
+
+    addItem(item: string): void {
+      if (this.state.items.length < CONFIG.maxItems) {
+        this.state.items.push(item as Item)
+      }
+    }
+  }
+</script>
+
+<div>Items: {state.items.length}</div>

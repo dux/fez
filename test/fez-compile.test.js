@@ -62,6 +62,11 @@ describe('fez compile', () => {
       expect(result.exitCode).toBe(0);
     });
 
+    test('compiles TypeScript in a script lang="ts" block', async () => {
+      const result = await compile('test/fixtures/valid/test-typescript.fez');
+      expect(result.exitCode).toBe(0);
+    });
+
     test('compiles files containing multiple component definitions', async () => {
       const result = await $`bin/fez-compile -o docs/fez/bubble-alerter.fez`.quiet().nothrow();
       const stdout = result.stdout.toString();
