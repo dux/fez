@@ -58,6 +58,10 @@ import Button from './components/ui-button.fez'; // default export is the class
 - `runtime` (default `@dinoreic/fez`) sets the specifier the emitted module imports `Fez` from.
 - One plugin for both bundlers: Vite-only hooks (`enforce`, `configResolved`) are ignored by
   Rollup, so minify follows Vite's mode and is false for Rollup.
+- `<script lang="ts">` (or `type="text/typescript"`) is stripped by the plugin at build time
+  with `esbuild` (Vite depends on it; install it when your setup cannot resolve it).
+  `fez compile` validates TS too.
+  The browser runtime cannot strip types, so `lang="ts"` only works through a bundler or the CLI.
 - The `<script fez>` runtime loading above still works.
 
 ## CLI Tools

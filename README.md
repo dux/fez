@@ -15,7 +15,7 @@ It uses minimal abstraction. You will learn to use it in 15 minutes, just look a
 
 ## How to install
 
-`<script src="https://raw.githubusercontent.com/dux/fez/main/dist/fez.js"></script>`
+`<script src="https://dux.github.io/fez/dist/fez.js"></script>`
 
 ## CLI Tools
 
@@ -717,7 +717,7 @@ Here's a simple counter component that demonstrates Fez's core features:
   class {
     // called when Fez node is connected to DOM
     init() {
-      this.state.max = 6      // never rendered, so changing it never re-renders
+      this.state.max = 6      // read through isMax() during render, so a change re-renders
       this.state.count = 0    // rendered below, changing it re-renders
     }
 
@@ -748,7 +748,7 @@ Here's a simple counter component that demonstrates Fez's core features:
   }
 </style>
 
-<button onclick="{() => state.count -= 1}" disabled="{state.count" ="" ="1}">-</button>
+<button onclick="{() => state.count -= 1}" disabled="{state.count === 0}">-</button>
 
 <span> {state.count} </span>
 
@@ -1255,6 +1255,40 @@ import Button from './components/ui-button.fez'; // or import the class
 Vite and Rollup both import the same plugin from `@dinoreic/fez/plugin`: `enforce`/`configResolved`
 are Vite-only and ignored by Rollup, so `minify` follows Vite's mode and stays `false` for Rollup.
 The runtime `<script fez="...">` loading above still works; both paths are supported.
+
+## TypeScript
+
+Mark a script block `lang="ts"` to write component logic in TypeScript. Types are stripped
+at build time by the plugin, so this needs the bundler path (or `fez compile`); the browser
+runtime cannot transpile TypeScript.
+
+```html
+<script lang="ts">
+  import type { User } from './types';
+
+  interface Config {
+    maxItems: number;
+  }
+
+  const CONFIG: Config = { maxItems: 10 };
+
+  class {
+    count: number = 0;
+
+    add(user: User): void {
+      if (this.state.count < CONFIG.maxItems) {
+        this.state.count += 1;
+      }
+    }
+  }
+</script>
+```
+
+- Type-only imports (`import type`), interfaces, type aliases and annotations are removed.
+- The plugin strips types with `esbuild`. Vite already depends on it; install `esbuild`
+  yourself when your setup cannot resolve it (a bare Rollup config, a strict package manager).
+- `type="text/typescript"` is accepted as an alias for `lang="ts"`.
+- `fez compile path/to/component.fez` validates TypeScript without running the bundler.
 
 ## Template scope
 
