@@ -463,8 +463,10 @@ function syncDomProperties(oldNode, newNode) {
 
   if (tag === 'INPUT') {
     const type = (oldNode.getAttribute('type') || '').toLowerCase();
-    if (!isActiveInput && newNode.hasAttribute('value')) {
-      oldNode.value = newNode.getAttribute('value');
+    if (!isActiveInput && oldNode.value !== newNode.value) {
+      // newNode.value is '' when the template dropped the value attribute, so a
+      // stale value does not survive the render.
+      oldNode.value = newNode.value;
     }
     if (!isActiveInput && (type === 'checkbox' || type === 'radio')) {
       syncBooleanProperty(oldNode, newNode, 'checked');
@@ -509,13 +511,8 @@ function syncBooleanProperty(oldNode, newNode, attr) {
  *  +2  for same number of attributes
  */
 function getClassSet(node) {
-  if (node._morphClassSet) {
-    return node._morphClassSet;
-  }
   const raw = node.getAttribute?.('class');
-  const result = raw ? new Set(raw.split(/\s+/).filter(Boolean)) : null;
-  node._morphClassSet = result;
-  return result;
+  return raw ? new Set(raw.split(/\s+/).filter(Boolean)) : null;
 }
 
 function scoreSoftMatch(oldNode, newNode) {

@@ -125,7 +125,7 @@ export default class FezBase {
       if (typeof data === 'object') {
         attrs = data;
       } else {
-        if (data[0] != '{') {
+        if (data[0] !== '{') {
           data = decodeURIComponent(data);
         }
         try {
@@ -318,7 +318,7 @@ export default class FezBase {
         const d = new Date(/^-?\d+(\.\d+)?$/.test(str) ? Number(str) : str);
         v = Number.isNaN(d.getTime()) ? fail(`expected Date, got ${show(v)}`) : d;
       } else if (Number.isNaN(v.getTime())) {
-        v = fail(`expected Date, got Invalid Date`);
+        v = fail('expected Date, got Invalid Date');
       }
     } else if (typeof type === 'function') {
       // custom caster
@@ -330,7 +330,7 @@ export default class FezBase {
     }
 
     if (v === undefined && spec.required) {
-      fail(`is required`);
+      fail('is required');
     }
 
     if (v !== undefined && Array.isArray(spec.enum) && !spec.enum.includes(v)) {
@@ -646,7 +646,7 @@ export default class FezBase {
       .replace(/\bon[a-z]+=(["'])([\s\S]*?)\1/gi, (attr) =>
         attr.replace(/\bfez\.(\w)/g, `${base}$1`),
       )
-      .replace(/>\s+</g, '><');
+      .replace(/>[ \t]*\r?\n[ \t]*</g, '><');
     return text.trim();
   }
 
@@ -912,7 +912,7 @@ export default class FezBase {
     fetchAttr('fez-bind', (text, n) => {
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(n.nodeName)) {
         const value = new Function(`return this.${text}`).bind(this)();
-        const isCb = n.type.toLowerCase() == 'checkbox';
+        const isCb = n.type.toLowerCase() === 'checkbox';
         // "input" covers typing, paste, autofill and slider drags alike;
         // select and checkbox have no meaningful intermediate state
         const eventName = ['SELECT'].includes(n.nodeName) || isCb ? 'onchange' : 'oninput';
@@ -1243,7 +1243,7 @@ export default class FezBase {
     if (node) {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(node.nodeName)) {
         if (typeof data !== 'undefined') {
-          if (node.type == 'checkbox') {
+          if (node.type === 'checkbox') {
             node.checked = !!data;
           } else {
             node.value = data;
@@ -1319,7 +1319,7 @@ export default class FezBase {
       let value = this.props[name];
 
       if (value !== undefined) {
-        if (name == 'class') {
+        if (name === 'class') {
           const klass = this.root.getAttribute(name, value);
           if (klass) {
             value = [klass, value].join(' ');
@@ -1543,7 +1543,7 @@ export default class FezBase {
    */
   fezSlot(source, target) {
     target ||= document.createElement('template');
-    const isSlot = target.nodeName == 'SLOT';
+    const isSlot = target.nodeName === 'SLOT';
 
     while (source.firstChild) {
       if (isSlot) {

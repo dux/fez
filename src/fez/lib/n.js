@@ -6,6 +6,17 @@
 // copyright @dux, 2024
 // Licence MIT
 
+const BOOLEAN_ATTRS = new Set([
+  'checked',
+  'disabled',
+  'selected',
+  'readonly',
+  'required',
+  'hidden',
+  'multiple',
+  'autofocus',
+]);
+
 export default function n(name, attrs = {}, data) {
   if (typeof attrs === 'string') {
     [attrs, data] = [data, attrs];
@@ -27,6 +38,9 @@ export default function n(name, attrs = {}, data) {
     attrs = {};
   }
 
+  // Copy so the shorthand-class merge below never mutates the caller's object
+  attrs = { ...attrs };
+
   if (name.includes('.')) {
     const parts = name.split('.');
     name = parts.shift() || 'div';
@@ -39,35 +53,27 @@ export default function n(name, attrs = {}, data) {
   }
 
   const node = document.createElement(name);
-
-  const booleanAttrs = [
-    'checked',
-    'disabled',
-    'selected',
-    'readonly',
-    'required',
-    'hidden',
-    'multiple',
-    'autofocus',
-  ];
+  const fezRoot = this?.fezHtmlRoot || '';
 
   for (const [k, v] of Object.entries(attrs)) {
     if (typeof v === 'function') {
       node[k] = v.bind(this);
-    } else if (booleanAttrs.includes(k)) {
+    } else if (BOOLEAN_ATTRS.has(k)) {
       if (v) {
         node.setAttribute(k, k);
       }
     } else {
-      const value = String(v).replaceAll('fez.', this.fezHtmlRoot);
+      // Only rewrite fez. handlers when there is a component context; a bare
+      // n(...) call has none and must leave the string as written.
+      const value = fezRoot ? String(v).replaceAll('fez.', fezRoot) : String(v);
       node.setAttribute(k, value);
     }
   }
 
   if (data) {
     if (Array.isArray(data)) {
-      for (const n of data) {
-        node.appendChild(n);
+      for (const item of data) {
+        node.appendChild(item);
       }
     } else if (data instanceof Node) {
       node.appendChild(data);

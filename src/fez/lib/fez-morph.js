@@ -255,7 +255,11 @@ export default function attachMorph(Fez) {
       if (node.nodeType === 1 && node._fezOut && node.isConnected && !node._fezLeaving) {
         node._fezLeaving = true;
         node.style.pointerEvents = 'none';
-        runTransition(node, node._fezOut, 'out').then(() => node.remove());
+        // A rejected/failed transition must still detach - otherwise the node
+        // stays invisible, pointer-events:none and invisible to the differ.
+        runTransition(node, node._fezOut, 'out')
+          .then(() => node.remove())
+          .catch(() => node.remove());
       } else {
         parent.removeChild(node);
       }
