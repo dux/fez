@@ -90,7 +90,7 @@ const highlightAll = () => {
 document.addEventListener('keydown', (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key === 'e') {
     // Check if target is not inside a form
-    if (!event.target.closest('form')) {
+    if (!event.target?.closest?.('form')) {
       event.preventDefault();
       highlightAll();
     }

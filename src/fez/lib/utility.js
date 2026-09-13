@@ -20,7 +20,7 @@ export default (Fez) => {
   //   Fez.head(domNode)
   Fez.head = (config, callback) => {
     if (config.nodeName) {
-      if (config.nodeName == 'SCRIPT') {
+      if (config.nodeName === 'SCRIPT') {
         Fez.head({ script: config.innerText });
         config.remove();
       } else {
@@ -37,9 +37,8 @@ export default (Fez) => {
       throw new Error('head requires an object parameter');
     }
 
-    let src,
-      attributes = {},
-      elementType;
+    let src, elementType;
+    const attributes = {};
 
     // Load Fez component(s) from URL
     // Supports:
@@ -51,76 +50,88 @@ export default (Fez) => {
 
       // If it's a txt file, load it as a component list
       if (fezPath.endsWith('.txt')) {
-        Fez.fetch(fezPath).then((content) => {
-          // Get base path from txt file location
-          const basePath = fezPath.substring(0, fezPath.lastIndexOf('/') + 1);
+        Fez.fetch(fezPath)
+          .then((content) => {
+            // Get base path from txt file location
+            const basePath = fezPath.substring(0, fezPath.lastIndexOf('/') + 1);
 
-          // Parse lines, filter empty lines and comments
-          const lines = content
-            .split('\n')
-            .map((line) => line.trim())
-            .filter((line) => line && !line.startsWith('#'));
+            // Parse lines, filter empty lines and comments
+            const lines = content
+              .split('\n')
+              .map((line) => line.trim())
+              .filter((line) => line && !line.startsWith('#'));
 
-          // Load each component
-          let loaded = 0;
-          const total = lines.length;
+            // Load each component; one failure must not stop the others nor
+            // leave the callback waiting forever.
+            const loads = lines.map((line) => {
+              let componentPath;
+              if (line.startsWith('/')) {
+                componentPath = line;
+              } else {
+                const path = line.endsWith('.fez') ? line : line + '.fez';
+                componentPath = basePath + path;
+              }
 
-          lines.forEach((line) => {
-            // Determine full path
-            // - If starts with /, it's absolute from root
-            // - Otherwise, relative to txt file location
-            let componentPath;
-            if (line.startsWith('/')) {
-              componentPath = line;
-            } else {
-              // Add .fez extension if not present
-              const path = line.endsWith('.fez') ? line : line + '.fez';
-              componentPath = basePath + path;
-            }
+              const name = Fez.nameFromPath(componentPath);
+              return Fez.fetch(componentPath)
+                .then((componentContent) => Fez.compile(name, componentContent))
+                .catch((error) =>
+                  Fez.onError('compile', `Load error for "${componentPath}": ${error.message}`),
+                );
+            });
 
-            // Extract component name from path
-            const name = componentPath.split('/').pop().split('.')[0];
-
-            Fez.fetch(componentPath).then((componentContent) => {
-              Fez.compile(name, componentContent);
-              loaded++;
-              if (loaded === total && callback) {
+            Promise.all(loads).then(() => {
+              if (callback) {
                 callback();
               }
             });
+          })
+          .catch((error) => {
+            Fez.onError('compile', `Load error for "${fezPath}": ${error.message}`);
+            if (callback) {
+              callback(error);
+            }
           });
-        });
         return;
       }
 
       // Single .fez component
-      Fez.fetch(fezPath).then((content) => {
-        const name = fezPath.split('/').pop().split('.')[0];
-        Fez.compile(name, content);
-        if (callback) {
-          callback();
-        }
-      });
+      const name = Fez.nameFromPath(fezPath);
+      Fez.fetch(fezPath)
+        .then((content) => {
+          Fez.compile(name, content);
+          if (callback) {
+            callback();
+          }
+        })
+        .catch((error) => {
+          Fez.onError('compile', `Load error for "${fezPath}": ${error.message}`);
+          if (callback) {
+            callback(error);
+          }
+        });
       return;
     }
 
     if (config.script) {
       if (config.script.includes('import ')) {
-        // Evaluate inline script in module context.
-        // The module's import graph resolves asynchronously - fire callback
-        // on the script element's load/error events so callers know when
-        // top-level code has actually run.
-        const script = document.createElement('script');
-        script.type = 'module';
-        script.textContent = config.script;
-        if (callback) {
-          script.addEventListener('load', () => callback(null));
-          script.addEventListener('error', (e) =>
-            callback(e?.error || new Error('module script error')),
-          );
-        }
-        document.head.appendChild(script);
-        requestAnimationFrame(() => script.remove());
+        // Inline module scripts never fire load/error, so evaluate the source
+        // through a blob URL and let the dynamic import resolve after the
+        // module's import graph has run.
+        const blobUrl = URL.createObjectURL(new Blob([config.script], { type: 'text/javascript' }));
+        import(/* webpackIgnore: true */ blobUrl)
+          .then(() => {
+            URL.revokeObjectURL(blobUrl);
+            if (callback) {
+              callback(null);
+            }
+          })
+          .catch((error) => {
+            URL.revokeObjectURL(blobUrl);
+            if (callback) {
+              callback(error);
+            }
+          });
       } else {
         try {
           new Function(config.script)();
@@ -160,10 +171,29 @@ export default (Fez) => {
       throw new Error('head requires either "script", "js" or "css" property');
     }
 
-    const existingNode = document.querySelector(
-      `${elementType}[src="${src}"], ${elementType}[href="${src}"]`,
+    // Import the module's default/namespace onto window[config.module]. Runs on
+    // a fresh load and on a cache hit (the tag may already be loaded, but the
+    // window binding would otherwise never be set).
+    const assignModule = () => {
+      if (config.module && elementType === 'script') {
+        import(src)
+          .then((module) => {
+            window[config.module] = module.default || module[config.module] || module;
+          })
+          .catch((error) => {
+            console.error(`Error importing module ${config.module}:`, error);
+          });
+      }
+    };
+
+    // Match by attribute value instead of interpolating src into a selector -
+    // a URL containing a quote would otherwise throw inside querySelector.
+    const attrName = elementType === 'link' ? 'href' : 'src';
+    const existingNode = Array.from(document.querySelectorAll(elementType)).find(
+      (n) => n.getAttribute(attrName) === src || n[attrName] === src,
     );
     if (existingNode) {
+      assignModule();
       if (callback) {
         callback();
       }
@@ -184,16 +214,7 @@ export default (Fez) => {
 
     if (callback || config.module) {
       element.onload = () => {
-        // If module name is provided, import it and assign to window
-        if (config.module && elementType === 'script') {
-          import(src)
-            .then((module) => {
-              window[config.module] = module.default || module[config.module] || module;
-            })
-            .catch((error) => {
-              console.error(`Error importing module ${config.module}:`, error);
-            });
-        }
+        assignModule();
         if (callback) {
           callback();
         }
@@ -507,6 +528,8 @@ export default (Fez) => {
         return new Function(pointer);
       }
     }
+    // Truthy but not a function or string (object/array): nothing callable
+    return () => {};
   };
 
   // Execute a function when DOM is ready or immediately if already loaded
@@ -524,16 +547,24 @@ export default (Fez) => {
     }
   };
 
-  // get unique id from string
+  // get unique id from string (32-bit FNV-1; Math.imul keeps the multiply in
+  // 32-bit range so the hash does not lose precision as a float)
   Fez.fnv1 = (str) => {
-    const FNV_OFFSET_BASIS = 2166136261;
-    const FNV_PRIME = 16777619;
-    let hash = FNV_OFFSET_BASIS;
+    let hash = 2166136261;
     for (let i = 0; i < str.length; i++) {
       hash ^= str.charCodeAt(i);
-      hash *= FNV_PRIME;
+      hash = Math.imul(hash, 16777619) >>> 0;
     }
-    return hash.toString(36).replaceAll('-', '');
+    return hash.toString(36);
+  };
+
+  // Component name from a URL/path: drop query/hash, directory and the final
+  // extension. `my.component.fez` -> `my.component` (split('.')[0] would give
+  // `my`).
+  Fez.nameFromPath = (url) => {
+    const clean = String(url).split(/[?#]/)[0];
+    const base = clean.split('/').pop() || '';
+    return base.replace(/\.[^.]*$/, '');
   };
 
   // execute function until it returns true

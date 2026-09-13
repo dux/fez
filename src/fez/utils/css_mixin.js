@@ -23,19 +23,26 @@ const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // keeps `pointer-events:none;` intact when a mixin named `none` exists
 const declRe = (key) => new RegExp(`(^|[\\s{;])(?::|@include\\s+)${escapeRe(key)}\\s*;`, 'g');
 
+// `:name {` / `@include name {` at block position only - the lead guard keeps a
+// same-named pseudo-class or property value from being rewritten.
+const blockRe = (key) =>
+  new RegExp(`(^|[\\s{;])(?::|@include\\s+)${escapeRe(key)}(?=\\s+\\{)`, 'g');
+
 export default (Fez) => {
   Fez.cssMixin = (name, content) => {
-    if (content) {
+    // Two-arg form registers; one-arg form expands. `content !== undefined`
+    // (not truthiness) so an empty body can be registered.
+    if (content !== undefined) {
       CssMixins[name] = content;
-    } else {
-      Object.entries(CssMixins).forEach(([key, val]) => {
-        name = name.replace(declRe(key), (_, lead) => `${lead}${val.replace(/;\s*$/, '')};`);
-        name = name.replaceAll(`:${key} `, `${val} `);
-        name = name.replaceAll(`@include ${key} `, `${val} `);
-      });
-
-      return name;
+      return;
     }
+
+    Object.entries(CssMixins).forEach(([key, val]) => {
+      name = name.replace(declRe(key), (_, lead) => `${lead}${val.replace(/;\s*$/, '')};`);
+      name = name.replace(blockRe(key), (_, lead) => `${lead}${val}`);
+    });
+
+    return name;
   };
 
   Fez.cssMixin('mobile', '@media (max-width: 767px)');

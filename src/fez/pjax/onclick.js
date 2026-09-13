@@ -69,6 +69,13 @@ export default function createOnClick(Pjax) {
 
       const href = node.getAttribute('href');
       const replace = node.hasAttribute('pjax-replace');
+      const target = node.getAttribute('target');
+
+      // middle-click / cmd-click is a user gesture to open a new tab, before any
+      // in-page swap (pjax-target / pjax-refresh) gets a chance to run.
+      if ((ctx.which === 2 || ctx.metaKey) && href) {
+        return window.open(href);
+      }
 
       const pjaxRefresh = node.getAttribute('pjax-refresh');
       if (pjaxRefresh) {
@@ -92,13 +99,9 @@ export default function createOnClick(Pjax) {
         return;
       }
 
-      // middle-click / cmd-click is a user gesture to open a new tab, regardless
-      // of the link's own target.
-      if (ctx.which === 2 || ctx.metaKey) {
-        return window.open(href);
+      if (!href) {
+        return;
       }
-
-      const target = node.getAttribute('target');
 
       // Opt out of pjax when the link, or any ancestor, carries a no-pjax class
       // (e.g. `direct`, `no-pjax`). closest() walks up the tree so a wrapper opting
@@ -112,9 +115,9 @@ export default function createOnClick(Pjax) {
         return new Function(href.replace(/^javascript:/, ''))();
       }
 
-      // Scheme links (mailto:, tel:, external http, vscode:) or links asking for a
-      // named target leave pjax too.
-      if (/^\w+:/.test(href) || target) {
+      // Scheme links (mailto:, tel:, external http, vscode:), protocol-relative
+      // links (//host) or links asking for a named target leave pjax too.
+      if (/^\w+:/.test(href) || href.startsWith('//') || target) {
         return PjaxOnClick.leave(href, target);
       }
 

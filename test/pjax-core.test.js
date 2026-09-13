@@ -695,10 +695,7 @@ describe('Pjax module', () => {
     target.innerHTML = '<div class="flex"><div class="sidebar">old</div></div>';
     document.body.appendChild(target);
 
-    Pjax.morphInto(
-      target,
-      '<div class="flex"><div class="sidebar">S</div><div class="content">C</div></div>',
-    );
+    Pjax.morphInto(target, '<div class="flex"><div class="sidebar">S</div><div class="content">C</div></div>');
 
     expect(target.children.length).toBe(1);
     expect(target.firstElementChild.className).toBe('flex');
@@ -851,5 +848,30 @@ describe('Pjax module', () => {
     } finally {
       Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
     }
+  });
+
+  // --- form args ---
+
+  test('_resolveArgs keeps POST form data out of the URL', () => {
+    document.body.innerHTML =
+      '<form id="f" method="post" action="/submit"><input name="a" value="1"></form>';
+    const form = document.getElementById('f');
+
+    const opts = Pjax._resolveArgs('/submit', { form });
+
+    expect(opts.method).toBe('POST');
+    expect(opts.path).toBe('/submit');
+    expect(opts.form_data.get('a')).toBe('1');
+  });
+
+  test('_resolveArgs serializes GET form data into the URL', () => {
+    document.body.innerHTML =
+      '<form id="f" method="get" action="/search"><input name="q" value="fez"></form>';
+    const form = document.getElementById('f');
+
+    const opts = Pjax._resolveArgs('/search', { form });
+
+    expect(opts.method).toBeUndefined();
+    expect(opts.path).toContain('q=fez');
   });
 });

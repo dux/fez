@@ -76,6 +76,20 @@ describe('PjaxOnClick', () => {
     expect(loadCalled).toBe(false);
   });
 
+  test('leaves protocol-relative links instead of fetching them', () => {
+    document.body.innerHTML = `
+      <main class="pjax" id="pjax">
+        <a href="//example.com/page" id="link">External</a>
+      </main>
+    `;
+    let left = null;
+    PjaxOnClick.leave = (href) => (left = href);
+
+    PjaxOnClick.main(createClickEvent({ target: document.getElementById('link') }));
+
+    expect(left).toBe('//example.com/page');
+  });
+
   test('uses pjax-target to load into a specific element', () => {
     document.body.innerHTML = `
       <main class="pjax" id="pjax">
@@ -259,8 +273,7 @@ describe('PjaxOnClick', () => {
   });
 
   test('opens links with target attribute in named window', () => {
-    document.body.innerHTML =
-      '<a href="mailto:test@x.com" target="_blank" id="target-link">Mail</a>';
+    document.body.innerHTML = '<a href="mailto:test@x.com" target="_blank" id="target-link">Mail</a>';
 
     let opened = null;
     let openedTarget = null;

@@ -25,18 +25,26 @@ export const cssHash = (text) => {
   return 'fez-' + hash.toString(36);
 };
 
-const styleNode = () => {
-  if (sheet && sheet.isConnected !== false) {
-    return sheet;
+const ensureStyleNode = () => {
+  if (sheet && sheet.isConnected) {
+    return { node: sheet, rebuilt: false };
   }
 
-  sheet = document.getElementById('fez-css');
-  if (!sheet) {
-    sheet = document.createElement('style');
-    sheet.id = 'fez-css';
-    document.head.appendChild(sheet);
+  const existing = document.getElementById('fez-css');
+  if (existing) {
+    sheet = existing;
+    return { node: existing, rebuilt: false };
   }
-  return sheet;
+
+  // New node: replay everything injected so far, so a removed/replaced
+  // <style id="fez-css"> does not silently drop the stylesheet.
+  sheet = document.createElement('style');
+  sheet.id = 'fez-css';
+  for (const chunk of chunks) {
+    sheet.appendChild(document.createTextNode(`${chunk}\n`));
+  }
+  document.head.appendChild(sheet);
+  return { node: sheet, rebuilt: true };
 };
 
 /**
@@ -55,8 +63,11 @@ export const injectCss = (text) => {
 
   // No DOM (unit tests) - the hash is still a useful return value
   try {
-    const node = styleNode();
-    node.textContent = `${node.textContent || ''}${text}\n`;
+    const { node, rebuilt } = ensureStyleNode();
+    // A rebuilt node already replays every chunk, including this one.
+    if (!rebuilt) {
+      node.appendChild(document.createTextNode(`${text}\n`));
+    }
   } catch {}
 
   return key;

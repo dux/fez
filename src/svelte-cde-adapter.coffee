@@ -28,10 +28,6 @@ getAttributes = (node) ->
       attrs = JSON.parse(prev.textContent)
       prev.remove()
 
-    # data = node.previousSibling?.textContent
-    # if data
-    #   attrs = JSON.parse(data)
-
   attrs
 
 # passes root, use `Svelte(this.root.id)` or `this.root.svelte`  to get node pointer
@@ -40,9 +36,7 @@ getAttributes = (node) ->
 connect = (node, name, klass) ->
   return unless node.isConnected
 
-  # TODO: get node name
-  # (new klass(target: document.createElement('div'))).nodeName
-  exported = Object.getOwnPropertyNames(klass.prototype)
+  exported = Reflect.ownKeys(klass.prototype)
   newNode = document.createElement(if exported.includes('nodeNameSpan') then 'span' else 'div')
   newNode.classList.add('svelte')
   newNode.classList.add("svelte-#{name}")
@@ -58,7 +52,6 @@ connect = (node, name, klass) ->
   node.parentNode.replaceChild(newNode, node);
 
   # bind node and pass all props as single props attribute
-  exported = Reflect.ownKeys klass.prototype
   svelteProps = {}
   svelteProps.fast = true if exported.includes('fast') || exported.includes('FAST')
   svelteProps.props = props if exported.includes('props')
@@ -98,14 +91,13 @@ Svelte.count = 0
 
 # Creates custom DOM element
 Svelte.connect = (name, klass) ->
+  return if customElements.get(name)
   customElements.define name, class extends HTMLElement
     connectedCallback: ->
-      # no not optimize requestAnimationFrame (try to avoid it)
+      # do not optimize requestAnimationFrame (try to avoid it)
       # because events in nested components are sometimes not propagated at all
       # export let fast
       # %s-menu-vertical{ fast_connect: true }
-
-      # connect @, name, klass
 
       if this.childNodes[0] || this.nextSibling || klass.prototype.hasOwnProperty('fast') || klass.prototype.hasOwnProperty('FAST') || @getAttribute('fast_connect') || @getAttribute('data-props') || @getAttribute('data-json-template')
         connect @, name, klass
@@ -113,16 +105,9 @@ Svelte.connect = (name, klass) ->
         requestAnimationFrame =>
           connect @, name, klass
 
-      # if document.readyState == 'loading'
-      #   document.addEventListener 'DOMContentLoaded',
-      #     => connect(@, name, klass)
-      #   , once: true
-      # else
-      #   connect(@, name, klass)
-
 # Creates HTML tag
 Svelte.tag = (tag, opts = {}, html = '') ->
-  json = JSON.stringify(opts).replaceAll("'", '&apos;')
+  json = JSON.stringify(opts).replaceAll('&', '&amp;').replaceAll("'", '&apos;')
   "<#{tag} data-props='#{json}'>#{html}</#{tag}>"
 
 Svelte.bind = Svelte.connect

@@ -228,10 +228,17 @@ export default function createPjax() {
       opts.path ||= Pjax.path();
 
       if (opts.form) {
-        const params = new URLSearchParams(new FormData(opts.form)).toString();
-        if (params) {
-          opts.path += opts.path.includes('?') ? '&' : '?';
-          opts.path += params;
+        const method = (opts.form.getAttribute('method') || 'get').toLowerCase();
+        if (method === 'post') {
+          // POST keeps the body out of the URL; sendRequest() sends the FormData
+          opts.method = 'POST';
+          opts.form_data = new FormData(opts.form);
+        } else {
+          const params = new URLSearchParams(new FormData(opts.form)).toString();
+          if (params) {
+            opts.path += opts.path.includes('?') ? '&' : '?';
+            opts.path += params;
+          }
         }
       }
 
@@ -652,7 +659,8 @@ export default function createPjax() {
         if (this.href === '#') {
           return;
         }
-        const node = document.querySelector(`a[name=${this.href.replace('#', '')}]`);
+        const hash = this.href.slice(1);
+        const node = document.getElementById(hash) || document.getElementsByName(hash)[0];
         if (node) {
           node.scrollIntoView({ behavior: 'smooth', block: 'start' });
           return false;
@@ -725,21 +733,32 @@ export default function createPjax() {
       };
 
       this.req.ontimeout = () => {
-        Pjax.request = null;
+        if (Pjax.request === this.req) {
+          Pjax.request = null;
+        }
         Pjax.error(`Request timeout: ${this.href}`);
         this.emitDone({ status: 0, error: 'timeout' });
         this.redirect();
       };
 
-      this.req.open('GET', this.href);
+      this.req.open(this.opts.method || 'GET', this.href);
       for (const [k, v] of Object.entries(headers)) {
         this.req.setRequestHeader(k, v);
       }
       this.req.onload = () => this.handleResponse();
-      this.req.send();
+      if (this.opts.form_data) {
+        this.req.send(this.opts.form_data);
+      } else {
+        this.req.send();
+      }
     }
 
     handleResponse() {
+      // A late response from a superseded request must not clear or overwrite
+      // the current one.
+      if (Pjax.request && Pjax.request !== this.req) {
+        return;
+      }
       Pjax.request = null;
       this.response = this.req.responseText;
 
@@ -839,7 +858,11 @@ export default function createPjax() {
       const ajax_node = this.opts.ajax_node;
       ajax_node.setAttribute('data-path', this.href);
       ajax_node.removeAttribute('path');
-      const ajax_id = ajax_node.getAttribute('id') || Pjax.error('Pjax .ajax node has no ID');
+      const ajax_id = ajax_node.getAttribute('id');
+      if (!ajax_id) {
+        Pjax.error('Pjax .ajax node has no ID');
+        return false;
+      }
       const ajax_data = Pjax.findById(this.rroot, ajax_id)?.innerHTML || this.response;
       Pjax.morphInto(ajax_node, Pjax.parseScripts(ajax_data));
       return true;
