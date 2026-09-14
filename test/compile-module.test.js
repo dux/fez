@@ -103,9 +103,9 @@ describe('compile-module', () => {
     expect(code).toContain('n = 1');
   });
 
-  test('reports a TypeScript syntax error', () => {
+  test('reports a TypeScript syntax error with its location', () => {
     expect(() => compile('<script lang="ts">class { n: number = }</script><div></div>')).toThrow(
-      /TypeScript error/,
+      /TypeScript error.*line 1/,
     );
   });
 });

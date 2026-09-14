@@ -22,7 +22,7 @@ import {
   stripFezDefinitions,
   stripGeneratedNotice,
 } from './lib/source-parser.js';
-import { assertStyleScope } from './lib/validate.js';
+import { assertStyleScope, splitScript } from './lib/validate.js';
 
 const compileCache = new Map();
 
@@ -271,7 +271,7 @@ function generateClassCode(tagName, parts) {
   let klass = parts.script;
 
   // Wrap in class if needed
-  if (!/class\s+\{/.test(klass)) {
+  if (!splitScript(klass).hasClass) {
     klass = `class {\n${klass}\n}`;
   }
 
@@ -309,11 +309,9 @@ function generateClassCode(tagName, parts) {
     Fez.index.ensure(tagName).info = closeCustomTags(parts.info);
   }
 
-  // Wrap in Fez call. Split at the first `class {` only - split(re, 2) would
-  // drop everything after a second occurrence in the component script.
-  const classMatch = klass.match(/class\s+\{/);
-  const before = classMatch ? klass.slice(0, classMatch.index) : '';
-  const after = classMatch ? klass.slice(classMatch.index + classMatch[0].length) : klass;
+  // Wrap in Fez call. Split at the first anonymous class - splitScript skips
+  // `class {` inside strings/comments, so the preamble stays intact.
+  const { preamble: before, body: after } = splitScript(klass);
   return `${before};\n\nwindow.Fez('${tagName}', class {\n${after})`;
 }
 

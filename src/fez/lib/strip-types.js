@@ -5,13 +5,22 @@
 // CLI. esbuild is imported lazily: Vite already ships it, and a Rollup user
 // only needs to install it to use `.fez` TypeScript.
 //
-// The output keeps the `class { ... }` delimiter shape the rest of the
-// compiler expects, so a bundle without `lang="ts"` never reaches this file.
+// The script is transformed in a single esbuild pass: the anonymous component
+// class is given a placeholder name so the whole module (preamble + class) is
+// valid TypeScript and esbuild can see every type-only usage. The placeholder
+// is swapped back to `class {` afterwards, keeping the delimiter the rest of
+// the compiler expects.
 
 import { createRequire } from 'node:module';
+import { findAnonymousClass } from './validate.js';
 
 const require = createRequire(import.meta.url);
-const CLASS_RE = /class\s*\{/;
+const PLACEHOLDER = '__FEZ_TS_CLASS__';
+const PLACEHOLDER_RE = /\bclass\s+__FEZ_TS_CLASS__\s*\{/;
+// `class {` -> `class __FEZ_TS_CLASS__ {` shifts columns at/after the `{` by
+// the name plus its trailing space, on the declaration line only.
+const COLUMN_SHIFT = PLACEHOLDER.length + 1;
+const BRACE_COLUMN = 'class '.length + COLUMN_SHIFT;
 
 let esbuild;
 
@@ -25,19 +34,22 @@ function transpile(code) {
       );
     }
   }
-  try {
-    return esbuild.transformSync(code, { loader: 'ts', target: 'esnext' }).code;
-  } catch (error) {
-    throw new Error(`Fez TypeScript error: ${error.message}`);
-  }
+  return esbuild.transformSync(code, { loader: 'ts', target: 'esnext' }).code;
 }
 
-// A bare class body is not valid TypeScript on its own, so wrap it in an
-// anonymous class expression, transform, then put the delimiter back.
-function transpileClass(body, wrapped) {
-  const out = transpile(wrapped ? `(class {\n${body}\n})` : `(class {${body})`);
-  const inner = out.slice(out.indexOf('{') + 1, out.lastIndexOf('}'));
-  return `class {${inner}}`;
+function tsError(error, baseLine, classLine) {
+  const entry = error.errors?.[0];
+  const message = entry?.text || error.message;
+  const result = new Error(`Fez TypeScript error: ${message}`);
+  if (entry?.location) {
+    const line = entry.location.line - baseLine;
+    let { column } = entry.location;
+    if (entry.location.line === classLine && column >= BRACE_COLUMN) {
+      column -= COLUMN_SHIFT;
+    }
+    result.location = { line, column };
+  }
+  return result;
 }
 
 /**
@@ -52,13 +64,27 @@ export function stripTypeScript(script) {
     return script;
   }
 
-  const match = script.match(CLASS_RE);
-  if (!match) {
-    return transpileClass(script, true);
+  const found = findAnonymousClass(script);
+  let moduleSource;
+  let baseLine;
+  let classLine;
+  if (found) {
+    const preamble = script.slice(0, found.index);
+    classLine = preamble.split('\n').length;
+    moduleSource = preamble + `class ${PLACEHOLDER} {` + script.slice(found.end);
+    baseLine = 0;
+  } else {
+    classLine = 1;
+    moduleSource = `class ${PLACEHOLDER} {\n${script}\n}`;
+    baseLine = 1;
   }
 
-  const preamble = script.slice(0, match.index);
-  const jsClass = transpileClass(script.slice(match.index + match[0].length), false);
-  const jsPreamble = preamble.trim() ? transpile(preamble).trimEnd() : '';
-  return jsPreamble ? `${jsPreamble}\n${jsClass}` : jsClass;
+  let out;
+  try {
+    out = transpile(moduleSource);
+  } catch (error) {
+    throw tsError(error, baseLine, classLine);
+  }
+
+  return out.replace(PLACEHOLDER_RE, 'class {');
 }

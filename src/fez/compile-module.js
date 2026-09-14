@@ -12,7 +12,7 @@
 
 import path from 'node:path';
 import { extractFezDefinitions, parseFezSource } from './lib/source-parser.js';
-import { assertStyleScope } from './lib/validate.js';
+import { assertStyleScope, splitScript } from './lib/validate.js';
 import { stripTypeScript } from './lib/strip-types.js';
 import createTemplate from './lib/template.js';
 
@@ -46,16 +46,15 @@ function assertScriptSyntax(name, script) {
     return;
   }
   const withoutImports = script.replace(/^\s*import\s.*$/gm, '');
-  const match = withoutImports.match(/class\s+\{/);
+  const { preamble, body, hasClass } = splitScript(withoutImports);
   try {
-    if (match) {
-      const preamble = withoutImports.slice(0, match.index);
+    if (hasClass) {
       if (preamble.trim()) {
         new Function(preamble);
       }
-      new Function(`return (class {${withoutImports.slice(match.index + match[0].length)})`);
+      new Function(`return (class {${body})`);
     } else {
-      new Function(`return (class {${withoutImports}})`);
+      new Function(`return (class {${body}})`);
     }
   } catch (error) {
     throw new Error(`<${name}> script error: ${error.message}`);
@@ -86,7 +85,16 @@ function compileUnit(name, source, { minify }) {
   assertName(name);
   let klass = parts.script;
   if (parts.scriptLang === 'ts') {
-    klass = stripTypeScript(klass);
+    try {
+      klass = stripTypeScript(klass);
+    } catch (error) {
+      const location = error.location;
+      throw new Error(
+        location
+          ? `${error.message} (line ${location.line}, column ${location.column})`
+          : error.message,
+      );
+    }
   }
   assertScriptSyntax(name, klass);
   assertStyleScope(name, parts.style, false);
@@ -94,7 +102,7 @@ function compileUnit(name, source, { minify }) {
   parts.html = normalizeHtml(parts.html);
   assertTemplate(name, parts.html);
 
-  if (!/class\s+\{/.test(klass)) {
+  if (!splitScript(klass).hasClass) {
     klass = `class {\n${klass}\n}`;
   }
 
@@ -110,10 +118,7 @@ function compileUnit(name, source, { minify }) {
     klass = klass.replace(/\}\s*$/, `\n  HTML = \`${escapeHtmlLiteral(parts.html.trim())}\`\n}`);
   }
 
-  const classMatch = klass.match(/class\s+\{/);
-  const preamble = classMatch ? klass.slice(0, classMatch.index).trim() : '';
-  const body = classMatch ? klass.slice(classMatch.index + classMatch[0].length) : klass;
-
+  const { preamble, body } = splitScript(klass);
   const metadata = [];
   if (!minify && parts.info?.trim()) {
     metadata.push(`Fez.index.ensure('${name}').info = ${JSON.stringify(parts.info)};`);
@@ -122,7 +127,7 @@ function compileUnit(name, source, { minify }) {
     metadata.push(`Fez.index.ensure('${name}').demo = ${JSON.stringify(parts.demo)};`);
   }
 
-  return { preamble, classBody: body, registration: metadata.join('\n') };
+  return { preamble: preamble.trim(), classBody: body, registration: metadata.join('\n') };
 }
 
 /**

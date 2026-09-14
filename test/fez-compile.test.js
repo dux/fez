@@ -67,6 +67,27 @@ describe('fez compile', () => {
       expect(result.exitCode).toBe(0);
     });
 
+    test('reports the TypeScript error line within the file', async () => {
+      const file = fixture(
+        'test-ts-error-line.fez',
+        [
+          '<script lang="ts">',
+          '  class {',
+          '    count: number = 0',
+          '    broken: number = }',
+          '  }',
+          '</script>',
+          '',
+          '<div></div>',
+        ].join('\n'),
+      );
+      const result = await compile(file);
+
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('Fez TypeScript error');
+      expect(result.stderr).toContain(':4:');
+    });
+
     test('compiles files containing multiple component definitions', async () => {
       const result = await $`bin/fez-compile -o docs/fez/bubble-alerter.fez`.quiet().nothrow();
       const stdout = result.stdout.toString();
