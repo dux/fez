@@ -1,0 +1,19 @@
+div.info {
+  background-color: #eee;
+  border: 1px solid #ddd;
+  padding: 1px 10px;
+  border-radius: 6px;
+  margin-top: 15px;
+  margin-bottom: 20px;
+
+  code {
+    background-color: #fff;
+    font-size: 17px;
+  }
+}
+
+.box {
+  padding: 5px 15px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
