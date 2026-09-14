@@ -1,0 +1,88 @@
+<!-- generated from src: pages_src/root/fez/demo-hash-state.fez | DO NOT EDIT OR READ THIS FILE -->
+<info>
+  <p>Share a selected tab in the URL with <code>Pjax.hash('tab', 'settings')</code>.</p>
+  <p><code>Pjax.qs()</code> uses the same interface for query-string values.</p>
+  <ul>
+    <li>Set a value to add a history entry without fetching or scrolling.</li>
+    <li>Pass <code>{ replace: true }</code> to replace the current entry.</li>
+    <li>Pass <code>{ href: true }</code> to return the URL without changing it.</li>
+    <li>Read with <code>Pjax.hash('tab')</code>; remove with <code>Pjax.hash('tab', null)</code>.</li>
+    <li>Values are strings; missing keys return <code>undefined</code>.</li>
+    <li>The fragment is a parameter list, not an anchor ID or router path.</li>
+    <li>Setters do not emit browser events. Update state after writing and listen for Back/Forward.</li>
+    <li>Hash-only Back/Forward keeps the page mounted. Query or path changes use Pjax navigation when active.</li>
+  </ul>
+</info>
+
+<demo>
+  <demo-hash-state />
+</demo>
+
+<script>
+  class {
+    init() {
+      this.syncUrl()
+    }
+
+    onMount() {
+      this.on('popstate', this.syncUrl)
+      this.on('hashchange', this.syncUrl)
+    }
+
+    syncUrl() {
+      this.state.tab = Pjax.hash('tab') || 'overview'
+      this.state.url = location.pathname + location.search + location.hash
+    }
+
+    select(tab, replace = false) {
+      Pjax.hash('tab', tab, { replace })
+      this.syncUrl()
+    }
+  }
+</script>
+
+<style>
+  display: block;
+  padding: 20px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+
+  nav, .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  button {
+    padding: 8px 14px;
+    border: 1px solid #94a3b8;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+
+    &[aria-pressed="true"] {
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+      color: white;
+    }
+  }
+
+  code {
+    display: block;
+    margin: 16px 0;
+    overflow-wrap: anywhere;
+  }
+</style>
+
+<nav aria-label="URL state tabs">
+  <button type="button" aria-pressed={state.tab === 'overview' ? 'true' : 'false'} onclick="fez.select('overview')">Overview</button>
+  <button type="button" aria-pressed={state.tab === 'settings' ? 'true' : 'false'} onclick="fez.select('settings')">Settings</button>
+</nav>
+<p aria-live="polite">Selected tab: <strong>{state.tab}</strong></p>
+<code>{state.url}</code>
+<div class="actions">
+  <button type="button" onclick="fez.select('overview', true)">Replace with overview</button>
+  <button type="button" onclick="fez.select(null)">Clear tab</button>
+</div>
+<p>Choose a tab, then use your browser's Back and Forward buttons.</p>

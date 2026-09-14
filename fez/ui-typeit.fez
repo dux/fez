@@ -1,0 +1,170 @@
+<!-- generated from src: pages_src/root/fez/ui-typeit.fez | DO NOT EDIT OR READ THIS FILE -->
+<info>
+  <ul>
+    <li>Typewriter animation - types text character by character</li>
+    <li>Pure Fez, no external dependencies</li>
+    <li>Multiple sentences cycle automatically with customizable speed</li>
+  </ul>
+</info>
+
+<demo>
+  <h4>Multiple sentences from slot</h4>
+  <div style="border: 1px solid #ccc; padding: 20px; border-radius: 8px; background: #f9f9f9;">
+    <ui-typeit speed="50" delay="1000" style="font-size: 1.3em; font-weight: 500;">
+      <p>The most versatile typing utility on the planet.</p>
+      <p>It types, deletes, and repeats.</p>
+      <p>Simple, flexible, and powerful.</p>
+    </ui-typeit>
+  </div>
+
+  <h4>With colored text</h4>
+  <div style="border: 1px solid #ccc; padding: 20px; border-radius: 8px; background: #f9f9f9;">
+    <ui-typeit speed="50" delay="1500" style="font-size: 1.1em;">
+      <p>Build <b style="color: #e74c3c;">beautiful</b> interfaces</p>
+      <p>Write <b style="color: #3498db;">clean</b> and <b style="color: #2ecc71;">simple</b> code</p>
+      <p>Ship <b style="color: #9b59b6;">faster</b> than ever</p>
+    </ui-typeit>
+  </div>
+</demo>
+
+<script>
+  // Find next position to type to (skip over HTML tags)
+  function nextPos(sentence, pos) {
+    if (sentence[pos] === '<') {
+      const closeTag = sentence.indexOf('>', pos)
+      if (closeTag !== -1) {
+        return closeTag + 1
+      }
+    }
+    return pos + 1
+  }
+
+  // Find previous position when deleting (skip over HTML tags)
+  function prevPos(sentence, pos) {
+    if (pos > 0 && sentence[pos - 1] === '>') {
+      const openTag = sentence.lastIndexOf('<', pos - 1)
+      if (openTag !== -1) {
+        return openTag
+      }
+    }
+    return pos - 1
+  }
+
+  // Wrap each visible character in a span for animation
+  function wrapChars(html) {
+    let result = ''
+    let inTag = false
+
+    for (let i = 0; i < html.length; i++) {
+      const char = html[i]
+
+      if (char === '<') {
+        inTag = true
+        result += char
+      } else if (char === '>') {
+        inTag = false
+        result += char
+      } else if (inTag) {
+        result += char
+      } else if (char === ' ') {
+        result += '&nbsp;'
+      } else {
+        result += `<i>${char}</i>`
+      }
+    }
+
+    return result
+  }
+
+  function tick(fez) {
+    const s = fez.state
+    const { speed, delay } = fez.props
+    const sentence = s.sentences[s.currentSentence]
+
+    if (s.isDeleting) {
+      s.currentChar = prevPos(sentence, s.currentChar)
+      fez.state.text = wrapChars(sentence.substring(0, s.currentChar))
+
+      if (s.currentChar === 0) {
+        s.isDeleting = false
+        s.currentSentence = (s.currentSentence + 1) % s.sentences.length
+        fez.setTimeout(() => tick(fez), speed)
+      } else {
+        fez.setTimeout(() => tick(fez), speed / 2)
+      }
+    } else {
+      s.currentChar = nextPos(sentence, s.currentChar)
+      fez.state.text = wrapChars(sentence.substring(0, s.currentChar))
+
+      if (s.currentChar >= sentence.length) {
+        s.isDeleting = true
+        fez.setTimeout(() => tick(fez), delay)
+      } else {
+        fez.setTimeout(() => tick(fez), speed)
+      }
+    }
+  }
+
+  class {
+    NAME = 'span'
+
+    PROPS = {
+      speed: { type: Number, default: 50 },
+      delay: { type: Number, default: 1000 },
+    }
+
+    init() {
+      this.copy('style')
+
+      this.state.text = ''
+
+      this.state.sentences = this.childNodes()
+        .filter(node => node.nodeType === 1)
+        .map(node => node.innerHTML.trim())
+        .filter(text => text.length > 0)
+
+      this.state.currentSentence = 0
+      this.state.currentChar = 0
+      this.state.isDeleting = false
+    }
+
+    onMount() {
+      if (this.state.sentences.length > 0) {
+        tick(this)
+      }
+    }
+  }
+</script>
+
+<style>
+  display: inline-block;
+
+  &::after {
+    content: '|';
+    animation: blink 0.7s infinite;
+  }
+
+  i {
+    display: inline-block;
+    font-style: normal;
+    animation: bounce-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @keyframes bounce-in {
+    0% {
+      opacity: 0;
+      transform: translateY(0.4em);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+
+{@html state.text}
