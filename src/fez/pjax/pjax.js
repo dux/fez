@@ -428,12 +428,35 @@ export default function createPjax() {
     // those outside the pjax region so head bootstrap - e.g. window.app data and
     // flash emitted by the server - refreshes on every navigation. src= bundles
     // and the pjax region's own scripts (handled by parseScripts) are skipped.
+    //
+    // A full page's <head> also carries its own fez definitions: the
+    // `<script fez="ui-clock.fez">` loaders and inline `<template fez>` /
+    // `<xmp fez>` blocks a layout emits per page. They are not code to run but
+    // components to compile, and the morph only reaches the pjax region - so
+    // compile them here, or a pjax navigation lands on a page whose components
+    // never registered (unknown custom elements, empty widgets).
     static runHeadScripts(root, pjaxBody) {
+      // compile() removes each node, so the script loop below never sees them
+      for (const node of Array.from(
+        root.querySelectorAll('template[fez], xmp[fez], script[fez]'),
+      )) {
+        if (pjaxBody && pjaxBody.contains(node)) {
+          continue;
+        }
+        // one malformed definition must not abort the whole swap (the caller
+        // would fall back to a full page load), so report and keep going
+        try {
+          Fez.compile(node);
+        } catch (err) {
+          Pjax.error(`Head component failed: ${err?.message || err}`);
+        }
+      }
+
       for (const script_tag of Array.from(root.getElementsByTagName('script'))) {
         if (pjaxBody && pjaxBody.contains(script_tag)) {
           continue;
         }
-        if (script_tag.getAttribute('src')) {
+        if (script_tag.getAttribute('src') || script_tag.getAttribute('fez')) {
           continue;
         }
         const type = script_tag.getAttribute('type') || 'javascript';

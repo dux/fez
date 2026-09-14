@@ -3,6 +3,7 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
 import { setupPjaxEnv, teardownPjaxEnv, resetDOM } from './pjax-env.js';
 import createPjax from '../src/fez/pjax/pjax.js';
+import Fez from '../src/fez/root.js';
 
 let Pjax;
 
@@ -38,6 +39,72 @@ describe('Pjax module', () => {
     const html = '<div><script>window.__pjaxTestCounter += 1</script></div>';
     Pjax.parseScripts(html);
     expect(window.__pjaxTestCounter).toBe(1);
+  });
+
+  test('compiles fez loaders from a fetched head, outside the pjax region', () => {
+    const root = document.createElement('div');
+
+    const loader = document.createElement('script');
+    loader.setAttribute('fez', 'fez/ui-clock.fez');
+    root.appendChild(loader);
+
+    const definition = document.createElement('template');
+    definition.setAttribute('fez', 'ui-inline');
+    definition.innerHTML = '<p>inline</p>';
+    root.appendChild(definition);
+
+    const inline = document.createElement('script');
+    inline.textContent = 'window.__headRan = true';
+    root.appendChild(inline);
+
+    const pjaxBody = document.createElement('main');
+    pjaxBody.id = 'pjax';
+    pjaxBody.innerHTML = '<script fez="fez/ui-in-body.fez"></script>';
+    root.appendChild(pjaxBody);
+
+    const compiled = [];
+    const original = Fez.compile;
+    Fez.compile = (node) => compiled.push(node.getAttribute('fez'));
+
+    try {
+      Pjax.runHeadScripts(root, pjaxBody);
+    } finally {
+      Fez.compile = original;
+    }
+
+    // the body loader is left to the morph + MutationObserver
+    expect(compiled).toEqual(['fez/ui-clock.fez', 'ui-inline']);
+    expect(window.__headRan).toBe(true);
+    delete window.__headRan;
+  });
+
+  test('a failing head component is reported, not thrown at the swap', () => {
+    const root = document.createElement('div');
+    for (const name of ['ui-bad', 'ui-good']) {
+      const template = document.createElement('template');
+      template.setAttribute('fez', name);
+      root.appendChild(template);
+    }
+
+    const original = Fez.compile;
+    const originalError = console.error;
+    const compileAttempts = [];
+    Fez.compile = (node) => {
+      compileAttempts.push(node.getAttribute('fez'));
+      if (node.getAttribute('fez') === 'ui-bad') {
+        throw new Error('boom');
+      }
+    };
+    console.error = () => {};
+
+    try {
+      expect(() => Pjax.runHeadScripts(root, null)).not.toThrow();
+    } finally {
+      Fez.compile = original;
+      console.error = originalError;
+    }
+
+    expect(compileAttempts).toEqual(['ui-bad', 'ui-good']);
   });
 
   test('refreshes a targeted node when selector passed', () => {
@@ -695,7 +762,10 @@ describe('Pjax module', () => {
     target.innerHTML = '<div class="flex"><div class="sidebar">old</div></div>';
     document.body.appendChild(target);
 
-    Pjax.morphInto(target, '<div class="flex"><div class="sidebar">S</div><div class="content">C</div></div>');
+    Pjax.morphInto(
+      target,
+      '<div class="flex"><div class="sidebar">S</div><div class="content">C</div></div>',
+    );
 
     expect(target.children.length).toBe(1);
     expect(target.firstElementChild.className).toBe('flex');
