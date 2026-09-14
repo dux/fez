@@ -22,6 +22,10 @@ anywhere in HTML code
 <script>
   import hljs from 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/es/highlight.min.js';
 
+  // `fez static` prepends this to every built file - show the component's own
+  // source, the same text Fez.index.source exposes
+  const NOTICE = /^(?:<!-- |\/\/ )generated from src: [^\r\n|]* \| DO NOT EDIT OR READ THIS FILE(?: -->)?\r?\n?/;
+
   class {
 
     reformatIndentation(text) {
@@ -85,8 +89,11 @@ anywhere in HTML code
 
     init(props) {
       if (props.src) {
+        // src loads async, so onMount usually runs before source is ready -
+        // whichever of the two lands last does the (single) render
         Fez.fetch(props.src, (r)=>{
-          this.state.source = Fez.htmlEscape(r)
+          this.state.source = Fez.htmlEscape(r.replace(NOTICE, ''))
+          this.renderSource()
         })
       } else {
         const child = this.root.firstElementChild
@@ -99,7 +106,17 @@ anywhere in HTML code
     }
 
     onMount() {
-      const node = this.state.codeNode = this.find('code')
+      this.state.codeNode = this.find('code')
+      this.renderSource()
+    }
+
+    // Fills the code node when both the element and a source exist. The src
+    // path can resolve before mount (cache hit) or after it (network fetch).
+    renderSource() {
+      const node = this.state.codeNode
+      if (!node || this.state.source == null) {
+        return
+      }
       node.innerHTML = this.reformatIndentation( this.state.source.trim() )
       hljs.highlightElement(node)
     }
