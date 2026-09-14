@@ -15,12 +15,16 @@ import FezBase from './fez/instance.js';
 import Fez from './fez/root.js';
 import bootPjax from './fez/pjax/boot.js';
 
-// Expose to window. Rollup inlines the fez dist IIFE into every app bundle that
-// contains a .fez component, so this module can run several times on one page.
-// Only the first run may claim window.Fez / load defaults / start the observer:
-// custom elements are defined against that first instance and connectNode reads
-// the global window.Fez.index, so a later copy resetting it orphans those elements.
-const fezPrimary = typeof window !== 'undefined' && !window.Fez;
+// Rollup inlines the fez dist IIFE into every app bundle that contains a .fez
+// component, so this module can run several times on one page. Only the first
+// run may claim window.Fez / load defaults / start the observer: custom elements
+// are defined against that first instance and connectNode reads the global
+// window.Fez.index, so a later copy resetting it orphans those elements.
+//
+// `hasDOM` also keeps the module itself importable under Node/SSR, where there
+// is no window or document and Fez is used as a plain export only.
+const hasDOM = typeof window !== 'undefined' && typeof document !== 'undefined';
+const fezPrimary = hasDOM && !window.Fez;
 
 if (fezPrimary) {
   window.FezBase = FezBase;
@@ -39,54 +43,56 @@ if (fezPrimary) {
 // =============================================================================
 
 // Watch for template/xmp/script[fez] elements and compile them
-const observer = new MutationObserver((mutations) => {
-  for (const { addedNodes, removedNodes } of mutations) {
-    // Compile new fez templates
-    addedNodes.forEach((node) => {
-      if (node.nodeType !== 1) {
-        return;
-      }
+const observer = !hasDOM
+  ? null
+  : new MutationObserver((mutations) => {
+      for (const { addedNodes, removedNodes } of mutations) {
+        // Compile new fez templates
+        addedNodes.forEach((node) => {
+          if (node.nodeType !== 1) {
+            return;
+          }
 
-      if (node.matches?.('template[fez], xmp[fez], script[fez]')) {
-        Fez.compile(node);
-        node.remove();
-      }
+          if (node.matches?.('template[fez], xmp[fez], script[fez]')) {
+            Fez.compile(node);
+            node.remove();
+          }
 
-      node.querySelectorAll?.('template[fez], xmp[fez], script[fez]').forEach((tpl) => {
-        Fez.compile(tpl);
-        tpl.remove();
-      });
-    });
-
-    // Cleanup removed components
-    // Use microtask to check if node was just moved (will be reconnected)
-    // vs actually removed from the document
-    removedNodes.forEach((node) => {
-      if (node.nodeType !== 1) {
-        return;
-      }
-
-      // Helper to cleanup a single element
-      const cleanup = (el) => {
-        if (el.fez && !el.fez._destroyed) {
-          // Delay cleanup to check if node is reconnected (just moved, not removed)
-          queueMicrotask(() => {
-            // If still not connected and not destroyed, cleanup
-            if (!el.isConnected && el.fez && !el.fez._destroyed) {
-              el.fez.fezOnDestroy();
-            }
+          node.querySelectorAll?.('template[fez], xmp[fez], script[fez]').forEach((tpl) => {
+            Fez.compile(tpl);
+            tpl.remove();
           });
-        }
-      };
+        });
 
-      // Check if removed node itself is a fez component
-      cleanup(node);
+        // Cleanup removed components
+        // Use microtask to check if node was just moved (will be reconnected)
+        // vs actually removed from the document
+        removedNodes.forEach((node) => {
+          if (node.nodeType !== 1) {
+            return;
+          }
 
-      // Check all children for fez components
-      node.querySelectorAll?.('.fez')?.forEach(cleanup);
+          // Helper to cleanup a single element
+          const cleanup = (el) => {
+            if (el.fez && !el.fez._destroyed) {
+              // Delay cleanup to check if node is reconnected (just moved, not removed)
+              queueMicrotask(() => {
+                // If still not connected and not destroyed, cleanup
+                if (!el.isConnected && el.fez && !el.fez._destroyed) {
+                  el.fez.fezOnDestroy();
+                }
+              });
+            }
+          };
+
+          // Check if removed node itself is a fez component
+          cleanup(node);
+
+          // Check all children for fez components
+          node.querySelectorAll?.('.fez')?.forEach(cleanup);
+        });
+      }
     });
-  }
-});
 
 if (fezPrimary) {
   observer.observe(document.documentElement, {

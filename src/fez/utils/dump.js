@@ -64,7 +64,7 @@ const LOG = (() => {
   let renderContent = null; // Will hold the render function
 
   // Add ESC key handler and arrow key navigation
-  document.addEventListener('keydown', (e) => {
+  const onKeydown = (e) => {
     if (e.key === 'Escape') {
       e.preventDefault();
       const dialog = document.getElementById('dump-dialog');
@@ -107,7 +107,11 @@ const LOG = (() => {
         }
       }
     }
-  });
+  };
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('keydown', onKeydown);
+  }
 
   const createLogButton = () => {
     let btn = document.getElementById('log-reopen-button');

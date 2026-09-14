@@ -80,14 +80,16 @@ const highlightAll = () => {
 };
 
 // Bind Ctrl+E to highlightAll
-document.addEventListener('keydown', (event) => {
-  if ((event.ctrlKey || event.metaKey) && event.key === 'e') {
-    // Check if target is not inside a form
-    if (!event.target?.closest?.('form')) {
-      event.preventDefault();
-      highlightAll();
+if (typeof document !== 'undefined') {
+  document.addEventListener('keydown', (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'e') {
+      // Check if target is not inside a form
+      if (!event.target?.closest?.('form')) {
+        event.preventDefault();
+        highlightAll();
+      }
     }
-  }
-});
+  });
+}
 
 export default highlightAll;

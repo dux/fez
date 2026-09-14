@@ -504,7 +504,9 @@ export default (Fez) => {
       }
     }
   };
-  setInterval(Fez.sweepPointers, 60 * 1000);
+  if (typeof document !== 'undefined') {
+    setInterval(Fez.sweepPointers, 60 * 1000);
+  }
 
   // Resolve a function from a string or function reference
   Fez.getFunction = (pointer) => {
@@ -532,9 +534,12 @@ export default (Fez) => {
     return () => {};
   };
 
-  // Execute a function when DOM is ready or immediately if already loaded
+  // Execute a function when DOM is ready, or immediately if already loaded or
+  // if there is no DOM at all (Node/SSR import)
   Fez.onReady = (callback) => {
-    if (document.readyState === 'loading') {
+    if (typeof document === 'undefined') {
+      callback();
+    } else if (document.readyState === 'loading') {
       document.addEventListener(
         'DOMContentLoaded',
         () => {

@@ -2,17 +2,21 @@
   "name": "@dinoreic/fez",
   "version": "0.7.0",
   "description": "Runtime custom DOM elements lib",
-  "main": "dist/fez.js",
+  "main": "dist/fez.cjs",
+  "module": "dist/fez.esm.js",
+  "browser": "dist/fez.esm.js",
+  "unpkg": "dist/fez.min.js",
+  "jsdelivr": "dist/fez.min.js",
   "type": "module",
   "types": "fez.d.ts",
   "exports": {
     ".": {
       "types": "./fez.d.ts",
       "import": "./dist/fez.esm.js",
-      "default": "./dist/fez.js"
+      "require": "./dist/fez.cjs",
+      "default": "./dist/fez.esm.js"
     },
     "./plugin": "./src/fez/plugin.js",
-    "./log": "./src/log.js",
     "./package.json": "./package.json"
   },
   "bin": {

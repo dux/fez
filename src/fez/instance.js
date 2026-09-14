@@ -2,6 +2,12 @@
  * FezBase - Base class for all Fez components
  *
  * Provides lifecycle hooks, reactive state, DOM utilities, and template rendering
+ *
+ * `Fez` is read as the global set by src/fez.js on purpose, not imported from
+ * root.js: an import would cycle (root -> connect -> instance) and would bind
+ * each inlined copy of the dist bundle to its own Fez. The global always points
+ * at the primary copy, so multiple copies share one registry (see the
+ * fezPrimary guard in src/fez.js).
  */
 
 import parseNode from './lib/n.js';
