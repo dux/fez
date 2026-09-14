@@ -370,7 +370,7 @@
         const close = '</x' + 'mp>'
         const html = [
           '<link rel="stylesheet" href="//cdn.simplecss.org/simple.css" />',
-          '<scr' + 'ipt src="https://raw.githubusercontent.com/dux/fez/main/dist/fez.js"></scr' + 'ipt>',
+          '<scr' + 'ipt src="https://dux.github.io/fez/dist/fez.js"></scr' + 'ipt>',
           '',
           open + '\n' + this.doc(this.sourceView) + '\n' + close,
           '',

@@ -154,6 +154,15 @@ Rules:
 * `fez static dev` injects a development-only client and reloads connected browsers after successful rebuilds.
 * The existing target remains unchanged when a build or doctor check fails.
 
+## Publishing the docs site (`pages` branch)
+
+This repo publishes its generated site from the `pages` branch, served by GitHub Pages at the branch root.
+`main` tracks source only; `dist/` and `tmp/` are build output and ignored (the old `docs/` output is gone).
+`fez-static.yaml` builds into `tmp/fez-pages`, which is exactly the deployable site root.
+`lib/server.js` serves `tmp/fez-pages` at `http://localhost:8000/`, so local preview matches the published root.
+`bun bin/build-pages` (or `bun run build:pages`) builds dist + site, replaces all of the `pages` branch with that output as a single rolling commit, and force-pushes `origin/pages`; pass `--dry-run` to stop before the push.
+The script refuses to run unless on `main` with a clean working tree, and does its git work in the `tmp/pages-wt` worktree so the `main` checkout is never touched.
+
 ## Core Rules for LLM
 
 1. **ALWAYS** use Fez-specific Svelte-like syntax (NO React/Vue conventions)

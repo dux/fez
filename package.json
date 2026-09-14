@@ -62,6 +62,7 @@
   },
   "scripts": {
     "build": "bun build.js b",
+    "build:pages": "bun bin/build-pages",
     "b": "bun run build",
     "watch": "bun build.js w",
     "server": "bun run lib/server.js",

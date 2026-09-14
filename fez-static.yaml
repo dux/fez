@@ -1,6 +1,7 @@
-# GitHub Pages serves this repo from main /docs, so the generated site is its own root
+# GitHub Pages serves the `pages` branch at its root; bin/build-pages copies this
+# generated site there. tmp/ is ignored, so main only tracks source.
 source_dir: docs_src
-target_dir: docs
+target_dir: tmp/fez-pages
 
 site:
   title: Fez

@@ -17,7 +17,7 @@ commits:
 ---
 
 ```html
-<script src="https://raw.githubusercontent.com/dux/fez/main/dist/fez.js"></script>
+<script src="https://dux.github.io/fez/dist/fez.js"></script>
 
 <script fez="https://raw.githubusercontent.com/dux/fez/main/docs/fez/ui-counter.fez"></script>
 

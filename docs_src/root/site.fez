@@ -15,6 +15,7 @@
           { href: 'playground.html', name: 'playground.html', label: 'Playground', full: true },
           { href: 'docs.html',      name: 'docs.html',     label: 'Docs' },
           { href: 'static.html',    name: 'static.html',   label: 'Site generator' },
+          { href: 'dist.html',      name: 'dist.html',     label: 'Dist' },
           { href: 'https://github.com/dux/fez', label: 'GitHub', ext: true },
         ]
       }
@@ -245,4 +246,99 @@
       }
     }
   </script>
+</xmp>
+
+<xmp fez="site-dist">
+  <script>
+    class {
+      init() {
+        // resolve against the current page so local preview and the deployed site
+        // both produce a copyable absolute URL
+        const base = new URL('dist/', document.baseURI).href
+        const bundle = (name, kind, desc) => ({ name, kind, desc, url: base + name })
+        this.state.files = [
+          bundle('fez.js', 'iife', 'Full browser build. Defines the global Fez and loads with a plain script tag. Use it while developing.'),
+          bundle('fez.min.js', 'iife min', 'Minified browser build. Same API and the smallest payload - the default for production.'),
+          bundle('fez.esm.js', 'esm', 'ES module build for import. Use it from a bundler or a script type="module".'),
+          bundle('fez.esm.min.js', 'esm min', 'Minified ES module build.'),
+          bundle('fez.cjs', 'cjs', 'CommonJS build for require() in Node and older toolchains.'),
+          bundle('fez.js.map', 'map', 'Source map for fez.js. Served beside the bundle; browser devtools load it automatically.'),
+          bundle('fez.min.js.map', 'map', 'Source map for fez.min.js.'),
+          bundle('fez.esm.js.map', 'map', 'Source map for fez.esm.js.'),
+          bundle('fez.esm.min.js.map', 'map', 'Source map for fez.esm.min.js.'),
+          bundle('fez.cjs.map', 'map', 'Source map for fez.cjs.'),
+        ]
+      }
+
+      copy(url) {
+        navigator.clipboard?.writeText(url).then(
+          () => Toast.info('Copied ' + url),
+          () => Toast.error('Could not copy')
+        )
+      }
+    }
+  </script>
+
+  <div class="dist">
+    <div class="dist-list">
+      {#each state.files as file}
+        <div class="dist-row">
+          <div class="dist-main">
+            <div class="dist-head">
+              <code class="dist-name">{file.name}</code>
+              <span class="dist-kind">{file.kind}</span>
+            </div>
+            <p class="dist-desc">{file.desc}</p>
+            <code class="dist-url">{file.url}</code>
+          </div>
+          <button class="site-btn ghost" data-url={file.url} onclick="fez.copy(this.dataset.url)">Copy URL</button>
+        </div>
+      {/each}
+    </div>
+    <p class="dist-note">
+      This site itself loads <code>fez.min.js</code> from the site root - a copy of <code>dist/fez.min.js</code> -
+      and every <code>.map</code> ships beside its bundle for devtools.
+    </p>
+  </div>
+
+  <style>
+    .dist { border-top: 1px solid var(--line); }
+
+    .dist-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: center;
+      padding: 22px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .dist-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .dist-name { font: 600 15px var(--font-mono); color: var(--ink); }
+
+    .dist-kind {
+      padding: 2px 8px;
+      border: 1px solid var(--fez-tint-2);
+      border-radius: 999px;
+      background: var(--fez-tint);
+      color: var(--fez);
+      font: 500 11px var(--font-mono);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .dist-desc { margin: 7px 0 9px 0; color: var(--ink-2); font-size: 15px; line-height: 1.55; }
+
+    .dist-url {
+      display: inline-block;
+      max-width: 100%;
+      color: var(--ink-3);
+      font: 12.5px var(--font-mono);
+      word-break: break-all;
+    }
+
+    .dist-note { margin: 24px 0 0 0; color: var(--ink-3); font-size: 14px; line-height: 1.6; }
+    .dist-note code { font-size: 0.86em; }
+  </style>
 </xmp>
