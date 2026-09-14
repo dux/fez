@@ -5161,6 +5161,104 @@ ${content}`;
   function withoutComments(style) {
     return style.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " ")).replace(/^([ \t]*)\/\/[^\n]*/gm, (m, indent) => indent + " ".repeat(m.length - indent.length));
   }
+  function skipLineComment(script, i) {
+    while (i < script.length && script[i] !== "\n") {
+      i++;
+    }
+    return i;
+  }
+  function skipBlockComment(script, i) {
+    i += 2;
+    while (i < script.length && !(script[i] === "*" && script[i + 1] === "/")) {
+      i++;
+    }
+    return i + 1;
+  }
+  function skipString(script, i, quote) {
+    i++;
+    while (i < script.length) {
+      if (script[i] === "\\") {
+        i++;
+      } else if (script[i] === quote) {
+        return i;
+      }
+      i++;
+    }
+    return script.length;
+  }
+  function skipTemplateExpression(script, i) {
+    let depth = 0;
+    while (i < script.length) {
+      const c = script[i];
+      const next = script[i + 1];
+      if (c === "/" && next === "/") {
+        i = skipLineComment(script, i);
+      } else if (c === "/" && next === "*") {
+        i = skipBlockComment(script, i);
+      } else if (c === '"' || c === "'") {
+        i = skipString(script, i, c);
+      } else if (c === "`") {
+        i = skipTemplate(script, i);
+      } else if (c === "{") {
+        depth++;
+      } else if (c === "}") {
+        depth--;
+        if (depth === 0) {
+          return i;
+        }
+      }
+      i++;
+    }
+    return script.length;
+  }
+  function skipTemplate(script, i) {
+    i++;
+    while (i < script.length) {
+      const c = script[i];
+      if (c === "\\") {
+        i += 2;
+      } else if (c === "`") {
+        return i;
+      } else if (c === "$" && script[i + 1] === "{") {
+        i = skipTemplateExpression(script, i + 1);
+      } else {
+        i++;
+      }
+    }
+    return script.length;
+  }
+  function findAnonymousClass(script) {
+    for (let i = 0; i < script.length; i++) {
+      const c = script[i];
+      const next = script[i + 1];
+      if (c === "/" && next === "/") {
+        i = skipLineComment(script, i);
+      } else if (c === "/" && next === "*") {
+        i = skipBlockComment(script, i);
+      } else if (c === '"' || c === "'") {
+        i = skipString(script, i, c);
+      } else if (c === "`") {
+        i = skipTemplate(script, i);
+      } else if (c === "c" && script.startsWith("class", i)) {
+        const match = /^class[ \t\r\n]*\{/.exec(script.slice(i));
+        if (match) {
+          return { index: i, match: match[0], end: i + match[0].length };
+        }
+      }
+    }
+    return null;
+  }
+  function splitScript(script) {
+    const found = findAnonymousClass(script);
+    if (!found) {
+      return { preamble: "", body: script, hasClass: false };
+    }
+    return {
+      preamble: script.slice(0, found.index),
+      body: script.slice(found.end),
+      hasClass: true
+    };
+  }
   function assertStyleScope(tagName, rawStyle, isGlobal) {
     if (!rawStyle) {
       return;
@@ -5313,7 +5411,7 @@ ${content}`;
   }
   function generateClassCode(tagName, parts) {
     let klass = parts.script;
-    if (!/class\s+\{/.test(klass)) {
+    if (!splitScript(klass).hasClass) {
       klass = `class {
 ${klass}
 }`;
@@ -5346,9 +5444,7 @@ ${css}
     if (parts.info?.trim()) {
       Fez.index.ensure(tagName).info = closeCustomTags(parts.info);
     }
-    const classMatch = klass.match(/class\s+\{/);
-    const before = classMatch ? klass.slice(0, classMatch.index) : "";
-    const after = classMatch ? klass.slice(classMatch.index + classMatch[0].length) : klass;
+    const { preamble: before, body: after } = splitScript(klass);
     return `${before};
 
 window.Fez('${tagName}', class {
