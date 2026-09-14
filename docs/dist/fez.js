@@ -4529,7 +4529,7 @@ ${demo}
     const logTypes = [];
     let currentIndex = 0;
     let renderContent = null;
-    document.addEventListener("keydown", (e) => {
+    const onKeydown = (e) => {
       if (e.key === "Escape") {
         e.preventDefault();
         const dialog = document.getElementById("dump-dialog");
@@ -4564,7 +4564,10 @@ ${demo}
           }
         }
       }
-    });
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("keydown", onKeydown);
+    }
     const createLogButton = () => {
       let btn = document.getElementById("log-reopen-button");
       if (!btn) {
@@ -4749,18 +4752,20 @@ type: ${originalType}`);
       }
     });
   };
-  document.addEventListener("keydown", (event) => {
-    if ((event.ctrlKey || event.metaKey) && event.key === "e") {
-      if (!event.target?.closest?.("form")) {
-        event.preventDefault();
-        highlightAll();
+  if (typeof document !== "undefined") {
+    document.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "e") {
+        if (!event.target?.closest?.("form")) {
+          event.preventDefault();
+          highlightAll();
+        }
       }
-    }
-  });
+    });
+  }
   var highlight_all_default = highlightAll;
 
   // src/fez/connect.js
-  var attrObserver = new MutationObserver((mutations) => {
+  var attrObserver = typeof MutationObserver === "undefined" ? null : new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       if (mutation.type === "attributes") {
         const fez = mutation.target.fez;
@@ -4941,7 +4946,7 @@ type: ${originalType}`);
         };
       }
     }
-    attrObserver.observe(newNode, { attributes: true });
+    attrObserver?.observe(newNode, { attributes: true });
     for (const [key, value] of Object.entries(fez.props)) {
       fez.onPropsChange(key, value);
     }
@@ -6165,7 +6170,9 @@ ${after})`;
         }
       }
     };
-    setInterval(Fez3.sweepPointers, 60 * 1e3);
+    if (typeof document !== "undefined") {
+      setInterval(Fez3.sweepPointers, 60 * 1e3);
+    }
     Fez3.getFunction = (pointer) => {
       if (!pointer) {
         return () => {
@@ -6187,7 +6194,9 @@ ${after})`;
       };
     };
     Fez3.onReady = (callback) => {
-      if (document.readyState === "loading") {
+      if (typeof document === "undefined") {
+        callback();
+      } else if (document.readyState === "loading") {
         document.addEventListener(
           "DOMContentLoaded",
           () => {
@@ -7318,14 +7327,15 @@ ${after})`;
   }
 
   // src/fez.js
-  var fezPrimary = typeof window !== "undefined" && !window.Fez;
+  var hasDOM = typeof window !== "undefined" && typeof document !== "undefined";
+  var fezPrimary = hasDOM && !window.Fez;
   if (fezPrimary) {
     window.FezBase = FezBase;
     window.Fez = root_default;
     Promise.resolve().then(() => init_defaults());
     bootPjax();
   }
-  var observer = new MutationObserver((mutations) => {
+  var observer = !hasDOM ? null : new MutationObserver((mutations) => {
     for (const { addedNodes, removedNodes } of mutations) {
       addedNodes.forEach((node) => {
         if (node.nodeType !== 1) {

@@ -1,6 +1,8 @@
 // v: 0.7.0
 var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
@@ -8,6 +10,15 @@ var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // src/fez/defaults.js
 var defaults_exports = {};
@@ -904,6 +915,15 @@ ${demo}
     }
   }
 });
+
+// src/fez.js
+var fez_exports = {};
+__export(fez_exports, {
+  Fez: () => root_default,
+  FezBase: () => FezBase,
+  default: () => fez_default
+});
+module.exports = __toCommonJS(fez_exports);
 
 // src/fez/lib/n.js
 var BOOLEAN_ATTRS = /* @__PURE__ */ new Set([
@@ -5971,8 +5991,8 @@ var utility_default = (Fez3) => {
     }
     const assignModule = () => {
       if (config.module && elementType === "script") {
-        import(src).then((module) => {
-          window[config.module] = module.default || module[config.module] || module;
+        import(src).then((module2) => {
+          window[config.module] = module2.default || module2[config.module] || module2;
         }).catch((error) => {
           console.error(`Error importing module ${config.module}:`, error);
         });
@@ -7374,9 +7394,4 @@ if (fezPrimary) {
   });
 }
 var fez_default = root_default;
-export {
-  root_default as Fez,
-  FezBase,
-  fez_default as default
-};
-//# sourceMappingURL=fez.esm.js.map
+//# sourceMappingURL=fez.cjs.map
