@@ -15,22 +15,15 @@ const highlightAll = () => {
     return;
   }
 
-  // Find all Fez and Svelte elements
-  const allElements = document.querySelectorAll('.fez, .svelte');
+  // Find all Fez elements
+  const allElements = document.querySelectorAll('.fez');
 
   allElements.forEach((el) => {
     let componentName = null;
-    let componentType = null;
 
     // Check for Fez component
     if (el.classList.contains('fez') && el.fez && el.fez.fezName) {
       componentName = el.fez.fezName;
-      componentType = 'fez';
-    }
-    // Check for Svelte component
-    else if (el.classList.contains('svelte') && el.svelte && el.svelte.svelteName) {
-      componentName = el.svelte.svelteName;
-      componentType = 'svelte';
     }
 
     if (componentName) {
@@ -50,7 +43,7 @@ const highlightAll = () => {
         left: ${rect.left + scrollLeft}px;
         width: ${rect.width}px;
         height: ${rect.height}px;
-        border: 1px solid ${componentType === 'svelte' ? 'blue' : 'red'};
+        border: 1px solid red;
         pointer-events: none;
         z-index: 9999;
       `;
@@ -62,7 +55,7 @@ const highlightAll = () => {
         position: absolute;
         top: -20px;
         left: 0;
-        background: ${componentType === 'svelte' ? 'blue' : 'red'};
+        background: red;
         color: white;
         padding: 4px 6px 2px 6px;
         font-size: 14px;

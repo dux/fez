@@ -48,7 +48,7 @@ fez compile --debug-template my-component.fez
 fez template --debug my-component.fez
 ```
 
-`.fez` files are compiled with Fez's own template compiler (`src/fez/lib/template-compiler.js`). The Svelte compiler is only for `.svelte` files.
+`.fez` files are compiled with Fez's own template compiler (`src/fez/lib/template-compiler.js`).
 
 ## Static Site Builder
 

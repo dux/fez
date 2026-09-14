@@ -98,7 +98,7 @@ fez static dev
 fez static doctor
 ```
 
-`.fez` files use Fez's own template compiler (`src/fez/lib/template-compiler.js`), not the Svelte compiler. Use the Svelte compiler only for `.svelte` files.
+`.fez` files use Fez's own template compiler (`src/fez/lib/template-compiler.js`).
 
 ## Static Site Builder
 

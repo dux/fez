@@ -13,7 +13,6 @@
     },
     "./plugin": "./src/fez/plugin.js",
     "./log": "./src/log.js",
-    "./svelte": "./src/svelte-cde-adapter.coffee",
     "./package.json": "./package.json"
   },
   "bin": {
@@ -49,10 +48,8 @@
   },
   "homepage": "https://github.com/dux/fez#readme",
   "devDependencies": {
-    "coffeescript": "^2.7.0",
     "concurrently": "^9.1.2",
     "esbuild": "0.23.0",
-    "esbuild-coffeescript": "^2.2.0",
     "eslint": "^8.57.0",
     "glob-cli": "^1.0.0",
     "happy-dom": "^18.0.1",
