@@ -1,0 +1,55 @@
+<!-- generated from src: pages_src/root/dist.html | DO NOT EDIT OR READ THIS FILE -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <base href="./">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Every bundle published in dist/ - what it is and the CDN URL to copy, plus the source map for each.">
+<title>Fez - Dist files</title>
+<link rel="icon" href="fez.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="fez.min.js"></script>
+
+  <script fez="site.fez"></script>
+
+  <script fez="fez/fez-control.fez"></script>
+
+
+  <script fez="fez/ui-toast.fez"></script>
+
+<link rel="stylesheet" href="css/full.css">
+<link rel="stylesheet" href="css/site.css">
+
+  </head>
+  <body class="site">
+
+      <site-nav></site-nav>
+
+    <main id="pjax" class="pjax">
+      <header class="site-features-hero">
+        <div class="site-wrap">
+          <p class="site-eyebrow">dist</p>
+          <h1 class="site-h1">Every bundle,<br>one URL.</h1>
+          <p class="site-lead">
+            The build ships five bundles and their source maps. Copy the URL for the one your page needs - the plain
+            <code>&lt;script src&gt;</code> build for most pages, the ES module build when you <code>import</code>,
+            the CommonJS build when you <code>require</code>.
+          </p>
+        </div>
+      </header>
+
+      <section class="site-feature-group">
+        <div class="site-wrap">
+          <site-dist></site-dist>
+        </div>
+      </section>
+
+    </main>
+
+      <site-footer></site-footer>
+
+  </body>
+</html>

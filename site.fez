@@ -1,0 +1,347 @@
+<!-- generated from src: pages_src/root/site.fez | DO NOT EDIT OR READ THIS FILE -->
+<xmp fez="site-nav">
+  <script>
+    class {
+      NAME = 'nav'
+
+      init() {
+        this.state.path = this.currentPage()
+        this.state.menuOpen = false
+        this.state.links = [
+          { href: 'index.html',     name: 'index.html',    label: 'Home' },
+          { href: 'features.html',  name: 'features.html', label: 'Features' },
+          { href: 'changelog/',     name: 'changelog',     label: 'Changelog' },
+          { href: 'examples.html',  name: 'examples.html', label: 'Examples' },
+          // the playground loads page-specific editor assets, so enter it with a full navigation
+          { href: 'playground.html', name: 'playground.html', label: 'Playground', full: true },
+          { href: 'docs.html',      name: 'docs.html',     label: 'Docs' },
+          { href: 'static.html',    name: 'static.html',   label: 'Site generator' },
+          { href: 'dist.html',      name: 'dist.html',     label: 'Dist' },
+          { href: 'https://github.com/dux/fez', label: 'GitHub', ext: true },
+        ]
+      }
+
+      onMount() {
+        // pjax swaps only <main>; the nav lives outside it and follows the url
+        this.on('pjax:render', () => {
+          this.state.path = this.currentPage()
+          this.state.menuOpen = false
+        })
+
+        // mobile menu closes on link click or a click outside the nav
+        this.on(this.root, 'click', (e) => {
+          if (e.target.closest('a')) this.state.menuOpen = false
+        })
+        this.on(document, 'click', (e) => {
+          if (this.state.menuOpen && !this.root.contains(e.target)) this.state.menuOpen = false
+        })
+      }
+
+      toggleMenu() {
+        this.state.menuOpen = !this.state.menuOpen
+      }
+
+      currentPage() {
+        const last = location.pathname.replace(/\/$/, '').split('/').pop()
+        return last || 'index.html'
+      }
+    }
+  </script>
+
+  <div class="site-wrap {state.path == 'playground.html' ? 'no-pjax' : ''}">
+    <a class="brand" href="index.html">
+      <img src="fez.png" alt="" />
+      <span class="brand-copy">
+        <strong>Fez</strong>
+        <small>DOM / single-page / no-compile components</small>
+      </span>
+    </a>
+    <button
+      class="nav-burger"
+      class:open={state.menuOpen}
+      aria-label="Menu"
+      aria-expanded={state.menuOpen ? 'true' : 'false'}
+      onclick="fez.toggleMenu()"
+    >
+      <span></span><span></span><span></span>
+    </button>
+    <ul class:open={state.menuOpen}>
+      {#each state.links as link}
+        <li>
+          {#if link.ext}
+            <a href="{link.href}" class="ext no-pjax" target="_blank">{link.label}</a>
+          {:else if link.full}
+            <a href="{link.href}" class="no-pjax {link.name == state.path ? 'active' : ''}">{link.label}</a>
+          {:else}
+            <a href="{link.href}" class="{link.name == state.path ? 'active' : ''}">{link.label}</a>
+          {/if}
+        </li>
+      {/each}
+    </ul>
+  </div>
+</xmp>
+
+<xmp fez="site-footer">
+  <script>
+    class {
+      NAME = 'footer'
+    }
+  </script>
+
+  <div class="site-wrap">
+    <span>Fez - jQuery simplicity for the component era. One script tag, no build step.</span>
+    <span class="spacer"></span>
+    <a href="features.html">Features</a>
+    <a href="changelog/">Changelog</a>
+    <a href="https://github.com/dux/fez">GitHub</a>
+    <a href="https://www.npmjs.com/package/@dinoreic/fez">npm</a>
+    <a href="https://github.com/dux/fez/blob/main/AGENTS.md">AGENTS.md</a>
+    <span>Made by <a href="https://github.com/dux/">@dux</a></span>
+  </div>
+</xmp>
+
+<xmp fez="site-live">
+  <!--
+    Browser-chrome card used on the home page.
+    <site-live title="index.html" right-title="fez.js · ~35KB gzip"> ... </site-live>
+    Everything between the tags is rendered below the title bar, unwrapped.
+  -->
+  <div class="bar">
+    <i></i><i></i><i></i> {props.title}
+    {#if props['right-title']}
+      <span class="tag">{props['right-title']}</span>
+    {/if}
+  </div>
+  <slot unwrap />
+
+  <style>
+    border: 1px solid var(--line); border-radius: var(--r); background: #fff;
+    box-shadow: var(--shadow); overflow: hidden;
+
+    .bar {
+      display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+      border-bottom: 1px solid var(--line); background: #fff;
+      font: 12.5px var(--font-mono); color: var(--ink-2);
+
+      i { width: 10px; height: 10px; border-radius: 50%; background: var(--line-2); display: inline-block; }
+      i:first-child { background: var(--fez); }
+      .tag { margin-left: auto; color: var(--ink-3); white-space: nowrap; font-size: 11.5px; }
+    }
+
+    pre { max-width: 100%; overflow-x: auto; }
+
+    .src {
+      pre { margin: 0; background: transparent; overflow-x: auto; }
+      xmp { display: none; }
+      .fez-ui-editor pre { margin: 0; border: none; }
+      .fez-ui-editor code { font-size: 13.5px; line-height: 1.55; padding: 14px 18px; display: block; border: none; border-radius: 0; }
+    }
+
+    .out { padding: 22px 18px 18px 18px; border-top: 1px dashed var(--line-2); display: flex; align-items: center; justify-content: center; }
+
+    /* how the tag is used in the page - sits above the live output, not in the code */
+    .out-usage {
+      font: 12px var(--font-mono); color: var(--ink-3);
+      border-top: 1px dashed var(--line-2);
+      padding: 12px 18px 0 18px;
+    }
+
+    .out-usage + .out { border-top: none; padding-top: 14px; }
+
+    .out-label {
+      font: 12px var(--font-mono); color: var(--ink-3); text-transform: none;
+      padding: 0 18px 12px 18px;
+    }
+  </style>
+</xmp>
+
+<xmp fez="site-copy">
+  <script>
+    class {
+      copy() {
+        const text = this.props.text || this.root.previousElementSibling?.innerText || ''
+        navigator.clipboard?.writeText(text).then(
+          () => Toast.info('Copied.'),
+          () => Toast.error('Could not copy.')
+        )
+      }
+    }
+  </script>
+
+  <button onclick="fez.copy()"><slot /></button>
+</xmp>
+
+<xmp fez="site-toc">
+  <script>
+    class {
+      NAME = 'nav'
+
+      init() {
+        this.state.items = []
+        const name = location.pathname.replace(/\/+$/, '').split('/').pop() || 'index.html'
+        this.state.file = name.includes('.') ? name : 'index.html'
+      }
+
+      onMount() {
+        // the markdown next to us renders async (marked is an ESM import), poll until headings exist
+        const poll = this.setInterval(() => {
+          const root = document.querySelector(this.props.for)
+          const heads = root ? [...root.querySelectorAll('h2, h3')] : []
+          if (!heads.length) return
+          clearInterval(poll)
+          this.state.items = heads.map(h => {
+            if (!h.id) h.id = 'h-' + h.textContent.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+            return { id: h.id, text: h.textContent, level: h.tagName.toLowerCase() }
+          })
+          this.on('scroll', this.updateActive, { throttle: 80 })
+          this.updateActive()
+        }, 150)
+      }
+
+      updateActive() {
+        const top = window.scrollY + 100
+        let active = null
+        for (const item of this.state.items) {
+          const node = document.getElementById(item.id)
+          if (node && node.offsetTop <= top) active = item.id
+        }
+        if (active !== this.state.active) this.state.active = active
+      }
+    }
+  </script>
+
+  <div class="site-toc">
+    {#each state.items as item}
+      <a href="{state.file}#{item.id}" class="{item.level} {item.id == state.active ? 'active' : ''}">{item.text}</a>
+    {/each}
+  </div>
+</xmp>
+
+<xmp fez="site-markdown">
+  <script>
+    import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
+    import hljs from 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/es/highlight.min.js'
+
+
+    class {
+      NAME = 'article'
+
+      init(props) {
+        this.root.classList.add('markdown')
+        Fez.fetch(props.src, (text) => {
+          // Changelog files keep portable YAML frontmatter; marked should render only the entry body.
+          text = text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '')
+          // README paths are repo-root relative; the generated site is its own root
+          text = text
+            .replaceAll('src="pages_src/root/', 'src="./')
+            .replaceAll('](pages_src/root/', '](./')
+            .replaceAll('](./pages_src/root/', '](./')
+          this.root.innerHTML = marked.parse(text)
+          this.root.querySelectorAll('pre code').forEach(node => hljs.highlightElement(node))
+          // stable ids for the toc / deep links
+          this.root.querySelectorAll('h1, h2, h3, h4').forEach(h => {
+            h.id ||= 'h-' + h.textContent.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+          })
+          if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView()
+        })
+      }
+    }
+  </script>
+</xmp>
+
+<xmp fez="site-dist">
+  <script>
+    class {
+      init() {
+        // resolve against the current page so local preview and the deployed site
+        // both produce a copyable absolute URL
+        const base = new URL('dist/', document.baseURI).href
+        const bundle = (name, kind, desc) => ({ name, kind, desc, url: base + name })
+        this.state.files = [
+          bundle('fez.js', 'iife', 'Full browser build. Defines the global Fez and loads with a plain script tag. Use it while developing.'),
+          bundle('fez.min.js', 'iife min', 'Minified browser build. Same API and the smallest payload - the default for production.'),
+          bundle('fez.esm.js', 'esm', 'ES module build for import. Use it from a bundler or a script type="module".'),
+          bundle('fez.esm.min.js', 'esm min', 'Minified ES module build.'),
+          bundle('fez.cjs', 'cjs', 'CommonJS build for require() in Node and older toolchains.'),
+          bundle('fez.js.map', 'map', 'Source map for fez.js. Served beside the bundle; browser devtools load it automatically.'),
+          bundle('fez.min.js.map', 'map', 'Source map for fez.min.js.'),
+          bundle('fez.esm.js.map', 'map', 'Source map for fez.esm.js.'),
+          bundle('fez.esm.min.js.map', 'map', 'Source map for fez.esm.min.js.'),
+          bundle('fez.cjs.map', 'map', 'Source map for fez.cjs.'),
+        ]
+      }
+
+      copy(url) {
+        navigator.clipboard?.writeText(url).then(
+          () => Toast.info('Copied ' + url),
+          () => Toast.error('Could not copy')
+        )
+      }
+    }
+  </script>
+
+  <div class="dist">
+    <p class="dist-version">Current version <code>v{Fez.version}</code></p>
+    <div class="dist-list">
+      {#each state.files as file}
+        <div class="dist-row">
+          <div class="dist-main">
+            <div class="dist-head">
+              <code class="dist-name">{file.name}</code>
+              <span class="dist-kind">{file.kind}</span>
+            </div>
+            <p class="dist-desc">{file.desc}</p>
+            <code class="dist-url">{file.url}</code>
+          </div>
+          <button class="site-btn ghost" data-url={file.url} onclick="fez.copy(this.dataset.url)">Copy URL</button>
+        </div>
+      {/each}
+    </div>
+    <p class="dist-note">
+      This site itself loads <code>fez.min.js</code> from the site root - a copy of <code>dist/fez.min.js</code> -
+      and every <code>.map</code> ships beside its bundle for devtools.
+    </p>
+  </div>
+
+  <style>
+    .dist { border-top: 1px solid var(--line); }
+    .dist-version { margin: 24px 0 0 0; color: var(--ink-2); font-size: 15px; }
+
+    .dist-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: center;
+      padding: 22px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .dist-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .dist-name { font: 600 15px var(--font-mono); color: var(--ink); }
+
+    .dist-kind {
+      padding: 2px 8px;
+      border: 1px solid var(--fez-tint-2);
+      border-radius: 999px;
+      background: var(--fez-tint);
+      color: var(--fez);
+      font: 500 11px var(--font-mono);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .dist-desc { margin: 7px 0 9px 0; color: var(--ink-2); font-size: 15px; line-height: 1.55; }
+
+    .dist-url {
+      display: inline-block;
+      max-width: 100%;
+      color: var(--ink-3);
+      font: 12.5px var(--font-mono);
+      word-break: break-all;
+    }
+
+    .dist-note { margin: 24px 0 0 0; color: var(--ink-3); font-size: 14px; line-height: 1.6; }
+    .dist-note code { font-size: 0.86em; }
+  </style>
+</xmp>
