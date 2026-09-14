@@ -223,7 +223,7 @@
               <ui-editor
                 name="{name}"
                 id="html-{name}"
-                file="./docs_src/root/fez/{name}.fez"
+                file="./pages_src/root/fez/{name}.fez"
                 language="html"
               >
                 {state.demoHtml}
@@ -232,7 +232,7 @@
             <div title="Fez component">
               <ui-editor
                 id="code-{name}"
-                file="./docs_src/root/fez/{name}.fez"
+                file="./pages_src/root/fez/{name}.fez"
                 name="{name}"
                 :action="fez.applyChanges"
               >

@@ -4,7 +4,7 @@
 
 - when you add new features, ensure related tests exists, demo and info in fez lib.
 - use bun, not npm
-- ./docs and ./dist are generated output: never edit them and skip them when searching for code. Source is in ./src, docs source in ./docs_src, demo in ./demo. Read ./docs or ./dist only to debug build output.
+- ./dist and ./tmp are generated output: never edit them and skip them when searching for code. Source is in ./src, site source in ./pages_src. Read ./dist or ./tmp only to debug build output.
 
 ## Bundled Pjax navigation (since 0.6.0)
 
@@ -13,6 +13,7 @@ Fez ships the former `dux-pjax` package (ported to JS) in `src/fez/pjax/` and ex
 - `pjax.js` - the Pjax class (created per `createPjax()` call so tests get fresh static state); `onclick.js` - link click delegate; `boot.js` - boot, called from `src/fez.js` behind the `fezPrimary` guard.
 - Boot gating: `window.Pjax` is always set, but handlers (link hijack, popstate, `data-pjax` forms) bind only when the page has a `<pjax>` tag or `.pjax` class container; `Pjax.start()` for late-injected containers. If another lib already set `window.Pjax`, fez backs off.
 - `morphInto` converts HTML strings to a DocumentFragment before `Fez.nodeMorph` - never hand it raw strings; nodeMorph's "unwrap single matching-tag root" heuristic would swallow a legitimate lone wrapper child.
+- A full-page swap only morphs the pjax container, so `runHeadScripts` also compiles the response head's own fez definitions (`script[fez]`, `template[fez]`, `xmp[fez]` outside the pjax region) before the morph - that is what loads the `page.components` a layout emits per page. Without it a pjax navigation lands on a page whose components never registered (unknown custom elements, empty widgets).
 - Components follow navigation via `this.on('pjax:render', () => this.refresh())`.
 - Tests: `test/pjax-core.test.js`, `test/pjax-onclick.test.js`, `test/pjax-events.test.js` (shared env in `test/pjax-env.js`). Types in `fez.d.ts` (`PjaxStatic`).
 - The old `~/dev/gems/dux-pjax` repo is deprecated reference only - changes happen here.
@@ -23,13 +24,13 @@ Fez ships the former `dux-pjax` package (ported to JS) in `src/fez/pjax/` and ex
 
 ## Writing New Components
 
-If you are instructed to write a fez component, ALWAYS write it in `docs_src/root/fez/[name].fez`; `docs/fez` is generated output.
+If you are instructed to write a fez component, ALWAYS write it in `pages_src/root/fez/[name].fez`; the generated site is published to the `pages` branch and is never edited in place.
 All documentation and demos go INSIDE the .fez file (no separate .html files) using `<info>` and `<demo>` blocks.
 
 ## CDN
 
 ```html
-<script src="https://dux.github.io/fez/dist/fez.js"></script>
+<script src="https://dux.github.io/fez/dist/fez.min.js"></script>
 
 <!-- Load components with fez attribute (NOT type="fez" src="...") -->
 <script fez="path/to/component.fez"></script>
@@ -162,6 +163,7 @@ This repo publishes its generated site from the `pages` branch, served by GitHub
 `lib/server.js` serves `tmp/fez-pages` at `http://localhost:8000/`, so local preview matches the published root.
 `bun bin/build-pages` (or `bun run build:pages`) builds dist + site, replaces all of the `pages` branch with that output as a single rolling commit, and force-pushes `origin/pages`; pass `--dry-run` to stop before the push.
 The script refuses to run unless on `main` with a clean working tree, and does its git work in the `tmp/pages-wt` worktree so the `main` checkout is never touched.
+`pages_src/root/fez.txt` (the component list the docs site fetches) is generated from `pages_src/root/fez/*.fez`, not committed: `bin/build-pages` writes it in JS before the static build, and `bun run index` regenerates it in `bun run dev`.
 
 ## Core Rules for LLM
 

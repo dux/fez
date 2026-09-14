@@ -44,7 +44,6 @@ if (kind === 'w') {
   watch()
 }
 else if (kind === 'b') {
-  cliRun(`bun run index`)
   await esbuild.build(opts)
   await esbuild.build({
     ...opts,

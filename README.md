@@ -1,4 +1,4 @@
-<img src="docs/fez.png" align="right" width="110" />
+<img src="pages_src/root/fez.png" align="right" width="110" />
 
 # FEZ - Custom DOM Elements
 
@@ -15,7 +15,7 @@ It uses minimal abstraction. You will learn to use it in 15 minutes, just look a
 
 ## How to install
 
-`<script src="https://dux.github.io/fez/dist/fez.js"></script>`
+`<script src="https://dux.github.io/fez/dist/fez.min.js"></script>`
 
 ## CLI Tools
 
@@ -27,10 +27,10 @@ bunx @dinoreic/fez agents
 bunx @dinoreic/fez agents --init
 
 # Compile and validate a Fez component
-bunx @dinoreic/fez compile docs/fez/ui-counter.fez
+bunx @dinoreic/fez compile pages_src/root/fez/ui-counter.fez
 
 # Validate only the template block
-bunx @dinoreic/fez template docs/fez/ui-counter.fez
+bunx @dinoreic/fez template pages_src/root/fez/ui-counter.fez
 ```
 
 Or install globally:
@@ -206,7 +206,7 @@ The builder writes through a staging directory and replaces the target only afte
 Missing layouts or parts, output collisions, recursive includes, recursive layouts, dynamic include paths, and unsafe paths fail the build.
 `fez static dev` injects a development-only reload client and refreshes connected pages after each successful rebuild.
 
-This repository uses `docs_src/root/` as its publish root (`source_dir: docs_src`) and generates `docs/`, which GitHub Pages serves from `main` `/docs`.
+This repository uses `pages_src/root/` as its publish root (`source_dir: pages_src`), builds into `tmp/fez-pages`, and publishes that tree to the `pages` branch, which GitHub Pages serves at its root.
 
 ## Why Fez is Simpler
 
@@ -765,7 +765,7 @@ To use this component in your HTML:
 
 ```html
 <!-- Load Fez library -->
-<script src="https://dux.github.io/fez/dist/fez.js"></script>
+<script src="https://dux.github.io/fez/dist/fez.min.js"></script>
 
 <!-- Load component via template tag -->
 <template fez="/fez-libs/ex-counter.fez"></template>
@@ -868,7 +868,7 @@ Fez('foo-bar', class {
 
   // Expose the live instance as `window.Dialog` (works for tags you place yourself too)
   GLOBAL = 'Dialog'
-  // Append one <foo-bar> to body on ready, unless the page already placed it. See `docs/fez/ui-dialog.fez`.
+  // Append one <foo-bar> to body on ready, unless the page already placed it. See `pages_src/root/fez/ui-dialog.fez`.
   MOUNT = true
 
   // optional props schema - validates and coerces attribute values into this.props
@@ -1136,7 +1136,7 @@ Fez('anim-viewport', class {
 ```
 
 `GLOBAL = true` is a compile error - use `MOUNT = true` for a nameless singleton.
-See `docs/fez/ui-dialog.fez` for a complete singleton example.
+See `pages_src/root/fez/ui-dialog.fez` for a complete singleton example.
 
 ## Loading Multiple Components
 
@@ -1156,7 +1156,7 @@ Load all components with a single call:
 ```js
 // Load all components listed in components.txt
 // Paths are relative to the txt file location
-Fez.head({ fez: './docs/components.txt' }, () => {
+Fez.head({ fez: './components.txt' }, () => {
   console.log('All components loaded!');
 });
 ```
@@ -1167,11 +1167,11 @@ Fez.head({ fez: './docs/components.txt' }, () => {
 - `.fez` extension is added automatically if not present
 - Paths starting with `/` are absolute from root
 
-Example with `./docs/fez.txt`:
+Example with `./fez.txt`:
 
 ```
-ui-button          # loads ./docs/ui-button.fez
-forms/input        # loads ./docs/forms/input.fez
+ui-button          # loads ./ui-button.fez
+forms/input        # loads ./forms/input.fez
 /lib/shared-comp   # loads /lib/shared-comp.fez (absolute)
 ```
 
@@ -1743,7 +1743,7 @@ Dynamically includes a Fez component by name:
 Loads remote HTML content via URL:
 
 ```html
-<fez-include src="./docs/fez/ui-slider.html"></fez-include>
+<fez-include src="./fez/ui-slider.html"></fez-include>
 ```
 
 ### fez-inline
@@ -1761,23 +1761,23 @@ Expressions see `state`, `globalState` and `props`, and the node re-renders when
 
 ### fez-demo
 
-Renders all components with their demos. Perfect for component documentation pages:
+Renders the demos of the components already loaded on the page. Perfect for component documentation pages:
 
 ```html
-<!-- Default: loads from ./docs/fez.txt -->
+<!-- Every loaded component that has a demo -->
 <fez-demo></fez-demo>
 
-<!-- Custom component list -->
-<fez-demo src="./my-components.txt"></fez-demo>
+<!-- Only one component; ?fez=ui-clock in the URL does the same -->
+<fez-demo name="ui-clock"></fez-demo>
 ```
 
-The component loads all components listed in the txt file and displays:
+The component lists each registered component that ships a demo and displays:
 
 - Component name and live demo (left side)
 - Info/documentation block (right side)
 - Buttons to log demo HTML and component source to console
 
-See `docs/raw.html` for a minimal example.
+See `pages_src/root/raw.html` for a minimal example.
 
 ## Global State Management
 

@@ -11,7 +11,7 @@
 // --dry-run builds and commits the pages branch locally but skips the push.
 
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const argv = process.argv.slice(2);
@@ -68,6 +68,17 @@ const gitQuiet = (...args) => {
   }
 };
 
+// The docs site fetches fez.txt to load every component. It is derived from the
+// component files, so generate it at build time instead of committing it.
+const writeDocsIndex = () => {
+  const names = readdirSync(join('pages_src', 'root', 'fez'))
+    .filter((name) => name.endsWith('.fez'))
+    .map((name) => 'fez/' + name.slice(0, -'.fez'.length))
+    .sort();
+  writeFileSync(join('pages_src', 'root', 'fez.txt'), names.join('\n') + '\n');
+  return names.length;
+};
+
 // One-line summary of a `git status --porcelain` dump.
 const summarizeStatus = (text) => {
   const rows = text.split('\n').filter(Boolean);
@@ -103,6 +114,8 @@ try {
 
   console.log('build-pages: building dist bundles');
   run('bun', ['run', 'build'], '"bun run build"', { echo: true });
+
+  console.log(`build-pages: indexing ${writeDocsIndex()} docs components -> pages_src/root/fez.txt`);
 
   console.log('build-pages: building static site -> tmp/fez-pages');
   run('bun', ['run', 'static'], '"bun run static"', { echo: true });

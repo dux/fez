@@ -3,6 +3,7 @@
 node_modules/
 tmp/
 dist/
+pages_src/root/fez.txt
 .npmrc
 npm-debug.log*
 .DS_Store

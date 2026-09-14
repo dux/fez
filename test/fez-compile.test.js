@@ -89,7 +89,7 @@ describe('fez compile', () => {
     });
 
     test('compiles files containing multiple component definitions', async () => {
-      const result = await $`bin/fez-compile -o docs_src/root/fez/bubble-alerter.fez`
+      const result = await $`bin/fez-compile -o pages_src/root/fez/bubble-alerter.fez`
         .quiet()
         .nothrow();
       const stdout = result.stdout.toString();
@@ -100,7 +100,7 @@ describe('fez compile', () => {
     });
 
     test('compiles input-html component with ESM imports and template logic', async () => {
-      const result = await compile('docs_src/root/fez/input-html.fez');
+      const result = await compile('pages_src/root/fez/input-html.fez');
       expect(result.exitCode).toBe(0);
     });
 

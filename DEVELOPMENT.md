@@ -9,7 +9,7 @@ bun run dev          # Start server with file watching
 
 ### 2. Build Production
 ```bash
-bun run build        # or: bun run b
+bun run build
 ```
 
 ### 3. Code Quality
@@ -161,9 +161,9 @@ fez/
 │   ├── *.test.js                 # Unit tests
 │   └── browser/
 │       └── integration.test.js   # Browser tests
-├── docs_src/root/fez/            # Component demos (source)
-├── docs/                         # Generated site, published by GitHub Pages
-├── dist/                         # Built files
+├── pages_src/root/fez/           # Component demos (source)
+├── tmp/fez-pages/                # Generated site, published to the pages branch
+├── dist/                         # Built bundles (generated)
 ├── fez.d.ts                      # TypeScript definitions
 ├── .eslintrc.json                # ESLint config
 ├── .prettierrc                   # Prettier config
@@ -174,7 +174,7 @@ fez/
 
 ### Add a New Component
 
-1. Create file: `docs_src/root/fez/my-component.fez`
+1. Create file: `pages_src/root/fez/my-component.fez`
 2. Write component with `<info>`, `<demo>`, `<script>`, `<style>`, and template
 3. Run: `bun run dev` to see it live
 4. Test manually or add automated tests

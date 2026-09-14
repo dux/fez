@@ -261,7 +261,7 @@ value = "ok"
     try {
       Fez.compile(
         "test-notice-source",
-        "<!-- generated from src: docs_src/root/fez/x.fez | DO NOT EDIT OR READ THIS FILE -->\n<div>Body</div>",
+        "<!-- generated from src: pages_src/root/fez/x.fez | DO NOT EDIT OR READ THIS FILE -->\n<div>Body</div>",
       );
     } finally {
       globalThis.Fez = oldGlobalFez;

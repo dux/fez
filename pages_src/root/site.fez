@@ -230,11 +230,11 @@
         Fez.fetch(props.src, (text) => {
           // Changelog files keep portable YAML frontmatter; marked should render only the entry body.
           text = text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '')
-          // README paths are repo-root relative; the generated site is the ./docs folder
+          // README paths are repo-root relative; the generated site is its own root
           text = text
-            .replaceAll('src="docs/', 'src="./')
-            .replaceAll('](docs/', '](./')
-            .replaceAll('](./docs/', '](./')
+            .replaceAll('src="pages_src/root/', 'src="./')
+            .replaceAll('](pages_src/root/', '](./')
+            .replaceAll('](./pages_src/root/', '](./')
           this.root.innerHTML = marked.parse(text)
           this.root.querySelectorAll('pre code').forEach(node => hljs.highlightElement(node))
           // stable ids for the toc / deep links

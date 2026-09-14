@@ -161,12 +161,12 @@ This `{page.title}` stays literal in Markdown.</code></pre></div>
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">source_dir · target_dir</p>
                 <h3>The two required paths</h3>
-                <p><code>source_dir</code> is the site folder with <code>layouts/</code>, <code>parts/</code> and <code>root/</code>. <code>target_dir</code> receives the build and is replaced on every successful run, so keep it out of version control or, as this repository does, commit it on purpose.</p>
+                <p><code>source_dir</code> is the site folder with <code>layouts/</code>, <code>parts/</code> and <code>root/</code>. <code>target_dir</code> receives the build and is replaced on every successful run, so keep it out of version control - this repository builds into <code>tmp/</code>, which is ignored.</p>
               </div>
               <site-live title="fez-static.yaml" right-title="this site">
-                <div class="src"><pre><code>source_dir: docs_src
-target_dir: docs</code></pre></div>
-                <div class="out feature-result"><span class="result-chip">docs_src/root/static.html</span><span>-&gt;</span><span class="result-chip">docs/static.html</span></div>
+                <div class="src"><pre><code>source_dir: pages_src
+target_dir: tmp/fez-pages</code></pre></div>
+                <div class="out feature-result"><span class="result-chip">pages_src/root/static.html</span><span>-&gt;</span><span class="result-chip">tmp/fez-pages/static.html</span></div>
                 <div class="out-label">neither may be the project root or contain the other</div>
               </site-live>
             </article>
@@ -492,7 +492,7 @@ Options:
           <div class="site-btns">
             <a class="site-btn" href="./features.html">Browse Fez features</a>
             <a class="site-btn ghost" href="./docs.html#h-static-site-builder" data-fez-static-ignore>Read the docs</a>
-            <a class="site-btn ghost no-pjax" href="https://github.com/dux/fez/blob/main/docs_src">See this site's source</a>
+            <a class="site-btn ghost no-pjax" href="https://github.com/dux/fez/blob/main/pages_src">See this site's source</a>
           </div>
         </div>
       </section>
