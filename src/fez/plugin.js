@@ -12,7 +12,6 @@ import { compileFileToModule } from './compile-module.js';
  * @param {boolean} [options.minify] - drop <info>/<demo> metadata. Vite defaults
  *   to `true` when `config.mode === 'production'`; Rollup has no mode, so it
  *   defaults to false. Pass true/false to override both.
- * @param {string} [options.runtime='@dinoreic/fez'] - runtime import specifier
  *
  * @example
  * // vite.config.js
@@ -51,7 +50,7 @@ export default function fez(options = {}) {
         return null;
       }
       const source = fs.readFileSync(id, 'utf8');
-      const code = compileFileToModule(id, source, { minify, runtime: options.runtime });
+      const code = compileFileToModule(id, source, { minify });
       return { code, map: null };
     },
   };

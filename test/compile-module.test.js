@@ -18,7 +18,7 @@ const valid = `<script>
 describe('compile-module', () => {
   test('compiles a component to an ES module', () => {
     const code = compile(valid);
-    expect(code).toContain("import { Fez } from '@dinoreic/fez';");
+    expect(code).toContain('const Fez = window.Fez;');
     expect(code).toContain("Fez('ui-test'");
     expect(code).toContain('export default __fez_component_0;');
   });
@@ -26,11 +26,6 @@ describe('compile-module', () => {
   test('keeps module-level preamble bindings', () => {
     const code = compile(valid);
     expect(code).toContain("const GREETING = 'hi'");
-  });
-
-  test('honours the runtime option', () => {
-    const code = compile(valid, { runtime: './fez.js' });
-    expect(code).toContain("import { Fez } from './fez.js';");
   });
 
   test('rejects a component name without a dash', () => {

@@ -1,10 +1,10 @@
 /**
  * Build-time compiler: turn a .fez source into an ES module.
  *
- * The module imports the fez runtime, defines the component class, registers it
- * with `Fez(name, Klass)` and default-exports the class. All checks run at
- * build time: component name, script syntax, style scope and template
- * compilation (strict).
+ * The module reads the fez runtime from `window.Fez` (the runtime is loaded once
+ * by the host page), defines the component class, registers it with
+ * `Fez(name, Klass)` and default-exports the class. All checks run at build time:
+ * component name, script syntax, style scope and template compilation (strict).
  *
  * The runtime `<script fez="...">` / `Fez.compile` path is unchanged; this is
  * the bundler entry used by the Vite and Rollup plugins.
@@ -15,8 +15,6 @@ import { extractFezDefinitions, parseFezSource } from './lib/source-parser.js';
 import { assertStyleScope, splitScript } from './lib/validate.js';
 import { stripTypeScript } from './lib/strip-types.js';
 import createTemplate from './lib/template.js';
-
-const DEFAULT_RUNTIME = '@dinoreic/fez';
 
 function escapeTemplateLiteral(value) {
   return String(value).replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('$', '\\$');
@@ -136,12 +134,10 @@ function compileUnit(name, source, { minify }) {
  * @param {string} filePath - Absolute path, used for the default component name
  * @param {string} source - .fez source
  * @param {Object} [options]
- * @param {string} [options.runtime='@dinoreic/fez'] - specifier to import Fez from
  * @param {boolean} [options.minify=false] - drop <info>/<demo> metadata
  * @returns {string}
  */
 export function compileFileToModule(filePath, source, options = {}) {
-  const runtime = options.runtime || DEFAULT_RUNTIME;
   const minify = options.minify === true;
 
   const { definitions } = extractFezDefinitions(source);
@@ -169,7 +165,8 @@ export function compileFileToModule(filePath, source, options = {}) {
   });
 
   const lines = [
-    `import { Fez } from '${runtime}';`,
+    `const Fez = window.Fez;`,
+    `if (!Fez) throw new Error('fez runtime not loaded: load fez (window.Fez) before component modules');`,
     '',
     ...preambles,
     preambles.length ? '' : null,
@@ -184,4 +181,3 @@ export function compileFileToModule(filePath, source, options = {}) {
   return lines.join('\n');
 }
 
-export { DEFAULT_RUNTIME };

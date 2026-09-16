@@ -56,7 +56,8 @@ import Button from './components/ui-button.fez'; // default export is the class
   files compile every definition.
 - `minify` (default `false`; Vite defaults to `true` when `mode === 'production'`) drops
   `<info>` / `<demo>` metadata from the emitted module.
-- `runtime` (default `@dinoreic/fez`) sets the specifier the emitted module imports `Fez` from.
+- Emitted modules read the runtime from `window.Fez` and never import it: load fez once on the
+  page before the component modules, or the module throws `fez runtime not loaded`.
 - One plugin for both bundlers: Vite-only hooks (`enforce`, `configResolved`) are ignored by
   Rollup, so minify follows Vite's mode and is false for Rollup.
 - `<script lang="ts">` (or `type="text/typescript"`) is stripped by the plugin at build time

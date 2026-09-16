@@ -1250,7 +1250,10 @@ import Button from './components/ui-button.fez'; // or import the class
   compilation, so a broken component fails the build instead of the browser.
 - `minify` (default `false`; the Vite plugin defaults it to `true` in production) drops
   `<info>` / `<demo>` metadata from the emitted module.
-- `runtime` (default `@dinoreic/fez`) sets the specifier the emitted module imports `Fez` from.
+
+The emitted module reads the fez runtime from `window.Fez`; it never imports the runtime itself,
+so a page must load fez once before its component modules. A missing global fails the module with
+a clear `fez runtime not loaded` error.
 
 Vite and Rollup both import the same plugin from `@dinoreic/fez/plugin`: `enforce`/`configResolved`
 are Vite-only and ignored by Rollup, so `minify` follows Vite's mode and stays `false` for Rollup.
