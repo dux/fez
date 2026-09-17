@@ -33,6 +33,7 @@ import { transitions, animateSize } from './lib/transitions.js';
 import fezLocalStorage from './lib/localstorage.js';
 import fezAwait from './lib/await-helper.js';
 import index from './lib/index.js';
+import { version } from '../../package.json';
 
 // =============================================================================
 // MAIN FEZ FUNCTION
@@ -133,6 +134,9 @@ const Fez = (name, klass) => {
  * Anything not in this set defaults to `document`. Mutate to customize.
  */
 Fez.WINDOW_EVENTS = WINDOW_EVENTS;
+
+/** Library version, from package.json at build time */
+Fez.version = version;
 
 /** Unified component index - Fez.index['name'] = { class, meta, demo, info, source } */
 Fez.index = index;

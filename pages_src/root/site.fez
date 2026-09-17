@@ -280,6 +280,7 @@
   </script>
 
   <div class="dist">
+    <p class="dist-version">Current version <code>v{Fez.version}</code></p>
     <div class="dist-list">
       {#each state.files as file}
         <div class="dist-row">
@@ -303,6 +304,7 @@
 
   <style>
     .dist { border-top: 1px solid var(--line); }
+    .dist-version { margin: 24px 0 0 0; color: var(--ink-2); font-size: 15px; }
 
     .dist-row {
       display: grid;
