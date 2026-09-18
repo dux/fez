@@ -50,6 +50,26 @@ fez template --debug my-component.fez
 
 `.fez` files are compiled with Fez's own template compiler (`src/fez/lib/template-compiler.js`).
 
+## Repository development and deployment
+
+```bash
+bun run dev            # Build library + docs, watch, serve on port 8000, and reload browsers
+bun run build          # Build the library bundles
+bun run static         # Generate the component index and documentation site
+bun run lint --fix     # Fix lint issues
+bun run deploy --help  # Describe the complete GitHub deployment workflow
+bun run deploy --dry-run
+bun run deploy
+```
+
+`deploy` requires a clean working tree on `main`.
+It increments the minor version (`0.7.0` -> `0.8.0`) before building the library and pages, commits the version on `main`, and amends or creates the rolling `pages` commit with the new version and source hash.
+It then pushes both branches to GitHub (`origin`) atomically: `main` must fast-forward and `pages` uses an explicit force-with-lease.
+The generated site is served from the root of the `pages` branch.
+`--dry-run` builds the next version, restores `package.json`, and leaves preview output without committing or pushing.
+Build failures restore the manifest before any source commit; later failures retain local commits and the Pages worktree for recovery.
+`bun run release` is separate: it publishes the library package to the public package registry.
+
 ## Static Site Builder
 
 Fez includes a convention-based static site builder for Markdown, HTML, layouts, includes, and browser-side `.fez` components.

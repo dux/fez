@@ -161,10 +161,15 @@ Rules:
 This repo publishes its generated site from the `pages` branch, served by GitHub Pages at the branch root.
 `main` tracks source only; `dist/` and `tmp/` are build output and ignored (the old `docs/` output is gone).
 `fez-static.yaml` builds into `tmp/fez-pages`, which is exactly the deployable site root.
-`lib/server.js` serves `tmp/fez-pages` at `http://localhost:8000/`, so local preview matches the published root.
-`bun bin/build-pages` (or `bun run build:pages`) builds dist + site, replaces all of the `pages` branch with that output as a single rolling commit, and force-pushes `origin/pages`; pass `--dry-run` to stop before the push.
-The script refuses to run unless on `main` with a clean working tree, and does its git work in the `tmp/pages-wt` worktree so the `main` checkout is never touched.
-`pages_src/root/fez.txt` (the component list the docs site fetches) is generated from `pages_src/root/fez/*.fez`, not committed: `bin/build-pages` writes it in JS before the static build, and `bun run index` regenerates it in `bun run dev`.
+`bun run dev` builds the library and site, watches source changes, and uses the existing static server with live reload at `http://localhost:8000/`.
+`bun run deploy` (`bin/deploy`) requires a clean `main`, increments the minor version (`0.7.0` -> `0.8.0`) before building dist + site, and commits the version bump on `main`.
+It replaces the generated content in the `tmp/pages-wt` worktree and amends or creates the rolling `pages` commit, updating its message with the version and source hash.
+It pushes both branches to `origin` atomically: `main` must fast-forward and `pages` uses an explicit force-with-lease against the fetched remote commit.
+`--dry-run` builds the next version and restores `package.json`, without creating commits, changing the Pages worktree, or pushing.
+Build failures restore the manifest before any source commit; later failures keep local commits and Pages output for recovery.
+Deployment does not publish to the package registry.
+`pages_src/root/fez.txt` is generated from `pages_src/root/fez/*.fez`, excluding scratch files, by the shared indexer in `lib/site.js`.
+`bun run static`, `bun run dev`, and deployment all use that indexer; there is no separate `index` script.
 
 ## Core Rules for LLM
 

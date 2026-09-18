@@ -1,0 +1,185 @@
+#!/usr/bin/env bun
+
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+
+const USAGE = `Usage: bun run deploy [--dry-run]
+
+Increment the minor version (0.7.0 -> 0.8.0), build the library and pages,
+commit the version on main, amend or create the rolling pages commit with
+the new version and source hash, then push both branches to GitHub.
+The push is atomic: main must fast-forward; pages uses force-with-lease.
+Requires a clean main checkout and an origin remote.
+
+Options:
+  --dry-run   build the next version, restore package.json, do not commit or push
+  -h, --help  show this description
+`;
+
+function run(command, args, options = {}) {
+  try {
+    return execFileSync(command, args, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      ...options,
+    });
+  } catch (error) {
+    const detail = [error.stdout, error.stderr].filter(Boolean).join('').trim();
+    throw new Error(`${command} ${args.join(' ')} failed${detail ? '\n' + detail : ''}`);
+  }
+}
+
+const git = (...args) => run('git', args).trim();
+const ref = (name) => {
+  try {
+    return git('rev-parse', '--verify', name);
+  } catch {
+    return null;
+  }
+};
+
+async function deploy(args) {
+  if (args.includes('--help') || args.includes('-h')) {
+    process.stdout.write(USAGE);
+    return;
+  }
+  if (args.some((arg) => arg !== '--dry-run')) {
+    throw new Error('Unknown option. See bun run deploy --help.');
+  }
+  const dryRun = args.includes('--dry-run');
+  const root = git('rev-parse', '--show-toplevel');
+  process.chdir(root);
+  if (git('branch', '--show-current') !== 'main') {
+    throw new Error('Switch to main before deploying.');
+  }
+  if (git('status', '--porcelain')) {
+    throw new Error('Commit all changes before deploying; main must be clean.');
+  }
+
+  const sourceHead = git('rev-parse', 'HEAD');
+  const manifestPath = path.join(root, 'package.json');
+  const originalManifest = fs.readFileSync(manifestPath, 'utf8');
+  const manifest = JSON.parse(originalManifest);
+  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(manifest.version);
+  if (!match) {
+    throw new Error(`Expected a stable major.minor.patch version, got ${manifest.version}.`);
+  }
+  const version = `${match[1]}.${Number(match[2]) + 1}.0`;
+  const nextManifest = JSON.stringify({ ...manifest, version }, null, 2) + '\n';
+  const siteDir = path.join(root, 'tmp/fez-pages');
+  const worktree = path.join(root, 'tmp/pages-wt');
+  let remotePages = '';
+
+  if (!dryRun) {
+    git('remote', 'get-url', 'origin');
+    git('fetch', '--prune', 'origin');
+    const remoteMain = ref('refs/remotes/origin/main');
+    if (remoteMain) {
+      git('merge-base', '--is-ancestor', remoteMain, sourceHead);
+    }
+    remotePages = ref('refs/remotes/origin/pages') || '';
+    const localPages = ref('refs/heads/pages');
+    if (localPages && remotePages && localPages !== remotePages) {
+      throw new Error('Local pages differs from origin/pages; resolve it before deploying.');
+    }
+    if (fs.existsSync(worktree)) {
+      if (
+        fs.lstatSync(worktree).isSymbolicLink() ||
+        git('-C', worktree, 'rev-parse', '--show-toplevel') !== worktree ||
+        git('-C', worktree, 'branch', '--show-current') !== 'pages'
+      ) {
+        throw new Error('tmp/pages-wt must be the pages worktree.');
+      }
+      if (git('-C', worktree, 'status', '--porcelain', '--ignored')) {
+        throw new Error(
+          'The pages worktree has local files or changes; resolve them before deploying.',
+        );
+      }
+    }
+  }
+
+  let committed = false;
+  let staged = false;
+  try {
+    fs.writeFileSync(manifestPath, nextManifest);
+    process.stdout.write(`deploy: ${manifest.version} -> ${version}\n`);
+    run(process.execPath, ['run', 'build'], { stdio: 'inherit' });
+    run(process.execPath, ['run', 'static'], { stdio: 'inherit' });
+    if (!fs.existsSync(path.join(siteDir, 'index.html'))) {
+      throw new Error('Static build did not produce index.html.');
+    }
+    if (dryRun) {
+      process.stdout.write('deploy: dry run built successfully; no commits or pushes.\n');
+      return;
+    }
+
+    if (
+      fs.readFileSync(manifestPath, 'utf8') !== nextManifest ||
+      git('rev-parse', 'HEAD') !== sourceHead ||
+      git('status', '--porcelain', '--', '.', ':!package.json')
+    ) {
+      throw new Error('Source changed during the build; commit it and retry.');
+    }
+    let orphan = false;
+    if (!fs.existsSync(worktree)) {
+      fs.mkdirSync(path.dirname(worktree), { recursive: true });
+      git('worktree', 'prune');
+      if (ref('refs/heads/pages')) {
+        git('worktree', 'add', worktree, 'pages');
+      } else if (remotePages) {
+        git('worktree', 'add', '-b', 'pages', worktree, remotePages);
+      } else {
+        git('worktree', 'add', '--detach', worktree);
+        git('-C', worktree, 'checkout', '--orphan', 'pages');
+        orphan = true;
+      }
+    } else if (git('-C', worktree, 'status', '--porcelain', '--ignored')) {
+      throw new Error('The pages worktree changed during the build; resolve it before deploying.');
+    }
+    git('-C', worktree, 'rm', orphan ? '-rf' : '-r', '--ignore-unmatch', '.');
+    for (const entry of fs.readdirSync(siteDir)) {
+      if (entry === '.git' || entry.includes('.tmp.')) {
+        throw new Error(`Invalid build output: ${entry}`);
+      }
+      fs.cpSync(path.join(siteDir, entry), path.join(worktree, entry), { recursive: true });
+    }
+
+    git('add', '--', 'package.json');
+    staged = true;
+    git('commit', '-m', `chore: release ${version}`);
+    committed = true;
+    const mainSha = git('rev-parse', '--short', 'HEAD');
+    process.stdout.write(`${mainSha} chore: release ${version}\n`);
+
+    const message = `fez-pages ${version} (${mainSha})`;
+    git('-C', worktree, 'add', '--all');
+    const hasCommit = ref('refs/heads/pages');
+    git('-C', worktree, 'commit', ...(hasCommit ? ['--amend'] : []), '-m', message);
+    process.stdout.write(`${git('-C', worktree, 'rev-parse', '--short', 'HEAD')} ${message}\n`);
+
+    git(
+      'push',
+      '--atomic',
+      `--force-with-lease=refs/heads/pages:${remotePages}`,
+      'origin',
+      'refs/heads/main:refs/heads/main',
+      'refs/heads/pages:refs/heads/pages',
+    );
+    process.stdout.write('deploy: pushed main and pages to origin.\n');
+  } finally {
+    if (!committed && fs.readFileSync(manifestPath, 'utf8') === nextManifest) {
+      fs.writeFileSync(manifestPath, originalManifest);
+      if (staged) {
+        git('restore', '--staged', '--', 'package.json');
+      }
+    }
+  }
+}
+
+try {
+  await deploy(process.argv.slice(2));
+} catch (error) {
+  console.error(`deploy: ${error.message}`);
+  process.exitCode = 1;
+}

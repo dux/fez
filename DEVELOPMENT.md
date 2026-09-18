@@ -4,13 +4,31 @@
 
 ### 1. Start Development Server
 ```bash
-bun run dev          # Start server with file watching
+bun run dev          # Build library + site, watch, serve on port 8000, and reload browsers
 ```
 
 ### 2. Build Production
 ```bash
 bun run build
+bun run static       # Generate the component index and documentation site
 ```
+
+### Deploy to GitHub
+
+`bun run deploy` requires a clean working tree on `main`.
+It increments the minor version (`0.7.0` -> `0.8.0`) before building the library and documentation site, commits the version on `main`, and amends or creates the rolling `pages` commit with the new version and source hash.
+It then pushes both branches to `origin` atomically: `main` must fast-forward and `pages` uses an explicit force-with-lease.
+It does not publish to the package registry.
+
+```bash
+bun run deploy --help
+bun run deploy --dry-run  # Build the next version, restore package.json, do not commit or push
+bun run deploy
+```
+
+Build failures restore `package.json` before any source commit is made.
+If a commit or push fails after the source commit, local commits and the Pages worktree remain available for inspection and recovery.
+The dry run leaves preview output in `dist/` and `tmp/fez-pages` but does not create or amend commits.
 
 ### 3. Code Quality
 
@@ -22,7 +40,7 @@ bun run format:check  # Check code formatting
 
 #### Fix Issues
 ```bash
-bun run lint:fix      # Auto-fix linting errors
+bun run lint --fix    # Auto-fix linting errors
 bun run format        # Format all source files
 ```
 
@@ -199,7 +217,7 @@ fez/
 bun run lint
 
 # Auto-fix what's possible
-bun run lint:fix
+bun run lint --fix
 
 # Manually fix remaining issues
 ```

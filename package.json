@@ -52,33 +52,27 @@
   },
   "homepage": "https://github.com/dux/fez#readme",
   "devDependencies": {
-    "concurrently": "^9.1.2",
     "esbuild": "0.23.0",
     "eslint": "^8.57.0",
     "glob-cli": "^1.0.0",
     "happy-dom": "^18.0.1",
-    "jsdom": "^26.1.0",
-    "mime": "^4.0.7"
+    "jsdom": "^26.1.0"
   },
   "scripts": {
     "build": "bun build.js b",
-    "build:pages": "bun bin/build-pages",
-    "server": "bun run lib/server.js",
-    "dev": "bunx concurrently --kill-others \"bun run server\" \"find src pages_src lib | entr -cn sh -c 'bun run index && bun run build && bun run static'\"",
+    "deploy": "bun bin/deploy",
+    "dev": "bun lib/dev.js",
     "lint": "eslint \"src/**/*.js\"",
-    "lint:fix": "eslint \"src/**/*.js\" --fix",
     "format": "prettier --write \"src/**/*.js\"",
     "format:check": "prettier --check \"src/**/*.js\"",
     "test": "bun test test/*.test.js && bun test/browser/run.js",
     "test:browser": "bun test/browser/run.js",
     "prepublishOnly": "bun run build && bun run test",
     "release": "bun publish --access public",
-    "refactor": "bun bin/fez-refactor",
-    "index": "ls pages_src/root/fez/*.fez | xargs -n1 basename | sed 's/\\.fez$//' | sort | sed 's/^/fez\\//' > pages_src/root/fez.txt",
-    "static": "bun bin/fez-static build",
+    "static": "bun lib/site.js",
     "vscode:lint": "node --check vscode/src/extension.js",
-    "vscode:package": "cd vscode && bunx @vscode/vsce package --no-dependencies",
-    "vscode:install": "cd vscode && bunx @vscode/vsce package --allow-missing-repository --no-dependencies && code --install-extension fez-vscode-tools-0.1.0.vsix"
+    "vscode:package": "cd vscode && bunx @vscode/vsce package --allow-missing-repository --no-dependencies --out fez-vscode-tools.vsix",
+    "vscode:install": "bun run vscode:package && code --install-extension vscode/fez-vscode-tools.vsix"
   },
   "dependencies": {
     "glob": "^13.0.0",

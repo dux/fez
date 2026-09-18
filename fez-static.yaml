@@ -1,4 +1,4 @@
-# GitHub Pages serves the `pages` branch at its root; bin/build-pages copies this
+# GitHub Pages serves the `pages` branch at its root; bin/deploy copies this
 # generated site there. tmp/ is ignored, so main only tracks source.
 source_dir: pages_src
 target_dir: tmp/fez-pages
