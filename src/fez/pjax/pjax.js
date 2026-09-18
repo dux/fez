@@ -37,14 +37,21 @@ export default function createPjax() {
         return;
       }
       Pjax._booted = true;
+      Pjax._historyPath = Pjax.path();
 
       setTimeout(() => Pjax.sendGlobalEvent(), 0);
 
       Pjax.onDocumentClick();
 
       window.addEventListener('popstate', () => {
+        const path = Pjax.path();
+        const previousPath = Pjax._historyPath;
+        Pjax._historyPath = path;
+        // Fragment-only history changes leave the current page mounted.
+        if (path === previousPath) {
+          return;
+        }
         window.requestAnimationFrame(() => {
-          const path = Pjax.path();
           const entry = Pjax.historyData[path];
           if (entry) {
             Pjax.console(`from history: ${path}`);
@@ -156,6 +163,7 @@ export default function createPjax() {
 
     static pushState(href) {
       window.history.pushState({}, document.title, href);
+      Pjax._historyPath = Pjax.path();
     }
 
     static push(href) {
@@ -164,6 +172,7 @@ export default function createPjax() {
 
     static replace(href) {
       window.history.replaceState({}, document.title, href);
+      Pjax._historyPath = Pjax.path();
     }
 
     static sendGlobalEvent() {
@@ -487,52 +496,36 @@ export default function createPjax() {
       return null;
     }
 
-    // --- querystring helper ---
+    // --- URL state helpers ---
 
     static qs(key, value, opts = {}) {
-      const parts = location.search
-        .replace(/^\?/, '')
-        .split('&')
-        .map((el) => el.split('=', 2));
+      return Pjax._urlParam('search', key, value, opts);
+    }
+
+    static hash(key, value, opts = {}) {
+      return Pjax._urlParam('hash', key, value, opts);
+    }
+
+    static _urlParam(part, key, value, opts) {
+      const url = new URL(location.href);
+      const params = new URLSearchParams(url[part].slice(1));
 
       if (typeof value === 'undefined') {
-        parts.forEach((el) => {
-          if (el[0] === key) {
-            value = decodeURIComponent(el[1]);
-          }
-        });
-        return value;
+        return params.get(key) ?? undefined;
       }
-
-      const qs = {};
-      parts.forEach((el) => {
-        if (el[0]) {
-          qs[el[0]] = el[1];
-        }
-      });
 
       if (value === null || value === false) {
-        delete qs[key];
+        params.delete(key);
       } else {
-        qs[key] = encodeURIComponent(value);
+        params.set(key, value);
       }
 
-      const remaining = Object.keys(qs);
-      let href;
-      if (remaining.length) {
-        const data = remaining.map((k) => `${k}=${qs[k]}`).join('&');
-        href = location.pathname + '?' + data;
-      } else {
-        href = location.pathname;
-      }
-
-      if (opts.push) {
-        return Pjax.push(href);
-      }
+      url[part] = params.toString();
+      const href = url.pathname + url.search + url.hash;
       if (opts.href) {
         return href;
       }
-      return Pjax.load(href);
+      return opts.replace ? Pjax.replace(href) : Pjax.push(href);
     }
 
     // --- history management ---
@@ -906,12 +899,11 @@ export default function createPjax() {
       this.history_added = true;
 
       if (this.opts.replace || Pjax._lastHrefCheck === href) {
-        window.history.replaceState({}, document.title, href);
-        Pjax._lastHrefCheck = href;
+        Pjax.replace(href);
       } else {
-        window.history.pushState({}, document.title, href);
-        Pjax._lastHrefCheck = href;
+        Pjax.push(href);
       }
+      Pjax._lastHrefCheck = href;
     }
   }
 

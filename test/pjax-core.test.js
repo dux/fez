@@ -1,6 +1,6 @@
 // Ported from dux-pjax test/pjax.test.coffee - "Pjax module" describe block.
 
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
 import { setupPjaxEnv, teardownPjaxEnv, resetDOM } from './pjax-env.js';
 import createPjax from '../src/fez/pjax/pjax.js';
 import Fez from '../src/fez/root.js';
@@ -442,49 +442,90 @@ describe('Pjax module', () => {
     expect(script.id).toMatch(/^app-sc-/);
   });
 
-  // --- qs (querystring helper) ---
+  for (const method of ['qs', 'hash']) {
+    describe(`${method} URL state`, () => {
+      beforeEach(() => {
+        window.history.replaceState({}, '', '/catalog?keep=query#keep=hash');
+        Pjax.load = () => {
+          throw new Error('URL state must not fetch');
+        };
+      });
 
-  test('qs setter with href option returns URL string without navigating', () => {
-    const result = Pjax.qs('color', 'blue', { href: true });
-    expect(result).toContain('color=blue');
-    expect(result).toContain(location.pathname);
-  });
+      afterEach(() => {
+        window.history.replaceState({}, '', '/');
+      });
 
-  test('qs setter triggers Pjax.load by default', () => {
-    let loadedHref = null;
-    const originalLoad = Pjax.load;
-    Pjax.load = (href) => (loadedHref = href);
+      test('reads without changing the URL or history', () => {
+        const length = window.history.length;
+        expect(Pjax[method]('keep')).toBe(method === 'qs' ? 'query' : 'hash');
+        expect(Pjax[method]('missing')).toBeUndefined();
+        expect(location.href).toBe('http://localhost/catalog?keep=query#keep=hash');
+        expect(window.history.length).toBe(length);
+      });
 
-    try {
-      Pjax.qs('page', '2');
-      expect(loadedHref).toContain('page=2');
-    } finally {
-      Pjax.load = originalLoad;
-    }
-  });
+      test('pushes by default and preserves the other URL section and parameters', () => {
+        const length = window.history.length;
+        Pjax[method]('tab', 'settings');
+        expect(location.href).toBe(
+          method === 'qs'
+            ? 'http://localhost/catalog?keep=query&tab=settings#keep=hash'
+            : 'http://localhost/catalog?keep=query#keep=hash&tab=settings',
+        );
+        expect(window.history.length).toBe(length + 1);
+        expect(Pjax[method]('tab')).toBe('settings');
+      });
 
-  test('qs setter with push option calls Pjax.push', () => {
-    let pushedHref = null;
-    const originalPush = Pjax.push;
-    Pjax.push = (href) => (pushedHref = href);
+      test('replace updates the URL without adding history', () => {
+        const length = window.history.length;
+        Pjax[method]('keep', 'updated', { replace: true });
+        expect(Pjax[method]('keep')).toBe('updated');
+        expect(window.history.length).toBe(length);
+      });
 
-    try {
-      Pjax.qs('tab', 'info', { push: true });
-      expect(pushedHref).toContain('tab=info');
-    } finally {
-      Pjax.push = originalPush;
-    }
-  });
+      test('href returns a URL without writing, even with replace', () => {
+        const length = window.history.length;
+        for (const opts of [{ href: true }, { href: true, replace: true }]) {
+          expect(Pjax[method]('keep', 'preview', opts)).toBe(
+            method === 'qs'
+              ? '/catalog?keep=preview#keep=hash'
+              : '/catalog?keep=query#keep=preview',
+          );
+        }
+        expect(location.href).toBe('http://localhost/catalog?keep=query#keep=hash');
+        expect(window.history.length).toBe(length);
+      });
 
-  test('qs removes param when value is null', () => {
-    const result = Pjax.qs('remove_me', null, { href: true });
-    expect(result).not.toContain('remove_me');
-  });
+      test('round-trips reserved characters, Unicode, empty strings and zero', () => {
+        for (const value of ['a b+c&d=e#f?%/\u017e', '', 0]) {
+          Pjax[method]('a &+=#', value);
+          expect(Pjax[method]('a &+=#')).toBe(String(value));
+        }
+      });
 
-  test('qs removes param when value is false', () => {
-    const result = Pjax.qs('gone', false, { href: true });
-    expect(result).not.toContain('gone');
-  });
+      test('decodes encoded keys, plus spaces, and values containing equals', () => {
+        window.history.replaceState({}, '', '/?a+b=c+d=e#a+b=c+d=e');
+        expect(Pjax[method]('a b')).toBe('c d=e');
+      });
+
+      test('updating a repeated key keeps one value and preserves unrelated duplicates', () => {
+        window.history.replaceState({}, '', '/?k=1&k=2&x=a&x=b#k=1&k=2&x=a&x=b');
+        Pjax[method]('k', '3');
+        expect(location[method === 'qs' ? 'search' : 'hash'].slice(1)).toBe('k=3&x=a&x=b');
+      });
+
+      for (const value of [null, false]) {
+        test(`removes an existing key with ${value}, including the last delimiter`, () => {
+          Pjax[method]('keep', value);
+          expect(Pjax[method]('keep')).toBeUndefined();
+          expect(location.href).toBe(
+            method === 'qs'
+              ? 'http://localhost/catalog#keep=hash'
+              : 'http://localhost/catalog?keep=query',
+          );
+        });
+      }
+    });
+  }
 
   // --- applyLoadedData ---
 

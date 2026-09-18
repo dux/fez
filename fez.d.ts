@@ -706,6 +706,14 @@ interface PjaxLoadOptions {
   done?: () => void;
 }
 
+/** Shared options for query-string and hash state setters. Neither setter fetches a page. */
+interface PjaxUrlStateOptions {
+  /** Replace the current history entry instead of adding one. */
+  replace?: boolean;
+  /** Return the URL without changing it; takes precedence over replace. */
+  href?: boolean;
+}
+
 interface PjaxConfig {
   /** Suppress Pjax.console logging (defaults to true unless location.port >= 1000) */
   is_silent: boolean;
@@ -804,8 +812,16 @@ interface PjaxStatic {
 
   /** Read a query-string param */
   qs(key: string): string | undefined;
-  /** Set (or remove with null/false) a param, then navigate - or push / return the href */
-  qs(key: string, value: string | number | null | false, opts?: { push?: boolean; href?: boolean }): string | false | void;
+  /** Return the updated URL without changing history. */
+  qs(key: string, value: string | number | null | false, opts: PjaxUrlStateOptions & { href: true }): string;
+  /** Set (or remove with null/false) a query param, pushing history by default without fetching. */
+  qs(key: string, value: string | number | null | false, opts?: PjaxUrlStateOptions): string | void;
+  /** Read a named hash param (#key=value&other=value). */
+  hash(key: string): string | undefined;
+  /** Return the updated URL without changing history. */
+  hash(key: string, value: string | number | null | false, opts: PjaxUrlStateOptions & { href: true }): string;
+  /** Set (or remove with null/false) a hash param, pushing history by default without fetching. */
+  hash(key: string, value: string | number | null | false, opts?: PjaxUrlStateOptions): string | void;
 }
 
 // =============================================================================

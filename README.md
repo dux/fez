@@ -1695,9 +1695,37 @@ Pjax.load('/users')          // navigate, swap the pjax container, push history
 Pjax.refresh()               // re-fetch the current page in place (no scroll)
 Pjax.refresh('#sidebar')     // re-fetch and swap only #sidebar (no history entry)
 Pjax.reload()                // re-fetch bypassing cache
-Pjax.qs('page', '2')         // update a query param and navigate
+Pjax.qs('page', '2')         // update a query param and push history, without fetching
+Pjax.hash('tab', 'settings') // update a hash param and push history, without fetching
 Pjax.path()                  // current pathname + search
 ```
+
+### Query-string and hash state
+
+`Pjax.qs()` stores named values in `?key=value`, and `Pjax.hash()` stores them in `#key=value`.
+Both use the same options and preserve the pathname, the other URL section, and unrelated parameters.
+Values are URL-encoded when written and decoded to strings when read; missing keys return `undefined`.
+The hash helper treats the fragment as parameters, not as an element ID or a hash-router path.
+
+```js
+Pjax.qs('page', 2)                            // push a history entry, without fetching
+Pjax.hash('tab', 'settings')                  // push a history entry, without fetching
+Pjax.qs('page')                               // '2'
+Pjax.hash('tab')                              // 'settings'
+Pjax.qs('page', 3, { replace: true })          // replace the current history entry
+Pjax.hash('tab', 'users', { replace: true })   // same option for hash state
+Pjax.qs('page', 4, { href: true })             // return the URL without changing it
+Pjax.hash('tab', 'users', { href: true })      // same option for hash state
+Pjax.qs('page', null)                         // remove a parameter (false also removes)
+Pjax.hash('tab', null)                        // remove a hash parameter
+```
+
+`href: true` takes precedence over `replace: true` and never changes history.
+Setters do not fetch, scroll, fire `popstate` or `hashchange`, or automatically bind to component state.
+Update component state after a setter and use `this.on('popstate', ...)` to read values again on Back/Forward; use `this.on('hashchange', ...)` for native fragment edits too.
+Hash-only Back/Forward leaves the page mounted; path or query changes still use normal Pjax page restoration/navigation when Pjax is active.
+To change a query parameter and navigate, call `Pjax.load(Pjax.qs('page', 2, { href: true }))`.
+The previous `qs` default of navigating and its `{ push: true }` option are replaced by this shared interface.
 
 ### Link and form attributes
 
