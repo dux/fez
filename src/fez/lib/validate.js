@@ -45,6 +45,53 @@ function skipString(script, i, quote) {
   return script.length;
 }
 
+// Keywords after which a `/` opens a regex literal instead of dividing.
+const REGEX_KEYWORDS = new Set([
+  'return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void', 'throw', 'case', 'do', 'else', 'yield', 'await',
+]);
+
+// A `/` divides when it follows a value (identifier, number, closing bracket,
+// string); anywhere else it opens a regex literal.
+function startsRegex(script, i) {
+  let j = i - 1;
+  while (j >= 0 && /\s/.test(script[j])) {
+    j--;
+  }
+  if (j < 0) {
+    return true;
+  }
+  if (/[\w$]/.test(script[j])) {
+    let start = j;
+    while (start > 0 && /[\w$]/.test(script[start - 1])) {
+      start--;
+    }
+    return REGEX_KEYWORDS.has(script.slice(start, j + 1));
+  }
+  return !')]}"\'`'.includes(script[j]);
+}
+
+// Skip a regex literal, returning the index of its closing `/`. Quotes inside
+// (`/["']/`) must not open a string. A regex never spans lines, so hitting a
+// newline means this was not one - stay put.
+function skipRegex(script, i) {
+  let inClass = false;
+  for (let j = i + 1; j < script.length; j++) {
+    const c = script[j];
+    if (c === '\\') {
+      j++;
+    } else if (c === '\n') {
+      return i;
+    } else if (c === '[') {
+      inClass = true;
+    } else if (c === ']') {
+      inClass = false;
+    } else if (c === '/' && !inClass) {
+      return j;
+    }
+  }
+  return i;
+}
+
 // Skip past a `${...}` expression inside a template literal, returning the
 // index of the matching `}`. Recurses into nested strings, templates and
 // comments so braces inside them never desynchronise the depth count.
@@ -57,6 +104,8 @@ function skipTemplateExpression(script, i) {
       i = skipLineComment(script, i);
     } else if (c === '/' && next === '*') {
       i = skipBlockComment(script, i);
+    } else if (c === '/' && startsRegex(script, i)) {
+      i = skipRegex(script, i);
     } else if (c === '"' || c === "'") {
       i = skipString(script, i, c);
     } else if (c === '`') {
@@ -92,7 +141,7 @@ function skipTemplate(script, i) {
 }
 
 // Find the first anonymous class (`class {` / `class{`) in a component script,
-// skipping string literals, template literals and line/block comments so prose
+// skipping string, template and regex literals and line/block comments so prose
 // like `const s = "class {"` never splits a component. Named classes
 // (`class Foo {`) do not match - they are not the component delimiter.
 export function findAnonymousClass(script) {
@@ -103,6 +152,8 @@ export function findAnonymousClass(script) {
       i = skipLineComment(script, i);
     } else if (c === '/' && next === '*') {
       i = skipBlockComment(script, i);
+    } else if (c === '/' && startsRegex(script, i)) {
+      i = skipRegex(script, i);
     } else if (c === '"' || c === "'") {
       i = skipString(script, i, c);
     } else if (c === '`') {
