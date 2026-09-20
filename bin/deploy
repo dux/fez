@@ -39,6 +39,11 @@ const ref = (name) => {
   }
 };
 
+function pagesUrl(remote) {
+  const match = /github\.com[:/]([^/]+)\/([^/]+?)(?:\.git)?$/.exec(remote);
+  return match ? `https://${match[1]}.github.io/${match[2]}/` : null;
+}
+
 async function deploy(args) {
   if (args.includes('--help') || args.includes('-h')) {
     process.stdout.write(USAGE);
@@ -70,9 +75,10 @@ async function deploy(args) {
   const siteDir = path.join(root, 'tmp/fez-pages');
   const worktree = path.join(root, 'tmp/pages-wt');
   let remotePages = '';
+  let origin = '';
 
   if (!dryRun) {
-    git('remote', 'get-url', 'origin');
+    origin = git('remote', 'get-url', 'origin');
     git('fetch', '--prune', 'origin');
     const remoteMain = ref('refs/remotes/origin/main');
     if (remoteMain) {
@@ -167,6 +173,10 @@ async function deploy(args) {
       'refs/heads/pages:refs/heads/pages',
     );
     process.stdout.write('deploy: pushed main and pages to origin.\n');
+    const pages = pagesUrl(origin);
+    if (pages) {
+      process.stdout.write(`deploy: ${pages}\n`);
+    }
   } finally {
     if (!committed && fs.readFileSync(manifestPath, 'utf8') === nextManifest) {
       fs.writeFileSync(manifestPath, originalManifest);
