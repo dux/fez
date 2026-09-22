@@ -354,10 +354,6 @@
       this.paint(props)
     }
 
-    onPropsChange() {
-      this.paint(this.props)
-    }
-
     onRefresh(props) {
       this.paint(props)
     }

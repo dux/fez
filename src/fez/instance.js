@@ -49,7 +49,8 @@ export const WINDOW_EVENTS = new Set([
  * Wrapper attribute that mirrors this.props for the DOM inspector. The source
  * tag is replaced by the wrapper on connect (connect.js), so without it the
  * tree shows only <div class="fez fez-name"> - nothing about what the
- * component was created with. Read-only: the attribute observer ignores it.
+ * component was created with. Write-only orientation: root attributes never
+ * feed this.props, and the morph never syncs them.
  */
 export const PROPS_ATTR = 'fez-props';
 const PROPS_ATTR_MAX_STRING = 60;
@@ -585,7 +586,6 @@ export default class FezBase {
   onDestroy() {}
   onStateChange() {}
   onGlobalStateChange() {}
-  onPropsChange() {}
   onRefresh() {}
 
   /**
@@ -745,7 +745,8 @@ export default class FezBase {
 
         // Hash-skip: identical template output means nothing to morph, unless
         // a :attr slot now holds a different object - the HTML only carries
-        // the slot key, so children need the morph to receive new props.
+        // the slot key, so preserved children need the morph to receive the
+        // new props and re-render.
         const newHash = Fez.fnv1(parsedHtml);
         if (newHash === this._fezHash && !this.fezGlobals.valuesChanged) {
           this.fezGlobals.commitRender();
@@ -1284,6 +1285,28 @@ export default class FezBase {
       this.root.setAttribute(name, value);
       return value;
     }
+  }
+
+  /**
+   * Inbound channel for outside code: Fez(el).setAttribute('count', 7).
+   * Writes the wrapper attribute and feeds the value through the PROPS schema
+   * into this.props; an entry flagged `state` also updates the linked state
+   * key, so the component re-renders as it would for its own state write.
+   * null removes the attribute and the prop falls back to its default.
+   */
+  setAttribute(name, value) {
+    if (value === null || value === undefined) {
+      this.root.removeAttribute(name);
+    } else {
+      this.root.setAttribute(name, value);
+    }
+    const cast = this.class.castProp(name, value ?? undefined, this.fezName);
+    this.props[name] = cast;
+    const spec = this.class.propsSchema?.()?.[name];
+    if (spec?.state) {
+      this.state[typeof spec.state === 'string' ? spec.state : name] = FezBase.cloneShallow(cast);
+    }
+    return cast;
   }
 
   childNodes(func) {

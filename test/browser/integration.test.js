@@ -476,14 +476,10 @@ test(':attr props - parent re-render with identical HTML still delivers new obje
   try {
     await page.evaluate(() => {
       window.testResults.childInits = 0;
-      window.testResults.childChanges = [];
 
       window.Fez('slot-child', class {
         init(props) {
           window.testResults.childInits++;
-        }
-        onPropsChange(name, value) {
-          window.testResults.childChanges.push([name, value.name]);
         }
         HTML = '<span class="child-name">{props.user.name}</span>';
       });
@@ -501,7 +497,7 @@ test(':attr props - parent re-render with identical HTML still delivers new obje
       { timeout: 3000 },
     );
 
-    // Same shape, new object: must reach the child through onPropsChange
+    // Same shape, new object: must reach the child through the props refresh
     await page.evaluate(() => {
       document.querySelector('.fez-slot-parent').fez.state.users = [{ name: 'Bob' }];
     });
@@ -908,15 +904,13 @@ test('transitions - fez:animate="flip" glides kept items to their new position o
   }
 });
 
-test('fez-props - wrapper mirrors props, follows attribute and parent changes, never leaks into props', async () => {
+test('fez-props - wrapper mirrors props and follows parent changes, root attributes never feed props', async () => {
   const page = await createTestPage('<test-parent></test-parent>');
 
   try {
     await page.evaluate(() => {
-      window.testResults.changes = [];
       window.Fez('test-child', class {
         PROPS = { count: { type: Number, default: 0 } };
-        onPropsChange(name, value) { window.testResults.changes.push(name); }
         HTML = '<span class="child">{props.count}</span>';
       });
       window.Fez('test-parent', class {
@@ -940,17 +934,22 @@ test('fez-props - wrapper mirrors props, follows attribute and parent changes, n
     expect(await page.evaluate(() => document.querySelector('.fez-test-child').getAttribute('fez-props')))
       .toBe('count: 2; label: Hits; user: {}; on_pick: ()=>{}');
 
-    // external attribute change -> attrObserver -> props -> attribute follows
-    await page.evaluate(() => { document.querySelector('.fez-test-child').setAttribute('count', '7'); });
-    await page.waitForFunction(() => document.querySelector('.child')?.textContent === '7', { timeout: 2000 });
-
-    const after = await page.evaluate(() => {
+    // an attribute written on the root is inert: props, render and mirror stay put
+    const after = await page.evaluate(async () => {
       const node = document.querySelector('.fez-test-child');
-      return { attr: node.getAttribute('fez-props'), keys: Object.keys(node.fez.props), changes: window.testResults.changes };
+      node.setAttribute('count', '7');
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      return {
+        attr: node.getAttribute('fez-props'),
+        count: node.fez.props.count,
+        text: node.querySelector('.child').textContent,
+        keys: Object.keys(node.fez.props),
+      };
     });
-    expect(after.attr).toBe('count: 7; label: Hits; user: {}; on_pick: ()=>{}');
+    expect(after.count).toBe(2);
+    expect(after.text).toBe('2');
+    expect(after.attr).toBe('count: 2; label: Hits; user: {}; on_pick: ()=>{}');
     expect(after.keys).not.toContain('fez-props');
-    expect(after.changes).not.toContain('fez-props');
   } finally {
     await closePage(page);
   }

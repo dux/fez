@@ -62,7 +62,7 @@
           "name": "variable.other.constant.fez"
         },
         {
-          "match": "\\b(init|onMount|onDestroy|beforeRender|onWindowResize|onWindowScroll|onPropsChange)\\b",
+          "match": "\\b(init|onMount|onDestroy|beforeRender|onWindowResize|onWindowScroll|onRefresh)\\b",
           "name": "entity.name.function.lifecycle.fez"
         }
       ]

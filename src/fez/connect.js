@@ -14,32 +14,7 @@
 
 import createTemplate from './lib/template.js';
 import closeCustomTags from './lib/close-custom-tags.js';
-import FezBase, { PROPS_ATTR } from './instance.js';
-
-// Attribute observer for reactive props. Built lazily so importing the module
-// under Node/SSR (no MutationObserver) does not throw.
-const attrObserver =
-  typeof MutationObserver === 'undefined'
-    ? null
-    : new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-          if (mutation.type === 'attributes') {
-            const fez = mutation.target.fez;
-            if (fez) {
-              const name = mutation.attributeName;
-              // the inspector mirror of this.props - written by fez, never a prop
-              if (name === PROPS_ATTR) {
-                continue;
-              }
-              const raw = mutation.target.getAttribute(name);
-              // run through PROPS schema so onPropsChange sees the same typed value as init()
-              const value = fez.class?.castProp ? fez.class.castProp(name, raw, fez.fezName) : raw;
-              fez.props[name] = value;
-              fez.onPropsChange(name, value);
-            }
-          }
-        }
-      });
+import FezBase from './instance.js';
 
 // =============================================================================
 // MAIN CONNECT FUNCTION
@@ -321,12 +296,5 @@ function connectNode(name, node) {
         fez.onSubmit(fez.formData());
       };
     }
-  }
-
-  // Attribute writes on the root feed this.props (see attrObserver), with or
-  // without an onPropsChange hook; the hook also sees every initial prop once.
-  attrObserver?.observe(newNode, { attributes: true });
-  for (const [key, value] of Object.entries(fez.props)) {
-    fez.onPropsChange(key, value);
   }
 }

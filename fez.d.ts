@@ -166,9 +166,6 @@ declare abstract class FezBase {
   /** Execute after every render */
   afterRender?(): void;
 
-  /** Monitor new or changed node attributes (value is coerced when declared in PROPS) */
-  onPropsChange?(attrName: string, attrValue: any): void;
-
   /** Called when local component state changes */
   onStateChange?(key: string, value: any, oldValue: any): void;
 
@@ -234,6 +231,9 @@ declare abstract class FezBase {
   /** Get or set root element attribute */
   attr(name: string): string | null;
   attr(name: string, value: string): void;
+
+  /** Set a root attribute through the PROPS schema into this.props (and a `state`-linked key); null removes it */
+  setAttribute(name: string, value: any): any;
 
   /** Get or set node value (input/textarea/select or innerHTML) */
   val(selector: string | HTMLElement): any;

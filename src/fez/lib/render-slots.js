@@ -15,8 +15,8 @@
 //              (connect.js) may read them after the render has committed.
 //              `valuesChanged` tells fezRender whether any slot holds a
 //              different object than the previous render did - identical HTML
-//              with changed props must still morph so children get
-//              onPropsChange.
+//              with changed slot values must still morph so preserved children
+//              receive the new props and re-render.
 // * handlers - arrow handlers in loops that close over loop items. The DOM
 //              calls them later, so a slot survives as long as the next render
 //              claims the same key; stale keys are dropped in commitRender.

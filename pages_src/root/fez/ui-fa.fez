@@ -55,16 +55,6 @@
       }
     }
 
-    onPropsChange(name, value) {
-      if (name == 'color') {
-        this.setColor(value)
-      }
-
-      if (name == 'size') {
-        this.setSize(value)
-      }
-    }
-
     setIcon(name) {
       // Remove existing FA classes
       this.root.className = this.root.className.replace(/\bfa[a-z]?\s+fa-[\w-]+/g, '')

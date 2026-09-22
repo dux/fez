@@ -385,7 +385,7 @@ Elements that don't match by key fall through to **scored soft matching** - a gr
 When the differ pairs a new placeholder with a live fez component, identity decides what happens:
 
 - **Explicit key** (`fez-key`, `key`, or `id`) - the instance is preserved even when attributes or content changed.
-  Props are re-read from the new placeholder, `onPropsChange(name, value)` fires for each changed prop, the component re-renders, and `onRefresh(props)` fires.
+  Props are re-read from the new placeholder, the component re-renders when any of them changed, and `onRefresh(props)` fires.
 - **No key** - identity is the source signature: an FNV-1 hash of the component's original source (`outerHTML` - tag, attributes and slot content), captured at mount.
   Byte-identical source means the instance is preserved untouched (only `onRefresh` fires).
   If anything differs, the old instance is destroyed and a fresh one is created through `init()`.
@@ -415,7 +415,7 @@ When the parent does re-render and the morph runs, child fez component nodes are
 A child component only re-renders when:
 
 - Its own `this.state` changes
-- New props are passed to an explicitly keyed component, triggering `onPropsChange(name, value)`
+- New props are passed to an explicitly keyed component
 
 An unkeyed child whose source (attributes or content) changed is not morphed - it is destroyed and recreated through a fresh `init()`, per the identity rules above.
 
@@ -850,7 +850,7 @@ This example showcases:
 - **CSS Animation Preservation** - Class syncing uses `classList.add/remove`, not `setAttribute`, so transitions and animations survive re-renders
 - **Active Input Protection** - `value` and `checked` are not synced on the focused input, preventing disruption during typing
 - **Built-in Fetch with Caching** - `Fez.fetch()` includes automatic response caching and JSON/FormData handling
-- **Rich Lifecycle Hooks** - `init`, `onMount`, `beforeRender`, `afterRender`, `onDestroy`, `onPropsChange`, `onStateChange`, `onGlobalStateChange`
+- **Rich Lifecycle Hooks** - `init`, `onMount`, `beforeRender`, `afterRender`, `onDestroy`, `onRefresh`, `onStateChange`, `onGlobalStateChange`
 - **Development Mode** - Enable detailed logging with `Fez.DEV = true`
 
 ### Why It's Great
@@ -909,11 +909,6 @@ Fez('foo-bar', class {
   // execute before or after every render
   beforeRender() { ... }
   afterRender() { ... }
-
-  // if you want to monitor new or changed node attributes
-  // monitors all original node attributes
-  // <ui-icon name="home" color="red" />
-  onPropsChange(attrName, attrValue) { ... }
 
   // called when local component state changes
   onStateChange(key, value, oldValue) { ... }
@@ -1491,7 +1486,7 @@ Every instance has two places to keep data, and one rule for when a write re-ren
 | store        | who writes it           | on change                                                  |
 |--------------|-------------------------|------------------------------------------------------------|
 | `this.state` | the component           | re-render, but only if the last render read that key       |
-| `this.props` | the parent / HTML attrs | re-render, `onPropsChange`; read it, do not copy it        |
+| `this.props` | the parent / HTML attrs | re-render; read it, do not copy it                         |
 
 Everything the instance owns goes in `this.state`: rendered values, `fez:this` refs, library instances, handlers, timers, counters.
 While the template renders, fez records every top-level `state` key it reads.
@@ -1538,7 +1533,7 @@ The same scope is yours as `this.noChangeStateTrigger(() => { ... })` for a batc
 
 ## Typed props (PROPS)
 
-HTML attributes are strings. Declare a `PROPS` schema on the class and Fez validates and coerces them before `init(props)` runs, so `this.props`, templates (`{props.count}`), `onPropsChange` and `onRefresh` all see typed values, defaults included.
+HTML attributes are strings. Declare a `PROPS` schema on the class and Fez validates and coerces them before `init(props)` runs, so `this.props`, templates (`{props.count}`) and `onRefresh` all see typed values, defaults included.
 Props without a schema entry pass through untouched; components without `PROPS` behave exactly as before.
 
 ```html
@@ -1601,7 +1596,8 @@ Seeding works in `<slot unwrap />` components too; they render once, so only key
 
 Errors never throw. They are reported through `Fez.onError('props', '<ui-pager> prop "page": expected Number, got "abc"')` (console by default, see [Custom Error Handler](#custom-error-handler)), the offending value is dropped and the `default` applies if there is one.
 
-Attribute changes observed by `onPropsChange(name, value)` and prop refreshes of keyed/preserved components run through the same schema, so `value` is already coerced there too.
+Prop refreshes of keyed/preserved components run through the same schema, so the new values are already coerced there too.
+So does `Fez(el).setAttribute(name, value)`, the inbound channel for outside code: it writes the wrapper attribute, puts the cast value in `this.props`, and updates the linked state key when the entry is flagged `state`. A raw DOM `el.setAttribute()` on a mounted component changes nothing.
 
 Note: an `Array`/`Object` given as a JSON **string** is re-parsed on every parent render and therefore counts as changed (a fresh object each time), same as an inline `:items="[...]"` literal. Pass a stable reference (`:items="state.items"`) if you rely on the "re-render only when props change" optimization.
 
@@ -1615,7 +1611,7 @@ On connect the source tag is replaced by the component wrapper, so the inspector
 <div class="fez fez-ui-pager" fez-props="page: 3; open: true; size: md; items: []; user: {}; on_pick: ()=>{}">
 ```
 
-Primitives print their value (long strings are truncated); objects, arrays and functions are only typed as `{}`, `[]` and `()=>{}`. The attribute follows every props change (`this.props.x = ...`, attribute changes, keyed refresh from a parent render) and is ignored by `onPropsChange`. It is orientation for the inspector, not an API - read `node.fez.props` for the real values.
+Primitives print their value (long strings are truncated); objects, arrays and functions are only typed as `{}`, `[]` and `()=>{}`. The attribute follows every props change (`this.props.x = ...`, keyed refresh from a parent render). It is orientation for the inspector, not an API - read `node.fez.props` for the real values, and note that writing an attribute on the wrapper never feeds props.
 
 ### how to call custom FEZ node from the outside, anywhere in HTML
 

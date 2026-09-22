@@ -152,13 +152,13 @@
       }
     }
 
-    init(props) {
+    init() {
       this.state.random_color = ''
       this.state.gradient_id = `star-${Math.random().toString(36).substr(2, 9)}`
-      this.applyProps(props)
     }
 
-    onPropsChange() {
+    // derived from props on every render, so a keyed parent refresh lands here
+    beforeRender() {
       this.applyProps(this.props)
     }
   }

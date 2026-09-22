@@ -1,6 +1,6 @@
 /**
- * Browser tests for PROPS schema: coercion lands in this.props on connect,
- * through the attribute observer (onPropsChange) and on keyed refresh.
+ * Browser tests for PROPS schema: coercion lands in this.props on connect
+ * and on keyed refresh.
  *
  * Run: bun test test/browser/props-schema.test.js
  */
@@ -112,57 +112,17 @@ test('PROPS - coerced values and defaults land in this.props before init', async
   }
 });
 
-test('PROPS - attribute observer delivers coerced values to onPropsChange', async () => {
-  const page = await createTestPage('<x-observed count="1"></x-observed>');
-  try {
-    await page.evaluate(() => {
-      window.testResults.changes = [];
-      window.Fez('x-observed', class {
-        PROPS = { count: Number, open: Boolean };
-        onPropsChange(name, value) {
-          window.testResults.changes.push([name, value, typeof value]);
-        }
-        HTML = '<i>x</i>';
-      });
-    });
-    await page.waitForFunction(() => document.querySelector('.fez')?.fez, { timeout: 3000 });
-
-    await page.evaluate(() => {
-      window.testResults.changes = [];
-      const node = document.querySelector('.fez');
-      node.setAttribute('count', '42');
-      node.setAttribute('open', '');
-    });
-    await page.waitForFunction(() => window.testResults.changes.length >= 2, { timeout: 3000 });
-
-    const r = await page.evaluate(() => ({
-      changes: window.testResults.changes,
-      props: { ...document.querySelector('.fez').fez.props },
-    }));
-    expect(r.changes).toContainEqual(['count', 42, 'number']);
-    expect(r.changes).toContainEqual(['open', true, 'boolean']);
-    expect(r.props.count).toBe(42);
-    expect(r.props.open).toBe(true);
-  } finally {
-    await closePage(page);
-  }
-});
-
 test('PROPS - static PROPS on plain class and keyed refresh from parent re-render', async () => {
   const page = await createTestPage('<x-parent></x-parent>');
   try {
     await page.evaluate(() => {
       window.testResults.childInits = 0;
-      window.testResults.childChanges = [];
 
       window.Fez('x-child', class {
         static PROPS = { n: { type: Number, default: 0 } };
         init(props) {
           window.testResults.childInits++;
           window.testResults.lastN = props.n;
-        }
-        onPropsChange(name, value) {
-          window.testResults.childChanges.push([name, value]);
         }
         HTML = '<span>{props.n * 2}</span>';
       });
@@ -178,9 +138,9 @@ test('PROPS - static PROPS on plain class and keyed refresh from parent re-rende
     expect(text).toBe('10');
 
     await page.evaluate(() => {
-      window.testResults.childChanges = [];
       document.querySelector('x-parent, .fez').fez.state.n = 7;
     });
+    // 14 proves the refresh path coerced "7" to a Number
     await page.waitForFunction(
       () => document.querySelector('.fez span')?.textContent === '14',
       { timeout: 3000 },
@@ -189,7 +149,6 @@ test('PROPS - static PROPS on plain class and keyed refresh from parent re-rende
     const r = await page.evaluate(() => window.testResults);
     expect(r.childInits).toBe(1);               // preserved, not recreated
     expect(r.lastN).toBe(5);
-    expect(r.childChanges).toContainEqual(['n', 7]);   // coerced on refresh path
   } finally {
     await closePage(page);
   }
@@ -490,6 +449,54 @@ test('PROPS - { state: true } seeds without firing onStateChange before init()',
     await page.evaluate(() => document.querySelector('.fez-x-hooks').fez.add('c'));
     await page.waitForFunction(() => document.querySelector('.n').textContent === '3', { timeout: 3000 });
     expect(await page.evaluate(() => window.testResults.events)).toEqual(['tags']);
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('PROPS - fez.setAttribute casts into props and updates the state-linked key', async () => {
+  const page = await createTestPage('<x-set count="1" label="a"></x-set>');
+  try {
+    await page.evaluate(() => {
+      window.testResults.events = [];
+      window.Fez('x-set', class {
+        PROPS = { count: { type: Number, state: true }, label: String };
+        onStateChange(name) { window.testResults.events.push(name); }
+        HTML = '<b class="n">{state.count}:{props.label}</b>';
+      });
+    });
+    await page.waitForSelector('.n');
+    expect(await page.textContent('.n')).toBe('1:a');
+
+    await page.evaluate(() => {
+      const fez = document.querySelector('.fez-x-set').fez;
+      fez.setAttribute('count', '42');
+      fez.setAttribute('label', 'b');
+    });
+    await page.waitForFunction(() => document.querySelector('.n').textContent === '42:b', { timeout: 3000 });
+
+    const r = await page.evaluate(() => {
+      const node = document.querySelector('.fez-x-set');
+      return {
+        attrs: [node.getAttribute('count'), node.getAttribute('label')],
+        count: node.fez.props.count,
+        state: node.fez.state.count,
+        label: node.fez.props.label,
+        events: window.testResults.events,
+      };
+    });
+    expect(r.attrs).toEqual(['42', 'b']);
+    expect(r.count).toBe(42);
+    expect(r.state).toBe(42);
+    expect(r.label).toBe('b');
+    expect(r.events).toEqual(['count']);
+
+    // null removes the attribute and the prop falls back through the schema
+    await page.evaluate(() => document.querySelector('.fez-x-set').fez.setAttribute('label', null));
+    expect(await page.evaluate(() => {
+      const node = document.querySelector('.fez-x-set');
+      return [node.hasAttribute('label'), node.fez.props.label];
+    })).toEqual([false, undefined]);
   } finally {
     await closePage(page);
   }

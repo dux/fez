@@ -370,7 +370,6 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     old.setAttribute("fez-key", "nav");
     old._marker = "OLD";
 
-    const changes = [];
     old.fez = {
       UID: 9320,
       _destroyed: false,
@@ -382,7 +381,6 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
           return props;
         },
       },
-      onPropsChange: (name, value) => changes.push([name, value]),
       onRefresh: () => {},
       refresh: () => {
         old._refreshCalled = true;
@@ -402,7 +400,6 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     expect(target.firstElementChild).toBe(old);
     expect(old.fez.props.href).toBe("/b");
     expect(old._refreshCalled).toBe(true);
-    expect(changes).toContainEqual(["href", "/b"]);
     target.remove();
   });
 });
@@ -438,7 +435,6 @@ describe("Fez.morphdom - preserved component props", () => {
     old.classList.add("fez", "fez-test-preserved-child");
     old.setAttribute("key", "0");
 
-    const changes = [];
     old.fez = {
       UID: 9200,
       _destroyed: false,
@@ -450,7 +446,6 @@ describe("Fez.morphdom - preserved component props", () => {
           return props;
         },
       },
-      onPropsChange: (name, value) => changes.push([name, value]),
       onRefresh: (props) => {
         old._refreshProps = props;
       },
@@ -470,8 +465,6 @@ describe("Fez.morphdom - preserved component props", () => {
     expect(old.fez.props.removed).toBeUndefined();
     expect(old._refreshCalled).toBe(true);
     expect(old._refreshProps.value).toBe("b");
-    expect(changes).toContainEqual(["value", "b"]);
-    expect(changes).toContainEqual(["removed", null]);
     target.remove();
   });
 });

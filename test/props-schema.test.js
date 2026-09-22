@@ -261,7 +261,7 @@ describe("FezBase.castProps - passthrough and idempotency", () => {
   });
 });
 
-describe("FezBase.castProp - single key (attribute observer path)", () => {
+describe("FezBase.castProp - single key", () => {
   test("casts declared key", () => {
     const K = klass({ count: Number });
     expect(K.castProp("count", "4", "x-foo")).toBe(4);

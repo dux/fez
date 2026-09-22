@@ -170,9 +170,6 @@ function refreshPreservedComponent(oldNode, newNode) {
 
   fez.props = nextProps;
   if (changedKeys.length) {
-    for (const key of changedKeys) {
-      fez.onPropsChange(key, nextProps[key] ?? null);
-    }
     fez.refresh();
   }
   fez.onRefresh(fez.props);

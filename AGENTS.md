@@ -786,7 +786,7 @@ Caveats:
   `this.props.user = { ...this.props.user, name }` (that also delivers the change to a child holding it through
   `:user="props.user"`).
   Components using `<slot unwrap />` render once by design, so a prop write lands but schedules no render.
-  A parent re-render still replaces the whole props object (and fires `onPropsChange`), so anything the component
+  A parent re-render still replaces the whole props object (and fires `onRefresh`), so anything the component
   wrote is overwritten by the parent's value - when the component owns the data for good, seed state with
   `{ state: true }` below.
 
@@ -827,7 +827,7 @@ Caveats:
     Handler props go the same way: `{ type: Function, state: true }` replaces the `this.state.x = Fez.getFunction(props.x)` line.
     Seeding works in `<slot unwrap />` components too (they render once, so only keys the template never reads may change later).
   - Errors go to `Fez.onError('props', ...)`, never throw; bad value is dropped and `default` applies
-  - Keys not in `PROPS` pass through as strings; `onPropsChange(name, value)` receives the coerced value
+  - Keys not in `PROPS` pass through as strings; a keyed parent refresh coerces the new values the same way
   - Also works as `static PROPS = {...}`; schema is exposed on `Fez.index[name].props`
 - **ALWAYS** use lowercase with underscores for prop names (e.g., `fill_color`, `read_only`)
 - **Use colon prefix (`:`) for evaluated attributes** - functions, objects, booleans:
@@ -859,7 +859,9 @@ Caveats:
   Without a schema, normalize by hand with `Fez.getFunction(props.onclick)` (returns a no-op for empty
   strings and nulls) and store the result in `this.state`.
 
-- For dynamic prop changes, use `onPropsChange(name, value)` method
+- Props change only through a parent re-render, `this.props.x = y`, or a call on the instance. A raw DOM
+  `el.setAttribute()` on a mounted component is inert; the inbound channel is `Fez(el).setAttribute(name, value)`,
+  which writes the wrapper attribute, casts through `PROPS` into `this.props` and updates a `state`-linked key
 - Check prop existence: `if (props.is_loading !== undefined)`
 
 ### State Management
@@ -1256,7 +1258,7 @@ Use `<slot unwrap />` when children must be inserted without a wrapper div. By d
   ```
 
   Note: `:attr="expr"` parks the value in the parent's render slots (`fezGlobals`, see `./src/fez/lib/render-slots.js`) and the HTML carries only a positional key.
-  Slots are reset on every parent render, and a parent render whose HTML is unchanged is still morphed when a slot now holds a different object, so children get `onPropsChange`.
+  Slots are reset on every parent render, and a parent render whose HTML is unchanged is still morphed when a slot now holds a different object, so preserved children receive the new props and re-render.
 
 ## External Libraries & Modules
 

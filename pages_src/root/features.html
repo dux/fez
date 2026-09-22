@@ -1160,27 +1160,6 @@ Fez.animateSize(node, 'width, duration=180')</code></pre></div>
               </site-live>
             </article>
 
-            <article class="site-feature-row" id="hook-props-change">
-              <div class="site-feature-copy">
-                <p class="site-feature-kicker">onPropsChange(name, value)</p>
-                <h3>Observe changed attributes</h3>
-                <p>Called when an original attribute is added or changed. Declared schema values are already coerced, so the hook receives the same types as <code>init</code>.</p>
-              </div>
-              <site-live title="onPropsChange" right-title="attribute observer">
-                <div class="src"><pre><code>PROPS = { page: Number }
-
-onPropsChange(name, value) {
-  if (name === 'page') {
-    console.log(value, typeof value)
-  }
-}
-
-element.setAttribute('page', '4')</code></pre></div>
-                <div class="out feature-result"><code>4, "number"</code></div>
-                <div class="out-label">undeclared props continue to arrive as strings</div>
-              </site-live>
-            </article>
-
             <article class="site-feature-row" id="hook-state-change">
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">onStateChange(key, value, oldValue)</p>
