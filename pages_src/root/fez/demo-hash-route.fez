@@ -1,0 +1,95 @@
+<info>
+  <p>Route a page in the fragment with <code>Pjax.hpath('traffic')</code> and keep its state in the route query with <code>Pjax.hqs('app', 'shop')</code>.</p>
+  <ul>
+    <li>A fragment whose path part contains a slash is a route: <code>#/traffic?app=shop</code>.</li>
+    <li><code>Pjax.hpath()</code> returns the last path segment (<code>traffic</code>); a slashless fragment like <code>#foo</code> stays a native anchor.</li>
+    <li><code>Pjax.hqs()</code> reads and writes the route query and preserves the path.</li>
+    <li>Both are history-only: no fetch, no scroll, no events.</li>
+  </ul>
+</info>
+
+<demo>
+  <demo-hash-route />
+</demo>
+
+<script>
+  class {
+    init() {
+      this.syncUrl()
+    }
+
+    onMount() {
+      this.on('popstate', this.syncUrl)
+      this.on('hashchange', this.syncUrl)
+    }
+
+    syncUrl() {
+      this.state.route = Pjax.hpath() || 'overview'
+      this.state.app = Pjax.hqs('app') || ''
+      this.state.url = location.pathname + location.search + location.hash
+    }
+
+    go(route) {
+      Pjax.hpath(route, { qs: this.state.app ? { app: this.state.app } : {} })
+      this.syncUrl()
+    }
+
+    setApp(value) {
+      Pjax.hqs('app', value || null)
+      this.syncUrl()
+    }
+  }
+</script>
+
+<style>
+  display: block;
+  padding: 20px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  button {
+    padding: 8px 14px;
+    border: 1px solid #94a3b8;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+
+    &[aria-pressed="true"] {
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+      color: white;
+    }
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  code {
+    display: block;
+    margin: 16px 0;
+    overflow-wrap: anywhere;
+  }
+</style>
+
+<nav aria-label="Hash routes">
+  <button type="button" aria-pressed={state.route === 'overview' ? 'true' : 'false'} onclick="fez.go('overview')">Overview</button>
+  <button type="button" aria-pressed={state.route === 'traffic' ? 'true' : 'false'} onclick="fez.go('traffic')">Traffic</button>
+  <button type="button" aria-pressed={state.route === 'logs' ? 'true' : 'false'} onclick="fez.go('logs')">Logs</button>
+</nav>
+<p aria-live="polite">Route: <strong>{state.route}</strong> · app: <strong>{state.app || '-'}</strong></p>
+<code>{state.url}</code>
+<div class="actions">
+  <button type="button" onclick="fez.setApp('shop')">Set app=shop</button>
+  <button type="button" onclick="fez.setApp('')">Clear app</button>
+</div>
+<p>Choose a route, then use your browser's Back and Forward buttons.</p>

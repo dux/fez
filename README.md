@@ -1725,7 +1725,7 @@ Pjax.path()                  // current pathname + search
 `Pjax.qs()` stores named values in `?key=value`, and `Pjax.hash()` stores them in `#key=value`.
 Both use the same options and preserve the pathname, the other URL section, and unrelated parameters.
 Values are URL-encoded when written and decoded to strings when read; missing keys return `undefined`.
-The hash helper treats the fragment as parameters, not as an element ID or a hash-router path.
+`Pjax.hash()` treats a slashless fragment as a parameter list, never as an element ID; hash routes use `Pjax.hpath()`/`Pjax.hqs()` below.
 
 ```js
 Pjax.qs('page', 2)                            // push a history entry, without fetching
@@ -1738,6 +1738,25 @@ Pjax.qs('page', 4, { href: true })             // return the URL without changin
 Pjax.hash('tab', 'users', { href: true })      // same option for hash state
 Pjax.qs('page', null)                         // remove a parameter (false also removes)
 Pjax.hash('tab', null)                        // remove a hash parameter
+```
+
+### Hash routes
+
+`Pjax.hpath()` and `Pjax.hqs()` address a route inside the fragment. A fragment whose path
+part contains a slash is a route (`#/traffic`, `#ns/traffic?app=shop`), and the route name is
+its last path segment. A slashless fragment (`#foo`, `#tab=settings`) stays a native anchor
+or a `Pjax.hash()` parameter list. Both helpers use the same options, are history-only, and
+preserve the other URL section.
+
+```js
+Pjax.hpath()                                  // 'traffic' ('' when the fragment is not a route)
+Pjax.hqs('app')                               // 'shop'
+Pjax.hpath('logs')                            // push '#/logs', preserving the query
+Pjax.hpath('logs', { qs: { app: 'x' } })       // push '#/logs?app=x'
+Pjax.hqs('app', 'x')                          // push '#/logs?app=x', keeping the path
+Pjax.hqs('app', null)                         // remove a parameter, drop an empty query
+Pjax.hpath('logs', { qs: {}, href: true })     // '/catalog#/logs' without changing the URL
+Pjax.hpath('')                                // clear the route
 ```
 
 `href: true` takes precedence over `replace: true` and never changes history.

@@ -15,7 +15,8 @@ Fez ships the former `dux-pjax` package (ported to JS) in `src/fez/pjax/` and ex
 - `morphInto` converts HTML strings to a DocumentFragment before `Fez.nodeMorph` - never hand it raw strings; nodeMorph's "unwrap single matching-tag root" heuristic would swallow a legitimate lone wrapper child.
 - A full-page swap only morphs the pjax container, so `runHeadScripts` also compiles the response head's own fez definitions (`script[fez]`, `template[fez]`, `xmp[fez]` outside the pjax region) before the morph - that is what loads the `page.components` a layout emits per page. Without it a pjax navigation lands on a page whose components never registered (unknown custom elements, empty widgets).
 - Components follow navigation via `this.on('pjax:render', () => this.refresh())`.
-- Tests: `test/pjax-core.test.js`, `test/pjax-onclick.test.js`, `test/pjax-events.test.js` (shared env in `test/pjax-env.js`). Types in `fez.d.ts` (`PjaxStatic`).
+- URL state: `Pjax.qs()` (real query) and `Pjax.hash()` (slashless fragment params) are history-only setters/getters. `Pjax.hpath()`/`Pjax.hqs()` address a hash route: a fragment whose path part contains a `/` is a route (`#/traffic?app=x`), the route name is the last path segment, and `hqs` reads/writes its query. A slashless fragment (`#foo`, `#tab=settings`) stays an anchor or `hash()` parameter list. Path setters canonicalize to `#/name` and clear on empty.
+- Tests: `test/pjax-core.test.js`, `test/pjax-onclick.test.js`, `test/pjax-events.test.js` (shared env in `test/pjax-env.js`), browser coverage in `test/browser/pjax-url-state.test.js`. Types in `fez.d.ts` (`PjaxStatic`, `PjaxHashPathOptions`).
 - The old `~/dev/gems/dux-pjax` repo is deprecated reference only - changes happen here.
 
 ---

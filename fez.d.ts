@@ -714,6 +714,11 @@ interface PjaxUrlStateOptions {
   href?: boolean;
 }
 
+/** Options for Pjax.hpath. `qs` replaces the route's query when a path is set. */
+interface PjaxHashPathOptions extends PjaxUrlStateOptions {
+  qs?: string | URLSearchParams | Record<string, string | number>;
+}
+
 interface PjaxConfig {
   /** Suppress Pjax.console logging (defaults to true unless location.port >= 1000) */
   is_silent: boolean;
@@ -822,6 +827,18 @@ interface PjaxStatic {
   hash(key: string, value: string | number | null | false, opts: PjaxUrlStateOptions & { href: true }): string;
   /** Set (or remove with null/false) a hash param, pushing history by default without fetching. */
   hash(key: string, value: string | number | null | false, opts?: PjaxUrlStateOptions): string | void;
+  /** Read the last path segment of a hash route (#/foo, #ns/foo); '' when the fragment is not a route. */
+  hpath(): string;
+  /** Return the URL for a new hash route path without changing history. */
+  hpath(value: string | null | false, opts: PjaxHashPathOptions & { href: true }): string;
+  /** Set the hash route path (#/foo), pushing history by default without fetching. */
+  hpath(value: string | null | false, opts?: PjaxHashPathOptions): string | void;
+  /** Read a query-string param from a hash route fragment (#/foo?bar=baz). */
+  hqs(key: string): string | undefined;
+  /** Return the updated URL without changing history. */
+  hqs(key: string, value: string | number | null | false, opts: PjaxUrlStateOptions & { href: true }): string;
+  /** Set (or remove with null/false) a hash route query param, preserving the path. */
+  hqs(key: string, value: string | number | null | false, opts?: PjaxUrlStateOptions): string | void;
 }
 
 // =============================================================================

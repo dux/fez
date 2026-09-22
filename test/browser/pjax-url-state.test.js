@@ -121,6 +121,67 @@ test('query state has the same history options and preserves hash state', async 
   }
 });
 
+test('hash route state reads and writes path and query without fetching', async () => {
+  const page = await createPage();
+  try {
+    const result = await page.evaluate(() => {
+      Pjax.hpath('traffic', { qs: { app: 'x', range: '24h' } });
+      const before = history.length;
+      Pjax.hqs('app', 'y');
+      return {
+        added: history.length - before,
+        path: Pjax.hpath(),
+        app: Pjax.hqs('app'),
+        range: Pjax.hqs('range'),
+        href: location.pathname + location.search + location.hash,
+        preview: Pjax.hpath('logs', { qs: { app: 'z' }, href: true }),
+        loads: window.loads,
+        events: window.events,
+      };
+    });
+    expect(result).toEqual({
+      added: 1,
+      path: 'traffic',
+      app: 'y',
+      range: '24h',
+      href: '/catalog?keep=query#/traffic?app=y&range=24h',
+      preview: '/catalog?keep=query#/logs?app=z',
+      loads: [],
+      events: [],
+    });
+  } finally {
+    await page.close();
+  }
+});
+
+test('hash route Back/Forward keeps the mounted page', async () => {
+  const page = await createPage();
+  try {
+    await page.locator('#draft').fill('unsaved route text');
+    await page.evaluate(() => {
+      Pjax.hpath('traffic', { qs: { app: 'x' } });
+      Pjax.hpath('logs');
+    });
+    await page.goBack();
+    await page.waitForFunction(() => Pjax.hpath() === 'traffic');
+    expect(await page.evaluate(() => Pjax.hqs('app'))).toBe('x');
+    await page.goBack();
+    await page.waitForFunction(() => location.hash === '');
+    await page.goForward();
+    await page.waitForFunction(() => Pjax.hpath() === 'traffic');
+    await settleHistory(page);
+    expect(await page.locator('#draft').inputValue()).toBe('unsaved route text');
+    expect(
+      await page.evaluate(() => ({
+        loads: window.loads,
+        sameNode: document.getElementById('pjax') === window.originalMain,
+      })),
+    ).toEqual({ loads: [], sameNode: true });
+  } finally {
+    await page.close();
+  }
+});
+
 test('hash traversal after page navigation is skipped, but returning to another path still loads', async () => {
   const page = await createPage();
   try {

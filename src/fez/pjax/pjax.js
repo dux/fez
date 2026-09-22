@@ -528,6 +528,87 @@ export default function createPjax() {
       return opts.replace ? Pjax.replace(href) : Pjax.push(href);
     }
 
+    // --- hash route state ---
+    //
+    // A fragment whose path part contains a '/' is a route (`#/foo`,
+    // `#ns/foo`, `#/foo?bar=baz`); the route name is the last path segment and
+    // the query rides in the fragment. Fragments without a '/' are left to
+    // `hash()` and native anchors (`#foo`, `#a=b`).
+
+    static hpath(value, opts = {}) {
+      const parts = Pjax._hashParts();
+      if (typeof value === 'undefined') {
+        return Pjax._hashPath(parts);
+      }
+
+      const clean = String(value || '').replace(/^\/+|\/+$/g, '');
+      let query = '';
+      if (clean) {
+        query =
+          typeof opts.qs === 'undefined' ? parts.query : new URLSearchParams(opts.qs).toString();
+      } else if (typeof opts.qs !== 'undefined') {
+        query = new URLSearchParams(opts.qs).toString();
+      }
+      const fragment = clean ? `/${clean}${query ? `?${query}` : ''}` : query ? `?${query}` : '';
+      const href = Pjax._hashHref(fragment);
+      if (opts.href) {
+        return href;
+      }
+      return opts.replace ? Pjax.replace(href) : Pjax.push(href);
+    }
+
+    static hqs(key, value, opts = {}) {
+      const parts = Pjax._hashParts();
+      if (!parts.route) {
+        return undefined;
+      }
+
+      const params = new URLSearchParams(parts.query);
+      if (typeof value === 'undefined') {
+        return params.get(key) ?? undefined;
+      }
+
+      if (value === null || value === false) {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+
+      const query = params.toString();
+      const href = Pjax._hashHref(parts.path + (query ? `?${query}` : ''));
+      if (opts.href) {
+        return href;
+      }
+      return opts.replace ? Pjax.replace(href) : Pjax.push(href);
+    }
+
+    static _hashParts() {
+      const raw = location.hash.replace(/^#/, '');
+      const mark = raw.indexOf('?');
+      const path = mark === -1 ? raw : raw.slice(0, mark);
+      const query = mark === -1 ? '' : raw.slice(mark + 1);
+      return { path, query, route: path.includes('/') };
+    }
+
+    static _hashPath(parts) {
+      if (!parts.route) {
+        return '';
+      }
+      const segments = parts.path.split('/');
+      for (let i = segments.length - 1; i >= 0; i -= 1) {
+        if (segments[i]) {
+          return segments[i];
+        }
+      }
+      return '';
+    }
+
+    static _hashHref(fragment) {
+      const url = new URL(location.href);
+      url.hash = fragment;
+      return url.pathname + url.search + url.hash;
+    }
+
     // --- history management ---
 
     static _addHistoryEntry(href, html) {

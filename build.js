@@ -26,7 +26,9 @@ const opts = {
   bundle: true,
   platform: 'browser',
   sourcemap: kind != 'd',
-  banner: { js: `// v: ${version}` },
+  banner: {
+    js: `// v: ${version} | AGENTS: https://raw.githubusercontent.com/dux/fez/refs/heads/main/AGENTS.md`,
+  },
   plugins: []
 }
 
