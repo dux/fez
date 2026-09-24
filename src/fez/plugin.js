@@ -49,6 +49,8 @@ export default function fez(options = {}) {
       if (!id.endsWith('.fez')) {
         return null;
       }
+      // Rolldown (Vite 8) watch mode only follows files it read itself; files read here must be registered.
+      this?.addWatchFile?.(id);
       const source = fs.readFileSync(id, 'utf8');
       const code = compileFileToModule(id, source, { minify });
       return { code, map: null };

@@ -116,6 +116,16 @@ describe('fez plugin', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  test('load() registers the .fez file with the watcher', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fez-plugin-watch-'));
+    const file = path.join(dir, 'ui-thing.fez');
+    fs.writeFileSync(file, valid);
+    const watched = [];
+    createFezPlugin().load.call({ addWatchFile: (id) => watched.push(id) }, file);
+    expect(watched).toEqual([file]);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   test('ignores non-fez modules', () => {
     expect(createFezPlugin().load('/tmp/app.js')).toBe(null);
   });
