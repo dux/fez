@@ -47,7 +47,20 @@ function skipString(script, i, quote) {
 
 // Keywords after which a `/` opens a regex literal instead of dividing.
 const REGEX_KEYWORDS = new Set([
-  'return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void', 'throw', 'case', 'do', 'else', 'yield', 'await',
+  'return',
+  'typeof',
+  'instanceof',
+  'in',
+  'of',
+  'new',
+  'delete',
+  'void',
+  'throw',
+  'case',
+  'do',
+  'else',
+  'yield',
+  'await',
 ]);
 
 // A `/` divides when it follows a value (identifier, number, closing bracket,

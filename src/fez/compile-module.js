@@ -180,4 +180,3 @@ export function compileFileToModule(filePath, source, options = {}) {
 
   return lines.join('\n');
 }
-
