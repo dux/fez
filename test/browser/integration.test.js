@@ -165,6 +165,111 @@ test('lifecycle - onDestroy is called on DOM removal', async () => {
   }
 });
 
+test('lifecycle - destroy stops this.setInterval, cleanup callbacks run before onDestroy', async () => {
+  const page = await createTestPage('<div id="container"><test-ticker></test-ticker></div>');
+
+  try {
+    await page.evaluate(() => {
+      window.ticks = 0;
+      window.Fez('test-ticker', class {
+        onMount() {
+          this.setInterval(() => window.ticks++, 10);
+          this.addOnDestroy(() => log('callback'));
+        }
+
+        onDestroy() {
+          log('destroyed');
+        }
+
+        HTML = '<div class="ticker">tick</div>';
+      });
+    });
+
+    await page.waitForFunction(() => window.ticks >= 2, { timeout: 2000 });
+    await page.evaluate(() => {
+      document.getElementById('container').innerHTML = '';
+    });
+    await page.waitForFunction(() => window.testLog.includes('destroyed'), { timeout: 2000 });
+
+    const ticksAtDestroy = await page.evaluate(() => window.ticks);
+    await page.waitForTimeout(60);
+    expect(await page.evaluate(() => window.ticks)).toBe(ticksAtDestroy);
+    expect(await page.evaluate(() => window.testLog)).toEqual(['callback', 'destroyed']);
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('lifecycle - removing a parent destroys its nested child', async () => {
+  const page = await createTestPage('<div id="container"><test-outer></test-outer></div>');
+
+  try {
+    await page.evaluate(() => {
+      window.childTicks = 0;
+      window.Fez('test-inner', class {
+        onMount() {
+          this.setInterval(() => window.childTicks++, 10);
+        }
+
+        onDestroy() {
+          log('inner-destroyed');
+        }
+
+        HTML = '<span class="inner">inner</span>';
+      });
+      window.Fez('test-outer', class {
+        onDestroy() {
+          log('outer-destroyed');
+        }
+
+        HTML = '<div class="outer"><test-inner></test-inner></div>';
+      });
+    });
+
+    await page.waitForFunction(() => window.childTicks >= 2, { timeout: 2000 });
+    await page.evaluate(() => {
+      document.getElementById('container').innerHTML = '';
+    });
+    await page.waitForFunction(
+      () => window.testLog.includes('outer-destroyed') && window.testLog.includes('inner-destroyed'),
+      { timeout: 2000 },
+    );
+
+    const ticksAtDestroy = await page.evaluate(() => window.childTicks);
+    await page.waitForTimeout(60);
+    expect(await page.evaluate(() => window.childTicks)).toBe(ticksAtDestroy);
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('lifecycle - a second fezOnDestroy call is a no-op', async () => {
+  const page = await createTestPage('<test-once></test-once>');
+
+  try {
+    await page.evaluate(() => {
+      window.Fez('test-once', class {
+        onDestroy() {
+          log('destroyed');
+        }
+
+        HTML = '<div class="once">once</div>';
+      });
+    });
+
+    await page.waitForFunction(() => document.querySelector('.once'), { timeout: 2000 });
+    const log = await page.evaluate(() => {
+      const fez = Fez('test-once');
+      fez.fezOnDestroy();
+      fez.fezOnDestroy();
+      return window.testLog;
+    });
+    expect(log).toEqual(['destroyed']);
+  } finally {
+    await closePage(page);
+  }
+});
+
 // =============================================================================
 // STATE REACTIVITY TESTS
 // =============================================================================
