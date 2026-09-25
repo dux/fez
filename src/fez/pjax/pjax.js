@@ -6,10 +6,13 @@
 // preserved and refreshed instead of destroyed.
 //
 // The class is created per call so tests get fresh static state. The browser
-// singleton is created by boot.js and exposed as window.Pjax.
+// singleton is created by boot.js and exposed as Fez.pjax, with Fez.load,
+// Fez.refresh and the URL state helpers delegating to it.
 
 import Fez from '../root.js';
 import createOnClick from './onclick.js';
+import attachUrlState from './url-state.js';
+import { runScripts, runHeadScripts } from './scripts.js';
 
 export default function createPjax() {
   class Pjax {
@@ -25,7 +28,13 @@ export default function createPjax() {
       history_max: 20,
     };
 
+    // full-swap responses by path, restored on Back/Forward without a fetch
     static historyData = {};
+
+    // in-flight AbortController per swap key ('full', or the target / region id)
+    static requests = new Map();
+
+    static LOAD_OPTIONS = ['target', 'source', 'form', 'history', 'scroll'];
 
     // --- public class methods ---
 
@@ -55,9 +64,9 @@ export default function createPjax() {
           const entry = Pjax.historyData[path];
           if (entry) {
             Pjax.console(`from history: ${path}`);
-            const rroot = document.createElement('div');
-            rroot.innerHTML = entry.html;
-            Pjax.setPageBody(rroot, path);
+            const root = document.createElement('div');
+            root.innerHTML = entry.html;
+            Pjax.setPageBody(root, path);
             if (entry.scrollY) {
               window.scrollTo(0, entry.scrollY);
             }
@@ -69,11 +78,11 @@ export default function createPjax() {
 
       document.body.addEventListener('submit', (e) => {
         const form = e.target;
-        const is_pjax = form.getAttribute('data-pjax');
-        if (is_pjax) {
+        const pjaxAttr = form.getAttribute('data-pjax');
+        if (pjaxAttr) {
           e.preventDefault();
-          const pjax_target = is_pjax === 'true' ? null : is_pjax;
-          Pjax.load(form.getAttribute('action'), { form, target: pjax_target });
+          const target = pjaxAttr === 'true' ? undefined : pjaxAttr;
+          Pjax.load(form.getAttribute('action'), { form, target });
         }
       });
     }
@@ -85,29 +94,16 @@ export default function createPjax() {
       }
     }
 
-    static load(href, opts) {
-      return Pjax.fetch(Pjax.getOpts(href, opts));
+    // load and refresh share one signature and differ only in defaults:
+    // refresh sends no-cache, skips the same-URL debounce and keeps scroll.
+    // Both return a Promise that never rejects - it resolves the pjax:render
+    // detail, or null when nothing was requested.
+    static load(what, opts) {
+      return Pjax.fetch(what, opts, false);
     }
 
-    static refresh(func, opts) {
-      if (typeof func === 'string' && func[0] === '#') {
-        opts ||= {};
-        opts.target = func;
-        func = Pjax.path();
-        opts.history = false;
-      }
-
-      opts = Pjax.getOpts(func, opts);
-      opts.scroll ||= false;
-      opts.force = true;
-      return Pjax.fetch(opts);
-    }
-
-    static reload(opts) {
-      opts = Pjax.getOpts(opts);
-      opts.cache = false;
-      opts.force = true;
-      return Pjax.fetch(opts);
+    static refresh(what, opts) {
+      return Pjax.fetch(what, opts, true);
     }
 
     static refreshed() {
@@ -199,115 +195,99 @@ export default function createPjax() {
 
     // --- option normalization ---
 
-    static getOpts(path, opts) {
-      opts = Pjax._resolveArgs(path, opts);
-      if (opts.ajax) {
-        Pjax._resolveAjax(opts);
+    // Normalizes load/refresh arguments into { href, opts }, or null when the
+    // call is invalid (reported through Pjax.error). `what` is a URL, or a
+    // '#selector' / element that becomes the swap target for the current URL.
+    // The caller's object is copied, never written to.
+    static getOpts(what, input) {
+      const opts = {};
+      for (const [key, value] of Object.entries(input || {})) {
+        if (!Pjax.LOAD_OPTIONS.includes(key)) {
+          Pjax.error(`unknown load option: ${key}`);
+        } else if (value != null) {
+          opts[key] = value;
+        }
       }
+
+      let href = what || null;
+      if (href?.nodeType === 1 || (typeof href === 'string' && href[0] === '#')) {
+        if (opts.target) {
+          Pjax.error('target given twice - pass a #selector/element or opts.target, not both');
+          return null;
+        }
+        opts.target = href;
+        href = null;
+      } else if (href !== null && typeof href !== 'string') {
+        Pjax.error('load expects a URL, a #selector or an element');
+        return null;
+      }
+
       if (opts.target) {
-        Pjax._resolveTarget(opts);
+        const node = Pjax._findNode(opts.target);
+        if (!node) {
+          Pjax.error(`target not found: ${opts.target}`);
+          return null;
+        }
+        // the swap copies the node with the same id out of the response
+        if (!node.id) {
+          Pjax.error('target has no id attribute');
+          return null;
+        }
+        opts.target = node;
       }
-      Pjax._resolvePath(opts);
-      return opts;
+
+      return { href, opts };
     }
 
-    static _resolveArgs(path, opts) {
-      opts ||= {};
-      if (typeof opts === 'string') {
-        opts = { target: opts };
+    static _findNode(target) {
+      if (typeof target !== 'string') {
+        return target?.nodeType === 1 ? target : null;
       }
-
-      if (typeof path === 'object' && path !== null) {
-        if (path.nodeName) {
-          opts.ajax = path;
-        } else {
-          opts = path;
-        }
-      } else if (typeof path === 'function') {
-        opts.done = path;
-      } else {
-        opts.path = path;
+      try {
+        return document.querySelector(target);
+      } catch {
+        return null;
       }
-
-      if (opts.href) {
-        opts.path = opts.href;
-        delete opts.href;
-      }
-
-      opts.path ||= Pjax.path();
-
-      if (opts.form) {
-        const method = (opts.form.getAttribute('method') || 'get').toLowerCase();
-        if (method === 'post') {
-          // POST keeps the body out of the URL; sendRequest() sends the FormData
-          opts.method = 'POST';
-          opts.form_data = new FormData(opts.form);
-        } else {
-          const params = new URLSearchParams(new FormData(opts.form)).toString();
-          if (params) {
-            opts.path += opts.path.includes('?') ? '&' : '?';
-            opts.path += params;
-          }
-        }
-      }
-
-      return opts;
     }
 
-    static _resolveAjax(opts) {
-      opts.node = opts.ajax;
-      if (typeof opts.node === 'string') {
-        opts.node = document.querySelector(opts.node);
-      }
-
-      if (!opts.node) {
-        delete opts.ajax;
+    // The .ajax region a source element sits in, unless an ancestor opts out.
+    static _sourceRegion(source) {
+      if (!source?.closest) {
         return;
       }
-
-      let skip = false;
-      for (const el of Pjax.config.no_ajax_class) {
-        if (opts.node.closest(`.${el}`)) {
-          skip = true;
+      for (const cls of Pjax.config.no_ajax_class) {
+        if (source.closest(`.${cls}`)) {
+          return;
         }
       }
-
-      if (!skip) {
-        const ajax_node = opts.node.closest(Pjax.config.ajax_selector);
-        if (ajax_node) {
-          opts.ajax_node = ajax_node;
-          opts.scroll ||= false;
-        }
-      }
-
-      delete opts.ajax;
+      return source.closest(Pjax.config.ajax_selector) || undefined;
     }
 
-    static _resolveTarget(opts) {
-      if (typeof opts.target === 'string') {
-        opts.target = document.querySelector(opts.target);
-      }
-      opts.node = opts.target;
-      opts.scroll ||= false;
+    static _regionPath(region) {
+      return region?.getAttribute('data-path') || region?.getAttribute('path');
     }
 
-    static _resolvePath(opts) {
-      if (opts.path[0] === '?') {
-        if (opts.ajax_node) {
-          const ajax_path =
-            opts.ajax_node.getAttribute('data-path') || opts.ajax_node.getAttribute('path');
-          if (ajax_path) {
-            opts.path = ajax_path.split('?')[0] + opts.path;
-          }
-        }
-
-        if (opts.path[0] === '?') {
-          opts.path = location.pathname + opts.path;
-        }
+    // No href means the current URL, fragment included (a hash route survives a
+    // refresh) - or the region's own URL for a region refresh. A '?query' href
+    // is resolved against the region path or pathname.
+    static _resolveHref(href, region) {
+      if (!href) {
+        return Pjax._regionPath(region) || Pjax.path() + location.hash;
       }
+      if (href[0] === '?') {
+        const base = Pjax._regionPath(region);
+        return (base ? base.split('?')[0] : location.pathname) + href;
+      }
+      return href;
+    }
 
-      if (opts.replacePath && opts.replacePath[0] === '?') {
-        opts.replacePath = location.pathname + opts.replacePath;
+    static _abort(key) {
+      for (const [k, controller] of Pjax.requests) {
+        // a full swap replaces every region, so it cancels them all
+        if (key === 'full' || k === key) {
+          Pjax.requests.delete(k);
+          controller.abort();
+        }
       }
     }
 
@@ -343,142 +323,65 @@ export default function createPjax() {
       });
     }
 
+    // The element a URL fragment points at, by id or by name like the browser.
+    static _anchor(fragment) {
+      if (!fragment) {
+        return null;
+      }
+      let name = fragment;
+      try {
+        name = decodeURIComponent(fragment);
+      } catch {
+        // keep the raw fragment
+      }
+      return document.getElementById(name) || document.getElementsByName(name)[0] || null;
+    }
+
     // --- page rendering ---
 
-    static setPageBody(node, href) {
-      const title = node.querySelector('title')?.innerHTML;
+    static setPageBody(root, href) {
+      const title = root.querySelector('title')?.innerHTML;
       document.title = title || 'no page title (pjax)';
       Pjax.scrollLock();
       const pjaxNode = Pjax.node();
       if (!pjaxNode) {
         return false;
       }
-      const new_body = Pjax.findById(node, pjaxNode.id);
-      if (new_body) {
-        const finish = () => {
-          Pjax.runHeadScripts(node, new_body);
-          Pjax.morphInto(pjaxNode, Pjax.parseScripts(new_body));
-          Pjax.after(href);
-        };
-
-        if (Pjax.useViewTransition && document.startViewTransition) {
-          document.startViewTransition(finish);
-        } else {
-          finish();
-        }
-        return true;
+      const newBody = Pjax.findById(root, pjaxNode.id);
+      if (!newBody) {
+        return false;
       }
-      return false;
+
+      const finish = () => {
+        runHeadScripts(root, newBody, Pjax.error);
+        Pjax.morphInto(pjaxNode, runScripts(newBody));
+        Pjax.after(href);
+      };
+
+      if (Pjax.useViewTransition && document.startViewTransition) {
+        document.startViewTransition(finish);
+      } else {
+        finish();
+      }
+      return true;
     }
 
-    static morphInto(target, html) {
-      // Strings go through a DocumentFragment, never nodeMorph's string path:
-      // its "single root with matching tag" unwrap would swallow a legitimate
-      // single-root child (e.g. a lone <div class="flex"> wrapper inside a
-      // <div class="pjax"> container) and flatten the layout.
-      if (typeof html === 'string') {
+    // `source` is an element whose children become the target's children, or
+    // an HTML string. Both reach nodeMorph as a DocumentFragment, never through
+    // its string path: that would unwrap a single root child whose tag matches
+    // the target (e.g. a lone <div class="flex"> wrapper inside a
+    // <div class="pjax"> container) and flatten the layout.
+    static morphInto(target, source) {
+      let fragment;
+      if (typeof source === 'string') {
         const range = document.createRange();
         range.selectNodeContents(target);
-        Fez.nodeMorph(target, range.createContextualFragment(html));
+        fragment = range.createContextualFragment(source);
       } else {
-        Fez.nodeMorph(target, html);
+        fragment = document.createDocumentFragment();
+        fragment.append(...source.childNodes);
       }
-    }
-
-    static parseScripts(node) {
-      if (typeof node === 'string') {
-        const div = document.createElement('div');
-        div.innerHTML = node;
-        node = div;
-      }
-
-      for (const script_tag of Array.from(node.getElementsByTagName('script'))) {
-        if (!script_tag) {
-          continue;
-        }
-        if (script_tag.getAttribute('src')) {
-          continue;
-        }
-        const type = script_tag.getAttribute('type') || 'javascript';
-        if (!type.includes('javascript')) {
-          continue;
-        }
-
-        if (!script_tag.id) {
-          Pjax.script_cnt ||= 0;
-          script_tag.id = `app-sc-${++Pjax.script_cnt}`;
-        }
-
-        // Scripts run AFTER history has been committed, but BEFORE the new HTML
-        // is morphed into the live document.
-        // Rationale: inline scripts in a response typically set globals/state that
-        // the rendered markup will then consume on `pjax:render`, and may need
-        // the new `location.pathname + location.search`. Running them against a
-        // still-detached DOM also avoids a flash where new nodes appear before
-        // their setup ran.
-        // Side effect: a script cannot `document.querySelector` siblings in the
-        // same response (they aren't in `document` yet) - do per-DOM wiring in a
-        // `pjax:render` listener, or tag the script `pjax-delay` to defer it to
-        // the next animation frame (after the morph completes).
-        const func = new Function(script_tag.textContent);
-        script_tag.text = 1;
-        if (script_tag.hasAttribute('pjax-delay')) {
-          requestAnimationFrame(func);
-        } else {
-          func();
-        }
-      }
-
-      return node.innerHTML;
-    }
-
-    // Inline <head> scripts of a full-page response are otherwise discarded on a
-    // swap (innerHTML never runs them; only the pjax region is morphed in). Run
-    // those outside the pjax region so head bootstrap - e.g. window.app data and
-    // flash emitted by the server - refreshes on every navigation. src= bundles
-    // and the pjax region's own scripts (handled by parseScripts) are skipped.
-    //
-    // A full page's <head> also carries its own fez definitions: the
-    // `<script fez="ui-clock.fez">` loaders and inline `<template fez>` /
-    // `<xmp fez>` blocks a layout emits per page. They are not code to run but
-    // components to compile, and the morph only reaches the pjax region - so
-    // compile them here, or a pjax navigation lands on a page whose components
-    // never registered (unknown custom elements, empty widgets).
-    static runHeadScripts(root, pjaxBody) {
-      // compile() removes each node, so the script loop below never sees them
-      for (const node of Array.from(
-        root.querySelectorAll('template[fez], xmp[fez], script[fez]'),
-      )) {
-        if (pjaxBody && pjaxBody.contains(node)) {
-          continue;
-        }
-        // one malformed definition must not abort the whole swap (the caller
-        // would fall back to a full page load), so report and keep going
-        try {
-          Fez.compile(node);
-        } catch (err) {
-          Pjax.error(`Head component failed: ${err?.message || err}`);
-        }
-      }
-
-      for (const script_tag of Array.from(root.getElementsByTagName('script'))) {
-        if (pjaxBody && pjaxBody.contains(script_tag)) {
-          continue;
-        }
-        if (script_tag.getAttribute('src') || script_tag.getAttribute('fez')) {
-          continue;
-        }
-        const type = script_tag.getAttribute('type') || 'javascript';
-        if (!type.includes('javascript')) {
-          continue;
-        }
-        const func = new Function(script_tag.textContent);
-        if (script_tag.hasAttribute('pjax-delay')) {
-          requestAnimationFrame(func);
-        } else {
-          func();
-        }
-      }
+      Fez.nodeMorph(target, fragment);
     }
 
     static findById(root, id) {
@@ -494,119 +397,6 @@ export default function createPjax() {
         }
       }
       return null;
-    }
-
-    // --- URL state helpers ---
-
-    static qs(key, value, opts = {}) {
-      return Pjax._urlParam('search', key, value, opts);
-    }
-
-    static hash(key, value, opts = {}) {
-      return Pjax._urlParam('hash', key, value, opts);
-    }
-
-    static _urlParam(part, key, value, opts) {
-      const url = new URL(location.href);
-      const params = new URLSearchParams(url[part].slice(1));
-
-      if (typeof value === 'undefined') {
-        return params.get(key) ?? undefined;
-      }
-
-      if (value === null || value === false) {
-        params.delete(key);
-      } else {
-        params.set(key, value);
-      }
-
-      url[part] = params.toString();
-      const href = url.pathname + url.search + url.hash;
-      if (opts.href) {
-        return href;
-      }
-      return opts.replace ? Pjax.replace(href) : Pjax.push(href);
-    }
-
-    // --- hash route state ---
-    //
-    // A fragment whose path part contains a '/' is a route (`#/foo`,
-    // `#ns/foo`, `#/foo?bar=baz`); the route name is the last path segment and
-    // the query rides in the fragment. Fragments without a '/' are left to
-    // `hash()` and native anchors (`#foo`, `#a=b`).
-
-    static hpath(value, opts = {}) {
-      const parts = Pjax._hashParts();
-      if (typeof value === 'undefined') {
-        return Pjax._hashPath(parts);
-      }
-
-      const clean = String(value || '').replace(/^\/+|\/+$/g, '');
-      let query = '';
-      if (clean) {
-        query =
-          typeof opts.qs === 'undefined' ? parts.query : new URLSearchParams(opts.qs).toString();
-      } else if (typeof opts.qs !== 'undefined') {
-        query = new URLSearchParams(opts.qs).toString();
-      }
-      const fragment = clean ? `/${clean}${query ? `?${query}` : ''}` : query ? `?${query}` : '';
-      const href = Pjax._hashHref(fragment);
-      if (opts.href) {
-        return href;
-      }
-      return opts.replace ? Pjax.replace(href) : Pjax.push(href);
-    }
-
-    static hqs(key, value, opts = {}) {
-      const parts = Pjax._hashParts();
-      if (!parts.route) {
-        return undefined;
-      }
-
-      const params = new URLSearchParams(parts.query);
-      if (typeof value === 'undefined') {
-        return params.get(key) ?? undefined;
-      }
-
-      if (value === null || value === false) {
-        params.delete(key);
-      } else {
-        params.set(key, value);
-      }
-
-      const query = params.toString();
-      const href = Pjax._hashHref(parts.path + (query ? `?${query}` : ''));
-      if (opts.href) {
-        return href;
-      }
-      return opts.replace ? Pjax.replace(href) : Pjax.push(href);
-    }
-
-    static _hashParts() {
-      const raw = location.hash.replace(/^#/, '');
-      const mark = raw.indexOf('?');
-      const path = mark === -1 ? raw : raw.slice(0, mark);
-      const query = mark === -1 ? '' : raw.slice(mark + 1);
-      return { path, query, route: path.includes('/') };
-    }
-
-    static _hashPath(parts) {
-      if (!parts.route) {
-        return '';
-      }
-      const segments = parts.path.split('/');
-      for (let i = segments.length - 1; i >= 0; i -= 1) {
-        if (segments[i]) {
-          return segments[i];
-        }
-      }
-      return '';
-    }
-
-    static _hashHref(fragment) {
-      const url = new URL(location.href);
-      url.hash = fragment;
-      return url.pathname + url.search + url.hash;
     }
 
     // --- history management ---
@@ -626,24 +416,88 @@ export default function createPjax() {
 
     // --- internal ---
 
-    static fetch(opts) {
-      const pjax = new Pjax(opts);
-      return pjax.load();
+    static fetch(what, opts, fresh) {
+      try {
+        const args = Pjax.getOpts(what, opts);
+        return args ? new Pjax(args.href, args.opts, fresh).run() : Promise.resolve(null);
+      } catch (err) {
+        Pjax.error(`load failed: ${err?.message || err}`);
+        return Promise.resolve(null);
+      }
     }
 
     // --- instance methods ---
 
-    constructor(opts) {
+    // `opts` is the normalized copy from getOpts; defaults are filled in here,
+    // so pjax:start / pjax:render publish exactly what the request used.
+    constructor(href, opts = {}, fresh = false) {
       this.opts = opts;
-      this.href = opts.href || opts.path;
+      this.fresh = fresh;
+      this.explicitHref = !!href;
+      this.target = opts.target;
+      this.region = Pjax._sourceRegion(opts.source);
+      this.href = Pjax._resolveHref(href, this.region);
+      this.resolve = () => {};
+
+      // the fragment never goes to the server; it is kept for history and scroll
+      const mark = this.href.indexOf('#');
+      if (mark !== -1) {
+        this.fragment = this.href.slice(mark + 1);
+        this.href = this.href.slice(0, mark) || Pjax.path();
+      }
+
+      if (opts.form) {
+        if ((opts.form.getAttribute('method') || 'get').toLowerCase() === 'post') {
+          // POST keeps the body out of the URL
+          this.method = 'POST';
+          this.body = new FormData(opts.form);
+        } else {
+          const params = new URLSearchParams(new FormData(opts.form)).toString();
+          if (params) {
+            this.href += (this.href.includes('?') ? '&' : '?') + params;
+          }
+        }
+      }
+
+      this.key = this.target ? this.target.id : this.region ? this.region.id || 'ajax' : 'full';
+
+      const nodeSwap = !!(this.target || this.region);
+      opts.scroll ??= !nodeSwap && !fresh;
+      // the current URL fetched into a node, or a region swap, is not a navigation
+      opts.history ??= (this.target ? !href : this.region) ? false : 'push';
+    }
+
+    // Resolves exactly once: the pjax:render detail, or null when no request
+    // went out (debounced, cancelled, handed to a full navigation, failed hook).
+    run() {
+      return new Promise((resolve) => {
+        this.resolve = (detail) => {
+          if (!this.settled) {
+            this.settled = true;
+            resolve(detail);
+          }
+        };
+        try {
+          if (!this.load()) {
+            this.resolve(null);
+          }
+        } catch (err) {
+          Pjax.error(`load failed: ${err?.message || err}`);
+          this.resolve(null);
+        }
+      });
+    }
+
+    historyHref() {
+      return this.fragment ? `${this.href}#${this.fragment}` : this.href;
     }
 
     redirect() {
-      this.href ||= location.href;
-      if (this.href.slice(0, 4) === 'http' && !this.href.includes(location.host)) {
-        window.open(this.href);
+      const href = this.historyHref() || location.href;
+      if (href.slice(0, 4) === 'http' && !href.includes(location.host)) {
+        window.open(href);
       } else {
-        location.href = this.href;
+        location.href = href;
       }
       return false;
     }
@@ -666,68 +520,77 @@ export default function createPjax() {
         path = parsed.pathname + parsed.search;
       }
 
-      this.opts.redirects = (this.opts.redirects || 0) + 1;
-      if (this.opts.redirects > 5) {
+      this.redirects = (this.redirects || 0) + 1;
+      if (this.redirects > 5) {
         return this.redirect();
       }
 
       this.href = path;
-      this.opts.replace = true; // don't trap the intermediate URL in history
+      // don't trap the intermediate URL in history
+      if (this.opts.history) {
+        this.opts.history = 'replace';
+      }
       Pjax.lastHref = this.href;
-      this.sendRequest();
+      if (!this.sendRequest()) {
+        this.resolve(null);
+      }
       return false;
     }
 
     swapMode() {
-      if (this.opts.target) {
+      if (this.target) {
         return 'target';
       }
-      if (this.opts.ajax_node) {
+      if (this.region) {
         return 'ajax';
       }
       return 'full';
     }
 
     emitDone(extra = {}) {
-      const duration = this.opts.req_start_time ? Date.now() - this.opts.req_start_time : 0;
       const detail = Object.assign(
         {
           from: this.fromHref || Pjax.pastHref || null,
-          to: this.eventToHref(),
+          to: this.href,
           status: null,
           error: null,
-          duration,
+          duration: this.startedAt ? Date.now() - this.startedAt : 0,
           mode: this.swapMode(),
           opts: this.opts,
         },
         extra,
       );
       Pjax._dispatchRender(detail);
+      this.resolve(detail);
     }
 
-    historyHref() {
-      return this.opts.replacePath || this.href;
-    }
-
-    eventToHref() {
-      if (this.opts.history === false || (this.opts.ajax_node && !this.opts.target)) {
-        return this.href;
-      }
-      return this.historyHref();
-    }
-
+    // Returns true when a request went out.
     load() {
-      if (!this.href) {
+      // '/page#section' while already on /page: the browser would only scroll
+      if (
+        this.explicitHref &&
+        this.fragment &&
+        !this.fresh &&
+        this.key === 'full' &&
+        this.href === Pjax.path()
+      ) {
+        this.historyAddCurrent(this.historyHref());
+        Pjax._anchor(this.fragment)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return false;
       }
 
       const now = Date.now();
-      if (!this.opts.force) {
-        if (Pjax.lastHref === this.href && now - (Pjax._lastLoadTime || 0) < 2000) {
-          return false;
-        }
+      const last = Pjax._lastLoad;
+      if (
+        !this.fresh &&
+        last &&
+        last.key === this.key &&
+        last.href === this.href &&
+        now - last.time < 2000
+      ) {
+        return false;
       }
-      Pjax._lastLoadTime = now;
+      Pjax._lastLoad = { key: this.key, href: this.href, time: now };
 
       this.fromHref = Pjax.path();
 
@@ -740,31 +603,11 @@ export default function createPjax() {
       Pjax.pastHref = Pjax.lastHref;
       Pjax.lastHref = this.href;
 
-      const e = window.event;
-      if (e && !e.key && (e.which === 2 || e.metaKey)) {
-        return window.open(this.href);
-      }
-
       if (Pjax.before(this.href, this.opts) === false) {
-        return;
-      }
-      if (location.hash && location.pathname === this.href) {
-        return;
+        return false;
       }
 
-      if (this.href.startsWith('#')) {
-        if (this.href === '#') {
-          return;
-        }
-        const hash = this.href.slice(1);
-        const node = document.getElementById(hash) || document.getElementsByName(hash)[0];
-        if (node) {
-          node.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          return false;
-        }
-      }
-
-      if (/^http/.test(this.href) || /#/.test(this.href)) {
+      if (/^http/.test(this.href)) {
         return this.redirect();
       }
 
@@ -787,100 +630,105 @@ export default function createPjax() {
         }
       }
 
-      if (Pjax.request) {
-        Pjax.request.abort();
-      }
-      this.sendRequest();
-      return false;
+      return this.sendRequest();
     }
 
+    // Starts the request and returns true, or false when a pjax:start listener
+    // cancelled it.
     sendRequest() {
-      this.opts.req_start_time = Date.now();
-      this.opts.path = this.href;
+      this.startedAt = Date.now();
 
-      Pjax.emit('start', {
+      const go = Pjax.emit('start', {
         from: this.fromHref || Pjax.pastHref || null,
         to: this.href,
         mode: this.swapMode(),
         opts: this.opts,
       });
+      if (!go) {
+        return false;
+      }
 
+      Pjax._abort(this.key);
+      const controller = new AbortController();
+      Pjax.requests.set(this.key, controller);
+      this.request(controller);
+      return true;
+    }
+
+    // Never throws: every outcome ends in emitDone, redirect or resolve(null).
+    async request(controller) {
+      const timer = setTimeout(() => controller.abort('timeout'), Pjax.config.timeout || 10000);
       const headers = { 'x-requested-with': 'XMLHttpRequest' };
-      if (this.opts.cache === false) {
+      if (this.fresh) {
         headers['cache-control'] = 'no-cache';
       }
 
-      Pjax.request = this.req = new XMLHttpRequest();
-      this.req.timeout = Pjax.config.timeout || 10000;
-
-      this.req.onerror = (e) => {
-        if (Pjax.request === this.req) {
-          Pjax.request = null;
+      let res;
+      let html;
+      try {
+        res = await fetch(this.href, {
+          method: this.method || 'GET',
+          headers,
+          body: this.body,
+          signal: controller.signal,
+        });
+        html = await res.text();
+      } catch (err) {
+        if (Pjax.requests.get(this.key) === controller) {
+          Pjax.requests.delete(this.key);
         }
-        Pjax.error('Net error: Server response not received (Pjax)');
-        console.error(e);
-        this.emitDone({ status: 0, error: 'network' });
-      };
-
-      this.req.onabort = () => {
-        if (Pjax.request === this.req) {
-          Pjax.request = null;
+        if (!controller.signal.aborted) {
+          Pjax.error('Net error: Server response not received (Pjax)');
+          console.error(err);
+          this.emitDone({ status: 0, error: 'network' });
+        } else if (controller.signal.reason === 'timeout') {
+          Pjax.error(`Request timeout: ${this.href}`);
+          this.emitDone({ status: 0, error: 'timeout' });
+          this.redirect();
+        } else {
+          this.emitDone({ status: 0, error: 'abort' });
         }
-        this.emitDone({ status: 0, error: 'abort' });
-      };
-
-      this.req.ontimeout = () => {
-        if (Pjax.request === this.req) {
-          Pjax.request = null;
-        }
-        Pjax.error(`Request timeout: ${this.href}`);
-        this.emitDone({ status: 0, error: 'timeout' });
-        this.redirect();
-      };
-
-      this.req.open(this.opts.method || 'GET', this.href);
-      for (const [k, v] of Object.entries(headers)) {
-        this.req.setRequestHeader(k, v);
+        return;
+      } finally {
+        clearTimeout(timer);
       }
-      this.req.onload = () => this.handleResponse();
-      if (this.opts.form_data) {
-        this.req.send(this.opts.form_data);
-      } else {
-        this.req.send();
+
+      // A late response from a superseded request must not swap anything.
+      if (Pjax.requests.get(this.key) !== controller) {
+        this.resolve(null);
+        return;
+      }
+      Pjax.requests.delete(this.key);
+
+      try {
+        this.handleResponse(res, html);
+      } catch (err) {
+        Pjax.error(`Response failed: ${err?.message || err}`);
+        console.error(err);
+        this.resolve(null);
       }
     }
 
-    handleResponse() {
-      // A late response from a superseded request must not clear or overwrite
-      // the current one.
-      if (Pjax.request && Pjax.request !== this.req) {
-        return;
-      }
-      Pjax.request = null;
-      this.response = this.req.responseText;
+    handleResponse(res, html) {
+      this.response = html;
 
-      const time_diff = Date.now() - this.opts.req_start_time;
-      let log_data = `Pjax.load ${this.href}`;
-      if (this.opts.history === false) {
-        log_data += ' (back trigger)';
-      }
+      const note = this.opts.history === false ? ' (no history)' : '';
       Pjax.console(
-        `${log_data} (app ${this.req.getResponseHeader('x-lux-speed') || 'n/a'}, real ${time_diff}ms, status ${this.req.status})`,
+        `Pjax.load ${this.href}${note} (app ${res.headers.get('x-lux-speed') || 'n/a'}, real ${Date.now() - this.startedAt}ms, status ${res.status})`,
       );
 
-      if (this.req.status !== 200) {
-        const redirect_to = this.req.getResponseHeader('Location');
-        if (redirect_to) {
-          return this.followRedirect(redirect_to);
+      if (res.status !== 200) {
+        const redirectTo = res.headers.get('Location');
+        if (redirectTo) {
+          return this.followRedirect(redirectTo);
         }
-        this.emitDone({ status: this.req.status, error: 'status' });
+        this.emitDone({ status: res.status, error: 'status' });
         return this.redirect();
       }
 
-      const rul = this.req.responseURL;
-      if (rul) {
-        const parsed = new URL(rul);
-        this.href = parsed.pathname + parsed.search;
+      if (res.url) {
+        const url = new URL(res.url);
+        this.href = url.pathname + url.search;
       }
 
       this.historyAddCurrent(this.historyHref());
@@ -895,99 +743,97 @@ export default function createPjax() {
       }
 
       if (!applied) {
-        this.emitDone({ status: this.req.status, error: 'apply' });
+        this.emitDone({ status: res.status, error: 'apply' });
         return this.redirect();
       }
 
-      if (typeof this.opts.done === 'function') {
-        this.opts.done();
-      }
-      this.emitDone({ status: this.req.status });
+      this.emitDone({ status: res.status });
+      this.scrollAfterSwap();
+    }
 
-      if (!(this.opts.scroll === false || Pjax.shouldSkipScroll(this.opts.node))) {
-        window.requestAnimationFrame(() => {
-          window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
-        });
-      } else {
+    scrollAfterSwap() {
+      if (!this.opts.scroll || Pjax.shouldSkipScroll(this.target || this.opts.source)) {
         Pjax.scrollLock();
+        return;
       }
+      const anchor = Pjax._anchor(this.fragment);
+      window.requestAnimationFrame(() => {
+        if (anchor) {
+          anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+        }
+      });
     }
 
     applyLoadedData() {
-      this.pjaxNode = Pjax.node();
-      if (!this.pjaxNode) {
+      const pjaxNode = Pjax.node();
+      if (!pjaxNode) {
         return;
       }
-      if (!this.pjaxNode.id) {
+      if (!pjaxNode.id) {
         return Pjax.error('No ID attribute on pjax node');
       }
 
-      this.rroot = document.createElement('div');
-      this.rroot.innerHTML = this.response;
+      this.responseRoot = document.createElement('div');
+      this.responseRoot.innerHTML = this.response;
 
-      if (this.opts.target && this.applyTarget()) {
+      if (this.target && this.applyTarget()) {
         return true;
       }
-      if (this.opts.ajax_node) {
+      if (this.region) {
         return this.applyAjax();
       }
       return this.applyFullSwap();
     }
 
     applyTarget() {
-      const id = this.opts.target.getAttribute('id');
-      if (!id) {
-        Pjax.error('ID attribute not found on Pjax target');
-        return false;
-      }
-
-      const rtarget = Pjax.findById(this.rroot, id);
-      if (!rtarget) {
+      const source = Pjax.findById(this.responseRoot, this.target.id);
+      if (!source) {
         return false;
       }
 
       Pjax.scrollLock();
-      Pjax.morphInto(this.opts.target, Pjax.parseScripts(rtarget.innerHTML));
+      Pjax.morphInto(this.target, runScripts(source));
       return true;
     }
 
     applyAjax() {
-      const ajax_node = this.opts.ajax_node;
-      ajax_node.setAttribute('data-path', this.href);
-      ajax_node.removeAttribute('path');
-      const ajax_id = ajax_node.getAttribute('id');
-      if (!ajax_id) {
+      const region = this.region;
+      region.setAttribute('data-path', this.href);
+      region.removeAttribute('path');
+      if (!region.id) {
         Pjax.error('Pjax .ajax node has no ID');
         return false;
       }
-      const ajax_data = Pjax.findById(this.rroot, ajax_id)?.innerHTML || this.response;
-      Pjax.morphInto(ajax_node, Pjax.parseScripts(ajax_data));
+      // a response without the region's id is the region content itself
+      const source = Pjax.findById(this.responseRoot, region.id) || this.responseRoot;
+      Pjax.morphInto(region, runScripts(source));
       return true;
     }
 
     applyFullSwap() {
-      Pjax._addHistoryEntry(this.historyHref(), this.response);
-      return Pjax.setPageBody(this.rroot, this.href);
+      Pjax._addHistoryEntry(this.href, this.response);
+      return Pjax.setPageBody(this.responseRoot, this.href);
     }
 
     historyAddCurrent(href) {
-      if (this.opts.history === false || (this.opts.ajax_node && !this.opts.target)) {
+      if (this.opts.history === false || this.historyAdded) {
         return;
       }
-      if (this.history_added) {
-        return;
-      }
-      this.history_added = true;
+      this.historyAdded = true;
 
-      if (this.opts.replace || Pjax._lastHrefCheck === href) {
+      // re-fetching the URL already in the address bar never stacks an entry
+      const current = location.pathname + location.search + location.hash;
+      if (this.opts.history === 'replace' || href === current) {
         Pjax.replace(href);
       } else {
         Pjax.push(href);
       }
-      Pjax._lastHrefCheck = href;
     }
   }
 
+  attachUrlState(Pjax);
   Pjax.PjaxOnClick = createOnClick(Pjax);
 
   return Pjax;

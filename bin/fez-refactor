@@ -5,11 +5,14 @@ import fs from 'fs';
 import path from 'path';
 import { globSync } from 'glob';
 
-const INFO = 'Report legacy Fez syntax and JavaScript modernization candidates';
+const INFO =
+  'Report legacy Fez syntax, window.Pjax calls and JavaScript modernization candidates';
 const DEFAULT_PATHS = ['pages_src/root/fez', 'src', 'test'];
 // Dependencies and build output are not the author's to refactor, and a bundled
 // copy of an old component reports every issue a second time.
 const IGNORED_DIRS = ['node_modules', 'dist', 'build', 'tmp', '.next', '.git', 'coverage', 'vendor'];
+// Pjax statics that moved to Fez itself; everything else lives on Fez.pjax
+const PJAX_SHORTCUTS = ['load', 'refresh', 'qs', 'hash', 'hpath', 'hqs'];
 
 let values, positionals;
 try {
@@ -114,8 +117,14 @@ function auditFile(file) {
   const report = (line, message, suggestion) =>
     issues.push({ file: displayPath(file), line, message, suggestion });
 
+  // the pjax lib and its tests bind their own Pjax - only globals are legacy
+  const ownsPjax = /\b(?:class|let|const|var)\s+Pjax\b|function\s*\w*\s*\(\s*Pjax\s*\)/.test(content);
+
   for (let index = 0; index < lines.length; index++) {
     const line = lines[index];
+    if (!ownsPjax && /\bPjax\./.test(stripLineComment(line))) {
+      report(index + 1, 'Legacy window.Pjax call', pjaxSuggestion(line));
+    }
     if (isFez && /\{\{[\s#/]*/.test(line)) {
       report(
         index + 1,
@@ -129,6 +138,32 @@ function auditFile(file) {
   }
 
   return issues;
+}
+
+function pjaxSuggestion(line) {
+  const hints = [];
+  for (const [, name] of line.matchAll(/\bPjax\.(\w+)/g)) {
+    if (name === 'reload') {
+      hints.push('Pjax.reload -> Fez.refresh');
+    } else if (PJAX_SHORTCUTS.includes(name)) {
+      hints.push(`Pjax.${name} -> Fez.${name}`);
+    } else {
+      hints.push(`Pjax.${name} -> Fez.pjax.${name}`);
+    }
+  }
+  // load options only; the URL state helpers keep their own `replace` option
+  if (/\bPjax\.(?:load|refresh|reload)\b/.test(line)) {
+    if (/\bajax\s*:/.test(line)) {
+      hints.push('ajax: -> source:');
+    }
+    if (/\breplace\s*:\s*true\b/.test(line)) {
+      hints.push("replace: true -> history: 'replace'");
+    }
+    if (/\bdone\s*:/.test(line)) {
+      hints.push('done: fn -> .then(fn)');
+    }
+  }
+  return [...new Set(hints)].join('; ');
 }
 
 function stripLineComment(line) {

@@ -68,7 +68,7 @@ export default function createOnClick(Pjax) {
       }
 
       const href = node.getAttribute('href');
-      const replace = node.hasAttribute('pjax-replace');
+      const history = node.hasAttribute('pjax-replace') ? 'replace' : undefined;
       const target = node.getAttribute('target');
 
       // middle-click / cmd-click is a user gesture to open a new tab, before any
@@ -95,7 +95,7 @@ export default function createOnClick(Pjax) {
           Pjax.error(`pjax-target selector did not match: ${pjaxTarget}`);
           return;
         }
-        Pjax.load(href, { target: targetNode, replace });
+        Pjax.load(href, { target: targetNode, history });
         return;
       }
 
@@ -121,7 +121,7 @@ export default function createOnClick(Pjax) {
         return PjaxOnClick.leave(href, target);
       }
 
-      Pjax.load(href, { ajax: node, replace });
+      Pjax.load(href, { source: node, history });
       return false;
     },
 

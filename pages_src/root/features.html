@@ -1,6 +1,6 @@
 ---
 title: "Features"
-description: "Every Fez feature with a focused code example and its result: components, templates, reactivity, props, CSS, motion, lifecycle, utilities, Pjax and tooling."
+description: "Every Fez feature with a focused code example and its result: components, templates, reactivity, props, CSS, motion, lifecycle, utilities, navigation and tooling."
 components:
   - /system.fez
   - /system-blocks.fez
@@ -17,7 +17,7 @@ components:
           <h1 class="site-h1">Every part of Fez,<br>shown one by one.</h1>
           <p class="site-lead">
             This is the complete working surface: component files, templates, state, props, directives,
-            CSS, motion, lifecycle hooks, instance helpers, static APIs, the DOM differ, Pjax and CLI tools.
+            CSS, motion, lifecycle hooks, instance helpers, static APIs, the DOM differ, page navigation and CLI tools.
             Every item pairs the rule with a small example and the result it produces.
           </p>
           <nav class="site-feature-jumps" aria-label="Feature groups">
@@ -30,7 +30,7 @@ components:
             <a href="features.html#helpers">Core methods</a>
             <a href="features.html#runtime">Runtime APIs</a>
             <a href="features.html#performance">DOM &amp; performance</a>
-            <a href="features.html#pjax-tooling">Pjax &amp; tooling</a>
+            <a href="features.html#pjax-tooling">Navigation &amp; tooling</a>
           </nav>
         </div>
       </header>
@@ -1813,7 +1813,7 @@ patch(i, value) {
           <div class="site-feature-group-head">
             <p class="site-feature-group-number">10 / 10</p>
             <div>
-              <h2 class="site-h2">Pjax and tooling</h2>
+              <h2 class="site-h2">Navigation and tooling</h2>
               <p class="site-lead">The distribution includes progressive page navigation, a component compiler and focused developer tools. They are optional, but they share the same runtime and component model.</p>
             </div>
           </div>
@@ -1821,9 +1821,9 @@ patch(i, value) {
           <div class="site-feature-list">
             <article class="site-feature-row" id="pjax-gating">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">window.Pjax · boot gating · start()</p>
+                <p class="site-feature-kicker">Fez.pjax · boot gating · start()</p>
                 <h3>Navigation only when invited</h3>
-                <p><code>window.Pjax</code> is always exposed, but click, popstate and form handlers bind only when the initial page contains a named <code>pjax</code> container. Late containers opt in with <code>Pjax.start()</code>.</p>
+                <p><code>Fez.load</code>, <code>Fez.refresh</code> and <code>Fez.pjax</code> are always exposed, but click, popstate and form handlers bind only when the initial page contains a named <code>pjax</code> container. Late containers opt in with <code>Fez.pjax.start()</code>.</p>
               </div>
               <site-live title="Pjax boot" right-title="progressive">
                 <div class="src"><pre><code>&lt;main id="pjax" class="pjax"&gt;
@@ -1831,38 +1831,36 @@ patch(i, value) {
 &lt;/main&gt;
 
 // late-injected container
-Pjax.start()
+Fez.pjax.start()
 
 // pages without a pjax container keep
 // ordinary browser navigation</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">container found</span><span>links, history and forms enhanced</span></div>
-                <div class="out-label">Fez backs off if another library already owns window.Pjax</div>
+                <div class="out-label">there is no window.Pjax global - everything lives on Fez</div>
               </site-live>
             </article>
 
             <article class="site-feature-row" id="pjax-navigation-api">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">load · refresh · reload · path · last · node · refreshed</p>
-                <h3>Complete navigation API</h3>
-                <p>Navigate, refresh the whole page or one target, bypass cache, inspect the current and previous path and locate the active container. <code>push</code>, <code>replace</code> and query-string helpers cover history changes.</p>
+                <p class="site-feature-kicker">Fez.load · Fez.refresh · one signature, different defaults</p>
+                <h3>Load and refresh</h3>
+                <p>Both take a URL, a <code>#selector</code> or an element, plus <code>target</code>, <code>source</code>, <code>form</code>, <code>history</code> and <code>scroll</code>. <code>refresh</code> is the fresh variant: no-cache, no double-click debounce and no scroll. Defaults fill only what you leave out, and the Promise never rejects.</p>
               </div>
-              <site-live title="Pjax API" right-title="history aware">
-                <div class="src"><pre><code>Pjax.load('/users')
-Pjax.refresh()
-Pjax.refresh('#sidebar')
-Pjax.reload({ scroll: false })
+              <site-live title="Fez.load" right-title="history aware">
+                <div class="src"><pre><code>Fez.load('/users')
+Fez.load('#panel')
+Fez.load('/users', { target: '#panel' })
+Fez.refresh()
+Fez.refresh('#sidebar')
 
-Pjax.path()
-Pjax.last()
-Pjax.node()
-Pjax.refreshed()
+const detail = await Fez.load('/users')
+detail?.status   // 200
+detail?.error    // null | 'status' | 'network' | ...
 
-Pjax.push('/users?page=2')
-Pjax.replace('/users?page=3')
-Pjax.qs('page', 4)
-Pjax.qs('page')</code></pre></div>
-                <div class="out feature-result"><span class="result-chip">fetch</span><span>→</span><span class="result-chip">history</span><span>→</span><span class="result-chip">morph</span><span>→</span><span class="result-chip">scroll</span></div>
-                <div class="out-label">load options control target, history, replace, scroll, cache, force, form and completion</div>
+Fez.qs('page', 4)
+Fez.hash('tab', 'settings')</code></pre></div>
+                <div class="out feature-result"><span class="result-chip">load: cached, debounced, scrolls on a full swap</span><span class="result-chip">refresh: no-cache, never debounced, keeps scroll</span></div>
+                <div class="out-label">loads into different nodes run side by side; a full load cancels them</div>
               </site-live>
             </article>
 
@@ -1870,7 +1868,7 @@ Pjax.qs('page')</code></pre></div>
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">links · forms · target · refresh · confirm · replace</p>
                 <h3>Declarative navigation attributes</h3>
-                <p>Ordinary links are intercepted automatically. Classes opt out, target attributes replace only one region, refresh attributes re-fetch the current URL, confirmation can be synchronous or async, and forms submit through Pjax.</p>
+                <p>Ordinary links are intercepted automatically. Classes opt out, target attributes replace only one region, refresh attributes re-fetch the current URL, confirmation can be synchronous or async, and forms submit through pjax.</p>
               </div>
               <site-live title="Pjax HTML" right-title="declarative">
                 <div class="src"><pre><code>&lt;a href="/users"&gt;Users&lt;/a&gt;
@@ -1882,7 +1880,7 @@ Pjax.qs('page')</code></pre></div>
 
 &lt;form data-pjax="true"&gt;...&lt;/form&gt;
 &lt;form data-pjax="#panel"&gt;...&lt;/form&gt;</code></pre></div>
-                <div class="out feature-result"><span class="result-chip">full swap</span><span class="result-chip">target swap</span><span class="result-chip">native opt-out</span><span class="result-chip">Pjax form</span></div>
+                <div class="out feature-result"><span class="result-chip">full swap</span><span class="result-chip">target swap</span><span class="result-chip">native opt-out</span><span class="result-chip">pjax form</span></div>
                 <div class="out-label">the direct class is also accepted as a native-navigation opt-out</div>
               </site-live>
             </article>
@@ -1901,10 +1899,10 @@ document.addEventListener('pjax:render', event =&gt; {
   console.log(event.detail.duration, event.detail.mode)
 })
 
-Pjax.before = (href, opts) =&gt; true
-Pjax.after = href =&gt; analytics.page(href)
-Pjax.confirm = (message, node) =&gt; Dialog.confirm(message)
-Pjax.emit('app:navigated', { href: Pjax.path() })</code></pre></div>
+Fez.pjax.before = (href, opts) =&gt; true
+Fez.pjax.after = href =&gt; analytics.page(href)
+Fez.pjax.confirm = (message, node) =&gt; Dialog.confirm(message)
+Fez.pjax.emit('app:navigated', { href: Fez.pjax.path() })</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">start cancelable</span><span class="result-chip">render measured</span><span class="result-chip">async confirm</span></div>
                 <div class="out-label">inside a component, this.on('pjax:render', handler) cleans itself up</div>
               </site-live>
@@ -1912,23 +1910,23 @@ Pjax.emit('app:navigated', { href: Pjax.path() })</code></pre></div>
 
             <article class="site-feature-row" id="pjax-configuration">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">Pjax.config · cache · View Transitions · response scripts</p>
+                <p class="site-feature-kicker">Fez.pjax.config · View Transitions · response scripts</p>
                 <h3>Configurable page swaps</h3>
                 <p>Configure silent mode, skip paths, no-scroll and no-AJAX selectors, timeout and history cache size. Native View Transitions are optional. Response scripts run before morph unless marked <code>pjax-delay</code>.</p>
               </div>
               <site-live title="Pjax config" right-title="application policy">
-                <div class="src"><pre><code>Pjax.config.timeout = 12_000
-Pjax.config.history_max = 40
-Pjax.config.paths_to_skip.push(/^\/admin\/export/)
-Pjax.config.no_scroll_selector.push('.keep-scroll')
-Pjax.config.no_pjax_class.push('native-link')
-Pjax.config.no_ajax_class.push('native-form')
+                <div class="src"><pre><code>Fez.pjax.config.timeout = 12_000
+Fez.pjax.config.history_max = 40
+Fez.pjax.config.paths_to_skip.push(/^\/admin\/export/)
+Fez.pjax.config.no_scroll_selector.push('.keep-scroll')
+Fez.pjax.config.no_pjax_class.push('native-link')
+Fez.pjax.config.no_ajax_class.push('native-form')
 
-Pjax.useViewTransition = true
+Fez.pjax.useViewTransition = true
 
 &lt;script pjax-delay&gt;afterSwap()&lt;/script&gt;</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">policy configured</span><span class="result-chip">history cached</span><span class="result-chip">view transition optional</span></div>
-                <div class="out-label">Pjax.error and Pjax.console can be replaced for application reporting</div>
+                <div class="out-label">Fez.pjax.error and Fez.pjax.console can be replaced for application reporting</div>
               </site-live>
             </article>
 
@@ -1936,7 +1934,7 @@ Pjax.useViewTransition = true
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">compile · template · refactor · index · debug · agents</p>
                 <h3>Focused CLI tools</h3>
-                <p>Validate complete files or templates, inspect generated template code, report modernization candidates, index component metadata, open a Playwright debugging REPL, and print or initialize the agent reference.</p>
+                <p>Validate complete files or templates, inspect generated template code, report modernization candidates and legacy <code>Pjax.</code> calls, index component metadata, open a Playwright debugging REPL, and print or initialize the agent reference.</p>
               </div>
               <site-live title="terminal" right-title="bun-friendly tooling">
                 <div class="src"><pre><code>fez compile docs/fez/ui-card.fez
@@ -1960,7 +1958,7 @@ fez --help</code></pre></div>
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">fez.d.ts · AGENTS.md</p>
                 <h3>Typed and agent-readable interfaces</h3>
-                <p>The package ships TypeScript declarations for component state, props, hooks, helpers, transitions and Pjax. The complete Fez-specific authoring reference fits in AGENTS.md for coding tools and humans.</p>
+                <p>The package ships TypeScript declarations for component state, props, hooks, helpers, transitions and page navigation. The complete Fez-specific authoring reference fits in AGENTS.md for coding tools and humans.</p>
               </div>
               <site-live title="tooling contract" right-title="no TypeScript build required">
                 <div class="src"><pre><code>/// &lt;reference path="./node_modules/@dinoreic/fez/fez.d.ts" /&gt;

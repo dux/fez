@@ -1,11 +1,25 @@
 // Ported from dux-pjax test/pjax.test.coffee - "Pjax module" describe block.
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
-import { setupPjaxEnv, teardownPjaxEnv, resetDOM } from './pjax-env.js';
+import {
+  setupPjaxEnv,
+  teardownPjaxEnv,
+  resetDOM,
+  installMockFetch,
+  respond,
+  settle,
+} from './pjax-env.js';
 import createPjax from '../src/fez/pjax/pjax.js';
+import { runScripts, runHeadScripts } from '../src/fez/pjax/scripts.js';
 import Fez from '../src/fez/root.js';
 
 let Pjax;
+
+const nodeFrom = (html) => {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div;
+};
 
 beforeAll(() => {
   setupPjaxEnv();
@@ -26,18 +40,19 @@ describe('Pjax module', () => {
     expect(createPjax()).not.toBe(Pjax);
   });
 
-  test('derives ajax context when DOM node provided', () => {
+  test('source inside a .ajax region resolves the region', () => {
     const ajaxNode = document.getElementById('ajax-node');
-    const opts = Pjax.getOpts('?foo=bar', { ajax: ajaxNode });
-    expect(opts.ajax_node).toBe(ajaxNode);
-    expect(opts.scroll).toBe(false);
-    expect(opts.path).toBe('/dialog?foo=bar');
+    const link = ajaxNode.querySelector('a');
+    const pjax = new Pjax('?foo=bar', { source: link });
+    expect(pjax.region).toBe(ajaxNode);
+    expect(pjax.opts.scroll).toBe(false);
+    expect(pjax.href).toBe('/dialog?foo=bar');
+    expect(pjax.swapMode()).toBe('ajax');
   });
 
-  test('executes inline scripts through parseScripts', () => {
+  test('executes inline scripts through runScripts', () => {
     window.__pjaxTestCounter = 0;
-    const html = '<div><script>window.__pjaxTestCounter += 1</script></div>';
-    Pjax.parseScripts(html);
+    runScripts(nodeFrom('<div><script>window.__pjaxTestCounter += 1</script></div>'));
     expect(window.__pjaxTestCounter).toBe(1);
   });
 
@@ -67,7 +82,7 @@ describe('Pjax module', () => {
     Fez.compile = (node) => compiled.push(node.getAttribute('fez'));
 
     try {
-      Pjax.runHeadScripts(root, pjaxBody);
+      runHeadScripts(root, pjaxBody, Pjax.error);
     } finally {
       Fez.compile = original;
     }
@@ -98,7 +113,7 @@ describe('Pjax module', () => {
     console.error = () => {};
 
     try {
-      expect(() => Pjax.runHeadScripts(root, null)).not.toThrow();
+      expect(() => runHeadScripts(root, null, () => {})).not.toThrow();
     } finally {
       Fez.compile = original;
       console.error = originalError;
@@ -119,106 +134,12 @@ describe('Pjax module', () => {
       </main>
     `;
 
-    const originalFetch = Pjax.fetch;
-    Pjax.fetch = (opts) => {
-      const pjax = new Pjax(opts);
-      pjax.response = response;
-      pjax.applyLoadedData();
-    };
-    try {
-      Pjax.refresh('#some-div');
-    } finally {
-      Pjax.fetch = originalFetch;
-    }
+    const { href, opts } = Pjax.getOpts('#some-div');
+    const pjax = new Pjax(href, opts, true);
+    pjax.response = response;
+    pjax.applyLoadedData();
 
     expect(document.getElementById('some-div').innerHTML).toBe('New content');
-  });
-
-  test('normalizes options before fetching when calling load', () => {
-    const normalized = { path: '/users' };
-    const calls = [];
-    const originalGetOpts = Pjax.getOpts;
-    const originalFetch = Pjax.fetch;
-
-    Pjax.getOpts = (href, opts) => {
-      calls.push('getOpts');
-      expect(href).toBe('/users');
-      expect(opts.extra).toBe(true);
-      return normalized;
-    };
-
-    Pjax.fetch = (opts) => {
-      calls.push('fetch');
-      expect(opts).toBe(normalized);
-    };
-
-    try {
-      Pjax.load('/users', { extra: true });
-      expect(calls).toEqual(['getOpts', 'fetch']);
-    } finally {
-      Pjax.getOpts = originalGetOpts;
-      Pjax.fetch = originalFetch;
-    }
-  });
-
-  test('forces selector refreshes to skip history and scrolling', () => {
-    const target = document.createElement('div');
-    target.id = 'panel';
-    document.getElementById('pjax').appendChild(target);
-
-    const originalPath = Pjax.path;
-    const originalGetOpts = Pjax.getOpts;
-    const originalFetch = Pjax.fetch;
-    const normalized = {};
-
-    Pjax.path = () => '/current';
-
-    Pjax.getOpts = (func, opts) => {
-      expect(func).toBe('/current');
-      const result = originalGetOpts.call(Pjax, func, opts);
-      expect(result.target).toBe(target);
-      expect(result.history).toBe(false);
-      return normalized;
-    };
-
-    Pjax.fetch = (opts) => {
-      expect(opts.scroll).toBe(false);
-      expect(opts).toBe(normalized);
-    };
-
-    try {
-      Pjax.refresh('#panel');
-    } finally {
-      Pjax.path = originalPath;
-      Pjax.getOpts = originalGetOpts;
-      Pjax.fetch = originalFetch;
-    }
-  });
-
-  test('disables cache when calling reload', () => {
-    const originalGetOpts = Pjax.getOpts;
-    const originalFetch = Pjax.fetch;
-
-    Pjax.getOpts = (arg) => {
-      expect(arg).toBeUndefined();
-      return {};
-    };
-
-    Pjax.fetch = (opts) => {
-      expect(opts.cache).toBe(false);
-    };
-
-    try {
-      Pjax.reload();
-    } finally {
-      Pjax.getOpts = originalGetOpts;
-      Pjax.fetch = originalFetch;
-    }
-  });
-
-  test('normalizes replacePath with query-only value using pathname', () => {
-    const opts = Pjax.getOpts('/users', { replacePath: '?sort=asc' });
-    expect(opts.replacePath).toBe(location.pathname + '?sort=asc');
   });
 
   test('returns last href or current path from last()', () => {
@@ -261,27 +182,27 @@ describe('Pjax module', () => {
     }
   });
 
-  test('skips external scripts in parseScripts', () => {
+  test('skips external scripts in runScripts', () => {
     window.__externalTest = 0;
     const html = '<div><script src="external.js">window.__externalTest = 1</script></div>';
-    Pjax.parseScripts(html);
+    runScripts(nodeFrom(html));
     expect(window.__externalTest).toBe(0);
   });
 
   test('defers scripts with pjax-delay attribute via requestAnimationFrame', () => {
     window.__delayTest = 0;
     const html = '<div><script pjax-delay>window.__delayTest = 1</script></div>';
-    Pjax.parseScripts(html);
+    runScripts(nodeFrom(html));
     // requestAnimationFrame is sync in test env, so it runs immediately
     expect(window.__delayTest).toBe(1);
   });
 
   test('handles target as string selector in getOpts', () => {
     const node = document.getElementById('ajax-node');
-    const opts = Pjax.getOpts('/test', { target: '#ajax-node' });
+    const { href, opts } = Pjax.getOpts('/test', { target: '#ajax-node' });
+    expect(href).toBe('/test');
     expect(opts.target).toBe(node);
-    expect(opts.node).toBe(node);
-    expect(opts.scroll).toBe(false);
+    expect(new Pjax(href, opts).opts.scroll).toBe(false);
   });
 
   test('binds click handler only once via onDocumentClick', () => {
@@ -322,38 +243,20 @@ describe('Pjax module', () => {
 
   // --- getOpts additional branches ---
 
-  test('getOpts treats function arg as done callback', () => {
-    const fn = () => {};
-    const opts = Pjax.getOpts(fn);
-    expect(opts.done).toBe(fn);
-    expect(opts.path).toBe(Pjax.path());
+  test('getOpts rejects a function or a plain object as the first argument', () => {
+    const errs = [];
+    Pjax.error = (msg) => errs.push(msg);
+    expect(Pjax.getOpts(() => {})).toBeNull();
+    expect(Pjax.getOpts({ path: '/foo' })).toBeNull();
+    expect(errs).toHaveLength(2);
+    expect(errs[0]).toContain('load expects a URL');
   });
 
-  test('getOpts treats plain object arg as opts', () => {
-    const opts = Pjax.getOpts({ path: '/foo', scroll: false });
-    expect(opts.path).toBe('/foo');
-    expect(opts.scroll).toBe(false);
+  test('prepends pathname for query-only href without a region', () => {
+    expect(new Pjax('?search=hello').href).toBe(location.pathname + '?search=hello');
   });
 
-  test('getOpts converts href alias to path', () => {
-    const opts = Pjax.getOpts({ href: '/aliased' });
-    expect(opts.path).toBe('/aliased');
-    expect(opts.href).toBeUndefined();
-  });
-
-  test('getOpts treats string second arg as target', () => {
-    const node = document.getElementById('ajax-node');
-    const opts = Pjax.getOpts('/page', '#ajax-node');
-    expect(opts.target).toBe(node);
-    expect(opts.node).toBe(node);
-  });
-
-  test('getOpts prepends pathname for query-only path without ajax node', () => {
-    const opts = Pjax.getOpts('?search=hello');
-    expect(opts.path).toBe(location.pathname + '?search=hello');
-  });
-
-  test('getOpts skips ajax_node when parent has no_ajax_class', () => {
+  test('skips the region when a parent has no_ajax_class', () => {
     document.body.innerHTML = `
       <main class="pjax" id="pjax">
         <div class="no-ajax">
@@ -364,11 +267,12 @@ describe('Pjax module', () => {
       </main>
     `;
     const link = document.getElementById('skip-link');
-    const opts = Pjax.getOpts('/test', { ajax: link });
-    expect(opts.ajax_node).toBeUndefined();
+    const pjax = new Pjax('/test', { source: link });
+    expect(pjax.region).toBeUndefined();
+    expect(pjax.swapMode()).toBe('full');
   });
 
-  test('getOpts uses path attribute as fallback for data-path on ajax node', () => {
+  test('uses path attribute as fallback for data-path on the region', () => {
     document.body.innerHTML = `
       <main class="pjax" id="pjax">
         <div class="ajax" id="path-ajax" path="/alt-path">
@@ -377,8 +281,7 @@ describe('Pjax module', () => {
       </main>
     `;
     const link = document.getElementById('path-link');
-    const opts = Pjax.getOpts('?q=1', { ajax: link });
-    expect(opts.path).toBe('/alt-path?q=1');
+    expect(new Pjax('?q=1', { source: link }).href).toBe('/alt-path?q=1');
   });
 
   // --- shouldSkipScroll ---
@@ -416,30 +319,26 @@ describe('Pjax module', () => {
     expect(Pjax._scrollLockTime).toBe(firstTime);
   });
 
-  // --- parseScripts edge cases ---
+  // --- runScripts edge cases ---
 
-  test('parseScripts skips non-javascript type scripts', () => {
+  test('runScripts skips non-javascript type scripts', () => {
     window.__jsonTest = 0;
-    const html = '<div><script type="application/json">window.__jsonTest = 1</script></div>';
-    Pjax.parseScripts(html);
+    runScripts(nodeFrom('<div><script type="application/json">window.__jsonTest = 1</script></div>'));
     expect(window.__jsonTest).toBe(0);
   });
 
-  test('parseScripts accepts DOM node directly', () => {
-    window.__domNodeTest = 0;
-    const div = document.createElement('div');
-    div.innerHTML = '<script>window.__domNodeTest = 5</script>';
-    Pjax.parseScripts(div);
-    expect(window.__domNodeTest).toBe(5);
-  });
-
-  test('parseScripts auto-assigns ids to scripts without one', () => {
-    Pjax.script_cnt = 0;
-    const div = document.createElement('div');
-    div.innerHTML = '<div><script>void 0</script></div>';
-    Pjax.parseScripts(div);
-    const script = div.querySelector('script');
-    expect(script.id).toMatch(/^app-sc-/);
+  test('runScripts removes the scripts it ran and keeps the rest', () => {
+    const node = nodeFrom(
+      '<p>a</p><script>void 0</script><script type="application/json">{}</script>' +
+        '<script src="x.js"></script><script fez="ui-x.fez"></script>',
+    );
+    expect(runScripts(node)).toBe(node);
+    expect(Array.from(node.querySelectorAll('script'), (el) => el.outerHTML)).toEqual([
+      '<script type="application/json">{}</script>',
+      '<script src="x.js"></script>',
+      '<script fez="ui-x.fez"></script>',
+    ]);
+    expect(node.querySelector('p').textContent).toBe('a');
   });
 
   for (const method of ['qs', 'hash']) {
@@ -625,7 +524,7 @@ describe('Pjax module', () => {
 
   test('applyLoadedData in ajax_node mode replaces container and sets data-path', () => {
     const ajaxNode = document.getElementById('ajax-node');
-    const pjax = new Pjax({ path: '/new-dialog', ajax_node: ajaxNode });
+    const pjax = new Pjax('/new-dialog', { source: ajaxNode });
     pjax.response = '<div id="ajax-node"><p>Updated ajax</p></div>';
     pjax.applyLoadedData();
 
@@ -635,7 +534,7 @@ describe('Pjax module', () => {
 
   test('applyLoadedData in ajax_node mode uses full response when no matching id', () => {
     const ajaxNode = document.getElementById('ajax-node');
-    const pjax = new Pjax({ path: '/fallback', ajax_node: ajaxNode });
+    const pjax = new Pjax('/fallback', { source: ajaxNode });
     pjax.response = '<p>Full response fallback</p>';
     pjax.applyLoadedData();
 
@@ -648,7 +547,7 @@ describe('Pjax module', () => {
     target.innerHTML = 'Old';
     document.getElementById('pjax').appendChild(target);
 
-    const pjax = new Pjax({ path: '/special-id', target });
+    const pjax = new Pjax('/special-id', { target });
     pjax.response = '<main class="pjax" id="pjax"><div id="user:42.panel">New</div></main>';
     const result = pjax.applyLoadedData();
 
@@ -664,7 +563,7 @@ describe('Pjax module', () => {
 
     try {
       const response = '<title>Stored</title><main class="pjax" id="pjax"><p>Cached</p></main>';
-      const pjax = new Pjax({ path: '/cached-page' });
+      const pjax = new Pjax('/cached-page');
       pjax.response = response;
       pjax.applyLoadedData();
       expect(Pjax.historyData['/cached-page'].html).toBe(response);
@@ -682,7 +581,7 @@ describe('Pjax module', () => {
     window.history.pushState = () => (pushCalled = true);
 
     try {
-      const pjax = new Pjax({ path: '/skip', history: false });
+      const pjax = new Pjax('/skip', { history: false });
       pjax.historyAddCurrent('/skip');
       expect(pushCalled).toBe(false);
     } finally {
@@ -690,14 +589,14 @@ describe('Pjax module', () => {
     }
   });
 
-  test('historyAddCurrent skips when ajax_node set without target', () => {
+  test('historyAddCurrent skips for a region swap by default', () => {
     let pushCalled = false;
     const originalPush = window.history.pushState;
     window.history.pushState = () => (pushCalled = true);
 
     try {
       const ajaxNode = document.getElementById('ajax-node');
-      const pjax = new Pjax({ path: '/ajax', ajax_node: ajaxNode });
+      const pjax = new Pjax('/ajax', { source: ajaxNode });
       pjax.historyAddCurrent('/ajax');
       expect(pushCalled).toBe(false);
     } finally {
@@ -705,7 +604,8 @@ describe('Pjax module', () => {
     }
   });
 
-  test('historyAddCurrent uses replaceState on duplicate href', () => {
+  test('historyAddCurrent replaces when the URL does not change', () => {
+    window.history.replaceState({}, '', '/same-page');
     let replaced = null;
     let pushed = null;
     const originalPush = window.history.pushState;
@@ -714,14 +614,14 @@ describe('Pjax module', () => {
     window.history.replaceState = (s, t, url) => (replaced = url);
 
     try {
-      Pjax._lastHrefCheck = '/same-page';
-      const pjax = new Pjax({ path: '/same-page' });
+      const pjax = new Pjax('/same-page');
       pjax.historyAddCurrent('/same-page');
       expect(replaced).toBe('/same-page');
       expect(pushed).toBeNull();
     } finally {
       window.history.pushState = originalPush;
       window.history.replaceState = originalReplace;
+      window.history.replaceState({}, '', '/');
     }
   });
 
@@ -731,35 +631,49 @@ describe('Pjax module', () => {
     window.history.pushState = (s, t, url) => (pushed = url);
 
     try {
-      Pjax._lastHrefCheck = '/old-page';
-      const pjax = new Pjax({ path: '/new-page' });
+      const pjax = new Pjax('/new-page');
       pjax.historyAddCurrent('/new-page');
       expect(pushed).toBe('/new-page');
-      expect(Pjax._lastHrefCheck).toBe('/new-page');
     } finally {
       window.history.pushState = originalPush;
     }
   });
 
-  // --- instance load() ---
+  test('history: replace forces replaceState on a new href', () => {
+    let pushed = null;
+    let replaced = null;
+    const originalPush = window.history.pushState;
+    const originalReplace = window.history.replaceState;
+    window.history.pushState = (s, t, url) => (pushed = url);
+    window.history.replaceState = (s, t, url) => (replaced = url);
 
-  test('instance load returns false when href is empty', () => {
-    const pjax = new Pjax({ path: '' });
-    const result = pjax.load();
-    expect(result).toBe(false);
+    try {
+      const pjax = new Pjax('/replace-target', { history: 'replace' });
+      pjax.historyAddCurrent('/replace-target');
+      expect(replaced).toBe('/replace-target');
+      expect(pushed).toBeNull();
+    } finally {
+      window.history.pushState = originalPush;
+      window.history.replaceState = originalReplace;
+    }
   });
 
-  test('instance load aborts when before() returns false', () => {
+  // --- instance load() ---
+
+  test('an empty href loads the current URL', () => {
+    expect(new Pjax('').href).toBe(Pjax.path());
+  });
+
+  test('instance load sends nothing when before() returns false', () => {
     Pjax.before = () => false;
-    const pjax = new Pjax({ path: '/blocked' });
-    const result = pjax.load();
-    expect(result).toBeUndefined();
+    const pjax = new Pjax('/blocked');
+    expect(pjax.load()).toBe(false);
   });
 
   test('instance load tracks pastHref and lastHref', () => {
     Pjax.lastHref = '/previous';
     Pjax.before = () => false;
-    const pjax = new Pjax({ path: '/current' });
+    const pjax = new Pjax('/current');
     pjax.load();
     expect(Pjax.pastHref).toBe('/previous');
     expect(Pjax.lastHref).toBe('/current');
@@ -768,7 +682,7 @@ describe('Pjax module', () => {
   test('instance load redirects for paths_to_skip string match', () => {
     Pjax.config.paths_to_skip = ['/admin'];
     let redirected = false;
-    const pjax = new Pjax({ path: '/admin/users' });
+    const pjax = new Pjax('/admin/users');
     pjax.redirect = () => (redirected = true);
     pjax.load();
     expect(redirected).toBe(true);
@@ -777,7 +691,7 @@ describe('Pjax module', () => {
   test('instance load redirects for paths_to_skip regex match', () => {
     Pjax.config.paths_to_skip = [/^\/api/];
     let redirected = false;
-    const pjax = new Pjax({ path: '/api/v1/data' });
+    const pjax = new Pjax('/api/v1/data');
     pjax.redirect = () => (redirected = true);
     pjax.load();
     expect(redirected).toBe(true);
@@ -786,7 +700,7 @@ describe('Pjax module', () => {
   test('instance load redirects for paths_to_skip function match', () => {
     Pjax.config.paths_to_skip = [(href) => href.includes('skip')];
     let redirected = false;
-    const pjax = new Pjax({ path: '/please-skip-this' });
+    const pjax = new Pjax('/please-skip-this');
     pjax.redirect = () => (redirected = true);
     pjax.load();
     expect(redirected).toBe(true);
@@ -794,63 +708,133 @@ describe('Pjax module', () => {
 
   test('instance load redirects for URLs with http prefix', () => {
     let redirected = false;
-    const pjax = new Pjax({ path: 'https://example.com' });
+    const pjax = new Pjax('https://example.com');
     pjax.redirect = () => (redirected = true);
     pjax.load();
     expect(redirected).toBe(true);
   });
 
-  test('instance load redirects for URLs containing hash', () => {
-    let redirected = false;
-    const pjax = new Pjax({ path: '/page#section' });
-    pjax.redirect = () => (redirected = true);
-    pjax.load();
-    expect(redirected).toBe(true);
-  });
+  describe('requests', () => {
+    let mock;
 
-  test('instance load aborts previous in-flight request', () => {
-    let aborted = false;
-    Pjax.request = { abort: () => (aborted = true) };
+    beforeEach(() => {
+      mock = installMockFetch();
+    });
 
-    class MockXHR {
-      open() {}
-      setRequestHeader() {}
-      send() {}
-    }
-    const OrigXHR = global.XMLHttpRequest;
-    global.XMLHttpRequest = MockXHR;
+    afterEach(() => {
+      mock.restore();
+      window.history.replaceState({}, '', '/');
+    });
 
-    try {
-      const pjax = new Pjax({ path: '/new' });
-      pjax.load();
-      expect(aborted).toBe(true);
-    } finally {
-      global.XMLHttpRequest = OrigXHR;
-    }
-  });
+    test('a fresh request sends pjax headers and no-cache', () => {
+      new Pjax('/headers-test', {}, true).load();
+      expect(mock.requests[0]).toMatchObject({
+        url: '/headers-test',
+        method: 'GET',
+        headers: { 'x-requested-with': 'XMLHttpRequest', 'cache-control': 'no-cache' },
+      });
+      expect(Pjax.requests.get('full')).toBeInstanceOf(AbortController);
+    });
 
-  test('instance load sends XHR with correct headers and timeout', () => {
-    Pjax.request = null;
-    const headers = {};
-    class MockXHR {
-      open() {}
-      setRequestHeader(k, v) {
-        headers[k] = v;
+    test('a load sends no cache-control header', () => {
+      new Pjax('/cached').load();
+      expect(mock.requests[0].headers['cache-control']).toBeUndefined();
+    });
+
+    test('ignores a stale window.event with metaKey', () => {
+      let opened = false;
+      const originalOpen = window.open;
+      const originalEvent = Object.getOwnPropertyDescriptor(window, 'event');
+      window.open = () => (opened = true);
+      Object.defineProperty(window, 'event', { value: { metaKey: true }, configurable: true });
+
+      try {
+        new Pjax('/meta').load();
+        expect(mock.requests).toHaveLength(1);
+        expect(opened).toBe(false);
+      } finally {
+        window.open = originalOpen;
+        if (originalEvent) {
+          Object.defineProperty(window, 'event', originalEvent);
+        } else {
+          delete window.event;
+        }
       }
-      send() {}
-    }
-    const OrigXHR = global.XMLHttpRequest;
-    global.XMLHttpRequest = MockXHR;
+    });
 
-    try {
-      const pjax = new Pjax({ path: '/headers-test', cache: false });
-      pjax.load();
-      expect(headers['x-requested-with']).toBe('XMLHttpRequest');
-      expect(headers['cache-control']).toBe('no-cache');
-      expect(Pjax.request.timeout).toBe(10000);
-    } finally {
-      global.XMLHttpRequest = OrigXHR;
-    }
+    test('a path with a fragment loads in place and keeps the fragment for history', async () => {
+      const pushed = [];
+      const originalPush = window.history.pushState;
+      window.history.pushState = (s, t, url) => pushed.push(url);
+      try {
+        const done = Pjax.load('/page#section');
+        expect(mock.requests[0].url).toBe('/page');
+        await respond(
+          mock.requests[0],
+          '<main class="pjax" id="pjax"><h2 id="section">S</h2></main>',
+        );
+        const detail = await done;
+        expect(detail.status).toBe(200);
+        expect(detail.to).toBe('/page');
+        expect(pushed).toEqual(['/page#section']);
+      } finally {
+        window.history.pushState = originalPush;
+      }
+    });
+
+    test('a fragment on the current path only scrolls, like the browser', async () => {
+      window.history.replaceState({}, '', '/docs');
+      const scrolled = [];
+      const section = document.createElement('h2');
+      section.id = 'install';
+      section.scrollIntoView = () => scrolled.push('install');
+      document.getElementById('pjax').appendChild(section);
+
+      expect(await Pjax.load('/docs#install')).toBeNull();
+      expect(mock.requests).toHaveLength(0);
+      expect(scrolled).toEqual(['install']);
+      expect(location.hash).toBe('#install');
+    });
+
+    test('a fragment on the current path still fetches on refresh', () => {
+      window.history.replaceState({}, '', '/docs');
+      Pjax.refresh('/docs#install');
+      expect(mock.requests[0].url).toBe('/docs');
+    });
+
+    test('refresh() keeps the current hash route in history', async () => {
+      window.history.replaceState({}, '', '/app#/traffic?range=1h');
+      const done = Pjax.refresh();
+      expect(mock.requests[0].url).toBe('/app');
+      await respond(mock.requests[0], '<main class="pjax" id="pjax"><p>ok</p></main>');
+      await done;
+      expect(location.pathname + location.hash).toBe('/app#/traffic?range=1h');
+    });
+
+    test('a same-path load is no longer swallowed while the URL has a hash', () => {
+      window.history.replaceState({}, '', '/docs#install');
+      Pjax.load('/docs');
+      expect(mock.requests).toHaveLength(1);
+    });
+
+    test('a timeout aborts the request and hands off to a full navigation', async () => {
+      const originalError = console.error;
+      console.error = () => {};
+      const originalRedirect = Pjax.prototype.redirect;
+      let redirected = 0;
+      Pjax.prototype.redirect = () => (redirected++, false);
+      Pjax.config.timeout = 5;
+      Pjax.error = () => {};
+      try {
+        const detail = await Pjax.load('/slow');
+        expect(detail.error).toBe('timeout');
+        expect(mock.requests[0].aborted).toBe(true);
+        expect(redirected).toBe(1);
+      } finally {
+        Pjax.prototype.redirect = originalRedirect;
+        console.error = originalError;
+      }
+    });
   });
 
   // --- redirect ---
@@ -860,7 +844,7 @@ describe('Pjax module', () => {
     window.open = () => {};
 
     try {
-      const pjax = new Pjax({ path: 'https://external.com/page' });
+      const pjax = new Pjax('https://external.com/page');
       const result = pjax.redirect();
       expect(result).toBe(false);
     } finally {
@@ -958,23 +942,6 @@ describe('Pjax module', () => {
     expect(Pjax.config.history_max).toBe(20);
   });
 
-  // --- refresh without selector ---
-
-  test('refresh without selector uses current path and disables scroll', () => {
-    let fetchedOpts = null;
-    const originalFetch = Pjax.fetch;
-
-    Pjax.fetch = (opts) => (fetchedOpts = opts);
-
-    try {
-      Pjax.refresh();
-      expect(fetchedOpts.scroll).toBe(false);
-      expect(fetchedOpts.path).toBe(Pjax.path());
-    } finally {
-      Pjax.fetch = originalFetch;
-    }
-  });
-
   // --- console logging ---
 
   test('console logs when not silent and suppresses when silent', () => {
@@ -1047,7 +1014,7 @@ describe('Pjax module', () => {
     Object.defineProperty(window, 'scrollY', { value: 150, writable: true, configurable: true });
 
     try {
-      const pjax = new Pjax({ path: '/next' });
+      const pjax = new Pjax('/next');
       pjax.load();
       expect(Pjax.historyData[Pjax.path()].scrollY).toBe(150);
     } finally {
@@ -1057,26 +1024,283 @@ describe('Pjax module', () => {
 
   // --- form args ---
 
-  test('_resolveArgs keeps POST form data out of the URL', () => {
+  test('keeps POST form data out of the URL', () => {
     document.body.innerHTML =
       '<form id="f" method="post" action="/submit"><input name="a" value="1"></form>';
     const form = document.getElementById('f');
 
-    const opts = Pjax._resolveArgs('/submit', { form });
+    const pjax = new Pjax('/submit', { form });
 
-    expect(opts.method).toBe('POST');
-    expect(opts.path).toBe('/submit');
-    expect(opts.form_data.get('a')).toBe('1');
+    expect(pjax.method).toBe('POST');
+    expect(pjax.href).toBe('/submit');
+    expect(pjax.body.get('a')).toBe('1');
   });
 
-  test('_resolveArgs serializes GET form data into the URL', () => {
+  test('serializes GET form data into the URL', () => {
     document.body.innerHTML =
       '<form id="f" method="get" action="/search"><input name="q" value="fez"></form>';
     const form = document.getElementById('f');
 
-    const opts = Pjax._resolveArgs('/search', { form });
+    const pjax = new Pjax('/search', { form });
 
-    expect(opts.method).toBeUndefined();
-    expect(opts.path).toContain('q=fez');
+    expect(pjax.method).toBeUndefined();
+    expect(pjax.href).toBe('/search?q=fez');
+  });
+});
+
+describe('Pjax.load and Pjax.refresh', () => {
+  let mock;
+  let requests;
+  let starts;
+  let errors;
+  const onStart = (e) => starts.push(e.detail);
+  const page = (panel = 'P', other = 'O') =>
+    `<main class="pjax" id="pjax"><div id="panel">${panel}</div><div id="other">${other}</div></main>`;
+
+  beforeEach(() => {
+    mock = installMockFetch();
+    requests = mock.requests;
+    starts = [];
+    errors = [];
+    Pjax.error = (msg) => errors.push(msg);
+    document.addEventListener('pjax:start', onStart);
+    document
+      .getElementById('pjax')
+      .insertAdjacentHTML(
+        'beforeend',
+        '<div id="panel">old</div><div id="other">old</div><div class="no-id"></div>' +
+          '<div class="no-scroll"><a href="/n" id="no-scroll-link">n</a></div>',
+      );
+  });
+
+  afterEach(() => {
+    mock.restore();
+    document.removeEventListener('pjax:start', onStart);
+    window.history.replaceState({}, '', '/');
+  });
+
+  for (const verb of ['load', 'refresh']) {
+    describe(`${verb} argument shapes`, () => {
+      const trigger = () => document.querySelector('.ajax-trigger');
+      const cases = [
+        ['nothing', () => [], '/', 'full'],
+        ['a path', () => ['/x'], '/x', 'full'],
+        ['a query', () => ['?q=1'], '/?q=1', 'full'],
+        ['a query from a source region', () => ['?q=1', { source: trigger() }], '/dialog?q=1', 'ajax'],
+        ['a source region alone', () => [null, { source: trigger() }], '/dialog', 'ajax'],
+        ['a #selector', () => ['#panel'], '/', 'target'],
+        ['an element', () => [document.getElementById('panel')], '/', 'target'],
+        ['a path with opts.target', () => ['/x', { target: '#panel' }], '/x', 'target'],
+      ];
+
+      for (const [name, args, url, mode] of cases) {
+        test(name, () => {
+          Pjax[verb](...args());
+          expect(requests).toHaveLength(1);
+          expect(requests[0].url).toBe(url);
+          expect(starts[0].mode).toBe(mode);
+          expect(errors).toEqual([]);
+        });
+      }
+
+      test('a positional node together with opts.target is rejected', async () => {
+        expect(await Pjax[verb]('#panel', { target: '#other' })).toBeNull();
+        expect(requests).toHaveLength(0);
+        expect(errors[0]).toContain('target given twice');
+      });
+    });
+  }
+
+  describe('options', () => {
+    test('unknown keys are reported and dropped', () => {
+      const keys = ['node', 'no_cache', 'done', 'ajax', 'replace'];
+      keys.forEach((key, i) => Pjax.load(`/u${i}`, { [key]: '#panel' }));
+      expect(errors).toEqual(keys.map((key) => `unknown load option: ${key}`));
+      expect(requests).toHaveLength(keys.length);
+      for (const detail of starts) {
+        expect(detail.mode).toBe('full');
+        expect(Object.keys(detail.opts).every((k) => Pjax.LOAD_OPTIONS.includes(k))).toBe(true);
+      }
+    });
+
+    test('undefined and null values are accepted silently', () => {
+      Pjax.load('/x', { target: undefined, history: undefined, source: null });
+      expect(errors).toEqual([]);
+      expect(requests).toHaveLength(1);
+    });
+
+    test("the caller's object is never written to", () => {
+      // frozen: any write would throw, fail the call and send nothing
+      const opts = Object.freeze({ scroll: false });
+      Pjax.load('/a', opts);
+      Pjax.refresh('#panel', opts);
+      expect(requests).toHaveLength(2);
+      expect(opts).toEqual({ scroll: false });
+      expect(starts[0].opts.target).toBeUndefined();
+      expect(starts[1].opts.target).toBe(document.getElementById('panel'));
+    });
+
+    test('pjax:render detail.opts holds only the public keys', async () => {
+      const done = Pjax.load('/x', { target: '#panel' });
+      await respond(requests[0], page());
+      const detail = await done;
+      expect(Object.keys(detail.opts).sort()).toEqual(['history', 'scroll', 'target']);
+    });
+  });
+
+  describe('defaults', () => {
+    const panel = () => document.getElementById('panel');
+    const rows = [
+      ['load', "'/x'", () => ['/x'], { scroll: true, history: 'push', noCache: false }],
+      ['load', "'#panel'", () => ['#panel'], { scroll: false, history: false, noCache: false }],
+      ['load', 'element', () => [panel()], { scroll: false, history: false, noCache: false }],
+      ['load', "'/x', { target }", () => ['/x', { target: panel() }], { scroll: false, history: 'push', noCache: false }],
+      [
+        'load',
+        "'/x', { source }",
+        () => ['/x', { source: document.querySelector('.ajax-trigger') }],
+        { scroll: false, history: false, noCache: false },
+      ],
+      ['refresh', '', () => [], { scroll: false, history: 'push', noCache: true }],
+      ['refresh', "'/x'", () => ['/x'], { scroll: false, history: 'push', noCache: true }],
+      ['refresh', "'#panel'", () => ['#panel'], { scroll: false, history: false, noCache: true }],
+    ];
+
+    for (const [verb, label, args, expected] of rows) {
+      test(`${verb}(${label})`, () => {
+        Pjax[verb](...args());
+        expect(starts[0].opts.scroll).toBe(expected.scroll);
+        expect(starts[0].opts.history).toBe(expected.history);
+        expect(requests[0].headers['cache-control'] === 'no-cache').toBe(expected.noCache);
+      });
+    }
+
+    test('explicit values override every default', () => {
+      Pjax.refresh('#panel', { scroll: true, history: 'push' });
+      Pjax.load('/x', { scroll: false, history: false });
+      expect(starts[0].opts).toMatchObject({ scroll: true, history: 'push' });
+      expect(starts[1].opts).toMatchObject({ scroll: false, history: false });
+    });
+
+    test('refresh() of the current URL replaces the history entry', async () => {
+      const calls = [];
+      const { pushState, replaceState } = window.history;
+      window.history.pushState = (s, t, url) => calls.push(`push:${url}`);
+      window.history.replaceState = (s, t, url) => calls.push(`replace:${url}`);
+      try {
+        Pjax.refresh();
+        await respond(requests[0], page());
+      } finally {
+        window.history.pushState = pushState;
+        window.history.replaceState = replaceState;
+      }
+      expect(calls).toEqual(['replace:/']);
+    });
+
+    const smoothScrolls = async (fn) => {
+      const calls = [];
+      const original = window.scrollTo;
+      window.scrollTo = (arg) => calls.push(arg);
+      try {
+        await fn();
+      } finally {
+        window.scrollTo = original;
+      }
+      return calls.filter((arg) => arg?.behavior === 'smooth').length;
+    };
+
+    test('a full swap scrolls to top, a node swap does not', async () => {
+      expect(await smoothScrolls(async () => {
+        Pjax.load('/x');
+        await respond(requests[0], page());
+      })).toBe(1);
+      expect(await smoothScrolls(async () => {
+        Pjax.load('#panel');
+        await respond(requests[1], page());
+      })).toBe(0);
+    });
+
+    test('a .no-scroll source keeps scroll on a full swap', async () => {
+      const link = document.getElementById('no-scroll-link');
+      expect(await smoothScrolls(async () => {
+        Pjax.load('/x', { source: link });
+        await respond(requests[0], page());
+      })).toBe(0);
+    });
+
+    test('load debounces the same URL and node for 2s, refresh never does', async () => {
+      Pjax.load('/x');
+      expect(await Pjax.load('/x')).toBeNull();
+      expect(requests).toHaveLength(1);
+      Pjax.refresh('/y');
+      Pjax.refresh('/y');
+      expect(requests).toHaveLength(3);
+    });
+  });
+
+  describe('target checks', () => {
+    test('a selector that matches nothing', async () => {
+      expect(await Pjax.load('#missing')).toBeNull();
+      expect(errors[0]).toContain('target not found');
+      expect(requests).toHaveLength(0);
+    });
+
+    test('an invalid selector', async () => {
+      expect(await Pjax.refresh('#')).toBeNull();
+      expect(errors[0]).toContain('target not found');
+      expect(requests).toHaveLength(0);
+    });
+
+    test('an element without an id', async () => {
+      expect(await Pjax.load('/x', { target: document.querySelector('.no-id') })).toBeNull();
+      expect(errors[0]).toContain('no id');
+      expect(requests).toHaveLength(0);
+    });
+  });
+
+  describe('swap keys', () => {
+    test('loads into different nodes run side by side', async () => {
+      const a = Pjax.load('#panel');
+      const b = Pjax.load('#other');
+      expect(requests).toHaveLength(2);
+      await respond(requests[0], page('P1', 'ignored'));
+      await respond(requests[1], page('ignored', 'O1'));
+      expect((await a).status).toBe(200);
+      expect((await b).status).toBe(200);
+      expect(document.getElementById('panel').innerHTML).toBe('P1');
+      expect(document.getElementById('other').innerHTML).toBe('O1');
+    });
+
+    test('a second request for the same node aborts the first', async () => {
+      const first = Pjax.refresh('#panel');
+      Pjax.refresh('#panel');
+      expect(requests[0].aborted).toBe(true);
+      expect(requests[1].aborted).toBeUndefined();
+      expect((await first).error).toBe('abort');
+    });
+
+    test('a full load aborts pending node loads', () => {
+      Pjax.load('#panel');
+      Pjax.load('#other');
+      Pjax.load('/x');
+      expect(requests[0].aborted).toBe(true);
+      expect(requests[1].aborted).toBe(true);
+      expect(requests[2].aborted).toBeUndefined();
+    });
+
+    test('a node load leaves a pending full load alone', () => {
+      Pjax.load('/x');
+      Pjax.load('#panel');
+      expect(requests[0].aborted).toBeUndefined();
+    });
+
+    test('a late response of a superseded request does not swap', async () => {
+      Pjax.refresh('#panel');
+      Pjax.refresh('#panel');
+      await respond(requests[0], page('stale'));
+      expect(document.getElementById('panel').innerHTML).toBe('old');
+      await respond(requests[1], page('fresh'));
+      expect(document.getElementById('panel').innerHTML).toBe('fresh');
+    });
   });
 });

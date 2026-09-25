@@ -36,8 +36,8 @@ async function createPage() {
     window.swaps = [];
     window.events = [];
     window.originalMain = document.getElementById('pjax');
-    Pjax.load = (...args) => window.loads.push(args);
-    Pjax.setPageBody = (...args) => window.swaps.push(args);
+    Fez.pjax.load = (...args) => window.loads.push(args);
+    Fez.pjax.setPageBody = (...args) => window.swaps.push(args);
     window.addEventListener('popstate', () => window.events.push('popstate'));
     window.addEventListener('hashchange', () => window.events.push('hashchange'));
   });
@@ -59,21 +59,21 @@ test('hash Back/Forward preserves the mounted page, including return to an empty
     await page.locator('#draft').fill('unsaved text');
     const before = await page.evaluate(() => history.length);
     await page.evaluate(() => {
-      Pjax.hash('tab', 'overview');
-      Pjax.hash('tab', 'settings');
-      Pjax.hash('tab', 'users', { replace: true });
+      Fez.hash('tab', 'overview');
+      Fez.hash('tab', 'settings');
+      Fez.hash('tab', 'users', { replace: true });
     });
     expect(await page.evaluate(() => history.length)).toBe(before + 2);
     expect(await page.evaluate(() => window.events)).toEqual([]);
 
     await page.goBack();
-    await page.waitForFunction(() => Pjax.hash('tab') === 'overview');
+    await page.waitForFunction(() => Fez.hash('tab') === 'overview');
     await page.goBack();
     await page.waitForFunction(() => location.hash === '');
     await page.goForward();
-    await page.waitForFunction(() => Pjax.hash('tab') === 'overview');
+    await page.waitForFunction(() => Fez.hash('tab') === 'overview');
     await page.goForward();
-    await page.waitForFunction(() => Pjax.hash('tab') === 'users');
+    await page.waitForFunction(() => Fez.hash('tab') === 'users');
     await settleHistory(page);
 
     expect(await page.locator('#draft').inputValue()).toBe('unsaved text');
@@ -93,15 +93,15 @@ test('query state has the same history options and preserves hash state', async 
   const page = await createPage();
   try {
     const result = await page.evaluate(() => {
-      Pjax.hash('tab', 'settings');
+      Fez.hash('tab', 'settings');
       const before = history.length;
-      Pjax.qs('page', 2);
-      Pjax.qs('page', 3, { replace: true });
+      Fez.qs('page', 2);
+      Fez.qs('page', 3, { replace: true });
       return {
         added: history.length - before,
-        value: Pjax.qs('page'),
-        hash: Pjax.hash('tab'),
-        preview: Pjax.qs('page', 4, { href: true, replace: true }),
+        value: Fez.qs('page'),
+        hash: Fez.hash('tab'),
+        preview: Fez.qs('page', 4, { href: true, replace: true }),
         href: location.pathname + location.search + location.hash,
         loads: window.loads,
         events: window.events,
@@ -125,16 +125,16 @@ test('hash route state reads and writes path and query without fetching', async 
   const page = await createPage();
   try {
     const result = await page.evaluate(() => {
-      Pjax.hpath('traffic', { qs: { app: 'x', range: '24h' } });
+      Fez.hpath('traffic', { qs: { app: 'x', range: '24h' } });
       const before = history.length;
-      Pjax.hqs('app', 'y');
+      Fez.hqs('app', 'y');
       return {
         added: history.length - before,
-        path: Pjax.hpath(),
-        app: Pjax.hqs('app'),
-        range: Pjax.hqs('range'),
+        path: Fez.hpath(),
+        app: Fez.hqs('app'),
+        range: Fez.hqs('range'),
         href: location.pathname + location.search + location.hash,
-        preview: Pjax.hpath('logs', { qs: { app: 'z' }, href: true }),
+        preview: Fez.hpath('logs', { qs: { app: 'z' }, href: true }),
         loads: window.loads,
         events: window.events,
       };
@@ -159,16 +159,16 @@ test('hash route Back/Forward keeps the mounted page', async () => {
   try {
     await page.locator('#draft').fill('unsaved route text');
     await page.evaluate(() => {
-      Pjax.hpath('traffic', { qs: { app: 'x' } });
-      Pjax.hpath('logs');
+      Fez.hpath('traffic', { qs: { app: 'x' } });
+      Fez.hpath('logs');
     });
     await page.goBack();
-    await page.waitForFunction(() => Pjax.hpath() === 'traffic');
-    expect(await page.evaluate(() => Pjax.hqs('app'))).toBe('x');
+    await page.waitForFunction(() => Fez.hpath() === 'traffic');
+    expect(await page.evaluate(() => Fez.hqs('app'))).toBe('x');
     await page.goBack();
     await page.waitForFunction(() => location.hash === '');
     await page.goForward();
-    await page.waitForFunction(() => Pjax.hpath() === 'traffic');
+    await page.waitForFunction(() => Fez.hpath() === 'traffic');
     await settleHistory(page);
     expect(await page.locator('#draft').inputValue()).toBe('unsaved route text');
     expect(
@@ -186,8 +186,8 @@ test('hash traversal after page navigation is skipped, but returning to another 
   const page = await createPage();
   try {
     await page.evaluate(() => {
-      new Pjax({ path: '/other' }).historyAddCurrent('/other');
-      Pjax.hash('tab', 'settings');
+      new Fez.pjax('/other').historyAddCurrent('/other');
+      Fez.hash('tab', 'settings');
     });
     await page.goBack();
     await page.waitForFunction(() => location.pathname === '/other' && location.hash === '');
@@ -204,10 +204,10 @@ test('hash traversal after page navigation is skipped, but returning to another 
   }
 });
 
-test('query Back/Forward still invokes Pjax page navigation', async () => {
+test('query Back/Forward still invokes pjax page navigation', async () => {
   const page = await createPage();
   try {
-    await page.evaluate(() => Pjax.qs('page', 2));
+    await page.evaluate(() => Fez.qs('page', 2));
     await page.goBack();
     await page.waitForFunction(() => window.loads.length === 1);
     expect(await page.evaluate(() => window.loads)).toEqual([
@@ -238,6 +238,79 @@ test('hash state demo updates its selected tab on Back/Forward', async () => {
         .getAttribute('aria-pressed'),
     ).toBe('true');
     expect(await page.evaluate(() => window.loads)).toEqual([]);
+  } finally {
+    await page.close();
+  }
+});
+
+test('Fez.load("#panel") swaps only that node and keeps the scroll position', async () => {
+  const page = await browser.newPage();
+  let served = 0;
+  await page.route('https://fez.test/**', (route) => {
+    served += 1;
+    route.fulfill({
+      contentType: 'text/html',
+      body: `<!doctype html><html><body><main id="pjax" class="pjax"><div style="height:3000px"></div><div id="panel">v${served}</div><p id="outside">o${served}</p></main></body></html>`,
+    });
+  });
+  try {
+    await page.goto('https://fez.test/panel');
+    await page.addScriptTag({ content: fezCode });
+    const result = await page.evaluate(async () => {
+      window.scrollTo(0, 1500);
+      const before = history.length;
+      const detail = await Fez.load('#panel');
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return {
+        status: detail.status,
+        mode: detail.mode,
+        panel: document.getElementById('panel').textContent,
+        outside: document.getElementById('outside').textContent,
+        scrollY: Math.round(window.scrollY),
+        added: history.length - before,
+        pjaxGlobal: typeof window.Pjax,
+      };
+    });
+    expect(result).toEqual({
+      status: 200,
+      mode: 'target',
+      panel: 'v2',
+      outside: 'o1',
+      scrollY: 1500,
+      added: 0,
+      pjaxGlobal: 'undefined',
+    });
+  } finally {
+    await page.close();
+  }
+});
+
+test('Fez.load("/page#section") swaps in place and scrolls to the anchor', async () => {
+  const page = await browser.newPage();
+  await page.route('https://fez.test/**', (route) => {
+    const long = route.request().url().includes('/long');
+    route.fulfill({
+      contentType: 'text/html',
+      body: long
+        ? '<!doctype html><html><body><main id="pjax" class="pjax"><div style="height:3000px">top</div><h2 id="bottom">Bottom</h2><div style="height:2000px"></div></main></body></html>'
+        : '<!doctype html><html><body><main id="pjax" class="pjax"><p id="start">start</p></main></body></html>',
+    });
+  });
+  try {
+    await page.goto('https://fez.test/start');
+    await page.addScriptTag({ content: fezCode });
+    await page.evaluate(() => (window.marker = 'same document'));
+    const detail = await page.evaluate(() => Fez.load('/long#bottom').then((d) => d.status));
+    expect(detail).toBe(200);
+    await page.waitForFunction(
+      () => Math.abs(document.getElementById('bottom').getBoundingClientRect().top) < 5,
+    );
+    expect(
+      await page.evaluate(() => ({
+        href: location.pathname + location.hash,
+        marker: window.marker,
+      })),
+    ).toEqual({ href: '/long#bottom', marker: 'same document' });
   } finally {
     await page.close();
   }

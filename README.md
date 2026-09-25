@@ -1683,16 +1683,18 @@ Fez.onError = (kind, error) => {
 };
 ```
 
-## Pjax Navigation
+## Page Navigation (Fez.load)
 
 Fez bundles Pjax (PushState + AJAX) navigation, formerly the standalone `dux-pjax` package.
-Pjax renders a server HTML response into the current page instead of performing a hard navigation: browser history is preserved, assets are not re-parsed, and page swaps go through `Fez.nodeMorph`, so fez components on the page survive navigation (see "Component Identity" above).
+It renders a server HTML response into the current page instead of performing a hard navigation: browser history is preserved, assets are not re-parsed, and page swaps go through `Fez.nodeMorph`, so fez components on the page survive navigation (see "Component Identity" above).
 
-The API lives on `window.Pjax`; apps migrating from `dux-pjax` can drop the package and keep their code unchanged.
+The public API is `Fez.load` and `Fez.refresh`, plus the URL state helpers `Fez.qs`, `Fez.hash`, `Fez.hpath` and `Fez.hqs`.
+Configuration and hooks live on `Fez.pjax`, the navigation class the shortcuts delegate to.
+There is no `window.Pjax` global.
 
 ### Boot gating
 
-`window.Pjax` is always available, but the navigation handlers (link hijacking, popstate, `data-pjax` forms) bind only when the initial page contains a pjax container - a `<pjax>` tag or an element with the `pjax` class, carrying an `id`:
+`Fez.pjax` is always available, but the navigation handlers (link hijacking, popstate, `data-pjax` forms) bind only when the initial page contains a pjax container - a `<pjax>` tag or an element with the `pjax` class, carrying an `id`:
 
 ```html
 <main id="pjax" class="pjax">
@@ -1701,66 +1703,119 @@ The API lives on `window.Pjax`; apps migrating from `dux-pjax` can drop the pack
 ```
 
 Pages without a container keep native browser navigation.
-If your app injects the container after DOMContentLoaded, call `Pjax.start()` manually.
-If the standalone `dux-pjax` package is still loaded, fez leaves its `window.Pjax` alone and binds nothing - remove the package when upgrading, or you get no fez integration.
+If your app injects the container after DOMContentLoaded, call `Fez.pjax.start()` manually.
 
-### Navigation API
+### Fez.load and Fez.refresh
+
+Both take the same arguments, `(what?, opts?)`, and differ only in their defaults.
+
+* nothing - the current URL, swapping the whole container
+* `'/path'` or `'?query'` - that URL; a query is resolved against the source region's path or the current pathname
+* `'#selector'` or an element - the current URL, swapping only that node (the same as `opts.target`)
 
 ```js
-Pjax.load('/users')          // navigate, swap the pjax container, push history
-Pjax.refresh()               // re-fetch the current page in place (no scroll)
-Pjax.refresh('#sidebar')     // re-fetch and swap only #sidebar (no history entry)
-Pjax.reload()                // re-fetch bypassing cache
-Pjax.qs('page', '2')         // update a query param and push history, without fetching
-Pjax.hash('tab', 'settings') // update a hash param and push history, without fetching
-Pjax.path()                  // current pathname + search
+Fez.load('/users')                        // navigate
+Fez.load('#panel')                        // re-fetch the current URL into #panel
+Fez.load('/users', { target: '#panel' })  // another URL into #panel
+Fez.refresh()                             // fresh copy of the current page
+Fez.refresh('#sidebar')                   // fresh copy of #sidebar, no history entry
+Fez.refresh('/users/1/edit')              // navigate, fresh, keep the scroll position
+Fez.pjax.path()                           // current pathname + search
 ```
+
+A URL fragment stays in the browser: `Fez.load('/docs#install')` fetches `/docs`, swaps it in, pushes `/docs#install` and scrolls to `#install`.
+When you are already on `/docs`, it only scrolls, as the browser would.
+Back/Forward restores recently visited pages from a cache without a request (`Fez.pjax.config.history_max` pages); pages not in the cache are fetched.
+
+`Fez.refresh()` fetches the page again from the server.
+A component's `this.refresh()` only re-renders the component.
+Use `Fez.refresh('#id')` for a server-rendered region and `this.refresh()` for component state.
+
+### Options
+
+| Option | Value |
+|---|---|
+| `target` | `'#selector'` or an element with an `id` - swap only the node with the same id from the response |
+| `source` | the element that started the load - inside a `.ajax` region, only that region is swapped and history is left alone |
+| `form` | a form to submit - GET serializes it into the query string, POST sends it as `FormData` |
+| `history` | `'push'`, `'replace'`, or `false` to leave history alone |
+| `scroll` | `true` to smooth scroll to the top after the swap, `false` to keep the position |
+
+Unknown keys are reported through `Fez.pjax.error` as `unknown load option: <key>` and dropped.
+A target that does not exist or has no `id` is reported and nothing is requested.
+The object you pass is copied, never written to.
+
+### Defaults
+
+A default applies only when the option is `undefined`, so an explicit value always wins.
+
+| | `Fez.load` | `Fez.refresh` |
+|---|---|---|
+| request cache | normal | `cache-control: no-cache` |
+| same URL + node within 2s | skipped (double-click guard) | always sent |
+| `scroll` | `true` for a full swap, `false` when a node or region is swapped | `false` |
+| `history` | `false` when the current URL is fetched into a node or region, otherwise `'push'` (a replace when the URL does not change) | same as `Fez.load` |
+
+### Result
+
+Both return a Promise that never rejects, so a fire-and-forget call is always safe.
+It resolves with the `pjax:render` detail - `{ from, to, status, error, duration, mode, opts }` - or `null` when no request was sent (debounced, cancelled by `before()` or `pjax:start`, handed to a full browser navigation, or an invalid target).
+
+```js
+const detail = await Fez.load('/users')
+if (detail?.error) {
+  // 'status' | 'network' | 'timeout' | 'abort' | 'apply'
+}
+```
+
+### Concurrent loads
+
+Each swap node has its own debounce and its own in-flight request, so `Fez.load('#a')` and `Fez.load('#b')` run side by side.
+A new request for the same node aborts the older one, and a full page load aborts every pending node load.
 
 ### Query-string and hash state
 
-`Pjax.qs()` stores named values in `?key=value`, and `Pjax.hash()` stores them in `#key=value`.
+`Fez.qs()` stores named values in `?key=value`, and `Fez.hash()` stores them in `#key=value`.
 Both use the same options and preserve the pathname, the other URL section, and unrelated parameters.
 Values are URL-encoded when written and decoded to strings when read; missing keys return `undefined`.
-`Pjax.hash()` treats a slashless fragment as a parameter list, never as an element ID; hash routes use `Pjax.hpath()`/`Pjax.hqs()` below.
+`Fez.hash()` treats a slashless fragment as a parameter list, never as an element ID; hash routes use `Fez.hpath()`/`Fez.hqs()` below.
 
 ```js
-Pjax.qs('page', 2)                            // push a history entry, without fetching
-Pjax.hash('tab', 'settings')                  // push a history entry, without fetching
-Pjax.qs('page')                               // '2'
-Pjax.hash('tab')                              // 'settings'
-Pjax.qs('page', 3, { replace: true })          // replace the current history entry
-Pjax.hash('tab', 'users', { replace: true })   // same option for hash state
-Pjax.qs('page', 4, { href: true })             // return the URL without changing it
-Pjax.hash('tab', 'users', { href: true })      // same option for hash state
-Pjax.qs('page', null)                         // remove a parameter (false also removes)
-Pjax.hash('tab', null)                        // remove a hash parameter
+Fez.qs('page', 2)                            // push a history entry, without fetching
+Fez.hash('tab', 'settings')                  // push a history entry, without fetching
+Fez.qs('page')                               // '2'
+Fez.hash('tab')                              // 'settings'
+Fez.qs('page', 3, { replace: true })          // replace the current history entry
+Fez.hash('tab', 'users', { replace: true })   // same option for hash state
+Fez.qs('page', 4, { href: true })             // return the URL without changing it
+Fez.hash('tab', 'users', { href: true })      // same option for hash state
+Fez.qs('page', null)                         // remove a parameter (false also removes)
+Fez.hash('tab', null)                        // remove a hash parameter
 ```
 
 ### Hash routes
 
-`Pjax.hpath()` and `Pjax.hqs()` address a route inside the fragment. A fragment whose path
-part contains a slash is a route (`#/traffic`, `#ns/traffic?app=shop`), and the route name is
-its last path segment. A slashless fragment (`#foo`, `#tab=settings`) stays a native anchor
-or a `Pjax.hash()` parameter list. Both helpers use the same options, are history-only, and
-preserve the other URL section.
+`Fez.hpath()` and `Fez.hqs()` address a route inside the fragment.
+A fragment whose path part contains a slash is a route (`#/traffic`, `#ns/traffic?app=shop`), and the route name is its last path segment.
+A slashless fragment (`#foo`, `#tab=settings`) stays a native anchor or a `Fez.hash()` parameter list.
+Both helpers use the same options, are history-only, and preserve the other URL section.
 
 ```js
-Pjax.hpath()                                  // 'traffic' ('' when the fragment is not a route)
-Pjax.hqs('app')                               // 'shop'
-Pjax.hpath('logs')                            // push '#/logs', preserving the query
-Pjax.hpath('logs', { qs: { app: 'x' } })       // push '#/logs?app=x'
-Pjax.hqs('app', 'x')                          // push '#/logs?app=x', keeping the path
-Pjax.hqs('app', null)                         // remove a parameter, drop an empty query
-Pjax.hpath('logs', { qs: {}, href: true })     // '/catalog#/logs' without changing the URL
-Pjax.hpath('')                                // clear the route
+Fez.hpath()                                  // 'traffic' ('' when the fragment is not a route)
+Fez.hqs('app')                               // 'shop'
+Fez.hpath('logs')                            // push '#/logs', preserving the query
+Fez.hpath('logs', { qs: { app: 'x' } })       // push '#/logs?app=x'
+Fez.hqs('app', 'x')                          // push '#/logs?app=x', keeping the path
+Fez.hqs('app', null)                         // remove a parameter, drop an empty query
+Fez.hpath('logs', { qs: {}, href: true })     // '/catalog#/logs' without changing the URL
+Fez.hpath('')                                // clear the route
 ```
 
 `href: true` takes precedence over `replace: true` and never changes history.
 Setters do not fetch, scroll, fire `popstate` or `hashchange`, or automatically bind to component state.
 Update component state after a setter and use `this.on('popstate', ...)` to read values again on Back/Forward; use `this.on('hashchange', ...)` for native fragment edits too.
-Hash-only Back/Forward leaves the page mounted; path or query changes still use normal Pjax page restoration/navigation when Pjax is active.
-To change a query parameter and navigate, call `Pjax.load(Pjax.qs('page', 2, { href: true }))`.
-The previous `qs` default of navigating and its `{ push: true }` option are replaced by this shared interface.
+Hash-only Back/Forward leaves the page mounted; path or query changes still use normal page restoration/navigation when pjax is active.
+To change a query parameter and navigate, call `Fez.load(Fez.qs('page', 2, { href: true }))`.
 
 ### Link and form attributes
 
@@ -1768,29 +1823,46 @@ The previous `qs` default of navigating and its `{ push: true }` option are repl
 <a href="/users">                                <!-- hijacked automatically -->
 <a href="/users" class="no-pjax">                <!-- opt out, native navigation (also: direct) -->
 <a href="/users" pjax-target="#panel">           <!-- swap only #panel -->
-<button pjax-refresh="#panel">                   <!-- re-fetch current page into #panel -->
+<button pjax-refresh="#panel">                   <!-- fresh copy of the current page into #panel -->
 <a href="/del" pjax-confirm="Are you sure?">     <!-- confirm before navigating -->
 <a href="/tab2" pjax-replace>                    <!-- replaceState instead of pushState -->
-<form data-pjax="true">                          <!-- GET submit via pjax, full swap -->
-<form data-pjax="#panel">                        <!-- GET submit via pjax into #panel -->
+<form data-pjax="true">                          <!-- submit via pjax, full swap -->
+<form data-pjax="#panel">                        <!-- submit via pjax into #panel -->
 ```
 
-Override `Pjax.confirm = (message, node) => ...` to use a custom dialog; returning a Promise defers navigation until it resolves.
+Override `Fez.pjax.confirm = (message, node) => ...` to use a custom dialog; returning a Promise defers navigation until it resolves.
 
 ### Events and hooks
 
 ```js
-document.addEventListener('pjax:start', e => ...)   // navigation started (cancelable)
-document.addEventListener('pjax:render', e => ...)  // new content rendered; detail: from, to, status, error, duration, mode
+document.addEventListener('pjax:start', e => ...)   // request about to start; preventDefault() cancels it
+document.addEventListener('pjax:render', e => ...)  // new content rendered; detail: from, to, status, error, duration, mode, opts
 
-Pjax.before = (href, opts) => true   // return false to cancel a navigation
-Pjax.after  = (href) => ...          // after a full page swap
+Fez.pjax.before = (href, opts) => true   // return false to cancel a navigation
+Fez.pjax.after  = (href) => ...          // after a full page swap
+Fez.pjax.error  = (msg) => ...           // route pjax errors into app toasts
 ```
 
 Inside a fez component, `this.on('pjax:render', () => this.refresh())` is the usual pattern for data that must follow navigation.
 
 Inline `<script>` tags in the response run after history is committed but before the new HTML is morphed in; tag a script with `pjax-delay` to defer it until after the swap.
-Configuration lives on `Pjax.config` (skip paths, no-scroll selectors, timeout, history cache size - see `src/fez/pjax/pjax.js`).
+Configuration lives on `Fez.pjax.config` (skip paths, no-scroll selectors, timeout, history cache size - see `src/fez/pjax/pjax.js`).
+
+### Upgrading from window.Pjax
+
+`fez refactor <dir>` lists every `Pjax.` call in `.fez`, `.js` and `.ts` files with its replacement; it never changes files.
+
+| Old | New |
+|---|---|
+| `Pjax.load`, `Pjax.qs`, `Pjax.hash`, `Pjax.hpath`, `Pjax.hqs` | `Fez.load`, `Fez.qs`, `Fez.hash`, `Fez.hpath`, `Fez.hqs` |
+| `Pjax.refresh(path)` | `Fez.refresh(path)` |
+| `Pjax.reload()` / `Pjax.reload('#x')` | `Fez.refresh()` / `Fez.refresh('#x')` |
+| `Pjax.refresh(this)` (an element in a `.ajax` region) | `Fez.refresh(null, { source: this })` |
+| `{ ajax: el }` | `{ source: el }` |
+| `{ replace: true }` | `{ history: 'replace' }` |
+| `load(href, '#t')` | `load(href, { target: '#t' })` |
+| `load(href, fn)` / `{ done: fn }` | `load(href).then(fn)` |
+| `Pjax.config`, `Pjax.before`, `Pjax.start()`, ... | `Fez.pjax.config`, `Fez.pjax.before`, `Fez.pjax.start()`, ... |
 
 ## Default Components
 

@@ -374,6 +374,48 @@ declare abstract class FezBase {
 // =============================================================================
 
 /** Main Fez function - register or find components */
+/** One entry of Fez.index */
+interface FezIndexEntry {
+  class?: typeof FezBase;
+  meta?: Record<string, any>;
+  props?: PropsSchema;
+  demo?: string | HTMLElement;
+  info?: string | HTMLElement;
+  source?: string;
+}
+
+/**
+ * Fez.index helpers. Intersected with the name index below: an interface
+ * cannot declare both, since the methods do not satisfy the index signature.
+ */
+interface FezIndexMethods {
+  /** Get component data object */
+  get(name: string): FezIndexEntry & { demo?: HTMLElement; info?: HTMLElement };
+
+  /** Render demo into element and execute scripts */
+  apply(name: string, el: HTMLElement): void;
+
+  /** Get all component names */
+  names(): string[];
+
+  /** Get component names that have demos */
+  withDemo(): string[];
+
+  /** Get all components */
+  all(): Record<string, any>;
+
+  /** Log all component names to console */
+  info(): void;
+
+  /** Ensure entry exists for component */
+  ensure(name: string): Record<string, any>;
+}
+
+type FezIndex = FezIndexMethods & { [name: string]: FezIndexEntry };
+
+/** The FezBase class type, named outside `declare global` so the global const does not reference itself */
+type FezBaseClass = typeof FezBase;
+
 interface FezStatic {
   // ===================================================================
   // COMPONENT REGISTRATION & LOOKUP
@@ -398,46 +440,8 @@ interface FezStatic {
   // COMPONENT INDEX
   // ===================================================================
 
-  /** Unified component index */
-  index: {
-    /** Get component by name */
-    [name: string]: {
-      class?: typeof FezBase;
-      meta?: Record<string, any>;
-      props?: PropsSchema;
-      demo?: string | HTMLElement;
-      info?: string | HTMLElement;
-      source?: string;
-    };
-
-    /** Get component data object */
-    get(name: string): {
-      class?: typeof FezBase;
-      meta?: Record<string, any>;
-      props?: PropsSchema;
-      demo?: HTMLElement;
-      info?: HTMLElement;
-      source?: string;
-    };
-
-    /** Render demo into element and execute scripts */
-    apply(name: string, el: HTMLElement): void;
-
-    /** Get all component names */
-    names(): string[];
-
-    /** Get component names that have demos */
-    withDemo(): string[];
-
-    /** Get all components */
-    all(): Record<string, any>;
-
-    /** Log all component names to console */
-    info(): void;
-
-    /** Ensure entry exists for component */
-    ensure(name: string): Record<string, any>;
-  };
+  /** Unified component index: entries by component name, plus the helper methods */
+  index: FezIndex;
 
   // ===================================================================
   // COMPONENT INSTANCES
@@ -650,6 +654,25 @@ interface FezStatic {
    * Calling again only updates the params. Returns true when spec is a size animation.
    */
   animateSize(node: HTMLElement, spec: string | { name: string; params?: FezTransitionParams }): boolean;
+
+  // ===================================================================
+  // PAGE NAVIGATION (pjax)
+  // ===================================================================
+
+  /** The pjax navigation class: config, hooks (before/after/confirm/error), start() */
+  pjax: PjaxStatic;
+  /** Fetch a URL and swap it into the page. Same as Fez.pjax.load */
+  load: PjaxStatic['load'];
+  /** Fresh re-fetch (no-cache, no debounce, keeps scroll). Same as Fez.pjax.refresh */
+  refresh: PjaxStatic['refresh'];
+  /** Read or set a query-string param. Same as Fez.pjax.qs */
+  qs: PjaxStatic['qs'];
+  /** Read or set a hash param. Same as Fez.pjax.hash */
+  hash: PjaxStatic['hash'];
+  /** Read or set the hash route path. Same as Fez.pjax.hpath */
+  hpath: PjaxStatic['hpath'];
+  /** Read or set a hash route query param. Same as Fez.pjax.hqs */
+  hqs: PjaxStatic['hqs'];
 }
 
 // =============================================================================
@@ -679,32 +702,31 @@ type FezTransitionFn = (node: HTMLElement, params: FezTransitionParams) => FezTr
 // PJAX NAVIGATION (bundled since 0.6.0)
 // =============================================================================
 
-/** Options accepted by Pjax.load / refresh / reload */
+/**
+ * Options accepted by Fez.load / Fez.refresh. Unknown keys are reported through
+ * Fez.pjax.error and dropped. Defaults apply only to undefined values.
+ */
 interface PjaxLoadOptions {
-  /** Target path (alias: href) */
-  path?: string;
-  href?: string;
   /** Swap only this node (selector or element with an id) instead of the pjax container */
   target?: string | Element;
-  /** Resolve the closest .ajax region of this node and swap only it */
-  ajax?: Element;
-  /** false skips history push and the pjax:render history href */
-  history?: boolean;
-  /** Use replaceState instead of pushState */
-  replace?: boolean;
-  /** Commit this path to history instead of the fetched one ('?q=1' is resolved against pathname) */
-  replacePath?: string;
-  /** false skips the smooth scroll-to-top after a swap */
-  scroll?: boolean;
-  /** false sends cache-control: no-cache */
-  cache?: boolean;
-  /** Bypass the 2s same-href debounce */
-  force?: boolean;
-  /** Serialize this form into the query string */
+  /** Element that started the load; inside a .ajax region only that region is swapped, without history */
+  source?: Element;
+  /** GET serializes the form into the query string, POST sends it as FormData */
   form?: HTMLFormElement;
-  /** Called after a successful swap */
-  done?: () => void;
+  /** 'push' (default), 'replace', or false to leave history alone. Default false for node swaps of the current URL */
+  history?: 'push' | 'replace' | false;
+  /** Smooth scroll to top after the swap. Default true for a full load swap, false otherwise */
+  scroll?: boolean;
 }
+
+/**
+ * What to load: a URL ('/path', '?query'), or a '#selector' / element that
+ * becomes the target and re-fetches the current URL. Nothing means the current URL.
+ */
+type PjaxLoadWhat = string | Element | null | undefined;
+
+/** Resolves the pjax:render detail, or null when no request was sent. Never rejects. */
+type PjaxLoadResult = Promise<PjaxRenderDetail | null>;
 
 /** Shared options for query-string and hash state setters. Neither setter fetches a page. */
 interface PjaxUrlStateOptions {
@@ -714,13 +736,13 @@ interface PjaxUrlStateOptions {
   href?: boolean;
 }
 
-/** Options for Pjax.hpath. `qs` replaces the route's query when a path is set. */
+/** Options for Fez.hpath. `qs` replaces the route's query when a path is set. */
 interface PjaxHashPathOptions extends PjaxUrlStateOptions {
   qs?: string | URLSearchParams | Record<string, string | number>;
 }
 
 interface PjaxConfig {
-  /** Suppress Pjax.console logging (defaults to true unless location.port >= 1000) */
+  /** Suppress Fez.pjax.console logging (defaults to true unless location.port >= 1000) */
   is_silent: boolean;
   /** Selectors that opt a trigger node out of scroll-to-top */
   no_scroll_selector: string[];
@@ -758,13 +780,14 @@ interface PjaxStartDetail {
 }
 
 /**
- * PushState + AJAX navigation, exposed as window.Pjax.
- * Handlers bind automatically when the page has a <pjax> or .pjax container;
- * call Pjax.start() manually when the container is injected after load.
+ * PushState + AJAX navigation, exposed as Fez.pjax (Fez.load, Fez.refresh and
+ * the URL state helpers delegate to it). Handlers bind automatically when the
+ * page has a <pjax> or .pjax container; call Fez.pjax.start() manually when the
+ * container is injected after load.
  */
 interface PjaxStatic {
   config: PjaxConfig;
-  /** Force Pjax.console logging regardless of config.is_silent */
+  /** Force console logging regardless of config.is_silent */
   DEV?: boolean;
   /** Wrap full swaps in document.startViewTransition when available */
   useViewTransition?: boolean;
@@ -778,12 +801,10 @@ interface PjaxStatic {
   /** Bind only the link click hijack (idempotent, called by start) */
   onDocumentClick(): void;
 
-  /** Navigate and swap the pjax container */
-  load(href?: string | PjaxLoadOptions | (() => void), opts?: PjaxLoadOptions | string): false | void;
-  /** Re-fetch the current page in place; '#selector' refreshes only that node without history */
-  refresh(selectorOrPath?: string | (() => void), opts?: PjaxLoadOptions): false | void;
-  /** Re-fetch bypassing cache */
-  reload(opts?: PjaxLoadOptions): false | void;
+  /** Fetch and swap. Scrolls to top on a full swap; same URL + node is debounced for 2s */
+  load(what?: PjaxLoadWhat, opts?: PjaxLoadOptions): PjaxLoadResult;
+  /** Same signature as load, fresh: cache-control no-cache, no debounce, keeps scroll */
+  refresh(what?: PjaxLoadWhat, opts?: PjaxLoadOptions): PjaxLoadResult;
   /** true when the last navigation hit the same href twice */
   refreshed(): boolean;
 
@@ -850,14 +871,7 @@ declare global {
   const Fez: FezStatic;
 
   /** FezBase class */
-  const FezBase: typeof FezBase;
-
-  /** Bundled pjax navigation (fez 0.6.0+) */
-  const Pjax: PjaxStatic;
-
-  interface Window {
-    Pjax: PjaxStatic;
-  }
+  const FezBase: FezBaseClass;
 
   interface HTMLElement {
     /** Fez instance attached to element */

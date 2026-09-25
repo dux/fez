@@ -1,7 +1,7 @@
 // Ported from dux-pjax test/pjax.test.coffee - "PjaxOnClick" describe block.
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
-import { setupPjaxEnv, teardownPjaxEnv, resetDOM } from './pjax-env.js';
+import { setupPjaxEnv, teardownPjaxEnv, resetDOM, installMockFetch } from './pjax-env.js';
 import createPjax from '../src/fez/pjax/pjax.js';
 
 let Pjax;
@@ -11,7 +11,10 @@ beforeAll(() => {
   setupPjaxEnv();
 });
 
-afterAll(() => {
+afterAll(async () => {
+  // let Pjax.start()'s deferred sendGlobalEvent timers fire while the happy-dom
+  // globals still exist, then restore
+  await new Promise((resolve) => setTimeout(resolve, 5));
   teardownPjaxEnv();
 });
 
@@ -40,7 +43,7 @@ describe('PjaxOnClick', () => {
     expect(node.dataset.ran).toBe('yes');
   });
 
-  test('calls Pjax.load with ajax context for regular href clicks', () => {
+  test('calls load with source for regular href clicks', () => {
     document.body.innerHTML = `
       <main class="pjax" id="pjax">
         <a href="/clicked-page" id="link">Go</a>
@@ -55,7 +58,8 @@ describe('PjaxOnClick', () => {
 
     expect(loadedArgs).not.toBeNull();
     expect(loadedArgs.href).toBe('/clicked-page');
-    expect(loadedArgs.opts.ajax).toBe(link);
+    expect(loadedArgs.opts.source).toBe(link);
+    expect(loadedArgs.opts.history).toBeUndefined();
   });
 
   test('leaves same-page hash links to native browser navigation', () => {
@@ -105,7 +109,10 @@ describe('PjaxOnClick', () => {
     PjaxOnClick.main(e);
 
     expect(loadedArgs.href).toBe('/target-page');
-    expect(loadedArgs.opts.target).toBe(document.getElementById('target-box'));
+    expect(loadedArgs.opts).toEqual({
+      target: document.getElementById('target-box'),
+      history: undefined,
+    });
   });
 
   test('uses pjax-refresh to refresh a specific element without href', () => {
@@ -365,7 +372,7 @@ describe('PjaxOnClick', () => {
     }
   });
 
-  test('pjax-replace passes replace flag through to Pjax.load', () => {
+  test('pjax-replace passes history: replace to load', () => {
     document.body.innerHTML = `
       <main class="pjax" id="pjax">
         <a href="/replace-me" pjax-replace id="rep-link">Tab</a>
@@ -377,7 +384,8 @@ describe('PjaxOnClick', () => {
     const link = document.getElementById('rep-link');
     const e = createClickEvent({ target: link });
     PjaxOnClick.main(e);
-    expect(loadedOpts.replace).toBe(true);
+    expect(loadedOpts.history).toBe('replace');
+    expect('replace' in loadedOpts).toBe(false);
   });
 
   test('main works when invoked as a bare function (addEventListener style)', () => {
@@ -454,5 +462,49 @@ describe('PjaxOnClick', () => {
     PjaxOnClick.main(e);
     await sleep();
     expect(loadCalled).toBe(false);
+  });
+
+  test('data-pjax forms submit through load with the form and target', () => {
+    document.body.innerHTML = `
+      <main class="pjax" id="pjax">
+        <div id="panel">Old</div>
+        <form id="to-panel" action="/search" data-pjax="#panel"><input name="q" value="a"></form>
+        <form id="full" action="/search" data-pjax="true"><input name="q" value="b"></form>
+      </main>
+    `;
+    const calls = [];
+    Pjax.load = (href, opts) => calls.push({ href, opts });
+    Pjax.start();
+
+    for (const id of ['to-panel', 'full']) {
+      const form = document.getElementById(id);
+      form.dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+    }
+
+    expect(calls).toEqual([
+      { href: '/search', opts: { form: document.getElementById('to-panel'), target: '#panel' } },
+      { href: '/search', opts: { form: document.getElementById('full'), target: undefined } },
+    ]);
+  });
+
+  test('a data-pjax="true" submit raises no unknown-option error', () => {
+    const mock = installMockFetch();
+    const errs = [];
+    Pjax.error = (msg) => errs.push(msg);
+    try {
+      document.body.innerHTML = `
+        <main class="pjax" id="pjax">
+          <form id="full" action="/search" data-pjax="true"><input name="q" value="b"></form>
+        </main>
+      `;
+      Pjax.start();
+      document
+        .getElementById('full')
+        .dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+      expect(errs).toEqual([]);
+      expect(mock.requests[0].url).toBe('/search?q=b');
+    } finally {
+      mock.restore();
+    }
   });
 });

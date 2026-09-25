@@ -1,10 +1,19 @@
 // Ported from dux-pjax test/pjax.test.coffee - lifecycle events, debounce and
 // form serialization blocks, plus new coverage for fez boot gating.
 
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
-import { setupPjaxEnv, teardownPjaxEnv, resetDOM } from './pjax-env.js';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
+import {
+  setupPjaxEnv,
+  teardownPjaxEnv,
+  resetDOM,
+  installMockFetch,
+  fakeResponse,
+  respond,
+  settle,
+} from './pjax-env.js';
 import createPjax from '../src/fez/pjax/pjax.js';
 import bootPjax from '../src/fez/pjax/boot.js';
+import Fez from '../src/fez/root.js';
 
 let Pjax;
 
@@ -45,20 +54,18 @@ describe('Pjax lifecycle events', () => {
     let sent = false;
     let redirected = false;
 
-    const pjax = new Pjax({ path: '/dev/login_as?user_hash=abc' });
+    const pjax = new Pjax('/dev/login_as?user_hash=abc');
     pjax.sendRequest = () => (sent = true);
     pjax.redirect = () => (redirected = true);
-    pjax.req = {
-      status: 302,
-      getResponseHeader: (name) => (name === 'Location' ? '/dev/login_as?_r=1' : null),
-    };
-    pjax.opts.req_start_time = Date.now() - 50;
-    pjax.handleResponse();
+    const res = fakeResponse(302, { Location: '/dev/login_as?_r=1' });
+    const html = '';
+    pjax.startedAt = Date.now() - 50;
+    pjax.handleResponse(res, html);
 
     expect(sent).toBe(true);
     expect(redirected).toBe(false);
     expect(pjax.href).toBe('/dev/login_as?_r=1');
-    expect(pjax.opts.replace).toBe(true);
+    expect(pjax.opts.history).toBe('replace');
   });
 
   test('pjax:render carries error detail on non-200 response', () => {
@@ -67,14 +74,12 @@ describe('Pjax lifecycle events', () => {
     document.addEventListener('pjax:render', handler);
 
     try {
-      const pjax = new Pjax({ path: '/missing' });
-      pjax.req = {
-        status: 404,
-        getResponseHeader: () => null,
-      };
-      pjax.opts.req_start_time = Date.now() - 50;
+      const pjax = new Pjax('/missing');
+      const res = fakeResponse(404, {});
+      const html = '';
+      pjax.startedAt = Date.now() - 50;
       pjax.redirect = () => {};
-      pjax.handleResponse();
+      pjax.handleResponse(res, html);
       expect(captured.status).toBe(404);
       expect(captured.error).toBe('status');
       expect(captured.to).toBe('/missing');
@@ -96,51 +101,17 @@ describe('Pjax lifecycle events', () => {
     document.addEventListener('pjax:render', handler);
 
     try {
-      const pjax = new Pjax({ path: '/ok' });
+      const pjax = new Pjax('/ok');
       pjax.fromHref = '/from-ok';
-      pjax.req = {
-        status: 200,
-        responseText: '<main class="pjax" id="pjax"><p>ok</p></main>',
-        getResponseHeader: () => null,
-        responseURL: '',
-      };
-      pjax.opts.req_start_time = Date.now() - 50;
-      pjax.handleResponse();
+      const res = fakeResponse(200, {});
+      const html = '<main class="pjax" id="pjax"><p>ok</p></main>';
+      pjax.startedAt = Date.now() - 50;
+      pjax.handleResponse(res, html);
       expect(captured.status).toBe(200);
       expect(captured.error).toBe(null);
       expect(captured.from).toBe('/from-ok');
       expect(captured.to).toBe('/ok');
       expect(captured.mode).toBe('full');
-    } finally {
-      document.removeEventListener('pjax:render', handler);
-      window.history.pushState = originalPush;
-      window.history.replaceState = originalReplace;
-    }
-  });
-
-  test('pjax:render to uses replacePath when history uses replacePath', () => {
-    const originalPush = window.history.pushState;
-    const originalReplace = window.history.replaceState;
-    window.history.pushState = () => {};
-    window.history.replaceState = () => {};
-
-    let captured = null;
-    const handler = (e) => (captured = e.detail);
-    document.addEventListener('pjax:render', handler);
-
-    try {
-      const pjax = new Pjax({ path: '/internal', replacePath: '/visible' });
-      pjax.fromHref = '/before';
-      pjax.req = {
-        status: 200,
-        responseText: '<main class="pjax" id="pjax"><p>ok</p></main>',
-        getResponseHeader: () => null,
-        responseURL: '',
-      };
-      pjax.opts.req_start_time = Date.now() - 50;
-      pjax.handleResponse();
-      expect(captured.from).toBe('/before');
-      expect(captured.to).toBe('/visible');
     } finally {
       document.removeEventListener('pjax:render', handler);
       window.history.pushState = originalPush;
@@ -155,20 +126,16 @@ describe('Pjax lifecycle events', () => {
     const calls = [];
 
     try {
-      const pjax = new Pjax({ path: '/ordered' });
-      pjax.req = {
-        status: 200,
-        responseText: '<main class="pjax" id="pjax"><p>ok</p></main>',
-        getResponseHeader: () => null,
-        responseURL: '',
-      };
+      const pjax = new Pjax('/ordered');
+      const res = fakeResponse(200, {});
+      const html = '<main class="pjax" id="pjax"><p>ok</p></main>';
       pjax.historyAddCurrent = (href) => calls.push(`history:${href}`);
       pjax.applyLoadedData = () => {
         calls.push('apply');
         return true;
       };
 
-      pjax.handleResponse();
+      pjax.handleResponse(res, html);
       expect(calls).toEqual(['history:/ordered', 'apply']);
     } finally {
       window.history.pushState = originalPush;
@@ -182,17 +149,12 @@ describe('Pjax lifecycle events', () => {
     try {
       window.__historyCommittedHref = null;
       window.__scriptSawHistoryHref = null;
-      const pjax = new Pjax({ path: '/script-path' });
-      pjax.req = {
-        status: 200,
-        responseText:
-          '<main class="pjax" id="pjax"><script>window.__scriptSawHistoryHref = window.__historyCommittedHref</script><p>ok</p></main>',
-        getResponseHeader: () => null,
-        responseURL: '',
-      };
+      const pjax = new Pjax('/script-path');
+      const res = fakeResponse(200, {});
+      const html = '<main class="pjax" id="pjax"><script>window.__scriptSawHistoryHref = window.__historyCommittedHref</script><p>ok</p></main>';
       pjax.historyAddCurrent = (href) => (window.__historyCommittedHref = href);
 
-      pjax.handleResponse();
+      pjax.handleResponse(res, html);
       expect(window.__scriptSawHistoryHref).toBe('/script-path');
     } finally {
       delete window.__historyCommittedHref;
@@ -201,96 +163,66 @@ describe('Pjax lifecycle events', () => {
     }
   });
 
-  test('sendRequest emits pjax:start with from/to/mode/opts', () => {
-    let captured = null;
-    const handler = (e) => (captured = e.detail);
-    document.addEventListener('pjax:start', handler);
+  describe('with a mock fetch', () => {
+    let mock;
+    let captured;
+    const onRender = (e) => (captured = e.detail);
 
-    const OrigXHR = global.XMLHttpRequest;
-    class MockXHR {
-      open() {}
-      setRequestHeader() {}
-      send() {}
-    }
-    global.XMLHttpRequest = MockXHR;
+    beforeEach(() => {
+      mock = installMockFetch();
+      captured = null;
+      document.addEventListener('pjax:render', onRender);
+    });
 
-    try {
-      Pjax.pastHref = '/from';
-      const pjax = new Pjax({ path: '/to' });
-      pjax.sendRequest();
-      expect(captured.from).toBe('/from');
-      expect(captured.to).toBe('/to');
-      expect(captured.mode).toBe('full');
-      expect(captured.opts).toBe(pjax.opts);
-      expect(captured.status).toBe(undefined);
-    } finally {
-      global.XMLHttpRequest = OrigXHR;
-      document.removeEventListener('pjax:start', handler);
-    }
-  });
+    afterEach(() => {
+      mock.restore();
+      document.removeEventListener('pjax:render', onRender);
+    });
 
-  test('pjax:render carries error:network when XHR onerror fires', () => {
-    let captured = null;
-    const handler = (e) => (captured = e.detail);
-    document.addEventListener('pjax:render', handler);
+    test('sendRequest emits pjax:start with from/to/mode/opts', () => {
+      let started = null;
+      const handler = (e) => (started = e.detail);
+      document.addEventListener('pjax:start', handler);
 
-    const OrigXHR = global.XMLHttpRequest;
-    let capturedXHR = null;
-    class MockXHR {
-      constructor() {
-        capturedXHR = this;
+      try {
+        Pjax.pastHref = '/from';
+        const pjax = new Pjax('/to');
+        expect(pjax.sendRequest()).toBe(true);
+        expect(started.from).toBe('/from');
+        expect(started.to).toBe('/to');
+        expect(started.mode).toBe('full');
+        expect(started.opts).toBe(pjax.opts);
+        expect(started.status).toBe(undefined);
+      } finally {
+        document.removeEventListener('pjax:start', handler);
       }
-      open() {}
-      setRequestHeader() {}
-      send() {}
-    }
-    global.XMLHttpRequest = MockXHR;
+    });
 
-    const originalError = console.error;
-    console.error = () => {};
-
-    try {
-      const pjax = new Pjax({ path: '/dead' });
-      pjax.sendRequest();
-      capturedXHR.onerror(new Error('boom'));
-      expect(captured.error).toBe('network');
-      expect(captured.status).toBe(0);
-      expect(captured.to).toBe('/dead');
-    } finally {
-      global.XMLHttpRequest = OrigXHR;
-      console.error = originalError;
-      document.removeEventListener('pjax:render', handler);
-    }
-  });
-
-  test('pjax:render carries error:abort when XHR onabort fires', () => {
-    let captured = null;
-    const handler = (e) => (captured = e.detail);
-    document.addEventListener('pjax:render', handler);
-
-    const OrigXHR = global.XMLHttpRequest;
-    let capturedXHR = null;
-    class MockXHR {
-      constructor() {
-        capturedXHR = this;
+    test('pjax:render carries error:network when fetch rejects', async () => {
+      const originalError = console.error;
+      console.error = () => {};
+      Pjax.error = () => {};
+      try {
+        new Pjax('/dead').sendRequest();
+        mock.requests[0].reject(new TypeError('Failed to fetch'));
+        await settle();
+        expect(captured.error).toBe('network');
+        expect(captured.status).toBe(0);
+        expect(captured.to).toBe('/dead');
+      } finally {
+        console.error = originalError;
       }
-      open() {}
-      setRequestHeader() {}
-      send() {}
-    }
-    global.XMLHttpRequest = MockXHR;
+    });
 
-    try {
-      const pjax = new Pjax({ path: '/aborted' });
-      pjax.sendRequest();
-      capturedXHR.onabort();
+    test('pjax:render carries error:abort when the request is aborted', async () => {
+      new Pjax('/aborted').sendRequest();
+      Pjax._abort('full');
+      await settle();
+      expect(mock.requests[0].aborted).toBe(true);
       expect(captured.error).toBe('abort');
       expect(captured.status).toBe(0);
       expect(captured.to).toBe('/aborted');
-    } finally {
-      global.XMLHttpRequest = OrigXHR;
-      document.removeEventListener('pjax:render', handler);
-    }
+    });
   });
 
   test('commits history before redirecting when response apply fails', () => {
@@ -300,15 +232,11 @@ describe('Pjax lifecycle events', () => {
     window.history.pushState = () => (pushed = true);
 
     try {
-      const pjax = new Pjax({ path: '/missing-container' });
-      pjax.req = {
-        status: 200,
-        responseText: '<main class="pjax" id="other"><p>wrong container</p></main>',
-        getResponseHeader: () => null,
-        responseURL: '',
-      };
+      const pjax = new Pjax('/missing-container');
+      const res = fakeResponse(200, {});
+      const html = '<main class="pjax" id="other"><p>wrong container</p></main>';
       pjax.redirect = () => (redirected = true);
-      pjax.handleResponse();
+      pjax.handleResponse(res, html);
       expect(pushed).toBe(true);
       expect(redirected).toBe(true);
     } finally {
@@ -329,15 +257,11 @@ describe('Pjax lifecycle events', () => {
     console.error = () => {};
 
     try {
-      const pjax = new Pjax({ path: '/bad-script' });
-      pjax.req = {
-        status: 200,
-        responseText: '<main class="pjax" id="pjax"><script>throw new Error("boom")</script></main>',
-        getResponseHeader: () => null,
-        responseURL: '',
-      };
+      const pjax = new Pjax('/bad-script');
+      const res = fakeResponse(200, {});
+      const html = '<main class="pjax" id="pjax"><script>throw new Error("boom")</script></main>';
       pjax.redirect = () => (redirected = true);
-      pjax.handleResponse();
+      pjax.handleResponse(res, html);
       expect(captured.error).toBe('apply');
       expect(captured.status).toBe(200);
       expect(pushed).toBe(true);
@@ -348,65 +272,36 @@ describe('Pjax lifecycle events', () => {
       document.removeEventListener('pjax:render', handler);
     }
   });
-
-  test('opts.replace forces replaceState instead of pushState', () => {
-    let pushed = null;
-    let replaced = null;
-    const originalPush = window.history.pushState;
-    const originalReplace = window.history.replaceState;
-    window.history.pushState = (s, t, url) => (pushed = url);
-    window.history.replaceState = (s, t, url) => (replaced = url);
-
-    try {
-      Pjax._lastHrefCheck = '/something-else';
-      const pjax = new Pjax({ path: '/replace-target', replace: true });
-      pjax.historyAddCurrent('/replace-target');
-      expect(replaced).toBe('/replace-target');
-      expect(pushed).toBeNull();
-    } finally {
-      window.history.pushState = originalPush;
-      window.history.replaceState = originalReplace;
-    }
-  });
 });
 
-describe('Pjax.refresh and Pjax.reload bypass debounce', () => {
-  test('instance load skips debounce when opts.force is true', () => {
+describe('refresh bypasses debounce', () => {
+  test('a same-URL load within 2s is skipped', () => {
     Pjax.before = () => false;
-    Pjax.lastHref = '/same';
-    Pjax._lastLoadTime = Date.now();
-    const pjax = new Pjax({ path: '/same', force: true });
-    const result = pjax.load();
-    expect(result).not.toBe(false);
-    expect(Pjax.lastHref).toBe('/same');
+    Pjax._lastLoad = { key: 'full', href: '/same', time: Date.now() };
+    const before = Pjax.lastHref;
+    expect(new Pjax('/same').load()).toBe(false);
+    expect(Pjax.lastHref).toBe(before);
   });
 
-  test('instance load still debounces when opts.force is unset', () => {
-    Pjax.before = () => false;
-    Pjax.lastHref = '/same';
-    Pjax._lastLoadTime = Date.now();
-    const pjax = new Pjax({ path: '/same' });
-    const result = pjax.load();
-    expect(result).toBe(false);
+  test('a fresh request ignores the debounce', () => {
+    let reachedBefore = false;
+    Pjax.before = () => ((reachedBefore = true), false);
+    Pjax._lastLoad = { key: 'full', href: '/same', time: Date.now() };
+    new Pjax('/same', {}, true).load();
+    expect(reachedBefore).toBe(true);
   });
 
-  test('refresh adds force flag', () => {
-    let fetched = null;
-    Pjax.fetch = (opts) => (fetched = opts);
-    Pjax.refresh();
-    expect(fetched.force).toBe(true);
-  });
-
-  test('reload adds force flag', () => {
-    let fetched = null;
-    Pjax.fetch = (opts) => (fetched = opts);
-    Pjax.reload();
-    expect(fetched.force).toBe(true);
+  test('the debounce is keyed per swap node', () => {
+    let reachedBefore = false;
+    Pjax.before = () => ((reachedBefore = true), false);
+    Pjax._lastLoad = { key: 'panel', href: '/', time: Date.now() };
+    new Pjax('/').load();
+    expect(reachedBefore).toBe(true);
   });
 });
 
 describe('Form serialization', () => {
-  test('getOpts serializes form with native FormData', () => {
+  test('serializes a GET form with native FormData', () => {
     document.body.innerHTML = `
       <main class="pjax" id="pjax">
         <form id="f" action="/submit">
@@ -416,48 +311,192 @@ describe('Form serialization', () => {
       </main>
     `;
     const form = document.getElementById('f');
-    const opts = Pjax.getOpts('/submit', { form });
-    expect(opts.path).toContain('name=Anna');
-    expect(opts.path).toContain('age=33');
+    const { href } = new Pjax('/submit', { form });
+    expect(href).toContain('name=Anna');
+    expect(href).toContain('age=33');
+  });
+});
+
+describe('promise result', () => {
+  let mock;
+  let errors;
+  const page = '<main class="pjax" id="pjax"><p>ok</p></main>';
+
+  beforeEach(() => {
+    mock = installMockFetch();
+    errors = [];
+    Pjax.error = (msg) => errors.push(msg);
+    Pjax.PjaxOnClick.leave = () => {};
+  });
+
+  afterEach(() => {
+    mock.restore();
+    window.history.replaceState({}, '', '/');
+  });
+
+  // redirect() would assign location.href; the instance is not reachable from
+  // Pjax.load, so stub it on the prototype for the duration of a test
+  const stubRedirect = (fn) => {
+    const original = Pjax.prototype.redirect;
+    let redirected = 0;
+    Pjax.prototype.redirect = () => (redirected++, false);
+    return Promise.resolve(fn()).finally(() => (Pjax.prototype.redirect = original)).then(() => redirected);
+  };
+
+  test('resolves the pjax:render detail on success', async () => {
+    const done = Pjax.load('/ok');
+    await respond(mock.requests[0], page);
+    const detail = await done;
+    expect(detail).toMatchObject({ status: 200, error: null, to: '/ok', mode: 'full' });
+  });
+
+  for (const [name, finish, error] of [
+    ['a non-200 status', (request) => respond(request, 'nope', 500), 'status'],
+    ['a network error', (request) => request.reject(new TypeError('down')), 'network'],
+    ['a timeout', () => new Promise((resolve) => setTimeout(resolve, 20)), 'timeout'],
+    ['an abort', () => Pjax._abort('full'), 'abort'],
+  ]) {
+    test(`resolves the detail with error ${error} on ${name}`, async () => {
+      const originalError = console.error;
+      console.error = () => {};
+      Pjax.config.timeout = 5;
+      try {
+        await stubRedirect(async () => {
+          const done = Pjax.load('/fail');
+          await finish(mock.requests[0]);
+          expect((await done).error).toBe(error);
+        });
+      } finally {
+        console.error = originalError;
+      }
+    });
+  }
+
+  test('resolves once across a same-origin redirect', async () => {
+    const done = Pjax.load('/start');
+    await respond(mock.requests[0], '', 302, { Location: '/landed' });
+    expect(mock.requests).toHaveLength(2);
+    expect(mock.requests[1].url).toBe('/landed');
+    await respond(mock.requests[1], page);
+    const detail = await done;
+    expect(detail.status).toBe(200);
+    expect(detail.to).toBe('/landed');
+  });
+
+  test('resolves null when debounced', async () => {
+    Pjax.load('/twice');
+    expect(await Pjax.load('/twice')).toBeNull();
+  });
+
+  test('resolves null when before() cancels', async () => {
+    Pjax.before = () => false;
+    expect(await Pjax.load('/blocked')).toBeNull();
+    expect(mock.requests).toHaveLength(0);
+  });
+
+  test('resolves null when paths_to_skip hands off to a full navigation', async () => {
+    Pjax.config.paths_to_skip = ['/admin'];
+    const redirected = await stubRedirect(async () => {
+      expect(await Pjax.load('/admin/users')).toBeNull();
+    });
+    expect(redirected).toBe(1);
+    expect(mock.requests).toHaveLength(0);
+  });
+
+  test('resolves null and sends nothing when pjax:start is prevented', async () => {
+    const cancel = (e) => e.preventDefault();
+    document.addEventListener('pjax:start', cancel);
+    try {
+      expect(await Pjax.load('/cancelled')).toBeNull();
+      expect(mock.requests).toHaveLength(0);
+    } finally {
+      document.removeEventListener('pjax:start', cancel);
+    }
+  });
+
+  test('a throwing before() resolves null and never rejects', async () => {
+    let rejections = 0;
+    const onRejection = () => rejections++;
+    process.on('unhandledRejection', onRejection);
+    Pjax.before = () => {
+      throw new Error('hook broke');
+    };
+    try {
+      expect(await Pjax.load('/hook')).toBeNull();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(rejections).toBe(0);
+      expect(errors[0]).toContain('hook broke');
+    } finally {
+      process.off('unhandledRejection', onRejection);
+    }
+  });
+
+  test('a throwing after() resolves the apply error detail', async () => {
+    const originalError = console.error;
+    console.error = () => {};
+    Pjax.after = () => {
+      throw new Error('after broke');
+    };
+    try {
+      await stubRedirect(async () => {
+        const done = Pjax.load('/after');
+        await respond(mock.requests[0], page);
+        expect((await done).error).toBe('apply');
+      });
+      expect(errors[0]).toContain('after broke');
+    } finally {
+      console.error = originalError;
+    }
   });
 });
 
 describe('fez boot gating', () => {
-  beforeEach(() => {
-    window.Pjax = undefined;
-  });
-
-  test('page without a pjax container gets window.Pjax but no handlers', () => {
+  test('page without a pjax container gets Fez.pjax but no handlers', () => {
     document.body.innerHTML = '<main id="main"><a href="/somewhere">Link</a></main>';
     bootPjax();
 
-    expect(window.Pjax).toBeDefined();
-    expect(window.Pjax._booted).toBeUndefined();
-    expect(window.Pjax._clickBound).toBeUndefined();
+    expect(Fez.pjax).toBeDefined();
+    expect(Fez.pjax._booted).toBeUndefined();
+    expect(Fez.pjax._clickBound).toBeUndefined();
   });
 
   test('page with a pjax container boots handlers', () => {
     bootPjax();
 
-    expect(window.Pjax).toBeDefined();
-    expect(window.Pjax._booted).toBe(true);
-    expect(window.Pjax._clickBound).toBe(true);
+    expect(Fez.pjax._booted).toBe(true);
+    expect(Fez.pjax._clickBound).toBe(true);
   });
 
-  test('does not overwrite an existing window.Pjax', () => {
-    const existing = { marker: true };
-    window.Pjax = existing;
+  test('window.Pjax stays undefined', () => {
+    delete window.Pjax;
     bootPjax();
-    expect(window.Pjax).toBe(existing);
+    expect(window.Pjax).toBeUndefined();
   });
 
-  test('Pjax.start can be called manually for late-injected containers', () => {
+  test('the Fez shortcuts delegate to the current Fez.pjax', () => {
+    bootPjax();
+    const calls = [];
+    const names = ['load', 'refresh', 'qs', 'hash', 'hpath', 'hqs'];
+    const stub = Object.fromEntries(names.map((name) => [name, (...args) => (calls.push([name, ...args]), name)]));
+    const original = Fez.pjax;
+    Fez.pjax = stub;
+    try {
+      for (const name of names) {
+        expect(Fez[name]('a', { b: 1 })).toBe(name);
+      }
+    } finally {
+      Fez.pjax = original;
+    }
+    expect(calls).toEqual(names.map((name) => [name, 'a', { b: 1 }]));
+  });
+
+  test('Fez.pjax.start can be called manually for late-injected containers', () => {
     document.body.innerHTML = '<main id="main">no container yet</main>';
     bootPjax();
-    expect(window.Pjax._booted).toBeUndefined();
+    expect(Fez.pjax._booted).toBeUndefined();
 
     document.body.innerHTML = '<main class="pjax" id="pjax"></main>';
-    window.Pjax.start();
-    expect(window.Pjax._booted).toBe(true);
+    Fez.pjax.start();
+    expect(Fez.pjax._booted).toBe(true);
   });
 });

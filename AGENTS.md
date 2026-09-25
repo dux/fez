@@ -8,15 +8,20 @@
 
 ## Bundled Pjax navigation (since 0.6.0)
 
-Fez ships the former `dux-pjax` package (ported to JS) in `src/fez/pjax/` and exposes it as `window.Pjax`.
+Fez ships the former `dux-pjax` package (ported to JS) in `src/fez/pjax/` and exposes it as `Fez.pjax`.
+`Fez.load`, `Fez.refresh`, `Fez.qs`, `Fez.hash`, `Fez.hpath` and `Fez.hqs` are set by `boot.js` and delegate to `Fez.pjax` at call time, so an override on `Fez.pjax` also drives the shortcut. There is no `window.Pjax`.
 
-- `pjax.js` - the Pjax class (created per `createPjax()` call so tests get fresh static state); `onclick.js` - link click delegate; `boot.js` - boot, called from `src/fez.js` behind the `fezPrimary` guard.
-- Boot gating: `window.Pjax` is always set, but handlers (link hijack, popstate, `data-pjax` forms) bind only when the page has a `<pjax>` tag or `.pjax` class container; `Pjax.start()` for late-injected containers. If another lib already set `window.Pjax`, fez backs off.
-- `morphInto` converts HTML strings to a DocumentFragment before `Fez.nodeMorph` - never hand it raw strings; nodeMorph's "unwrap single matching-tag root" heuristic would swallow a legitimate lone wrapper child.
+- `pjax.js` - the Pjax class and request lifecycle (created per `createPjax()` call so tests get fresh static state); `url-state.js` - `qs` / `hash` / `hpath` / `hqs`, attached to the class as statics; `scripts.js` - `runScripts` / `runHeadScripts` for response scripts; `onclick.js` - link click delegate; `boot.js` - boot, called from `src/fez.js` behind the `fezPrimary` guard.
+- Boot gating: `Fez.pjax` is always set, but handlers (link hijack, popstate, `data-pjax` forms) bind only when the page has a `<pjax>` tag or `.pjax` class container; `Fez.pjax.start()` for late-injected containers.
+- `load` / `refresh` share `(what?, opts?)` and one path: `getOpts` validates and copies, the constructor resolves the region, href and form and fills defaults. They differ only in the internal `fresh` mode: `refresh` sends no-cache, skips the 2s debounce and does not scroll. `what` is a URL, or a `#selector` / element that becomes `target` for the current URL. Options are `target`, `source`, `form`, `history` (`'push' | 'replace' | false`), `scroll`; unknown keys are reported through `Pjax.error` and dropped. Requests go through `fetch` with an `AbortController` per request (a `'timeout'` abort reason tells a timeout from a superseded request). Request state (`region`, `fragment`, `method`, `body`, `startedAt`, `redirects`, `key`) lives on the instance, never on `opts` - `opts` is what `pjax:start` / `pjax:render` publish.
+- The promise never rejects: `run()` resolves the `pjax:render` detail (`emitDone`) or `null`. `load()` returns true only when a request went out; every other exit resolves `null`. Keep new exit paths on that contract.
+- Debounce (`Pjax._lastLoad`) and in-flight requests (`Pjax.requests`, a Map) are keyed per swap node: the target id, the `.ajax` region id, or `'full'`. A new request aborts only the same key; a `'full'` request aborts all.
+- `morphInto` hands `Fez.nodeMorph` a DocumentFragment - the parsed response node's children, moved (no string round trip), or a string via `createContextualFragment`. Never pass nodeMorph a raw string: its "unwrap single matching-tag root" heuristic would swallow a legitimate lone wrapper child. `runScripts` executes a response's inline scripts and removes them before the morph, so they are never carried into the page.
+- A URL fragment never goes to the server: `'/page#section'` loads `/page`, pushes `/page#section` and scrolls to the anchor; on the current path it only scrolls, like the browser. A no-href load or refresh keeps `location.hash`, so a hash route survives `Fez.refresh()`. Back/Forward restores full-swap pages from `historyData` without a fetch when cached.
 - A full-page swap only morphs the pjax container, so `runHeadScripts` also compiles the response head's own fez definitions (`script[fez]`, `template[fez]`, `xmp[fez]` outside the pjax region) before the morph - that is what loads the `page.components` a layout emits per page. Without it a pjax navigation lands on a page whose components never registered (unknown custom elements, empty widgets).
 - Components follow navigation via `this.on('pjax:render', () => this.refresh())`.
-- URL state: `Pjax.qs()` (real query) and `Pjax.hash()` (slashless fragment params) are history-only setters/getters. `Pjax.hpath()`/`Pjax.hqs()` address a hash route: a fragment whose path part contains a `/` is a route (`#/traffic?app=x`), the route name is the last path segment, and `hqs` reads/writes its query. A slashless fragment (`#foo`, `#tab=settings`) stays an anchor or `hash()` parameter list. Path setters canonicalize to `#/name` and clear on empty.
-- Tests: `test/pjax-core.test.js`, `test/pjax-onclick.test.js`, `test/pjax-events.test.js` (shared env in `test/pjax-env.js`), browser coverage in `test/browser/pjax-url-state.test.js`. Types in `fez.d.ts` (`PjaxStatic`, `PjaxHashPathOptions`).
+- URL state: `Fez.qs()` (real query) and `Fez.hash()` (slashless fragment params) are history-only setters/getters. `Fez.hpath()`/`Fez.hqs()` address a hash route: a fragment whose path part contains a `/` is a route (`#/traffic?app=x`), the route name is the last path segment, and `hqs` reads/writes its query. A slashless fragment (`#foo`, `#tab=settings`) stays an anchor or `hash()` parameter list. Path setters canonicalize to `#/name` and clear on empty.
+- Tests: `test/pjax-core.test.js`, `test/pjax-onclick.test.js`, `test/pjax-events.test.js` (shared env and `installMockXHR` / `respond` in `test/pjax-env.js`), browser coverage in `test/browser/pjax-url-state.test.js`. `fez refactor` flags legacy `Pjax.` calls (`bin/fez-refactor`, tested in `test/fez-bin.test.js`). Types in `fez.d.ts` (`PjaxStatic`, `PjaxLoadOptions`, `PjaxHashPathOptions`).
 - The old `~/dev/gems/dux-pjax` repo is deprecated reference only - changes happen here.
 
 ---
@@ -1191,6 +1196,29 @@ Three channels exist; pick by the kind of traffic, not by habit.
 
 Pub/sub is the wrong tool for commands (no return value, no error when nobody listens) and for shared state (a component mounted after the event misses it).
 Most panels in a tool-style UI are shared-state readers; usually only one component is a command target.
+
+## Page navigation (Fez.load / Fez.refresh)
+
+On a page with a `<pjax>` or `.pjax` container (with an `id`), links and `data-pjax` forms swap server HTML in place of a hard navigation; fez components inside survive the morph.
+From code, use `Fez.load` and `Fez.refresh`. Both take `(what?, opts?)` and return a Promise that never rejects:
+
+```javascript
+Fez.load('/users')                        // navigate
+Fez.load('#panel')                        // re-fetch the current URL, swap only #panel (needs an id)
+Fez.load('/users', { target: '#panel' })  // another URL into #panel
+Fez.refresh()                             // fresh copy of the current page (no-cache, no debounce, keeps scroll)
+Fez.refresh('#list')                      // fresh copy of one server-rendered region
+
+const detail = await Fez.load('/users')   // pjax:render detail, or null when nothing was sent
+if (detail?.error) { /* 'status' | 'network' | 'timeout' | 'abort' | 'apply' */ }
+```
+
+- Options: `target` (`'#sel'` or element with id), `source` (triggering element - scopes the swap to its `.ajax` region), `form` (GET to query, POST as FormData), `history` (`'push' | 'replace' | false`), `scroll` (boolean). Unknown keys are reported and dropped.
+- Defaults apply only to `undefined`: `load` scrolls to top on a full swap and not for a node swap; fetching the current URL into a node adds no history entry.
+- `Fez.refresh('#id')` re-fetches server HTML. `this.refresh()` re-renders a component from its state. Do not mix them up.
+- URL state without fetching: `Fez.qs('page', 2)`, `Fez.hash('tab', 'x')`, hash routes with `Fez.hpath('logs')` / `Fez.hqs('app', 'y')`. Each takes `{ replace: true }` or `{ href: true }`.
+- Follow navigation in a component with `this.on('pjax:render', () => this.refresh())`.
+- Config and hooks: `Fez.pjax.config`, `Fez.pjax.before = (href, opts) => ...`, `Fez.pjax.confirm`, `Fez.pjax.error`. There is no `window.Pjax`; `fez refactor` lists legacy `Pjax.` calls.
 
 ## Slot Unwrap
 

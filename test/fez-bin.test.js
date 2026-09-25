@@ -126,6 +126,55 @@ describe('fez refactor', () => {
     expect(rejected.exitCode).toBe(1);
     expect(rejected.stderr).toContain('Automatic fixes are intentionally unavailable');
   });
+
+  test('reports window.Pjax calls with their Fez replacement', async () => {
+    const dir = tempDir();
+    const component = path.join(dir, 'ui-list.fez');
+    const script = path.join(dir, 'app.js');
+    const componentSource = [
+      '<script>',
+      '  class {',
+      "    go(el) { Pjax.load('/x', { ajax: el, replace: true }) }",
+      "    again() { Pjax.reload('#a') }",
+      '  }',
+      '</script>',
+      '<button onclick="Pjax.hqs(\'tab\', 1)">t</button>',
+      '',
+    ].join('\n');
+    const scriptSource = 'Pjax.config.timeout = 5000\nPjax.refresh(null, { done: fn })\n';
+    fs.writeFileSync(component, componentSource);
+    fs.writeFileSync(script, scriptSource);
+
+    const result = await run(['refactor', dir]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain('app.js:1: Legacy window.Pjax call');
+    expect(result.stdout).toContain('Pjax.config -> Fez.pjax.config');
+    expect(result.stdout).toContain('Pjax.refresh -> Fez.refresh; done: fn -> .then(fn)');
+    expect(result.stdout).toContain('ui-list.fez:3: Legacy window.Pjax call');
+    expect(result.stdout).toContain(
+      "Pjax.load -> Fez.load; ajax: -> source:; replace: true -> history: 'replace'",
+    );
+    expect(result.stdout).toContain('Pjax.reload -> Fez.refresh');
+    expect(result.stdout).toContain('Pjax.hqs -> Fez.hqs');
+    // report-only
+    expect(fs.readFileSync(component, 'utf8')).toBe(componentSource);
+    expect(fs.readFileSync(script, 'utf8')).toBe(scriptSource);
+  });
+
+  test('leaves files that bind their own Pjax alone', async () => {
+    const dir = tempDir();
+    fs.writeFileSync(
+      path.join(dir, 'own.js'),
+      'export default function createOnClick(Pjax) {\n  Pjax.load("/x");\n}\n',
+    );
+    fs.writeFileSync(path.join(dir, 'plain.js'), 'Fez.load("/x");\n');
+
+    const result = await run(['refactor', dir]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('no refactor candidates found');
+  });
 });
 
 describe('published CLI wiring', () => {

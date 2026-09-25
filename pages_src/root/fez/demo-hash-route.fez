@@ -1,9 +1,9 @@
 <info>
-  <p>Route a page in the fragment with <code>Pjax.hpath('traffic')</code> and keep its state in the route query with <code>Pjax.hqs('app', 'shop')</code>.</p>
+  <p>Route a page in the fragment with <code>Fez.hpath('traffic')</code> and keep its state in the route query with <code>Fez.hqs('app', 'shop')</code>.</p>
   <ul>
     <li>A fragment whose path part contains a slash is a route: <code>#/traffic?app=shop</code>.</li>
-    <li><code>Pjax.hpath()</code> returns the last path segment (<code>traffic</code>); a slashless fragment like <code>#foo</code> stays a native anchor.</li>
-    <li><code>Pjax.hqs()</code> reads and writes the route query and preserves the path.</li>
+    <li><code>Fez.hpath()</code> returns the last path segment (<code>traffic</code>); a slashless fragment like <code>#foo</code> stays a native anchor.</li>
+    <li><code>Fez.hqs()</code> reads and writes the route query and preserves the path.</li>
     <li>Both are history-only: no fetch, no scroll, no events.</li>
   </ul>
 </info>
@@ -24,18 +24,18 @@
     }
 
     syncUrl() {
-      this.state.route = Pjax.hpath() || 'overview'
-      this.state.app = Pjax.hqs('app') || ''
+      this.state.route = Fez.hpath() || 'overview'
+      this.state.app = Fez.hqs('app') || ''
       this.state.url = location.pathname + location.search + location.hash
     }
 
     go(route) {
-      Pjax.hpath(route, { qs: this.state.app ? { app: this.state.app } : {} })
+      Fez.hpath(route, { qs: this.state.app ? { app: this.state.app } : {} })
       this.syncUrl()
     }
 
     setApp(value) {
-      Pjax.hqs('app', value || null)
+      Fez.hqs('app', value || null)
       this.syncUrl()
     }
   }

@@ -33,8 +33,9 @@ if (fezPrimary) {
   // Load default components
   import('./fez/defaults.js');
 
-  // Pjax navigation - exposes window.Pjax, binds handlers only when the page
-  // has a pjax container (see fez/pjax/boot.js)
+  // Pjax navigation - exposes Fez.pjax, Fez.load, Fez.refresh and the URL state
+  // helpers, binds handlers only when the page has a pjax container (see
+  // fez/pjax/boot.js)
   bootPjax();
 }
 
