@@ -5,6 +5,8 @@
 - when you add new features, ensure related tests exists, demo and info in fez lib.
 - use bun, not npm
 - ./dist and ./tmp are generated output: never edit them and skip them when searching for code. Source is in ./src, site source in ./pages_src. Read ./dist or ./tmp only to debug build output.
+- Deploy locally with `bun run deploy` - there is no CI. Before it, run `bun run test` (plain `bun test` also picks up the browser suites and fails). It bumps the minor version, builds dist and the site on this machine, and pushes `main` and the prebuilt `pages` branch (see "Publishing the docs site").
+- GitHub Pages does not always start a build for the pushed `pages` commit. Check `gh api repos/dux/fez/pages/builds/latest` - if its commit is not the new `pages` head, trigger one with `gh api -X POST repos/dux/fez/pages/builds`, then confirm `https://dux.github.io/fez/dist/fez.min.js` starts with the new `// v:` banner.
 
 ## Bundled Pjax navigation (since 0.6.0)
 
