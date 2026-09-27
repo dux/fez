@@ -317,7 +317,7 @@ body.site .fez-site-footer a { color: var(--ink-2); }
 }
 .site-versus h4 b { color: var(--ink); font-weight: 600; }
 .site-versus ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 13px; }
-.site-versus li {
+.site-versus li, .site-rules li {
   position: relative;
   margin: 0;
   padding-left: 18px;
@@ -325,7 +325,7 @@ body.site .fez-site-footer a { color: var(--ink-2); }
   line-height: 1.55;
   color: var(--ink-2);
 }
-.site-versus li::before {
+.site-versus li::before, .site-rules li::before {
   content: "";
   position: absolute;
   left: 0;
@@ -335,9 +335,12 @@ body.site .fez-site-footer a { color: var(--ink-2); }
   border-radius: 50%;
   background: var(--fez);
 }
-.site-versus li b { color: var(--ink); font-weight: 600; }
+.site-versus li b, .site-rules li b { color: var(--ink); font-weight: 600; }
 .site-versus li em { font-style: normal; font-weight: 600; color: var(--ink); }
-.site-versus code { font-size: 0.85em; }
+.site-versus code, .site-rules code { font-size: 0.85em; }
+.site-rules { list-style: none; margin: 8px 0 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px 40px; }
+.site-rules li { font-size: 17px; }
+.site-rules li::before { top: 10px; }
 
 /* ---------- examples page ---------- */
 
@@ -502,7 +505,7 @@ body.site .site-feature-row .fez-site-live .src pre code {
   }
   .fez-site-nav ul.open { display: flex; }
   .fez-site-nav ul a { padding: 10px 12px; white-space: nowrap; }
-  .site-hero .grid, .site-llm, .site-docs, .site-versus { grid-template-columns: 1fr; }
+  .site-hero .grid, .site-llm, .site-docs, .site-versus, .site-rules { grid-template-columns: 1fr; }
   .site-live-grid { grid-template-columns: 1fr; }
   .site-features { grid-template-columns: 1fr 1fr; }
   .site-toc { position: static; max-height: none; columns: 2; }

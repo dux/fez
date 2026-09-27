@@ -52,6 +52,32 @@ components:
         </div>
       </section>
 
+      <section class="site-section alt">
+        <div class="site-wrap">
+          <p class="site-eyebrow">why-fez-rules</p>
+          <h2 class="site-h2">Why Fez rules</h2>
+
+          <ul class="site-rules">
+            <li><b>Runtime and compile mode.</b> One <code>&lt;script src="fez.js"&gt;</code> compiles components in the browser, and the Vite / Rollup plugin or <code>fez compile</code> does the same at build time. Svelte and Angular need a compiler before the first component runs, and Vue's CDN build drops single-file components.</li>
+            <li><b>Sometimes irreplaceable.</b> Where no build step can run - a CMS or admin template, a legacy app, a hosted page you can only drop a script into, components stored in a database or generated at request time - Fez still gives you modern components, because the browser compiles them on the spot.</li>
+            <li><b>TypeScript and Slim out of the box.</b> <code>&lt;script lang="ts"&gt;</code> in compile mode, Slim templates in every mode, and <code>fez.d.ts</code> ships in the package.</li>
+            <li><b>Native tags that don't own the page.</b> Components are real custom elements that bind to the HTML DOM, whatever rendered it (ERB, HAML, Slim, Django, Laravel, plain HTML). Use them as standalone components or as an extension of the existing DOM, and adopt one tag at a time.</li>
+            <li><b>One script, the full kit.</b> About 35KB gzipped, including the template compiler, DOM differ, scoped SCSS, transitions, pjax navigation and cached fetch.</li>
+            <li><b>No hooks, no runes.</b> <code>this.state.x = y</code> re-renders the component. Only keys the template actually read trigger a render, so editors, timers and refs in state cost nothing.</li>
+            <li><b>A differ that respects the user.</b> Real-DOM morph with no virtual tree. Focus, scroll and input values survive, child components are moved but never re-rendered, and an unchanged render is hashed away.</li>
+            <li><b>Typed HTML attributes.</b> A <code>PROPS</code> schema turns attribute strings into numbers, booleans, arrays and dates, with <code>default</code>, <code>required</code> and <code>enum</code>.</li>
+            <li><b>Svelte-style animation without a library.</b> <code>fez:in</code>, <code>fez:out</code> and <code>fez:transition</code> with nine built-in transitions, <code>fez:animate="flip"</code> for reorders and <code>"height"</code> for growing content. Uses the Web Animations API and honours reduced motion.</li>
+            <li><b>CSS that scales.</b> Scoped, nested SCSS-style CSS, <code>:mobile</code> / <code>:dark</code> macros, and dark mode with no theme runtime.</li>
+            <li><b>Navigation included.</b> Built-in pjax with <code>Fez.load</code> / <code>Fez.refresh</code>. Server HTML is swapped in place and components keep their state.</li>
+            <li><b>Native JS speed on your own DOM.</b> Fez doesn't own the page the way React, Svelte or Vue do, so a component can optimize the DOM tree it owns with plain JavaScript - 10k rows in about 9ms, cell updates at vanilla speed - and still keep its lifecycle, typed props and auto-cleanup.</li>
+            <li><b>Nothing leaks.</b> Timers, listeners and subscriptions registered through a component are torn down when it leaves the DOM.</li>
+            <li><b>Self-documenting components.</b> <code>&lt;info&gt;</code> and <code>&lt;demo&gt;</code> live inside the <code>.fez</code> file, and <code>Fez.index</code> exposes the whole catalogue.</li>
+            <li><b>Built for AI agents.</b> <code>fez agents</code> prints the whole reference, and <code>fez compile</code> validates a component in milliseconds without a browser.</li>
+            <li><b>Static sites too.</b> <code>fez static</code> replaces Jekyll, Hugo, Eleventy and similar generators: Markdown and HTML pages with layouts, parts and collections, written in the same template syntax as your components. This site is built with it.</li>
+          </ul>
+        </div>
+      </section>
+
       <section class="site-section">
         <div class="site-wrap">
           <p class="site-eyebrow">two-more-examples</p>
