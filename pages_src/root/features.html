@@ -638,6 +638,45 @@ Fez.fezAwait(promise, { pending, then, catch })</code></pre></div>
                 <div class="out-label">write the short form, the browser sees the paired tags</div>
               </site-live>
             </article>
+
+            <article class="site-feature-row" id="node-whitespace">
+              <div class="site-feature-copy">
+                <p class="site-feature-kicker">no whitespace between nodes · &#123;' '}</p>
+                <h3>Spacing comes from CSS</h3>
+                <p>Whitespace-only gaps between tags and blocks are dropped, on one line or across lines. A gap would render as a font-dependent space, so space elements with <code>gap</code> or margin, or write <code>{' '}</code> where a real space belongs. Text keeps its own spaces, and <code>pre</code> / <code>textarea</code> stay as written.</p>
+              </div>
+              <site-live title="whitespace" right-title="no stray spaces">
+                <div class="src"><pre><code>&lt;nav&gt;
+  &lt;a href="/"&gt;Home&lt;/a&gt;   &lt;a href="/docs"&gt;Docs&lt;/a&gt;
+  {#if state.admin}
+    &lt;a href="/admin"&gt;Admin&lt;/a&gt;
+  {/if}
+&lt;/nav&gt;
+&lt;p&gt;Hello &lt;b&gt;{props.name}&lt;/b&gt;{' '}&lt;i&gt;again&lt;/i&gt;&lt;/p&gt;</code></pre></div>
+                <div class="out feature-result"><code>&lt;nav&gt;&lt;a href="/"&gt;Home&lt;/a&gt;&lt;a href="/docs"&gt;Docs&lt;/a&gt;&lt;a href="/admin"&gt;Admin&lt;/a&gt;&lt;/nav&gt;&lt;p&gt;Hello &lt;b&gt;Ada&lt;/b&gt; &lt;i&gt;again&lt;/i&gt;&lt;/p&gt;</code></div>
+                <div class="out-label">every gap you see is one you wrote in CSS or with &#123;' '}</div>
+              </site-live>
+            </article>
+
+            <article class="site-feature-row" id="slim-templates">
+              <div class="site-feature-copy">
+                <p class="site-feature-kicker">indentation · Tailwind shorthand · no wrapper</p>
+                <h3>Slim templates</h3>
+                <p>Write the template in Slim instead of HTML - a template whose first line reads as Slim is detected, no wrapper needed. Tags nest by indentation, <code>.class</code> / <code>#id</code> shorthand takes Tailwind classes as written (<code>p-0.5</code>, <code>w-1/2</code>, <code>bg-[#fff]</code>, <code>hover:bg-gray-100</code>), and <code>- if</code> / <code>- each</code> lines replace the block tags. Ruby Slim forms like <code>- list.each do |item|</code> work too.</p>
+                <p>It compiles to a normal Fez template in the browser, the CLI and the bundler plugin. Errors point at the <code>.fez</code> line, and <code>fez compile -t</code> prints the generated template beside the Slim lines. Plain text or <code>&lt;tag&gt;</code> first lines stay HTML; a <code>&lt;slim&gt;</code> block forces Slim.</p>
+              </div>
+              <site-live title="slim template" right-title="compiled template">
+                <div class="src"><pre><code>.card.p-4.md:w-1/2.bg-[#fafafa]
+  h3.text-lg.font-semibold= props.title
+  - each state.items as item
+    span.text-sm.px-1.5 = item.name
+  - else
+    p.text-gray-400 No items
+  button.px-3.py-1.5 onclick="fez.add()" Add</code></pre></div>
+                <div class="out feature-result"><code>&lt;div class="card p-4 md:w-1/2 bg-[#fafafa]"&gt;&lt;h3 class="text-lg font-semibold"&gt;{props.title}&lt;/h3&gt;{#each state.items as item}&lt;span class="text-sm px-1.5"&gt;{item.name}&lt;/span&gt;{:else}&lt;p class="text-gray-400"&gt;No items&lt;/p&gt;{/each}&lt;button class="px-3 py-1.5" onclick="fez.add()"&gt;Add&lt;/button&gt;&lt;/div&gt;</code></div>
+                <div class="out-label">the first line decides: it reads as Slim, so the template is Slim</div>
+              </site-live>
+            </article>
           </div>
         </div>
       </section>

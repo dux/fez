@@ -6,6 +6,7 @@ import path from 'path';
 import { globSync } from 'glob';
 import createTemplate, { clearTemplateCache } from '../src/fez/lib/template.js';
 import { extractFezDefinitions, parseFezSource } from '../src/fez/lib/source-parser.js';
+import { locateSlimError } from '../src/fez/lib/slim.js';
 
 const INFO = 'Validate and debug Fez template blocks';
 
@@ -87,10 +88,16 @@ for (const filePath of expandInputs(positionals)) {
       continue;
     }
 
-    const errors = validateTemplate(parsed.html, unit.name, values.debug);
+    const errors = validateTemplate(parsed, unit.name, values.debug);
     if (errors.length) {
       fileOk = false;
-      errors.forEach((error) => printError({ ...error, file: filePath }));
+      errors.forEach((error) =>
+        printError({
+          ...error,
+          file: filePath,
+          ...(error.line ? { line: error.line + unit.lineOffset } : {}),
+        }),
+      );
     }
   }
 
@@ -141,7 +148,8 @@ function readSource(filePath) {
   }
 }
 
-function validateTemplate(html, componentName, debug) {
+function validateTemplate(parsed, componentName, debug) {
+  const html = parsed.html;
   const logs = captureConsoleErrors(() => {
     clearTemplateCache();
     createTemplate(html, { name: componentName });
@@ -154,9 +162,12 @@ function validateTemplate(html, componentName, debug) {
     if (!match) {
       continue;
     }
+    const line =
+      parsed.template.lang === 'slim' ? locateSlimError(html, parsed.template.map) : null;
     errors.push({
       message: match[2] || 'Template compiler failed',
       kind: 'Template compiler',
+      ...(line ? { line } : {}),
       detail: (logs[index + 1] || '').replace(/^Template:\s*/, ''),
       debug: debug ? debugTemplateFunction(html, componentName) : '',
     });

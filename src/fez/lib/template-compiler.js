@@ -24,6 +24,7 @@ import {
   extractBracedExpression,
   getAttributeContext,
   getEventAttributeContext,
+  stripNodeWhitespace,
 } from './template-compiler-lib.js';
 import closeCustomTags from './close-custom-tags.js';
 
@@ -131,10 +132,7 @@ export default function createTemplateCompiler(text, opts = {}) {
       // Remove HTML comments
       text = text.replace(/<!--[\s\S]*?-->/g, '');
 
-      // Normalize whitespace between tags. Only join tags separated by a line
-      // break (template indentation); a same-line space is intentional and
-      // must survive (e.g. inline elements `<b>a</b> <b>b</b>`).
-      text = text.replace(/>[ \t]*\r?\n[ \t]*</g, '><').trim();
+      text = stripNodeWhitespace(text).trim();
     }
 
     // Convert self-closing tags to paired tags (shared with connect/compile)

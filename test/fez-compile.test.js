@@ -415,4 +415,85 @@ describe('fez compile', () => {
       expect(result.stderr).not.toContain('Bun v');
     });
   });
+
+  describe('slim templates', () => {
+    const source = (body) => `<script>\n  class {}\n</script>\n\n<slim>\n${body}\n</slim>\n`;
+
+    test('compiles a <slim> component', async () => {
+      const file = fixture('ui-slim.fez', source('  div.p-2\n    p= state.name'));
+      const result = await compile(file);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('compiled without errors');
+    });
+
+    test('reports slim errors at the file line', async () => {
+      const file = fixture('ui-slim.fez', source('  div\n    - end'));
+      const result = await compile(file);
+
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain(`${file}:7:5: Slim error: \`- end\` is not needed`);
+    });
+
+    test('maps template compiler errors back to the slim line', async () => {
+      const file = fixture('ui-slim.fez', source('  div\n    p ok\n    p= foo('));
+      const result = await compile(file);
+
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain(`${file}:8: Template compiler error:`);
+    });
+
+    test('--dump-template prints slim nodes with file lines', async () => {
+      const file = fixture('ui-slim.fez', source('  div.p-2\n    p= state.name'));
+      const result = await compile('-t', file);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toBe(
+        [`== <ui-slim> ${file}:5 ==`, '   6 | <div class="p-2">', '   7 |   <p>{state.name}</p>', '     | </div>', ''].join('\n'),
+      );
+    });
+
+    test('--dump-template prints the whitespace-free HTML template', async () => {
+      const file = fixture('ui-html.fez', '<div>\n  <b>a</b>  <b>b</b>\n</div>\n');
+      const result = await compile('-t', file);
+
+      expect(result.stdout).toContain('<div><b>a</b><b>b</b></div>');
+    });
+
+    test('--json prints errors as JSON', async () => {
+      const file = fixture('ui-slim.fez', source('  div\n    - end'));
+      const result = await compile('--json', file);
+
+      expect(result.exitCode).toBe(1);
+      expect(JSON.parse(result.stdout)).toEqual([
+        {
+          file,
+          line: 7,
+          column: 5,
+          kind: 'Slim',
+          message: '`- end` is not needed - nesting comes from indentation',
+        },
+      ]);
+    });
+
+    test('detects a Slim template without a <slim> block', async () => {
+      const file = fixture('ui-auto.fez', '<script>\n  class {}\n</script>\n\n.card.p-2\n  - end\n');
+      const result = await compile(file);
+
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain(`${file}:6:3: Slim error: \`- end\` is not needed`);
+
+      const dump = await compile('-t', fixture('ui-auto.fez', '<script>\n  class {}\n</script>\n\n.card\n  p= x\n'));
+      expect(dump.stdout).toContain('   5 | <div class="card">');
+    });
+
+    test('--json prints [] for a clean file', async () => {
+      const file = fixture('ui-slim.fez', source('  p ok'));
+      const result = await compile('--json', file);
+
+      expect(result.exitCode).toBe(0);
+      expect(JSON.parse(result.stdout)).toEqual([]);
+    });
+  });
 });
+

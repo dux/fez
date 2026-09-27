@@ -11,10 +11,11 @@
  */
 
 import path from 'node:path';
-import { extractFezDefinitions, parseFezSource } from './lib/source-parser.js';
+import { extractFezDefinitions, formatSourceError, parseFezSource } from './lib/source-parser.js';
 import { assertStyleScope, splitScript } from './lib/validate.js';
 import { stripTypeScript } from './lib/strip-types.js';
 import createTemplate from './lib/template.js';
+import { locateSlimError } from './lib/slim.js';
 
 function escapeTemplateLiteral(value) {
   return String(value).replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('$', '\\$');
@@ -59,14 +60,15 @@ function assertScriptSyntax(name, script) {
   }
 }
 
-function assertTemplate(name, html) {
+function assertTemplate(name, html, template) {
   if (!html.trim()) {
     return;
   }
   try {
     createTemplate(html, { name, strict: true });
   } catch (error) {
-    throw new Error(error.message);
+    const line = template.lang === 'slim' ? locateSlimError(html, template.map) : null;
+    throw new Error(line ? `<slim> line ${line}: ${error.message}` : error.message);
   }
 }
 
@@ -77,7 +79,7 @@ function assertTemplate(name, html) {
 function compileUnit(name, source, { minify }) {
   const parts = parseFezSource(source, { dedentDocs: true });
   if (parts.errors.length) {
-    throw new Error(parts.errors[0].message);
+    throw new Error(formatSourceError(parts.errors[0]));
   }
 
   assertName(name);
@@ -98,7 +100,7 @@ function compileUnit(name, source, { minify }) {
   assertStyleScope(name, parts.style, false);
   assertStyleScope(name, parts.styleGlobal, true);
   parts.html = normalizeHtml(parts.html);
-  assertTemplate(name, parts.html);
+  assertTemplate(name, parts.html, parts.template);
 
   if (!splitScript(klass).hasClass) {
     klass = `class {\n${klass}\n}`;

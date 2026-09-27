@@ -96,6 +96,10 @@ fez template path/to/component.fez
 fez compile --debug-template path/to/component.fez
 fez template --debug path/to/component.fez
 
+# Print the final template (<slim>: one node per line with source lines), or errors as JSON
+fez compile -t path/to/component.fez
+fez compile --json path/to/component.fez
+
 # Report legacy syntax and modernization candidates (never changes files)
 fez refactor [path-or-glob]
 
@@ -199,7 +203,7 @@ Deployment does not publish to the package registry.
 
 ## Component Structure
 
-Block order in a `.fez` file is fixed: `<info>`, `<demo>`, `<head>`, `<script>`, `<style>` / `<style global>`, and the template last.
+Block order in a `.fez` file is fixed: `<info>`, `<demo>`, `<head>`, `<script>`, `<style>` / `<style global>`, and the template last (HTML or Slim, see Slim Templates).
 Never put a `<style>` block after the template. The same order applies inside every `<xmp fez="...">` of a multi-component file.
 
 The `<script>` block has two zones:
@@ -632,6 +636,50 @@ Compiles to `onclick="fez.fezBang(event) && (fez.close())"`. Body must be a sing
 <my-component attr="value" />
 <!-- becomes: <my-component attr="value"></my-component> -->
 ```
+
+### Whitespace Between Nodes
+
+Whitespace-only runs between tags and `{#..}` / `{:..}` / `{/..}` blocks are dropped, on the same line or across lines: `<b>a</b> <b>b</b>` renders `<b>a</b><b>b</b>`.
+Space elements with CSS (`gap`, margin), or write `{' '}` where a real space is wanted.
+Text keeps its own spaces (`<p>Hello <b>you</b></p>`), and `<pre>` / `<textarea>` bodies are left as written.
+Implementation: `stripNodeWhitespace` in `src/fez/lib/template-compiler-lib.js`.
+
+## Slim Templates
+
+Templates can use an indentation-based, Slim-like syntax whose class shorthand takes Tailwind classes as written.
+`parseFezSource` (`src/fez/lib/source-parser.js`) converts it with `slimToFez` (`src/fez/lib/slim.js`) into a normal Fez template, so runtime, `fez compile`, `fez template` and the bundler plugin all accept it.
+A template whose first line reads as Slim is Slim with no wrapper (`SLIM_START_RE`): a known HTML/SVG tag or custom element followed by `.` / `#` shorthand, `: `, `=`, an attribute or the line end (`div`, `a href="/" Home`, `ul: li`), bare shorthand (`.card`), `- if|each|for|unless|await`, a Ruby `.each do |x|`, or `= expr`.
+Anything else (`<tag>`, `{...}`, plain text such as `Loading...` or `a new item`) stays HTML; wrap the template in a `<slim>` block when its first line is not detected (for example a first `| text` line).
+
+```slim
+.card.p-4.md:w-1/2.bg-[#fafafa] class:active={state.open}
+  h3.text-lg.font-semibold= props.title
+  - each state.items as item
+    ui-icon name="star"
+    span.text-sm = item.name
+  - else
+    p.text-gray-400 No items
+  button.px-3.py-1.5 onclick="fez.toggle()" Toggle
+  == state.html_note
+```
+
+Rules:
+
+* Line kinds by first character: tag name, `.class` / `#id` (a `div`), `|` text, `{expr}` text, `=` output, `==` raw output, `-` control, `/` comment (with its nested lines), `<` raw HTML.
+* After the tag, `name=value` tokens are attributes; the first token without `=` starts inline text: `p.text-sm No items`, `p Set foo="bar" here`.
+* `tag: child` nests the rest of the line as the only child (`form: input name="q" required=""`, `ul: li: a href="/" Home`); indented lines below go into the innermost element. A `:` followed by a space never occurs inside a Tailwind class.
+* An inline `|` forces text that itself starts with `name=value`: `p | foo="bar"`.
+* `= expr` / `== raw` right after the tag or after attributes, stuck or spaced: `h1= x`, `h1 = x`, `a href="/x"= x`. A `=` stuck to a bare value stays in the value (`type=button=x`).
+* Attribute values: `"..."`, `'...'`, `{expr}` (may contain spaces), or bare. Boolean attributes need a value: `disabled=""`, `disabled={state.busy}`.
+* Fez attributes pass through unchanged: `:prop="..."`, `fez:this="x"`, `class:on={...}`, `onclick!="..."`, `fez:in="fade"`.
+* Shorthand classes merge with `class`: `.p-2 class={state.x}` -> `class="p-2 {state.x}"`.
+* Class shorthand is Tailwind-safe: `.` inside `[...]` / `(...)` or between digits does not split (`p-0.5`, `w-[calc(100%-2rem)]`), `.2xl:flex` still starts a class, `#` starts the id only outside brackets (`bg-[#fff]`), and `/ : ! @ * %` are ordinary characters (`w-1/2`, `!mt-0`, `mt-0!`, `*:p-2`).
+* Control: `- if` / `- else if` / `- else` / `- unless`, `- each list as item, i` / `- for x in list` (with `- else` for empty), `- await p` / `- then v` / `- catch e`. The body is the indented block; a block closes when the indentation drops or the next sibling is not a continuation. Never write `- end`.
+* Ruby Slim aliases: `- list.each do |item|`, `- list.each_with_index do |item, i|`, `- elsif cond`, `#{expr}` in text and attributes. Expressions are still JavaScript (`item.name.toUpperCase()`, not `.upcase`).
+* Adjacent text lines join with one space; nested lines under a `|` line continue the text.
+* Void elements take no content; custom elements always get a closing tag. A line ending in ` \` continues on the next line.
+* Output has no whitespace between nodes (see above).
+* Errors carry the `.fez` file line and column (`Slim error`), template compiler errors are mapped back to the Slim line, and `fez compile -t` prints the generated template beside the Slim line numbers. Demo: `pages_src/root/fez/demo-slim.fez`.
 
 ## Conditional Class Directives
 

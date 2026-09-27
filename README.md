@@ -48,6 +48,13 @@ fez compile --debug-template my-component.fez
 fez template --debug my-component.fez
 ```
 
+`-t` / `--dump-template` prints the final template each component compiles to (a `<slim>` template one node per line, with source line numbers), and `--json` prints errors as a JSON array for editors:
+
+```bash
+fez compile -t my-component.fez
+fez compile --json my-component.fez
+```
+
 `.fez` files are compiled with Fez's own template compiler (`src/fez/lib/template-compiler.js`).
 
 ## Repository development and deployment
@@ -726,6 +733,70 @@ Use `class:name={condition}` to conditionally toggle CSS classes (Svelte-style):
 ```
 
 At compile time, `class:name={expr}` is converted to a ternary expression merged into the `class` attribute. The class name is added when the expression is truthy, removed when falsy.
+
+### Whitespace between nodes
+
+Templates drop whitespace-only runs between tags and `{#..}` / `{:..}` / `{/..}` blocks, on the same line or across lines:
+
+```html
+<span>a</span>   <span>b</span>
+<!-- renders as <span>a</span><span>b</span> -->
+```
+
+A gap between nodes renders as a space glyph whose width depends on the font, so it is not a reliable way to space elements.
+Space them with CSS (`gap`, margin), or write an explicit `{' '}` where a real space is wanted.
+Text keeps its own spaces (`<p>Hello <b>you</b></p>` is unchanged), and `<pre>` / `<textarea>` bodies are left as written.
+
+## Slim templates
+
+Templates can be written in an indentation-based, Slim-like syntax instead of HTML.
+A template whose first line reads as Slim is Slim - no wrapper needed: a tag followed by `.class` / `#id`, `: `, `=`, an attribute or the line end (`div`, `a href="/" Home`, `ul: li`), shorthand (`.card`), a custom element, `- if` / `- each` / `- for` / `- unless` / `- await`, or `= expr`.
+Anything else - `<tag>`, `{...}`, plain text like `Loading...` or `a new item` - stays HTML.
+Wrap the template in a `<slim>` block when its first line would not be detected.
+It is converted to a normal Fez template when the component compiles, so every template feature works the same.
+Class shorthand accepts Tailwind classes as written, so they never need a `class="..."` fallback.
+
+```slim
+.card.p-4.md:w-1/2.bg-[#fafafa] class:active={state.open}
+  h3.text-lg.font-semibold= props.title
+  - each state.items as item
+    ui-icon name="star"
+    span.text-sm.gap-1.5 = item.name
+  - else
+    p.text-gray-400 No items
+  button.px-3.py-1.5 onclick="fez.toggle()" Toggle
+  == state.html_note
+```
+
+compiles to
+
+```html
+<div class="card p-4 md:w-1/2 bg-[#fafafa]" class:active={state.open}><h3 class="text-lg font-semibold">{props.title}</h3>{#each state.items as item}<ui-icon name="star"></ui-icon><span class="text-sm gap-1.5">{item.name}</span>{:else}<p class="text-gray-400">No items</p>{/each}<button class="px-3 py-1.5" onclick="fez.toggle()">Toggle</button>{@html state.html_note}</div>
+```
+
+| Line | Meaning |
+|---|---|
+| `div.a.b#id attr="v" text` | element; `.class` / `#id` shorthand; `name=value` attributes, then inline text |
+| `.a` / `#id` | `div` shorthand |
+| `li: a href="/" Home` | inline nesting - the rest of the line is the only child |
+| `h1= expr` / `h1 = expr` / `h1== raw` | inline output, stuck or spaced |
+| `p \| a=b` | an inline `\|` forces text that itself starts with `name=value` |
+| `\| text` / `{expr}` | text line; `#{expr}` also works |
+| `= expr` / `== raw` | `{expr}` / `{@html raw}` |
+| `- if` / `- else if` (`- elsif`) / `- else` / `- unless` | conditionals |
+| `- each list as item` (`- list.each do \|item\|`) / `- for x in list` | loops, `- else` for the empty case |
+| `- await promise` / `- then value` / `- catch error` | promises |
+| `/ comment` | dropped with its nested lines |
+| `<raw html>` | passed through |
+
+* Tags nest by indentation; a block closes when the indentation drops or when the next sibling is not `- else` / `- then` / `- catch`.
+* Attribute values are `"..."`, `'...'`, `{expr}` or a bare value; boolean attributes are written `disabled=""` or `disabled={state.busy}`.
+* Fez attributes pass through: `:prop="..."`, `fez:this="x"`, `class:on={...}`, `onclick!="..."`.
+* Shorthand classes merge with a `class` attribute: `.p-2 class={state.x}` becomes `class="p-2 {state.x}"`.
+* In the class shorthand a `.` inside `[...]` / `(...)` or between digits (`p-0.5`) does not split, and `/ : ! @ * %` are ordinary class characters (`w-1/2`, `hover:bg-red-500/50`, `!mt-0`, `mt-0!`, `*:p-2`, `data-[state=open]:block`, `bg-(--brand)`).
+* A line ending in ` \` continues on the next line.
+* Nodes are joined without whitespace (see above).
+* Errors report the `.fez` file line and column, and `fez compile -t` shows the generated template next to the Slim source lines.
 
 ## Example: Counter Component
 

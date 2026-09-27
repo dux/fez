@@ -17,6 +17,7 @@
 
 import closeCustomTags from './lib/close-custom-tags.js';
 import {
+  formatSourceError,
   hasFezDefinitions,
   parseFezSource,
   stripFezDefinitions,
@@ -200,7 +201,7 @@ export { compileFromUrl as compile_from_url };
 function compileToClass(html) {
   const result = parseFezSource(html, { dedentDocs: true });
   if (result.errors.length) {
-    throw new Error(result.errors[0].message);
+    throw new Error(formatSourceError(result.errors[0]));
   }
   result.html = result.html
     .split('\n')

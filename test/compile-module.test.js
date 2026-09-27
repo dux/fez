@@ -139,4 +139,18 @@ describe('fez plugin', () => {
     expect(result.code).toContain('n = 1');
     fs.rmSync(dir, { recursive: true, force: true });
   });
+
+  test('compiles a <slim> template', () => {
+    const code = compile('<script>\nclass {}\n</script>\n<slim>\n  div.p-0.5\n    p= state.name\n</slim>');
+    expect(code).toContain('<div class="p-0.5"><p>{state.name}</p></div>');
+  });
+
+  test('slim errors carry the line', () => {
+    expect(() => compile('<slim>\n  div\n    - end\n</slim>')).toThrow('<slim> line 3:5:');
+  });
+
+  test('slim template compiler errors carry the line', () => {
+    expect(() => compile('<slim>\n  div\n    p= foo(\n</slim>')).toThrow(/^<slim> line 3: /);
+  });
 });
+

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
   extractFezDefinitions,
+  formatSourceError,
   hasFezDefinitions,
   parseFezSource,
   stripFezDefinitions,
@@ -125,5 +126,96 @@ describe('Fez source parser', () => {
     const source = '<script>\nclass {}\n</script>\n<p>Hello</p>';
 
     expect(stripFezDefinitions(source)).toBe(source);
+  });
+
+  test('a <slim> block becomes the template', () => {
+    const parsed = parseFezSource(`<script>
+  class {}
+</script>
+
+<slim>
+  div.p-2
+    p= state.name
+</slim>`);
+
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.html).toBe('<div class="p-2"><p>{state.name}</p></div>');
+    expect(parsed.template.lang).toBe('slim');
+    expect(parsed.template.map).toEqual([
+      [0, 6],
+      [17, 7],
+      [36, 6],
+    ]);
+  });
+
+  test('slim errors point at the file line and column', () => {
+    const parsed = parseFezSource('<script>\nclass {}\n</script>\n<slim>\n  div\n    - end\n</slim>');
+
+    expect(parsed.errors).toEqual([
+      {
+        kind: 'Slim',
+        message: '`- end` is not needed - nesting comes from indentation',
+        line: 6,
+        column: 5,
+      },
+    ]);
+    expect(formatSourceError(parsed.errors[0])).toBe(
+      '<slim> line 6:5: `- end` is not needed - nesting comes from indentation',
+    );
+  });
+
+  test('a <slim> block next to an HTML template is an error', () => {
+    const parsed = parseFezSource('<slim>\n  p a\n</slim>\n<p>b</p>');
+
+    expect(parsed.errors[0].message).toContain('both present');
+  });
+
+  test('a template whose first line reads as Slim is Slim without a <slim> block', () => {
+    const parsed = parseFezSource('<script>\n  class {}\n</script>\n\nform: input name="q" required=""\nul\n  - end\n');
+
+    expect(parsed.template.lang).toBe('slim');
+    expect(parsed.html).toBe('<form><input name="q" required=""></form><ul></ul>');
+    expect(parsed.errors).toEqual([
+      {
+        kind: 'Slim',
+        message: '`- end` is not needed - nesting comes from indentation',
+        line: 7,
+        column: 3,
+      },
+    ]);
+  });
+
+  test.each([
+    ['.card', '<div class="card"></div>'],
+    ['#app.p-2', '<div id="app" class="p-2"></div>'],
+    ['div', '<div></div>'],
+    ['a href="/" Home', '<a href="/">Home</a>'],
+    ['h1= props.title', '<h1>{props.title}</h1>'],
+    ['ul: li x', '<ul><li>x</li></ul>'],
+    ['ui-icon name="star"', '<ui-icon name="star"></ui-icon>'],
+    ['- if state.on\n  p on', '{#if state.on}<p>on</p>{/if}'],
+    ['- state.items.each do |item|\n  li= item', '{#each state.items as item}<li>{item}</li>{/each}'],
+    ['= state.name', '{state.name}'],
+  ])('detects Slim from %j', (source, html) => {
+    const parsed = parseFezSource(source);
+    expect(parsed.template.lang).toBe('slim');
+    expect(parsed.html).toBe(html);
+  });
+
+  test.each([
+    '<div>\n  <p>x</p>\n</div>',
+    '{#if x}<b>x</b>{/if}',
+    'Loading...',
+    'a new item',
+    'time left: {state.t}',
+    '- first item',
+    'Hello {props.name}',
+    '<!-- note -->\ndiv',
+  ])('keeps %j as HTML', (source) => {
+    expect(parseFezSource(source).template.lang).toBe('html');
+  });
+
+  test('HTML templates report lang html', () => {
+    expect(parseFezSource('<p>a</p>').template).toEqual({ lang: 'html', map: null });
   });
 });

@@ -378,3 +378,24 @@ export function getEventAttributeContext(text, pos) {
   }
   return null;
 }
+
+// <pre>/<textarea> bodies keep their whitespace as written
+const PRESERVE_WHITESPACE_RE = /<(pre|textarea)\b[\s\S]*?<\/\1\s*>/gi;
+// a whitespace-only run after a tag or {#..} {:..} {/..} directive and before the next one
+const NODE_GAP_RE = /(>|\{[#:/][^{}]*\})\s+(?=<|\{[#:/])/g;
+
+/**
+ * Drop whitespace-only runs between nodes (`</div>  <div>` -> `</div><div>`).
+ * Inter-node whitespace renders as a font-dependent space, so spacing belongs
+ * in CSS or an explicit `{' '}`. Text keeps its own spaces.
+ */
+export function stripNodeWhitespace(text) {
+  const kept = [...text.matchAll(PRESERVE_WHITESPACE_RE)].map((m) => [
+    m.index,
+    m.index + m[0].length,
+  ]);
+  return text.replace(NODE_GAP_RE, (gap, lead, offset) => {
+    const start = offset + lead.length;
+    return kept.some(([from, to]) => start >= from && start < to) ? gap : lead;
+  });
+}

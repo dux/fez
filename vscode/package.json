@@ -51,6 +51,16 @@
         "path": "./snippets/fez.json"
       }
     ],
+    "configuration": {
+      "title": "Fez",
+      "properties": {
+        "fez.cli": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Command used to check `.fez` files (`<cli> compile --json <file>`) on open and save. Empty uses the workspace `node_modules/.bin/fez`, then `bunx @dinoreic/fez`."
+        }
+      }
+    },
     "commands": [
       {
         "command": "fez.wrapWithIf",

@@ -7,6 +7,8 @@ import { globSync } from 'glob';
 import prettier from 'prettier';
 import createTemplate, { clearTemplateCache } from '../src/fez/lib/template.js';
 import { extractFezDefinitions, parseFezSource } from '../src/fez/lib/source-parser.js';
+import { locateSlimError, slimToFez } from '../src/fez/lib/slim.js';
+import { stripNodeWhitespace } from '../src/fez/lib/template-compiler-lib.js';
 import { stripTypeScript } from '../src/fez/lib/strip-types.js';
 import { splitScript } from '../src/fez/lib/validate.js';
 
@@ -20,6 +22,8 @@ try {
       help: { type: 'boolean', short: 'h' },
       output: { type: 'boolean', short: 'o' },
       'debug-template': { type: 'boolean', short: 'd' },
+      'dump-template': { type: 'boolean', short: 't' },
+      json: { type: 'boolean' },
       info: { type: 'boolean' },
     },
     allowPositionals: true,
@@ -43,19 +47,24 @@ Options:
   -h, --help            Show this help message
   -o, --output          Output compiled JavaScript
   -d, --debug-template  Print generated template function body on template errors
+  -t, --dump-template   Print the final Fez template of each component
+                        (<slim> templates one node per line with source line numbers)
+      --json            Print errors as a JSON array (for editors)
 
 Examples:
   fez compile docs/fez/ui-counter.fez
   fez compile 'docs/fez/*.fez'
   fez compile -o docs/fez/ui-counter.fez > compiled.js
   fez compile --debug-template docs/fez/ui-counter.fez
+  fez compile -t docs/fez/ui-counter.fez
+  fez compile --json docs/fez/ui-counter.fez
 `);
   process.exit(0);
 }
 
 const input = expandInputs(positionals);
 if (input.errors.length) {
-  input.errors.forEach((error) => printError(error));
+  reportErrors(input.errors);
   process.exit(1);
 }
 
@@ -64,17 +73,26 @@ for (const filePath of input.files) {
   results.push(
     await compileFile(filePath, {
       debugTemplate: values['debug-template'],
+      dumpTemplate: values['dump-template'],
     }),
   );
 }
 
+if (values['dump-template']) {
+  process.stdout.write(results.flatMap((result) => result.dumps).join('\n\n') + '\n');
+}
+
 const errors = results.flatMap((result) => result.errors);
 if (errors.length) {
-  errors.forEach(printError);
+  reportErrors(errors);
   process.exit(1);
 }
 
-if (values.output) {
+if (values.json) {
+  console.log('[]');
+} else if (values['dump-template']) {
+  // the dump is the output
+} else if (values.output) {
   process.stdout.write(results.flatMap((result) => result.compiled).join('\n'));
 } else {
   for (const result of results) {
@@ -127,7 +145,7 @@ function readSource(filePath) {
 async function compileFile(filePath, options = {}) {
   const source = readSource(filePath);
   if (source.error) {
-    return { file: filePath, errors: [source.error], compiled: [], components: 0 };
+    return { file: filePath, errors: [source.error], compiled: [], dumps: [], components: 0 };
   }
 
   const extracted = extractFezDefinitions(source.content);
@@ -146,15 +164,19 @@ async function compileFile(filePath, options = {}) {
   }
 
   const compiled = [];
+  const dumps = [];
   for (const unit of units) {
     const result = await compileUnit(filePath, unit, options);
     errors.push(...result.errors);
     if (result.compiled) {
       compiled.push(result.compiled);
     }
+    if (options.dumpTemplate) {
+      dumps.push(dumpTemplate(filePath, unit));
+    }
   }
 
-  return { file: filePath, errors, compiled, components: units.length };
+  return { file: filePath, errors, compiled, dumps, components: units.length };
 }
 
 async function compileUnit(filePath, unit, options) {
@@ -216,7 +238,9 @@ async function compileUnit(filePath, unit, options) {
 
   errors.push(...validateLegacyTemplate(parsed.html, filePath));
   errors.push(
-    ...validateTemplateCompiler(parsed.html, filePath, componentName, options.debugTemplate),
+    ...validateTemplateCompiler(parsed, filePath, componentName, options.debugTemplate).map(
+      (error) => (error.line ? { ...error, line: error.line + unit.lineOffset } : error),
+    ),
   );
 
   if (errors.length) {
@@ -486,7 +510,8 @@ function validateLegacyTemplate(html, filePath) {
   return errors;
 }
 
-function validateTemplateCompiler(html, filePath, componentName, debugTemplate = false) {
+function validateTemplateCompiler(parsed, filePath, componentName, debugTemplate = false) {
+  const html = parsed.html;
   if (!html.trim()) {
     return [];
   }
@@ -502,15 +527,41 @@ function validateTemplateCompiler(html, filePath, componentName, debugTemplate =
     if (!match) {
       continue;
     }
+    const line =
+      parsed.template.lang === 'slim' ? locateSlimError(html, parsed.template.map) : null;
     errors.push({
       message: match[2] || 'Template compiler failed',
       file: filePath,
       kind: 'Template compiler',
+      ...(line ? { line } : {}),
       detail: (logs[index + 1] || '').replace(/^Template:\s*/, ''),
       debug: debugTemplate ? debugTemplateFunction(html, componentName) : '',
     });
   }
   return errors;
+}
+
+function dumpTemplate(filePath, unit) {
+  const parsed = parseFezSource(unit.source);
+  const { template } = parsed;
+  if (template.lang !== 'slim') {
+    return `== <${unit.name}> ${filePath} ==\n${stripNodeWhitespace(parsed.html).trim()}`;
+  }
+  const lineOffset = template.contentLine - 1 + unit.lineOffset;
+  const body = slimToFez(template.content, { pretty: true, lineOffset }).html;
+  return `== <${unit.name}> ${filePath}:${template.line + unit.lineOffset} ==\n${body}`;
+}
+
+function reportErrors(errors) {
+  if (values.json) {
+    const fields = ['file', 'line', 'column', 'kind', 'message', 'detail'];
+    const rows = errors.map((error) =>
+      Object.fromEntries(fields.filter((key) => error[key] != null).map((key) => [key, error[key]])),
+    );
+    console.log(JSON.stringify(rows, null, 2));
+  } else {
+    errors.forEach(printError);
+  }
 }
 
 function captureConsoleErrors(callback) {

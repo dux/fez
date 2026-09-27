@@ -206,7 +206,20 @@ describe('published CLI wiring', () => {
   test('VS Code invokes the published fez binary', () => {
     const extension = fs.readFileSync(path.join(root, 'vscode/src/extension.js'), 'utf8');
 
-    expect(extension).toContain('bunx @dinoreic/fez compile');
+    expect(extension).toContain('"bunx @dinoreic/fez"');
+    expect(extension).toContain('compile --json');
     expect(extension).not.toContain('bunx fez-compile');
+  });
+
+  test('VS Code Slim detection uses the parser tag list', () => {
+    const parser = fs.readFileSync(path.join(root, 'src/fez/lib/source-parser.js'), 'utf8');
+    const tags = [...parser.match(/const TAG_NAMES =([\s\S]*?);/)[1].matchAll(/'([^']*)'/g)]
+      .map((m) => m[1])
+      .join('');
+    const extension = fs.readFileSync(path.join(root, 'vscode/src/extension.js'), 'utf8');
+    const grammar = fs.readFileSync(path.join(root, 'vscode/syntaxes/fez.tmLanguage.json'), 'utf8');
+
+    expect(extension).toContain(`const SLIM_TAGS = "${tags}";`);
+    expect(JSON.parse(grammar).repository['slim-template'].begin).toContain(`(?:${tags}|`);
   });
 });

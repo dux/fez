@@ -1,0 +1,120 @@
+<info>
+  <ul>
+    <li>Template written in Slim instead of HTML - detected from its first line, or forced with a <code>&lt;slim&gt;</code> block as here</li>
+    <li>Tags nest by indentation, <code>.class</code> / <code>#id</code> shorthand (a bare <code>.card</code> is a div), Tailwind classes like <code>p-0.5</code>, <code>w-1/2</code>, <code>bg-[#fff]</code> stay in the shorthand</li>
+    <li>Control flow: <code>- if</code>, <code>- else</code>, <code>- each list as item</code> or <code>- list.each do |item|</code></li>
+    <li>Output: <code>= expr</code>, <code>== raw_html</code>, text lines start with <code>|</code></li>
+    <li>Nodes are joined without whitespace - space things with CSS <code>gap</code> / margin</li>
+    <li><code>fez compile -t file.fez</code> prints the generated template with source lines</li>
+  </ul>
+</info>
+
+<demo>
+  <demo-slim></demo-slim>
+</demo>
+
+<script>
+  class {
+    init() {
+      this.state.filter = 'all'
+      this.state.tasks = [
+        { id: 1, title: 'Write the slim block', done: true },
+        { id: 2, title: 'Run fez compile -t', done: false },
+        { id: 3, title: 'Ship it', done: false },
+      ]
+    }
+
+    visible() {
+      const { filter, tasks } = this.state
+      return tasks.filter((t) => filter === 'all' || (filter === 'done') === t.done)
+    }
+
+    toggle(id) {
+      const task = this.state.tasks.find((t) => t.id === id)
+      task.done = !task.done
+    }
+  }
+</script>
+
+<style>
+  .box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 420px;
+    font-family: system-ui, sans-serif;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+
+    button {
+      padding: 4px 12px;
+      border: 1px solid #ddd;
+      border-radius: 999px;
+      background: #fff;
+      cursor: pointer;
+
+      &.active {
+        background: #222;
+        border-color: #222;
+        color: #fff;
+      }
+    }
+  }
+
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 8px 12px;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &.done .title {
+      color: #999;
+      text-decoration: line-through;
+    }
+  }
+
+  .mark {
+    width: 16px;
+    color: #2a9d5c;
+    font-weight: 700;
+  }
+
+  .meta {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+  }
+</style>
+
+<slim>
+  .box
+    .tabs
+      - each ['all', 'open', 'done'] as name
+        button class:active={state.filter === name} onclick="fez.state.filter = '{name}'"= name
+    ul
+      - visible().each do |task|
+        li class:done={task.done} onclick="fez.toggle({task.id})"
+          span.mark= task.done ? 'x' : ''
+          span.title= task.title
+      - else
+        li.empty Nothing here
+    p.meta
+      | #{state.tasks.filter((t) => !t.done).length} open,
+      | #{state.tasks.length} total
+</slim>

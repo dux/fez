@@ -715,6 +715,56 @@ test('template - loops work', async () => {
   }
 });
 
+test('template - <slim> block compiles at runtime without whitespace nodes', async () => {
+  const page = await createTestPage('<test-slim></test-slim>');
+
+  try {
+    await page.evaluate(() => {
+      window.Fez.compile('test-slim', `
+<script>
+  class {
+    init() { this.state.items = ['a', 'b'] }
+    add() { this.state.items.push('c') }
+  }
+</script>
+
+<slim>
+  ul.flex.gap-1.5.md:w-1/2
+    - state.items.each do |item|
+      li.p-0.5.bg-[#fff]= item
+  button.add onclick="fez.add()" Add
+</slim>
+`);
+    });
+
+    await page.waitForFunction(() => document.querySelectorAll('.fez-test-slim li').length === 2, { timeout: 2000 });
+    await page.click('.fez-test-slim .add');
+    await page.waitForFunction(() => document.querySelectorAll('.fez-test-slim li').length === 3, { timeout: 2000 });
+
+    const result = await page.evaluate(() => {
+      const root = document.querySelector('.fez-test-slim');
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      let blank = 0;
+      while (walker.nextNode()) {
+        if (!walker.currentNode.textContent.trim()) blank++;
+      }
+      return {
+        ul: root.querySelector('ul').className,
+        li: root.querySelector('li').className,
+        texts: [...root.querySelectorAll('li')].map((li) => li.textContent),
+        blank,
+      };
+    });
+
+    expect(result.ul).toBe('flex gap-1.5 md:w-1/2');
+    expect(result.li).toBe('p-0.5 bg-[#fff]');
+    expect(result.texts).toEqual(['a', 'b', 'c']);
+    expect(result.blank).toBe(0);
+  } finally {
+    await closePage(page);
+  }
+});
+
 test('template - compiler keys are internal DOM properties', async () => {
   const page = await createTestPage('<test-internal-keys></test-internal-keys>');
 

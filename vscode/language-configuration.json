@@ -55,6 +55,14 @@
     {
       "beforeText": "\\{:(else|then|catch).*$",
       "action": { "indent": "indent" }
+    },
+    {
+      "beforeText": "^\\s*-\\s*(if|else|elsif|unless|each|for|await|then|catch)\\b.*$|^\\s*-\\s*.+\\.each(_with_index)?\\s+do\\s*\\|[^|]*\\|\\s*$",
+      "action": { "indent": "indent" }
+    },
+    {
+      "beforeText": "^\\s*(?:[a-z][\\w-]*)?[.#][^\\s=]*\\s*$",
+      "action": { "indent": "indent" }
     }
   ],
   "wordPattern": "(-?\\d*\\.\\d\\w*)|([^\\`\\~\\!\\@\\$\\^\\&\\*\\(\\)\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\'\\\"\\,\\.\\<\\>\\/\\s]+)"

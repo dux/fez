@@ -284,5 +284,53 @@
       "<script fez=\"${1:path/to/component.fez}\"></script>"
     ],
     "description": "Fez CDN script tags"
+  },
+  "Fez Slim Block": {
+    "prefix": "fez-slim",
+    "body": [
+      "<slim>",
+      "  ${1:.card}",
+      "    $0",
+      "</slim>"
+    ],
+    "description": "Slim template block"
+  },
+  "Slim If": {
+    "prefix": "slim-if",
+    "body": [
+      "- if ${1:condition}",
+      "  $0"
+    ],
+    "description": "Slim - if block"
+  },
+  "Slim If/Else": {
+    "prefix": "slim-ifelse",
+    "body": [
+      "- if ${1:condition}",
+      "  $2",
+      "- else",
+      "  $0"
+    ],
+    "description": "Slim - if / - else block"
+  },
+  "Slim Each": {
+    "prefix": "slim-each",
+    "body": [
+      "- each ${1:state.items} as ${2:item}",
+      "  $0"
+    ],
+    "description": "Slim - each loop"
+  },
+  "Slim Await": {
+    "prefix": "slim-await",
+    "body": [
+      "- await ${1:state.promise}",
+      "  p Loading...",
+      "- then ${2:value}",
+      "  = ${2:value}",
+      "- catch error",
+      "  p= error.message"
+    ],
+    "description": "Slim - await / - then / - catch block"
   }
 }

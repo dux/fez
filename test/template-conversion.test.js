@@ -1,8 +1,8 @@
 import { describe, test, expect } from "bun:test";
 import createTemplate, { clearTemplateCache } from "../src/fez/lib/template.js";
 
-// Mock Fez.htmlEscape
-globalThis.Fez = {
+// Local mock - reassigning the global would break the preloaded runtime
+const Fez = {
   htmlEscape: (s) =>
     String(s == null ? "" : s).replace(
       /[&<>"']/g,
@@ -199,14 +199,31 @@ describe("Old to new syntax conversion", () => {
   });
 
   describe("whitespace normalization", () => {
-    test("a same-line space between inline elements survives", () => {
-      const html = render("<span>a</span> <span>b</span>", { state: {} });
-      expect(html).toBe("<span>a</span> <span>b</span>");
+    test("a same-line space between tags is dropped", () => {
+      const html = render("<span>a</span>    <span>b</span>", { state: {} });
+      expect(html).toBe("<span>a</span><span>b</span>");
     });
 
     test("a line break between tags is joined", () => {
       const html = render("<div>a</div>\n<div>b</div>", { state: {} });
       expect(html).toBe("<div>a</div><div>b</div>");
+    });
+
+    test("whitespace around block directives is dropped", () => {
+      const html = render("<ul>\n  {#each state.items as item}\n    <li>{item}</li>\n  {/each}\n</ul>", {
+        state: { items: ["a", "b"] },
+      });
+      expect(html).toBe("<ul><li>a</li><li>b</li></ul>");
+    });
+
+    test("text keeps its own spaces and an explicit {' '} survives", () => {
+      const html = render("<p>Hello <b>you</b> there</p><i>a</i>{' '}<i>b</i>", { state: {} });
+      expect(html).toBe("<p>Hello <b>you</b> there</p><i>a</i> <i>b</i>");
+    });
+
+    test("pre and textarea bodies keep whitespace", () => {
+      const html = render("<pre>\n  <b>a</b>\n  <b>b</b>\n</pre> <textarea> </textarea>", { state: {} });
+      expect(html).toBe("<pre>\n  <b>a</b>\n  <b>b</b>\n</pre><textarea> </textarea>");
     });
   });
 

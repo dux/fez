@@ -1,4 +1,6 @@
-const BLOCK_TAG_RE = /(^|\n)[ \t]*<(demo|info|script|head|style)\b([^>]*)>/gi;
+import { slimToFez } from './slim.js';
+
+const BLOCK_TAG_RE = /(^|\n)[ \t]*<(demo|info|script|head|style|slim)\b([^>]*)>/gi;
 const DEFINITION_TAG_RE = /<(xmp|template)\b([^>]*)>/gi;
 const GLOBAL_ATTR = /(?:^|\s)global(?:\s*=\s*(?:""|''|"global"|'global'|global))?(?=\s|$)/i;
 const FEZ_ATTR = /(?:^|\s)fez\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/i;
@@ -37,15 +39,27 @@ function appendBlock(result, type, content) {
   }
 }
 
-export function dedent(text) {
-  const lines = text.split('\n');
-  const nonEmpty = lines.filter((line) => line.trim());
-  if (!nonEmpty.length) {
-    return text;
-  }
+function minIndent(text) {
+  const nonEmpty = text.split('\n').filter((line) => line.trim());
+  return nonEmpty.length ? Math.min(...nonEmpty.map((line) => line.match(/^(\s*)/)[1].length)) : 0;
+}
 
-  const indent = Math.min(...nonEmpty.map((line) => line.match(/^(\s*)/)[1].length));
-  return indent ? lines.map((line) => line.slice(indent)).join('\n') : text;
+export function dedent(text) {
+  const indent = minIndent(text);
+  return indent
+    ? text
+        .split('\n')
+        .map((line) => line.slice(indent))
+        .join('\n')
+    : text;
+}
+
+// "<slim> line 12:5: message" for Slim errors, the plain message otherwise
+export function formatSourceError(error) {
+  if (error.kind !== 'Slim') {
+    return error.message;
+  }
+  return `<slim> line ${error.line}${error.column ? `:${error.column}` : ''}: ${error.message}`;
 }
 
 export function isGlobalStyleTag(attributes) {
@@ -53,6 +67,25 @@ export function isGlobalStyleTag(attributes) {
 }
 
 const LANG_ATTR = /\blang\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
+const TAG_NAMES =
+  'a|abbr|address|area|article|aside|audio|b|bdi|bdo|blockquote|br|button|canvas|caption|circle|cite|' +
+  'code|col|colgroup|data|datalist|dd|defs|del|details|dfn|dialog|div|dl|dt|ellipse|em|embed|fieldset|' +
+  'figcaption|figure|footer|form|g|h[1-6]|header|hgroup|hr|i|iframe|img|input|ins|kbd|label|legend|li|' +
+  'line|main|map|mark|menu|meter|nav|noscript|object|ol|optgroup|option|output|p|path|picture|polygon|' +
+  'polyline|pre|progress|q|rect|s|samp|section|select|slot|small|source|span|strong|sub|summary|sup|' +
+  'svg|table|tbody|td|template|textarea|tfoot|th|thead|time|tr|track|u|ul|use|var|video|wbr';
+// A template whose first line opens like Slim is Slim - no <slim> block needed.
+// A bare tag word must be followed by shorthand, `: `, `=`, an attribute or the
+// line end, so text templates such as `a new item` stay HTML.
+const SLIM_START_RE = new RegExp(
+  '^(?:' +
+    '[.#][a-zA-Z_!@*\\[(-]' +
+    `|(?:${TAG_NAMES}|[a-z][a-z0-9]*-[a-z0-9-]*)(?=[.#]|:\\s|=|\\s*$|\\s+[^\\s=]+=)` +
+    '|-\\s*(?:if|unless|each|for|await)\\s' +
+    '|-\\s*\\S.*\\.each(?:_with_index)?\\s+do\\s*\\|' +
+    '|==?\\s' +
+    ')',
+);
 const TYPE_ATTR = /\btype\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
 const TS_LANGS = new Set(['ts', 'typescript']);
 const TS_TYPES = new Set(['ts', 'text/typescript']);
@@ -75,6 +108,8 @@ export function parseFezSource(source, { dedentDocs = false } = {}) {
     style: '',
     styleGlobal: '',
     html: '',
+    slim: '',
+    template: { lang: 'html', map: null },
     head: '',
     demo: '',
     info: '',
@@ -82,6 +117,7 @@ export function parseFezSource(source, { dedentDocs = false } = {}) {
     errors: [],
   };
   const counts = new Map();
+  const segments = [];
   let cursor = 0;
   let match;
 
@@ -94,6 +130,7 @@ export function parseFezSource(source, { dedentDocs = false } = {}) {
     const close = findClosingTag(source, tag, rawStart);
 
     result.html += source.slice(cursor, openStart);
+    segments.push([cursor, openStart]);
 
     if (!close) {
       result.errors.push({
@@ -138,6 +175,7 @@ export function parseFezSource(source, { dedentDocs = false } = {}) {
       lang,
       line: lineAt(source, openStart),
       contentLine: contentLine(source, rawStart, raw),
+      indent: minIndent(blockContent(raw)),
     };
     result.blocks.push(block);
     appendBlock(result, type, content);
@@ -147,8 +185,72 @@ export function parseFezSource(source, { dedentDocs = false } = {}) {
   }
 
   result.html += source.slice(cursor);
+  segments.push([cursor, source.length]);
   result.html = stripGeneratedNotice(result.html);
+
+  const slim = result.blocks.find((block) => block.type === 'slim');
+  if (slim) {
+    if (withoutComments(result.html).trim()) {
+      result.errors.push({
+        kind: 'Source',
+        message: '<slim> block and an HTML template are both present - keep one',
+        line: slim.line,
+      });
+    }
+    applySlim(result, slim);
+  } else {
+    const detected = detectSlim(source, segments);
+    if (detected) {
+      applySlim(result, detected);
+    }
+  }
   return result;
+}
+
+function withoutComments(html) {
+  return html.replace(/<!--[\s\S]*?-->/g, '');
+}
+
+// The template outside the blocks, when its first line reads as Slim.
+// segments are the [start, end] source ranges between blocks.
+function detectSlim(source, segments) {
+  const filled = segments
+    .map(([start, end]) => ({ start, text: source.slice(start, end) }))
+    .filter((segment) => withoutComments(stripGeneratedNotice(segment.text)).trim());
+  if (filled.length !== 1) {
+    return null;
+  }
+
+  const { start, text } = filled[0];
+  const first = text.match(/^[ \t]*\S/m);
+  if (!first || !SLIM_START_RE.test(text.slice(first.index).split('\n')[0].trim())) {
+    return null;
+  }
+
+  const lineStart = start + first.index;
+  const raw = source.slice(lineStart, start + text.length).replace(/\s+$/, '');
+  const line = lineAt(source, lineStart);
+  return { content: dedent(raw), contentLine: line, indent: minIndent(raw), line };
+}
+
+function applySlim(result, block) {
+  const { html, map, errors } = slimToFez(block.content);
+  result.html = html;
+  result.template = {
+    lang: 'slim',
+    line: block.line,
+    content: block.content,
+    contentLine: block.contentLine,
+    map: map.map(([offset, line]) => [offset, block.contentLine + line - 1]),
+  };
+  for (const error of errors) {
+    result.errors.push({
+      kind: 'Slim',
+      message: error.message,
+      line: block.contentLine + error.line - 1,
+      column: error.column + block.indent,
+    });
+  }
 }
 
 function protectedRanges(source) {

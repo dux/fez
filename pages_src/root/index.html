@@ -112,18 +112,14 @@ components:
   }
 </script>
 
-<form><input name="tag" placeholder="add a tag" required /></form>
-
-<ul>
-  {#each state.tags as tag}
-    <li key={tag} fez:animate="flip"
-        fez:in="fly, from=left" fez:out="scale, duration=150">
-      {tag} <button onclick={() => remove(tag)}>&times;</button>
-    </li>
-  {:else}
-    <li class="empty">no tags - add one</li>
-  {/each}
-</ul>
+form
+  input name="tag" placeholder="add a tag" required=""
+ul
+  - each state.tags as tag
+    li key={tag} fez:animate="flip" fez:in="fly, from=left" fez:out="scale, duration=150" = tag
+      button onclick={() => remove(tag)} &times;
+  - else
+    li.empty no tags - add one
                   </xmp>
                 </ui-editor>
               </div>

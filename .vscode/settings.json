@@ -15,5 +15,6 @@
     ".claude/**": true,
     "demo": true,
     "demo/**": true
-  }
+  },
+  "fez.cli": "./bin/fez"
 }
