@@ -31,6 +31,7 @@ describe('fez dispatcher', () => {
       'refactor',
       'static',
       'template',
+      'version',
     ]) {
       expect(result.stdout).toMatch(new RegExp(`^\\s+${command}\\s+`, 'm'));
     }

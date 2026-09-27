@@ -63,7 +63,7 @@ bun run deploy
 ```
 
 `deploy` requires a clean working tree on `main`.
-It increments the minor version (`0.7.0` -> `0.8.0`) before building the library and pages, commits the version on `main`, and amends or creates the rolling `pages` commit with the new version and source hash.
+It stamps `.version` with `v<main commit count>`, including the release commit, like dboss and lux-fw, and writes its dotted form to `package.json` (`v357` -> `3.5.7`, `v1123` -> `11.2.3`). It then builds the library and pages, commits both files on `main`, and amends or creates the rolling `pages` commit with the new version and source hash.
 It then pushes both branches to GitHub (`origin`) atomically: `main` must fast-forward and `pages` uses an explicit force-with-lease.
 The generated site is served from the root of the `pages` branch.
 `--dry-run` builds the next version, restores `package.json`, and leaves preview output without committing or pushing.

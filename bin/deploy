@@ -3,17 +3,19 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { formatVersion } from '../src/fez/lib/version.js';
 
 const USAGE = `Usage: bun run deploy [--dry-run]
 
-Increment the minor version (0.7.0 -> 0.8.0), build the library and pages,
+Stamp .version with the main commit count (v357 -> 3.5.7, counting the release
+commit) and package.json with its dotted form, build the library and pages,
 commit the version on main, amend or create the rolling pages commit with
 the new version and source hash, then push both branches to GitHub.
 The push is atomic: main must fast-forward; pages uses force-with-lease.
 Requires a clean main checkout and an origin remote.
 
 Options:
-  --dry-run   build the next version, restore package.json, do not commit or push
+  --dry-run   build the next version, restore .version and package.json, do not commit or push
   -h, --help  show this description
 `;
 
@@ -66,12 +68,19 @@ async function deploy(args) {
   const manifestPath = path.join(root, 'package.json');
   const originalManifest = fs.readFileSync(manifestPath, 'utf8');
   const manifest = JSON.parse(originalManifest);
-  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(manifest.version);
-  if (!match) {
-    throw new Error(`Expected a stable major.minor.patch version, got ${manifest.version}.`);
-  }
-  const version = `${match[1]}.${Number(match[2]) + 1}.0`;
-  const nextManifest = JSON.stringify({ ...manifest, version }, null, 2) + '\n';
+  // +1: the release commit made below is part of the count it is named after
+  const stamp = `v${Number(git('rev-list', '--count', 'main')) + 1}`;
+  const version = formatVersion(stamp).slice(1);
+  const versionPath = path.join(root, '.version');
+  // [path, content before the deploy (null when missing), stamped content]
+  const stamped = [
+    [manifestPath, originalManifest, JSON.stringify({ ...manifest, version }, null, 2) + '\n'],
+    [
+      versionPath,
+      fs.existsSync(versionPath) ? fs.readFileSync(versionPath, 'utf8') : null,
+      `${stamp}\n`,
+    ],
+  ];
   const siteDir = path.join(root, 'tmp/fez-pages');
   const worktree = path.join(root, 'tmp/pages-wt');
   let remotePages = '';
@@ -108,8 +117,10 @@ async function deploy(args) {
   let committed = false;
   let staged = false;
   try {
-    fs.writeFileSync(manifestPath, nextManifest);
-    process.stdout.write(`deploy: ${manifest.version} -> ${version}\n`);
+    for (const [file, , next] of stamped) {
+      fs.writeFileSync(file, next);
+    }
+    process.stdout.write(`deploy: ${manifest.version} -> ${version} (${stamp})\n`);
     run(process.execPath, ['run', 'build'], { stdio: 'inherit' });
     run(process.execPath, ['run', 'static'], { stdio: 'inherit' });
     if (!fs.existsSync(path.join(siteDir, 'index.html'))) {
@@ -121,9 +132,9 @@ async function deploy(args) {
     }
 
     if (
-      fs.readFileSync(manifestPath, 'utf8') !== nextManifest ||
+      stamped.some(([file, , next]) => fs.readFileSync(file, 'utf8') !== next) ||
       git('rev-parse', 'HEAD') !== sourceHead ||
-      git('status', '--porcelain', '--', '.', ':!package.json')
+      git('status', '--porcelain', '--', '.', ':!package.json', ':!.version')
     ) {
       throw new Error('Source changed during the build; commit it and retry.');
     }
@@ -151,7 +162,7 @@ async function deploy(args) {
       fs.cpSync(path.join(siteDir, entry), path.join(worktree, entry), { recursive: true });
     }
 
-    git('add', '--', 'package.json');
+    git('add', '--', 'package.json', '.version');
     staged = true;
     git('commit', '-m', `chore: release ${version}`);
     committed = true;
@@ -178,10 +189,18 @@ async function deploy(args) {
       process.stdout.write(`deploy: ${pages}\n`);
     }
   } finally {
-    if (!committed && fs.readFileSync(manifestPath, 'utf8') === nextManifest) {
-      fs.writeFileSync(manifestPath, originalManifest);
+    if (!committed) {
       if (staged) {
-        git('restore', '--staged', '--', 'package.json');
+        git('reset', '-q', '--', 'package.json', '.version');
+      }
+      for (const [file, original, next] of stamped) {
+        if (fs.existsSync(file) && fs.readFileSync(file, 'utf8') === next) {
+          if (original === null) {
+            fs.rmSync(file);
+          } else {
+            fs.writeFileSync(file, original);
+          }
+        }
       }
     }
   }
