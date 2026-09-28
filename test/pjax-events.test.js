@@ -33,6 +33,11 @@ beforeEach(() => {
   Pjax = createPjax();
 });
 
+afterEach(async () => {
+  Pjax._abort('full');
+  await settle();
+});
+
 describe('Pjax lifecycle events', () => {
   test('emit returns false when listener calls preventDefault', () => {
     const handler = (e) => e.preventDefault();

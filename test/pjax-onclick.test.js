@@ -1,7 +1,7 @@
 // Ported from dux-pjax test/pjax.test.coffee - "PjaxOnClick" describe block.
 
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
-import { setupPjaxEnv, teardownPjaxEnv, resetDOM, installMockFetch } from './pjax-env.js';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
+import { setupPjaxEnv, teardownPjaxEnv, resetDOM, installMockFetch, settle } from './pjax-env.js';
 import createPjax from '../src/fez/pjax/pjax.js';
 
 let Pjax;
@@ -22,6 +22,11 @@ beforeEach(() => {
   resetDOM();
   Pjax = createPjax();
   PjaxOnClick = Pjax.PjaxOnClick;
+});
+
+afterEach(async () => {
+  Pjax._abort('full');
+  await settle();
 });
 
 const createClickEvent = (overrides = {}) => {

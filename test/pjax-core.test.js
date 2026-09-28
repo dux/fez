@@ -34,6 +34,11 @@ beforeEach(() => {
   Pjax = createPjax();
 });
 
+afterEach(async () => {
+  Pjax._abort('full');
+  await settle();
+});
+
 describe('Pjax module', () => {
   test('has expected config and a fresh class per createPjax call', () => {
     expect(Pjax.config.ajax_selector).toBe('.ajax');
