@@ -7,7 +7,7 @@ import { formatVersion } from '../src/fez/lib/version.js';
 
 const USAGE = `Usage: bun run deploy [--dry-run]
 
-Stamp .version with the main commit count (v357 -> 3.5.7, counting the release
+Run tests, then stamp .version with the main commit count (v357 -> 3.5.7, counting the release
 commit) and package.json with its dotted form, build the library and pages,
 commit the version on main, amend or create the rolling pages commit with
 the new version and source hash, then push both branches to GitHub.
@@ -15,7 +15,7 @@ The push is atomic: main must fast-forward; pages uses force-with-lease.
 Requires a clean main checkout and an origin remote.
 
 Options:
-  --dry-run   build the next version, restore .version and package.json, do not commit or push
+  --dry-run   run tests and build the next version, restore .version and package.json, do not commit or push
   -h, --help  show this description
 `;
 
@@ -117,6 +117,7 @@ async function deploy(args) {
   let committed = false;
   let staged = false;
   try {
+    run(process.execPath, ['run', 'test'], { stdio: 'inherit' });
     for (const [file, , next] of stamped) {
       fs.writeFileSync(file, next);
     }

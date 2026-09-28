@@ -38,11 +38,19 @@ function fixture() {
       {
         name: 'deploy-test',
         version: '0.7.9',
-        scripts: { build: 'bun build.js', static: 'bun site.js' },
+        scripts: { test: 'bun check.js', build: 'bun build.js', static: 'bun site.js' },
       },
       null,
       2,
     ) + '\n',
+  );
+  fs.writeFileSync(
+    path.join(root, 'check.js'),
+    `
+import fs from 'node:fs';
+console.log('tests: ' + JSON.parse(fs.readFileSync('package.json')).version);
+if (process.env.DEPLOY_TEST_FAIL === 'test') process.exit(1);
+`,
   );
   fs.writeFileSync(
     path.join(root, 'build.js'),
@@ -99,9 +107,11 @@ test('deploy versions by main commit count, commits main, creates then amends pa
   const { root, remote } = fixture();
   // one source commit, then each release commit counts toward its own version
   for (const expected of ['0.0.2', '0.0.3']) {
+    const previousVersion = version(root);
     const result = deploy(root);
     expect(result.stderr.toString()).not.toContain('deploy:');
     expect(result.exitCode).toBe(0);
+    expect(result.stdout.toString()).toContain(`tests: ${previousVersion}\ndeploy:`);
     expect(version(root)).toBe(expected);
     expect(stamp(root)).toBe(`v${git(root, 'rev-list', '--count', 'main')}`);
     expect(git(remote, 'show', 'main:.version')).toBe(stamp(root));
@@ -136,6 +146,7 @@ test('dry-run previews the new version but preserves source and all Git refs', (
   const remoteRefs = git(remote, 'show-ref');
   const result = deploy(root, ['--dry-run']);
   expect(result.exitCode).toBe(0);
+  expect(result.stdout.toString()).toContain('tests: 0.7.9\ndeploy:');
   expect(fs.readFileSync(path.join(root, 'tmp/fez-pages/index.html'), 'utf8')).toBe('0.0.2');
   expect(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).toBe(manifest);
   expect(stamp(root)).toBe(null);
@@ -145,7 +156,7 @@ test('dry-run previews the new version but preserves source and all Git refs', (
   expect(git(root, 'status', '--porcelain')).toBe('');
 });
 
-for (const stage of ['build', 'site']) {
+for (const stage of ['test', 'build', 'site']) {
   test(`${stage} failure restores the version and does not commit or push`, () => {
     const { root, remote } = fixture();
     const before = git(root, 'rev-parse', 'HEAD');
@@ -156,6 +167,11 @@ for (const stage of ['build', 'site']) {
     expect(git(root, 'rev-parse', 'HEAD')).toBe(before);
     expect(git(remote, 'rev-parse', 'main')).toBe(before);
     expect(git(root, 'status', '--porcelain')).toBe('');
+    if (stage === 'test') {
+      expect(fs.existsSync(path.join(root, 'dist'))).toBe(false);
+      expect(fs.existsSync(path.join(root, 'tmp'))).toBe(false);
+      expect(git(remote, 'show-ref')).toBe(git(root, 'show-ref', '--heads'));
+    }
   });
 }
 
@@ -197,6 +213,7 @@ test('help describes all deployment steps without touching the repository', () =
   const result = deploy(process.cwd(), ['--help']);
   expect(result.exitCode).toBe(0);
   for (const phrase of [
+    'Run tests',
     'main commit count',
     'library and pages',
     'commit the version on main',

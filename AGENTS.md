@@ -5,7 +5,9 @@
 - when you add new features, ensure related tests exists, demo and info in fez lib.
 - use bun, not npm
 - ./dist and ./tmp are generated output: never edit them and skip them when searching for code. Source is in ./src, site source in ./pages_src. Read ./dist or ./tmp only to debug build output.
-- Deploy locally with `bun run deploy` - there is no CI. Before it, run `bun run test` (plain `bun test` also picks up the browser suites and fails). It stamps the version from the `main` commit count, builds dist and the site on this machine, and pushes `main` and the prebuilt `pages` branch (see "Publishing the docs site").
+- Deploy locally with `bun run deploy` - there is no CI.
+  It runs `bun run test` first and stops on failure (plain `bun test` also picks up the browser suites and fails).
+  It stamps the version from the `main` commit count, builds dist and the site on this machine, and pushes `main` and the prebuilt `pages` branch (see "Publishing the docs site").
 - GitHub Pages does not always start a build for the pushed `pages` commit. Check `gh api repos/dux/fez/pages/builds/latest` - if its commit is not the new `pages` head, trigger one with `gh api -X POST repos/dux/fez/pages/builds`, then confirm `https://dux.github.io/fez/dist/fez.min.js` starts with the new `// v:` banner.
 
 ## Bundled Pjax navigation (since 0.6.0)
@@ -176,11 +178,14 @@ This repo publishes its generated site from the `pages` branch, served by GitHub
 `main` tracks source only; `dist/` and `tmp/` are build output and ignored (the old `docs/` output is gone).
 `fez-static.yaml` builds into `tmp/fez-pages`, which is exactly the deployable site root.
 `bun run dev` builds the library and site, watches source changes, and uses the existing static server with live reload at `http://localhost:8000/`.
-`bun run deploy` (`bin/deploy`) requires a clean `main`, stamps `.version` with `v<main commit count>` including the release commit, like dboss and lux-fw, and writes the dotted form to `package.json` (`v357` -> `3.5.7`, `v1123` -> `11.2.3`, `v5` -> `0.0.5`; `formatVersion` in `src/fez/lib/version.js`). It then builds dist + site and commits both files on `main` as `chore: release <version>`.
+`bun run deploy` (`bin/deploy`) requires a clean `main` and runs `bun run test` before stamping, building, committing, or pushing.
+A test failure stops deployment.
+It stamps `.version` with `v<main commit count>` including the release commit, like dboss and lux-fw, and writes the dotted form to `package.json` (`v357` -> `3.5.7`, `v1123` -> `11.2.3`, `v5` -> `0.0.5`; `formatVersion` in `src/fez/lib/version.js`).
+It then builds dist + site and commits both files on `main` as `chore: release <version>`.
 `fez version` prints the dotted stamp (`--raw` for `v357`); `Fez.version` and the `// v:` dist banner read `package.json`. A checkout never stamped prints `dev`.
 It replaces the generated content in the `tmp/pages-wt` worktree and amends or creates the rolling `pages` commit, updating its message with the version and source hash.
 It pushes both branches to `origin` atomically: `main` must fast-forward and `pages` uses an explicit force-with-lease against the fetched remote commit.
-`--dry-run` builds the next version and restores `package.json`, without creating commits, changing the Pages worktree, or pushing.
+`--dry-run` runs tests, builds the next version and restores `.version` and `package.json`, without creating commits, changing the Pages worktree, or pushing.
 Build failures restore the manifest before any source commit; later failures keep local commits and Pages output for recovery.
 Deployment does not publish to the package registry.
 `pages_src/root/fez.txt` is generated from `pages_src/root/fez/*.fez`, excluding scratch files, by the shared indexer in `lib/site.js`.

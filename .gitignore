@@ -10,3 +10,4 @@ npm-debug.log*
 .aider*
 /bun.lockb
 /web_build/
+/vscode/*.vsix
