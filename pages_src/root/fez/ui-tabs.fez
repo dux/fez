@@ -82,9 +82,12 @@
       padding: 8px 15px;
       display: inline-block;
       border-radius: 8px 8px 0 0;
-      margin-right: 4px;
       background: #eee;
       cursor: pointer;
+
+      & + span {
+        margin-left: -1px;
+      }
 
       &.active {
         background-color: #fff;
