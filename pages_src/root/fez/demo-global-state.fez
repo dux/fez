@@ -1,0 +1,56 @@
+<info>
+  <p><code>GLOBAL_STATE</code> publishes values while a component is mounted in the DOM.</p>
+  <ul>
+    <li>Values are set immediately after <code>onMount()</code>, before <code>onRefresh()</code>.</li>
+    <li>Function values run once, synchronously, with the live component as <code>this</code>.</li>
+    <li>Use method syntax for functions that read <code>this</code>; arrow functions keep their original context.</li>
+    <li>Removing the component deletes its declared keys and notifies readers with <code>undefined</code>.</li>
+    <li>Use unique keys per active instance: removal deletes them even if another writer has overwritten them.</li>
+    <li>CSS visibility and scrolling do not change these values; only mounting and destruction do.</li>
+  </ul>
+</info>
+
+<demo>
+  <div>
+    <button type="button" onclick="const host = this.nextElementSibling; if (host.firstElementChild) host.replaceChildren(); else host.innerHTML = '<demo-global-state board_id=&quot;board-42&quot;></demo-global-state>'">Toggle board</button>
+    <div><demo-global-state board_id="board-42" /></div>
+    <p aria-live="polite">
+      <fez-inline>
+        {#if globalState.demoBoardView}
+          Board present: {globalState.demoActiveBoardId}
+        {:else}
+          Board absent; its global state keys are undefined.
+        {/if}
+      </fez-inline>
+    </p>
+  </div>
+</demo>
+
+<script>
+  class {
+    GLOBAL_STATE = {
+      demoBoardView: true,
+      demoActiveBoardId() {
+        return this.state.boardId
+      },
+    }
+
+    init() {
+      this.state.boardId = null
+    }
+
+    onMount() {
+      this.state.boardId = this.props.board_id
+    }
+  }
+</script>
+
+<style>
+  display: block;
+  padding: 16px;
+  margin: 12px 0;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+</style>
+
+<p>Board: <strong>{state.boardId}</strong></p>

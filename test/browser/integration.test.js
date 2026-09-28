@@ -1114,6 +1114,100 @@ test('fez-props - wrapper mirrors props and follows parent changes, root attribu
 // GLOBAL / MOUNT / LOOKUP / REGISTRY
 // =============================================================================
 
+test('GLOBAL_STATE - publishes after mount, evaluates once, and deletes on removal', async () => {
+  const page = await createTestPage('<x-presence-reader></x-presence-reader><div id="host"></div>');
+
+  try {
+    await page.evaluate(() => {
+      Fez('x-presence-reader', class {
+        HTML = '<p id="presence">{globalState.boardView ? globalState.activeBoardId : "absent"}</p>';
+      });
+      Fez('x-presence-board', class {
+        GLOBAL_STATE = {
+          boardView: true,
+          activeBoardId() {
+            window.testLog.push('value');
+            return this.state.boardId;
+          },
+          arrowValue: () => 'arrow',
+        };
+        HTML = '<p>Board</p>';
+        init() {
+          this.state.boardId = 'before-mount';
+        }
+        onMount() {
+          window.testLog.push('mount');
+          this.state.boardId = 'after-mount';
+          window.testResults.beforePublish = Fez.state.get('boardView');
+        }
+        onRefresh() {
+          window.testLog.push('refresh');
+          window.testResults.afterPublish = Fez.state.get('activeBoardId');
+        }
+      });
+    });
+    await page.waitForFunction(() => document.querySelector('#presence')?.textContent === 'absent');
+    await page.evaluate(() => {
+      document.querySelector('#host').innerHTML = '<x-presence-board></x-presence-board>';
+    });
+    await page.waitForFunction(() => document.querySelector('#presence')?.textContent === 'after-mount');
+    expect(await page.evaluate(() => ({
+      log: window.testLog,
+      before: window.testResults.beforePublish,
+      after: window.testResults.afterPublish,
+      arrow: Fez.state.get('arrowValue'),
+    }))).toEqual({
+      log: ['mount', 'value', 'refresh'],
+      before: undefined,
+      after: 'after-mount',
+      arrow: 'arrow',
+    });
+
+    await page.evaluate(() => {
+      const board = Fez('x-presence-board');
+      board.state.boardId = 'changed';
+      board.refresh();
+      Fez.state.set('boardView', 'overwritten');
+      document.querySelector('#host').innerHTML = '';
+    });
+    await page.waitForFunction(() => document.querySelector('#presence')?.textContent === 'absent');
+    expect(await page.evaluate(() => ({
+      calls: window.testLog.filter((value) => value === 'value').length,
+      present: ['boardView', 'activeBoardId', 'arrowValue'].some((key) => key in Fez('x-presence-reader').globalState),
+      missing: Fez.state.get('boardView') === undefined,
+    }))).toEqual({ calls: 1, present: false, missing: true });
+
+    await page.evaluate(() => {
+      document.querySelector('#host').innerHTML = '<x-presence-board></x-presence-board>';
+    });
+    await page.waitForFunction(() => document.querySelector('#presence')?.textContent === 'after-mount');
+    expect(await page.evaluate(() => window.testLog.filter((value) => value === 'value').length)).toBe(2);
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('GLOBAL_STATE - library demo toggles presence and computed state', async () => {
+  const page = await createTestPage('<div id="demo"></div>');
+
+  try {
+    const source = await Bun.file('./pages_src/root/fez/demo-global-state.fez').text();
+    await page.evaluate((source) => {
+      Fez.compile('demo-global-state', source);
+      Fez.index.apply('demo-global-state', document.querySelector('#demo'));
+    }, source);
+    await page.waitForFunction(() => document.querySelector('[aria-live]')?.textContent.includes('Board present: board-42'));
+    await page.getByRole('button', { name: 'Toggle board' }).click();
+    await page.waitForFunction(() => document.querySelector('[aria-live]')?.textContent.includes('Board absent'));
+    expect(await page.evaluate(() => Fez.state.get('demoBoardView'))).toBeUndefined();
+    await page.getByRole('button', { name: 'Toggle board' }).click();
+    await page.waitForFunction(() => document.querySelector('[aria-live]')?.textContent.includes('Board present: board-42'));
+    expect(await page.evaluate(() => Fez.state.get('demoActiveBoardId'))).toBe('board-42');
+  } finally {
+    await closePage(page);
+  }
+});
+
 test('GLOBAL - window handle follows the live instance and clears on destroy', async () => {
   const page = await createTestPage('<div id="host"><x-probe></x-probe></div>');
 

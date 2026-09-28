@@ -15,6 +15,9 @@ type ReactiveState<T = Record<string, any>> = T;
 /** Global state proxy for cross-component communication */
 type GlobalState = Record<string, any>;
 
+/** Values published after onMount; methods run once with the live component as this. */
+type GlobalStateDeclaration = Record<string, any> & ThisType<FezBase>;
+
 /**
  * Component props. Plain HTML attributes arrive as strings unless the
  * component declares a PROPS schema entry for them (then they are coerced).
@@ -134,6 +137,9 @@ interface FezComponentConfig {
   /** Expose the live instance as window[name] (cleared on destroy) */
   GLOBAL?: string;
 
+  /** Publish after onMount and delete these keys on destroy. */
+  GLOBAL_STATE?: GlobalStateDeclaration;
+
   /** Append one <tag> to body on ready unless the page already placed it */
   MOUNT?: boolean;
 
@@ -188,6 +194,9 @@ declare abstract class FezBase {
 
   /** Global state proxy - shared across components */
   globalState: GlobalState;
+
+  /** Publish after onMount and delete these keys on destroy. */
+  GLOBAL_STATE?: GlobalStateDeclaration;
 
   /**
    * Component props from HTML attributes (coerced through PROPS when declared).
@@ -536,6 +545,9 @@ interface FezStatic {
 
     /** Set global state value */
     set(key: string, value: any): void;
+
+    /** Delete a key and notify readers with undefined. */
+    delete(key: string): void;
 
     /** Subscribe to specific key changes */
     subscribe(key: string, callback: (value: any, oldValue: any) => void): () => void;

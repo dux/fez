@@ -1999,6 +1999,34 @@ Fez includes a built-in global state manager that automatically tracks component
 - Setting a value notifies all subscribed components to that key: `onGlobalStateChange` fires right away, the re-render is batched into the next frame together with local state changes.
 - Components are automatically cleaned up when disconnected
 
+### State tied to component presence
+
+Declare `GLOBAL_STATE` to publish values immediately after `onMount()`, before `onRefresh()`:
+
+```js
+class {
+  GLOBAL_STATE = {
+    boardView: true,
+    activeBoardId() {
+      return this.state.boardId;
+    },
+  };
+
+  init(props) {
+    this.state.boardId = props.board_id;
+  }
+}
+```
+
+Function values run once, synchronously, with the live component as `this`; use method syntax when reading instance state, since arrows keep their original `this`.
+They are not recomputed on refresh, and asynchronous results are not awaited.
+Read the published values through `this.globalState.boardView`, `{globalState.boardView}` in a template, or `Fez.state.get('boardView')` in JavaScript.
+On destruction, Fez deletes the declared keys and notifies readers with `undefined`.
+Deletion is unconditional: previous values are not restored and overlapping instances are not counted, so use unique keys per active instance.
+Presence means mounted in the DOM, regardless of CSS visibility or scrolling.
+For state that outlives a component, continue using `Fez.state.set()`.
+See `pages_src/root/fez/demo-global-state.fez` for a toggleable demo.
+
 ### Basic Usage
 
 ```js

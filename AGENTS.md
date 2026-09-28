@@ -1105,6 +1105,16 @@ Fez.state.subscribe((key, value, oldValue) => {})   // subscribe to ALL changes
 Components that read `this.globalState.key` get `onGlobalStateChange(key, value, oldValue)` synchronously on change and re-render on the next frame, batched with local `this.state` changes (one render per frame).
 A component's own write during `init` or render does not schedule an extra render.
 
+Declare `GLOBAL_STATE = { boardView: true, activeBoardId() { return this.state.boardId } }` inside the component class for state tied to DOM presence.
+Fez publishes each key after `onMount()` and before `onRefresh()`; function values run once, synchronously, with the live instance as `this`.
+Use method syntax for instance access: arrow functions retain their original `this`.
+Values are not recomputed on refresh and promises are not awaited.
+On destruction, the declared keys are deleted and readers are notified with `undefined`.
+Deletion is unconditional, with no restoration or instance counting; use unique keys per active instance.
+CSS visibility and scrolling do not affect presence.
+`Fez.state.delete(key)` also deletes a key and notifies its readers; persistent app state still uses `Fez.state.set()`.
+See `pages_src/root/fez/demo-global-state.fez` for the demo.
+
 To show a global value in static HTML without writing a component, use `<fez-inline>{globalState.key}</fez-inline>`: children are compiled as the template, it re-renders on change and accepts `:state="{...}"` for local state.
 
 ### DOM / `addEventListener` listeners

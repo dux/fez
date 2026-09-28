@@ -285,6 +285,17 @@ function connectNode(name, node) {
   fez.fezInit();
   fez.fezRender();
   fez.onMount(fez.props);
+  if (fez.GLOBAL_STATE) {
+    const entries = Object.entries(fez.GLOBAL_STATE);
+    fez.addOnDestroy(() => {
+      for (const [key] of entries) {
+        Fez.state.delete(key);
+      }
+    });
+    for (const [key, value] of entries) {
+      Fez.state.set(key, typeof value === 'function' ? value.call(fez) : value);
+    }
+  }
   fez.onRefresh(fez.props);
 
   // Form submit handling

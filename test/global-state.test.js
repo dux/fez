@@ -43,6 +43,26 @@ beforeEach(() => {
 });
 
 describe("GlobalState", () => {
+  test("delete removes the key and notifies readers only once", () => {
+    const key = uniq("deleted");
+    const comp = fakeComponent("reader");
+    const seen = [];
+    const unsub = GlobalState.subscribe((k, value, oldValue) => seen.push([k, value, oldValue]));
+    GlobalState.set(key, true);
+    expect(comp.globalState[key]).toBe(true);
+
+    GlobalState.delete(key);
+    GlobalState.delete(key);
+
+    expect(GlobalState.get(key)).toBeUndefined();
+    expect(key in comp.globalState).toBe(false);
+    expect(comp.hookCalls).toEqual([[key, undefined, true]]);
+    expect(comp.scheduled).toEqual(["fezRender"]);
+    expect(seen).toEqual([[key, true, undefined], [key, undefined, true]]);
+    unsub();
+    comp.destroy();
+  });
+
   test("set/get and no notify on identical value", () => {
     const key = uniq("k");
     const seen = [];

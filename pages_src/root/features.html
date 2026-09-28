@@ -392,6 +392,35 @@ Fez.state.createProxy(component)
                 <div class="out-label">global state subscriptions are tracked and cleaned automatically</div>
               </site-live>
             </article>
+
+            <article class="site-feature-row" id="component-presence-state">
+              <div class="site-feature-copy">
+                <p class="site-feature-kicker">GLOBAL_STATE · onMount · auto-cleanup</p>
+                <h3>State tied to component presence</h3>
+                <p>Declare global values on a component and Fez publishes them after <code>onMount()</code>, before <code>onRefresh()</code>. Function values run once, synchronously, with the live instance as <code>this</code>. Removing the component deletes its keys and refreshes their readers.</p>
+                <p>Presence means mounted in the DOM, regardless of scrolling or CSS visibility. Use unique keys per active instance: deletion is unconditional, with no restoration or instance counting. Use method syntax when reading <code>this</code>; arrow functions keep their original context.</p>
+                <p><a href="./examples.html#fez-demo-demo-global-state" data-fez-static-ignore>Try the board toggle demo</a>.</p>
+              </div>
+              <site-live title="component declaration" right-title="mount and remove">
+                <div class="src"><pre><code>class {
+  GLOBAL_STATE = {
+    boardView: true,
+    activeBoardId() {
+      return this.state.boardId
+    },
+  }
+
+  init(props) {
+    this.state.boardId = props.board_id
+  }
+}
+
+Fez.state.get('boardView') // true while mounted
+// After removal: undefined</code></pre></div>
+                <div class="out feature-result"><span class="result-chip">Mounted: boardView = true</span><span class="result-chip">Removed: boardView = undefined</span><span>components reading <code>globalState.boardView</code> update automatically</span></div>
+                <div class="out-label">function values run once per mount; refresh does not recompute them</div>
+              </site-live>
+            </article>
           </div>
         </div>
       </section>

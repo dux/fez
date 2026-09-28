@@ -56,6 +56,15 @@ const GlobalState = {
     return this.data[key];
   },
 
+  delete(key) {
+    if (!Object.hasOwn(this.data, key)) {
+      return;
+    }
+    const oldValue = this.data[key];
+    delete this.data[key];
+    this.notify(key, undefined, oldValue);
+  },
+
   notify(key, value, oldValue, writer) {
     Fez.consoleLog(`Global state change for ${key}: ${value} (from ${oldValue})`);
 
