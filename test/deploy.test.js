@@ -103,10 +103,12 @@ function stamp(root) {
   return fs.existsSync(file) ? fs.readFileSync(file, 'utf8').trim() : null;
 }
 
-test('deploy versions by main commit count, commits main, creates then amends pages, and pushes both', () => {
+test('deploy versions by main commit count, commits main, appends pages, and pushes both', () => {
   const { root, remote } = fixture();
   // one source commit, then each release commit counts toward its own version
+  let publishes = 0;
   for (const expected of ['0.0.2', '0.0.3']) {
+    publishes += 1;
     const previousVersion = version(root);
     const result = deploy(root);
     expect(result.stderr.toString()).not.toContain('deploy:');
@@ -122,9 +124,11 @@ test('deploy versions by main commit count, commits main, creates then amends pa
     expect(git(remote, 'log', '-1', '--format=%s', 'pages')).toBe(
       `fez-pages ${expected} (${mainSha})`,
     );
-    expect(git(remote, 'rev-list', '--count', 'pages')).toBe('1');
+    expect(git(remote, 'rev-list', '--count', 'pages')).toBe(String(publishes));
     expect(git(remote, 'rev-parse', 'main')).toBe(git(root, 'rev-parse', 'main'));
+    expect(git(remote, 'rev-parse', 'pages')).toBe(git(root, 'rev-parse', 'pages'));
     expect(git(root, 'status', '--porcelain')).toBe('');
+    expect(fs.existsSync(path.join(root, 'tmp/pages-wt'))).toBe(false);
   }
 });
 
@@ -185,16 +189,17 @@ test('deploy refuses dirty source and leaves changes intact', () => {
   expect(fs.readFileSync(path.join(root, 'notes.txt'), 'utf8')).toBe('Uncommitted work\n');
 });
 
-test('deploy refuses changes in the existing pages worktree before bumping', () => {
-  const { root } = fixture();
+test('deploy refuses to publish while pages is checked out in a worktree', () => {
+  const { root, remote } = fixture();
   expect(deploy(root).exitCode).toBe(0);
-  const output = path.join(root, 'tmp/pages-wt/index.html');
-  fs.writeFileSync(output, 'Local edit');
+  const tree = path.join(root, 'tmp/wt');
+  fs.mkdirSync(path.dirname(tree), { recursive: true });
+  git(root, 'worktree', 'add', tree, 'pages');
   const result = deploy(root);
   expect(result.exitCode).toBe(1);
-  expect(result.stderr.toString()).toContain('pages worktree has local files or changes');
+  expect(result.stderr.toString()).toContain("'pages' branch is checked out in a worktree");
   expect(version(root)).toBe('0.0.2');
-  expect(fs.readFileSync(output, 'utf8')).toBe('Local edit');
+  expect(git(root, 'rev-parse', 'pages')).toBe(git(remote, 'rev-parse', 'pages'));
 });
 
 test('a concurrent remote Pages update rejects the atomic push without publishing main', () => {
@@ -217,8 +222,8 @@ test('help describes all deployment steps without touching the repository', () =
     'main commit count',
     'library and pages',
     'commit the version on main',
-    'amend or create',
-    'push both branches',
+    'on top of the pages branch',
+    'atomic',
   ]) {
     expect(result.stdout.toString()).toContain(phrase);
   }

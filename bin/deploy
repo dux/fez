@@ -4,14 +4,15 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { formatVersion } from '../src/fez/lib/version.js';
+import { assertPagesNotCheckedOut, commitPages, pagesRefspec } from '../src/static/pages.js';
 
 const USAGE = `Usage: bun run deploy [--dry-run]
 
 Run tests, then stamp .version with the main commit count (v357 -> 3.5.7, counting the release
 commit) and package.json with its dotted form, build the library and pages,
-commit the version on main, amend or create the rolling pages commit with
-the new version and source hash, then push both branches to GitHub.
-The push is atomic: main must fast-forward; pages uses force-with-lease.
+commit the version on main and commit the built site on top of the pages branch,
+then push both branches to GitHub.
+The push is atomic: main and pages must fast-forward; pages is never force-pushed.
 Requires a clean main checkout and an origin remote.
 
 Options:
@@ -82,7 +83,6 @@ async function deploy(args) {
     ],
   ];
   const siteDir = path.join(root, 'tmp/fez-pages');
-  const worktree = path.join(root, 'tmp/pages-wt');
   let remotePages = '';
   let origin = '';
 
@@ -98,20 +98,7 @@ async function deploy(args) {
     if (localPages && remotePages && localPages !== remotePages) {
       throw new Error('Local pages differs from origin/pages; resolve it before deploying.');
     }
-    if (fs.existsSync(worktree)) {
-      if (
-        fs.lstatSync(worktree).isSymbolicLink() ||
-        git('-C', worktree, 'rev-parse', '--show-toplevel') !== worktree ||
-        git('-C', worktree, 'branch', '--show-current') !== 'pages'
-      ) {
-        throw new Error('tmp/pages-wt must be the pages worktree.');
-      }
-      if (git('-C', worktree, 'status', '--porcelain', '--ignored')) {
-        throw new Error(
-          'The pages worktree has local files or changes; resolve them before deploying.',
-        );
-      }
-    }
+    assertPagesNotCheckedOut(root);
   }
 
   let committed = false;
@@ -139,28 +126,10 @@ async function deploy(args) {
     ) {
       throw new Error('Source changed during the build; commit it and retry.');
     }
-    let orphan = false;
-    if (!fs.existsSync(worktree)) {
-      fs.mkdirSync(path.dirname(worktree), { recursive: true });
-      git('worktree', 'prune');
-      if (ref('refs/heads/pages')) {
-        git('worktree', 'add', worktree, 'pages');
-      } else if (remotePages) {
-        git('worktree', 'add', '-b', 'pages', worktree, remotePages);
-      } else {
-        git('worktree', 'add', '--detach', worktree);
-        git('-C', worktree, 'checkout', '--orphan', 'pages');
-        orphan = true;
-      }
-    } else if (git('-C', worktree, 'status', '--porcelain', '--ignored')) {
-      throw new Error('The pages worktree changed during the build; resolve it before deploying.');
-    }
-    git('-C', worktree, 'rm', orphan ? '-rf' : '-r', '--ignore-unmatch', '.');
     for (const entry of fs.readdirSync(siteDir)) {
       if (entry === '.git' || entry.includes('.tmp.')) {
         throw new Error(`Invalid build output: ${entry}`);
       }
-      fs.cpSync(path.join(siteDir, entry), path.join(worktree, entry), { recursive: true });
     }
 
     git('add', '--', 'package.json', '.version');
@@ -171,19 +140,10 @@ async function deploy(args) {
     process.stdout.write(`${mainSha} chore: release ${version}\n`);
 
     const message = `fez-pages ${version} (${mainSha})`;
-    git('-C', worktree, 'add', '--all');
-    const hasCommit = ref('refs/heads/pages');
-    git('-C', worktree, 'commit', ...(hasCommit ? ['--amend'] : []), '-m', message);
-    process.stdout.write(`${git('-C', worktree, 'rev-parse', '--short', 'HEAD')} ${message}\n`);
+    const pagesCommit = commitPages({ root, directory: siteDir, message });
+    process.stdout.write(`${pagesCommit.slice(0, 7)} ${message}\n`);
 
-    git(
-      'push',
-      '--atomic',
-      `--force-with-lease=refs/heads/pages:${remotePages}`,
-      'origin',
-      'refs/heads/main:refs/heads/main',
-      'refs/heads/pages:refs/heads/pages',
-    );
+    git('push', '--atomic', 'origin', 'refs/heads/main:refs/heads/main', pagesRefspec());
     process.stdout.write('deploy: pushed main and pages to origin.\n');
     const pages = pagesUrl(origin);
     if (pages) {

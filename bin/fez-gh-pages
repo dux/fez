@@ -1,0 +1,197 @@
+#!/usr/bin/env bun
+
+import path from 'node:path';
+import { parseArgs } from 'node:util';
+import { buildStaticSite, resolveStaticPaths } from '../src/static.js';
+import {
+  PAGES_BRANCH,
+  assertPagesInSync,
+  assertPagesNotCheckedOut,
+  commitPages,
+  fetchOrigin,
+  git,
+  pushPages,
+  tryGit,
+} from '../src/static/pages.js';
+import { reloadStaticSiteClients, serveStaticSite, watchStaticSite } from '../src/static/serve.js';
+
+const INFO = 'Build the static site and publish it to a GitHub Pages branch';
+
+const args = Bun.argv.slice(2);
+let values;
+try {
+  ({ values } = parseArgs({
+    args,
+    options: {
+      help: { type: 'boolean', short: 'h' },
+      info: { type: 'boolean' },
+      serve: { type: 'boolean', short: 's' },
+      drafts: { type: 'boolean' },
+      port: { type: 'string', short: 'p', default: '3000' },
+      host: { type: 'string', default: '127.0.0.1' },
+      'no-push': { type: 'boolean' },
+    },
+  }));
+} catch (error) {
+  fail(firstLine(error.message) + ". See 'fez gh-pages --help'.");
+}
+
+if (values.info) {
+  console.log(INFO);
+  process.exit(0);
+}
+
+if (values.help) {
+  console.log(
+    [
+      'Usage: fez gh-pages [options]',
+      '',
+      INFO,
+      '',
+      'Builds the fez-static site, writes it to the target_dir, and commits it on',
+      `top of the '${PAGES_BRANCH}' branch, then pushes it to origin. Run from the`,
+      `project root. Nothing is checked out: an existing '${PAGES_BRANCH}' worktree`,
+      'is left untouched.',
+      '',
+      'Options:',
+      '  -h, --help       Show this help message',
+      '  -s, --serve      Serve the target with live reload after publishing',
+      '      --drafts     Include pages with draft: true',
+      '  -p, --port       Preview server port (default: 3000)',
+      '      --host       Preview server host (default: 127.0.0.1)',
+      '      --no-push    Commit the pages branch locally without pushing',
+      '',
+      'Examples:',
+      '  fez gh-pages',
+      '  fez gh-pages --no-push',
+      '  fez gh-pages -s --port 4000',
+      '',
+    ].join('\n'),
+  );
+  process.exit(0);
+}
+
+async function publish() {
+  const root = resolveRoot();
+  assertPagesNotCheckedOut(root);
+
+  const options = { root, drafts: values.drafts, port: values.port, host: values.host };
+  if (!values['no-push']) {
+    prepareRemote(root);
+  }
+  const result = await buildStaticSite(options);
+  console.log(
+    `fez gh-pages: built ${result.pages} pages and ${result.assets} assets -> ${result.outputDir}`,
+  );
+
+  const shortHead = tryGit(root, ['rev-parse', '--short', 'HEAD']) || 'unborn';
+  const commit = commitPages({
+    root,
+    directory: result.outputDir,
+    message: `fez gh-pages ${shortHead}`,
+  });
+  console.log(`fez gh-pages: committed ${commit.slice(0, 12)} to ${PAGES_BRANCH}`);
+
+  if (values['no-push']) {
+    console.log('fez gh-pages: skipped push (--no-push)');
+  } else {
+    pushPages(root);
+    console.log(`fez gh-pages: pushed ${PAGES_BRANCH} to origin`);
+  }
+
+  const url = pagesUrl(root);
+  if (url) {
+    console.log(`fez gh-pages: ${url}`);
+  }
+
+  if (values.serve) {
+    await serve(options);
+  }
+}
+
+function resolveRoot() {
+  try {
+    return git(process.cwd(), ['rev-parse', '--show-toplevel']);
+  } catch {
+    fail('not inside a Git repository');
+  }
+}
+
+function prepareRemote(root) {
+  try {
+    git(root, ['remote', 'get-url', 'origin']);
+  } catch {
+    fail("no 'origin' remote; pass --no-push to commit the pages branch locally");
+  }
+  fetchOrigin(root);
+  assertPagesInSync(root);
+}
+
+function pagesUrl(root) {
+  let remote;
+  try {
+    remote = git(root, ['remote', 'get-url', 'origin']);
+  } catch {
+    return null;
+  }
+  const match = /github\.com[:/]([^/]+)\/([^/]+?)(?:\.git)?$/.exec(remote);
+  return match ? `https://${match[1]}.github.io/${match[2]}/` : null;
+}
+
+async function serve(options) {
+  let server = null;
+  const watcher = await watchStaticSite(options, {
+    onBuild() {
+      if (server) {
+        reloadStaticSiteClients(server);
+      }
+    },
+    onError(error) {
+      console.error('fez gh-pages: ' + error.message);
+    },
+  });
+  server = serveStaticSite({ ...options, liveReload: true });
+  console.log('fez gh-pages: serving ' + publicServeUrl(server, options));
+  await waitUntilStopped(() => {
+    watcher.close();
+    server.stop(true);
+  });
+}
+
+function publicServeUrl(server, options) {
+  const { config } = resolveStaticPaths(options);
+  const url = new URL(server.url);
+  url.pathname = (config.serve_prefix || '') + (config.site.base_url || '') + '/';
+  return url.href;
+}
+
+function waitUntilStopped(close) {
+  return new Promise((resolve) => {
+    let stopped = false;
+    const stop = () => {
+      if (stopped) {
+        return;
+      }
+      stopped = true;
+      close();
+      resolve();
+    };
+    process.once('SIGINT', stop);
+    process.once('SIGTERM', stop);
+  });
+}
+
+function firstLine(message) {
+  return String(message || 'Unknown error').split('\n')[0];
+}
+
+function fail(message) {
+  console.error('fez gh-pages: ' + message);
+  process.exit(1);
+}
+
+try {
+  await publish();
+} catch (error) {
+  fail(error.message);
+}

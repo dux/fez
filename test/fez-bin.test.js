@@ -27,6 +27,7 @@ describe('fez dispatcher', () => {
       'agents',
       'compile',
       'debug',
+      'gh-pages',
       'index',
       'refactor',
       'static',

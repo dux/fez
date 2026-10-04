@@ -372,7 +372,7 @@ permalink: /old/page/
             <p class="site-feature-group-number">04 / 04</p>
             <div>
               <h2 class="site-h2">CLI</h2>
-              <p class="site-lead">Six commands and four options. <code>fez static</code> alone is <code>build</code>; every command accepts an optional project root as its only positional argument.</p>
+              <p class="site-lead">The generator's six commands and four options, plus <code>fez gh-pages</code> to publish the result. <code>fez static</code> alone is <code>build</code>; every command accepts an optional project root as its only positional argument.</p>
             </div>
           </div>
 
@@ -478,6 +478,23 @@ Options:
   -p, --port     --host</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">bun &gt;= 1.3.8</span><span>for the native Markdown and YAML support</span></div>
                 <div class="out-label">no additional parser dependency is installed</div>
+              </site-live>
+            </article>
+
+            <article class="site-feature-row" id="cli-gh-pages">
+              <div class="site-feature-copy">
+                <p class="site-feature-kicker">fez gh-pages · -s · --no-push</p>
+                <h3>Publish the build to GitHub Pages</h3>
+                <p>A separate top-level command builds <code>source_dir</code> and commits the result on top of the <code>pages</code> branch, then pushes it to <code>origin</code>. It never checks the branch out - the commit is written straight from the target with <code>git commit-tree</code> and <code>update-ref</code> - and it fails with a clear message outside a Git repo, without an <code>origin</code> remote, when <code>pages</code> is checked out in a worktree, or when local and remote <code>pages</code> diverge. <code>--no-push</code> commits locally only; <code>-s</code> publishes and then serves the target with auto-rebuild and live reload.</p>
+              </div>
+              <site-live title="$ fez gh-pages -s --port 4000" right-title="gh-pages">
+                <div class="src"><pre><code>fez gh-pages: built 36 pages and 81 assets -&gt; ./docs
+fez gh-pages: committed 3f9c1ab2d4e0 to pages
+fez gh-pages: pushed pages to origin
+fez gh-pages: https://user.github.io/site/
+fez gh-pages: serving http://127.0.0.1:4000/</code></pre></div>
+                <div class="out feature-result"><span class="result-chip">git commit-tree</span><span>no checkout, no force push</span></div>
+                <div class="out-label">this repository's own bin/deploy still drives its versioned release</div>
               </site-live>
             </article>
           </div>

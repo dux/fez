@@ -7,7 +7,7 @@
 - ./dist and ./tmp are generated output: never edit them and skip them when searching for code. Source is in ./src, site source in ./pages_src. Read ./dist or ./tmp only to debug build output.
 - Deploy locally with `bun run deploy` - there is no CI.
   It runs `bun run test` first and stops on failure (plain `bun test` also picks up the browser suites and fails).
-  It stamps the version from the `main` commit count, builds dist and the site on this machine, and pushes `main` and the prebuilt `pages` branch (see "Publishing the docs site").
+  It stamps the version from the `main` commit count, builds dist and the site on this machine, commits the site on top of the `pages` branch with the same commit-tree path as `fez gh-pages` (no worktree, no force push), and pushes `main` and `pages` (see "Publishing the docs site").
 - GitHub Pages does not always start a build for the pushed `pages` commit. Check `gh api repos/dux/fez/pages/builds/latest` - if its commit is not the new `pages` head, trigger one with `gh api -X POST repos/dux/fez/pages/builds`, then confirm `https://dux.github.io/fez/dist/fez.min.js` starts with the new `// v:` banner.
 
 ## Bundled Pjax navigation (since 0.6.0)
@@ -114,9 +114,16 @@ fez static init
 fez static
 fez static dev
 fez static doctor
+
+# Build the site and publish it to a rolling GitHub Pages branch (run from the project root)
+fez gh-pages
+fez gh-pages --no-push          # commit the pages branch locally only
+fez gh-pages -s --port 4000     # publish, then serve the target with live reload
 ```
 
 `.fez` files use Fez's own template compiler (`src/fez/lib/template-compiler.js`).
+
+`fez gh-pages` builds the configured `source_dir` with the static builder and commits the result on top of the `pages` branch (`git commit-tree` + `update-ref`, no checkout), then pushes it to `origin`. It refuses with a clear error outside a Git repo, without an `origin` remote, when `pages` is checked out in a worktree, or when local `pages` diverges from `origin/pages`. `-s` serves the target with the same watcher and live reload as `fez static dev`. This repo's own `bin/deploy` still drives its versioned release.
 
 ## Static Site Builder
 
@@ -183,11 +190,12 @@ A test failure stops deployment.
 It stamps `.version` with `v<main commit count>` including the release commit, like dboss and lux-fw, and writes the dotted form to `package.json` (`v357` -> `3.5.7`, `v1123` -> `11.2.3`, `v5` -> `0.0.5`; `formatVersion` in `src/fez/lib/version.js`).
 It then builds dist + site and commits both files on `main` as `chore: release <version>`.
 `fez version` prints the dotted stamp (`--raw` for `v357`); `Fez.version` and the `// v:` dist banner read `package.json`. A checkout never stamped prints `dev`.
-It replaces the generated content in the `tmp/pages-wt` worktree and amends or creates the rolling `pages` commit, updating its message with the version and source hash.
-It pushes both branches to `origin` atomically: `main` must fast-forward and `pages` uses an explicit force-with-lease against the fetched remote commit.
-`--dry-run` runs tests, builds the next version and restores `.version` and `package.json`, without creating commits, changing the Pages worktree, or pushing.
+It commits the built site on top of the `pages` branch with `commitPages` from `src/static/pages.js` (a throwaway index + `git commit-tree` + `update-ref`, the same path `fez gh-pages` uses), so the primary checkout is never switched and the worktree under `tmp/` is gone.
+It pushes both branches to `origin` atomically; both must fast-forward and `pages` is never force-pushed.
+`--dry-run` runs tests, builds the next version and restores `.version` and `package.json`, without creating commits or pushing.
 Build failures restore the manifest before any source commit; later failures keep local commits and Pages output for recovery.
 Deployment does not publish to the package registry.
+For a project using only the generic publisher, `fez gh-pages` builds the site and commits it to the same `pages` branch without any version stamping (`--no-push` commits locally, `-s` serves the target afterwards).
 `pages_src/root/fez.txt` is generated from `pages_src/root/fez/*.fez`, excluding scratch files, by the shared indexer in `lib/site.js`.
 `bun run static`, `bun run dev`, and deployment all use that indexer; there is no separate `index` script.
 
