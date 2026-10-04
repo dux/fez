@@ -72,11 +72,12 @@ bun run deploy
 `deploy` requires a clean working tree on `main`.
 It runs `bun run test` first and stops on failure before stamping a version, building, committing, or pushing.
 It stamps `.version` with `v<main commit count>`, including the release commit, like dboss and lux-fw, and writes its dotted form to `package.json` (`v357` -> `3.5.7`, `v1123` -> `11.2.3`).
-It then builds the library and pages, commits both files on `main`, and amends or creates the rolling `pages` commit with the new version and source hash.
-It then pushes both branches to GitHub (`origin`) atomically: `main` must fast-forward and `pages` uses an explicit force-with-lease.
+It then builds the library and pages, commits both files on `main`, and commits the built site on top of the `pages` branch with the same commit-tree path as `fez gh-pages`.
+It then pushes both branches to GitHub (`origin`) atomically: both must fast-forward and `pages` is never force-pushed.
 The generated site is served from the root of the `pages` branch.
 `--dry-run` also runs tests, builds the next version, restores `.version` and `package.json`, and leaves preview output without committing or pushing.
-Build failures restore the manifest before any source commit; later failures retain local commits and the Pages worktree for recovery.
+Build failures restore the manifest before any source commit; later failures retain local commits and the Pages output for recovery.
+For a site that only needs the generic publisher, `fez gh-pages` builds `source_dir` and commits it to the same `pages` branch with no version stamping.
 `bun run release` is separate: it publishes the library package to the public package registry.
 
 ## Static Site Builder
@@ -103,6 +104,21 @@ fez static doctor
 fez static serve
 fez static clean
 ```
+
+Publish the built target to GitHub Pages with `fez gh-pages` (run from the project root):
+
+```bash
+# Build source_dir and commit it on the 'pages' branch, then push it to origin
+fez gh-pages
+
+# Commit the pages branch locally without pushing, or publish then preview it
+fez gh-pages --no-push
+fez gh-pages -s --port 4000
+```
+
+`fez gh-pages` writes the same `target_dir` the static builder produces, then commits it on top of the `pages` branch (`git commit-tree` + `update-ref`, without checking the branch out) and pushes it to `origin`.
+It fails with a clear message instead of guessing when run outside a Git repository, without an `origin` remote, when the `pages` branch is checked out in a worktree, or when local `pages` diverges from `origin/pages`.
+`-s` / `--serve` builds, publishes, then serves the target with auto-rebuild and live reload, like `fez static dev`.
 
 A site uses this structure:
 
@@ -394,7 +410,7 @@ Elements that don't match by key fall through to **scored soft matching** - a gr
 When the differ pairs a new placeholder with a live fez component, identity decides what happens:
 
 - **Explicit key** (`fez-key`, `key`, or `id`) - the instance is preserved even when attributes or content changed.
-  Props are re-read from the new placeholder, the component re-renders when any of them changed, and `onRefresh(props)` fires.
+  Props are re-read from the new placeholder, the component re-renders when any of them changed, and `onRefresh(props, changed)` fires; `changed` holds the props whose value differs.
 - **No key** - identity is the source signature: an FNV-1 hash of the component's original source (`outerHTML` - tag, attributes and slot content), captured at mount.
   Byte-identical source means the instance is preserved untouched (only `onRefresh` fires).
   If anything differs, the old instance is destroyed and a fresh one is created through `init()`.
@@ -923,7 +939,7 @@ This example showcases:
 - **CSS Animation Preservation** - Class syncing uses `classList.add/remove`, not `setAttribute`, so transitions and animations survive re-renders
 - **Active Input Protection** - `value` and `checked` are not synced on the focused input, preventing disruption during typing
 - **Built-in Fetch with Caching** - `Fez.fetch()` includes automatic response caching and JSON/FormData handling
-- **Rich Lifecycle Hooks** - `init`, `onMount`, `beforeRender`, `afterRender`, `onDestroy`, `onRefresh`, `onStateChange`, `onGlobalStateChange`
+- **Rich Lifecycle Hooks** - `init`, `onMount`, `beforeRender`, `afterRender`, `onDestroy`, `onRefresh(props, changed)`, `onStateChange`, `onGlobalStateChange`
 - **Development Mode** - Enable detailed logging with `Fez.DEV = true`
 
 ### Why It's Great
@@ -1943,11 +1959,17 @@ Fez includes several built-in components available when you include `defaults.js
 
 ### fez-component
 
-Dynamically includes a Fez component by name:
+Mounts the component named by `name` with `props` (or `data-props`; without either, its own props):
 
 ```html
-<fez-component name="some-node" :props="fez.props"></fez-component>
+<fez-component name={state.page} :props="state.query">
+  <p>Page not found</p>
+</fez-component>
 ```
+
+* When a parent re-render changes only the props, the same child gets them, as it would from a parent: it re-renders on a changed value and `onRefresh(props, changed)` fires.
+* When `name` changes, the child is replaced.
+* Its children are the fallback, shown while `name` is not a registered component.
 
 ### fez-include
 

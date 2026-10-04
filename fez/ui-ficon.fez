@@ -351,12 +351,8 @@
       this.root.replaceChildren(icon)
     }
 
-    init(props) {
-      this.paint(props)
-    }
-
-    onRefresh(props) {
-      this.paint(props)
+    onRefresh(props, changed) {
+      if (Object.keys(changed).length) this.paint(props)
     }
   }
 </script>

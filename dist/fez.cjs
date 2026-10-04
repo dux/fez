@@ -1,4 +1,4 @@
-// v: 3.6.5 | AGENTS: https://raw.githubusercontent.com/dux/fez/refs/heads/main/AGENTS.md
+// v: 3.7.0 | AGENTS: https://raw.githubusercontent.com/dux/fez/refs/heads/main/AGENTS.md
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -32,14 +32,35 @@ var init_defaults = __esm({
       Fez(
         "fez-component",
         class {
-          init(props) {
-            const tag = document.createElement(props.name);
-            tag.props = props.props || props["data-props"] || props;
-            while (this.root.firstChild) {
-              this.root.parentNode.insertBefore(this.root.lastChild, tag.nextSibling);
+          init() {
+            this.state.fallback = this.root.innerHTML;
+          }
+          // Mount and every parent re-render: a new name swaps the child, the same
+          // name keeps it and hands it the new props (re-render on change + onRefresh).
+          onRefresh(props, changed) {
+            if ("name" in changed) {
+              this.show(props);
+              return;
             }
-            this.root.innerHTML = "";
-            this.root.appendChild(tag);
+            const node = this.root.firstElementChild;
+            const child = node?.fez;
+            if (child && !child._destroyed) {
+              child.fezApplyProps(child.class.castProps(this.childProps(props), props.name));
+            } else if (node?.tagName.toLowerCase() === props.name) {
+              node.props = this.childProps(props);
+            }
+          }
+          show(props) {
+            if (Fez.index[props.name]?.class) {
+              const tag = document.createElement(props.name);
+              tag.props = this.childProps(props);
+              this.root.replaceChildren(tag);
+            } else {
+              this.root.innerHTML = this.state.fallback;
+            }
+          }
+          childProps(props) {
+            return props.props || props["data-props"] || props;
           }
         }
       );
@@ -2910,6 +2931,28 @@ var FezBase = class _FezBase {
   onRefresh() {
   }
   /**
+   * Replace props with an already cast object, the way a parent re-render
+   * hands them to a preserved child: re-render when a value changed, then
+   * always fire onRefresh(props, changed), where changed maps every key whose
+   * value differs to its new value (a removed key maps to undefined).
+   * Compares against _propsRaw - the props proxy hands out a fresh wrapper on
+   * every object read, so identity checks need the raw object.
+   */
+  fezApplyProps(nextProps) {
+    const prevProps = this._propsRaw || {};
+    const changed = {};
+    for (const key of /* @__PURE__ */ new Set([...Object.keys(prevProps), ...Object.keys(nextProps)])) {
+      if (prevProps[key] !== nextProps[key]) {
+        changed[key] = nextProps[key];
+      }
+    }
+    this.props = nextProps;
+    if (Object.keys(changed).length) {
+      this.refresh();
+    }
+    this.onRefresh(this.props, changed);
+  }
+  /**
    * Centralized destroy logic - called by MutationObserver when element is removed
    */
   fezOnDestroy() {
@@ -4414,23 +4457,11 @@ function refreshPreservedComponent(oldNode, newNode) {
   if (!fez || fez._destroyed) {
     return;
   }
-  let nextProps = fez._propsRaw || fez.props || {};
+  let nextProps = fez._propsRaw || {};
   if (newNode && fez.class?.getProps) {
     nextProps = fez.class.getProps(newNode, oldNode);
   }
-  const prevProps = fez._propsRaw || fez.props || {};
-  const keys = /* @__PURE__ */ new Set([...Object.keys(prevProps), ...Object.keys(nextProps)]);
-  const changedKeys = [];
-  for (const key of keys) {
-    if (prevProps[key] !== nextProps[key]) {
-      changedKeys.push(key);
-    }
-  }
-  fez.props = nextProps;
-  if (changedKeys.length) {
-    fez.refresh();
-  }
-  fez.onRefresh(fez.props);
+  fez.fezApplyProps(nextProps);
 }
 function attachMorph(Fez3) {
   function fezDescribeNew(node) {
@@ -4977,7 +5008,7 @@ function connectNode(name, node) {
       Fez.state.set(key, typeof value === "function" ? value.call(fez) : value);
     }
   }
-  fez.onRefresh(fez.props);
+  fez.onRefresh(fez.props, { ...fez._propsRaw });
   if (fez.onSubmit) {
     const form = fez.root.nodeName === "FORM" ? fez.root : fez.find("form");
     if (form) {
@@ -6489,7 +6520,7 @@ entryKey = (name) => reservedNames.has(name) ? ENTRY_PREFIX + name : name;
 var lib_default = index;
 
 // package.json
-var version = "3.6.5";
+var version = "3.7.0";
 
 // src/fez/lib/utility.js
 var utility_default = (Fez3) => {
