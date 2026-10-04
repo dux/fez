@@ -206,6 +206,26 @@ Deployment does not publish to the package registry.
 10. **PREFER `onclick="fez.func({value})"`** for event handlers with inline template values - use function pointers only when passing complex data (objects, arrays)
 11. **`this.state` is the only per-instance store.** A write re-renders only if the last render read that top-level key, so editors, charts, timers, handlers and `fez:this` refs (`this.state.name`) all go in `state` and cost nothing until a template reads them. Never park data on bare `this`.
 
+## App Rules for LLM
+
+Rules for wiring components into an app; the component rules are above.
+
+1. Mount order is `init`, first render, `onMount`, then `onRefresh` once.
+   An `onRefresh` that always reloads therefore fetches twice on mount; guard it with `if (!this.state.loading)`.
+2. A parent re-render hands a preserved child its new props: it re-renders when a value changed, then `onRefresh(props)` fires.
+   There is no `onPropsChange`; react in `onRefresh`, comparing against what was last loaded (`state.loadedRef`).
+3. Load data in `onMount` and set `state.loading = true` only in `init()`.
+   Reloads then keep the current DOM and morph to the new data instead of flashing a spinner.
+4. Renders are batched per animation frame; the DOM does not change synchronously after a state write.
+5. Pass anything that changes as a prop; slots are captured once.
+   A child whose template does not read a prop skips the re-render when only that prop changes.
+6. Pages and other components chosen at runtime: `<fez-component name={state.page} :props="state.query">fallback</fez-component>`.
+   The same name keeps the child and hands it new props, a new name inserts the new tag, and an unregistered name shows the children.
+7. Style another component by its wrapper class `.fez-<name>`; its tag is replaced on mount.
+8. Scoped `<style>` rules reach into descendant components: in a component that renders others, never style bare tags or generic class names, and delete unused rules.
+9. Shared data goes in `globalState`, commands go to a `GLOBAL` component, and notifications use publish (see "Component communication").
+10. Check the result in a browser: stale props, double fetches and leaked styles all pass `fez compile`.
+
 ## Component Structure
 
 Block order in a `.fez` file is fixed: `<info>`, `<demo>`, `<head>`, `<script>`, `<style>` / `<style global>`, and the template last (HTML or Slim, see Slim Templates).
