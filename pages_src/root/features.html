@@ -1212,16 +1212,13 @@ Fez.animateSize(node, 'width, duration=180')</code></pre></div>
 
             <article class="site-feature-row" id="hook-on-refresh">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">onRefresh(props)</p>
+                <p class="site-feature-kicker">onRefresh(props, changed)</p>
                 <h3>Know when a parent preserves you</h3>
-                <p><code>onRefresh</code> runs after mount and whenever a parent render keeps this child component. It does not fire for the child's own state render or for outside DOM events.</p>
+                <p><code>onRefresh</code> runs after mount and whenever a parent render keeps this child component; <code>changed</code> holds the props whose value differs (every prop at mount). The child already re-rendered for a changed prop. It does not fire for the child's own state render or for outside DOM events.</p>
               </div>
               <site-live title="onRefresh" right-title="parent preserve">
-                <div class="src"><pre><code>onRefresh(props) {
-  if (props.revision !== this.state.revision) {
-    this.state.revision = props.revision
-    this.refresh()
-  }
+                <div class="src"><pre><code>onRefresh(props, changed) {
+  if ('revision' in changed) this.load()
 }</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">parent morphed</span><span>child instance stayed connected</span></div>
                 <div class="out-label">use this.on for document, window and Pjax events</div>

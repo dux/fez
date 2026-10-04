@@ -394,7 +394,7 @@ Elements that don't match by key fall through to **scored soft matching** - a gr
 When the differ pairs a new placeholder with a live fez component, identity decides what happens:
 
 - **Explicit key** (`fez-key`, `key`, or `id`) - the instance is preserved even when attributes or content changed.
-  Props are re-read from the new placeholder, the component re-renders when any of them changed, and `onRefresh(props)` fires.
+  Props are re-read from the new placeholder, the component re-renders when any of them changed, and `onRefresh(props, changed)` fires; `changed` holds the props whose value differs.
 - **No key** - identity is the source signature: an FNV-1 hash of the component's original source (`outerHTML` - tag, attributes and slot content), captured at mount.
   Byte-identical source means the instance is preserved untouched (only `onRefresh` fires).
   If anything differs, the old instance is destroyed and a fresh one is created through `init()`.
@@ -923,7 +923,7 @@ This example showcases:
 - **CSS Animation Preservation** - Class syncing uses `classList.add/remove`, not `setAttribute`, so transitions and animations survive re-renders
 - **Active Input Protection** - `value` and `checked` are not synced on the focused input, preventing disruption during typing
 - **Built-in Fetch with Caching** - `Fez.fetch()` includes automatic response caching and JSON/FormData handling
-- **Rich Lifecycle Hooks** - `init`, `onMount`, `beforeRender`, `afterRender`, `onDestroy`, `onRefresh`, `onStateChange`, `onGlobalStateChange`
+- **Rich Lifecycle Hooks** - `init`, `onMount`, `beforeRender`, `afterRender`, `onDestroy`, `onRefresh(props, changed)`, `onStateChange`, `onGlobalStateChange`
 - **Development Mode** - Enable detailed logging with `Fez.DEV = true`
 
 ### Why It's Great
@@ -1951,7 +1951,7 @@ Mounts the component named by `name` with `props` (or `data-props`; without eith
 </fez-component>
 ```
 
-* When a parent re-render changes only the props, the same child gets them, as it would from a parent: it re-renders on a changed value and `onRefresh` fires.
+* When a parent re-render changes only the props, the same child gets them, as it would from a parent: it re-renders on a changed value and `onRefresh(props, changed)` fires.
 * When `name` changes, the child is replaced.
 * Its children are the fallback, shown while `name` is not a registered component.
 

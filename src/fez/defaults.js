@@ -5,16 +5,14 @@ const loadDefaults = () => {
   Fez(
     'fez-component',
     class {
-      init(props) {
+      init() {
         this.state.fallback = this.root.innerHTML;
-        this.state.shown = null;
-        this.show(props);
       }
 
-      // A parent re-render: the same name keeps the child and hands it the new
-      // props (re-render on change + onRefresh); another name swaps the child.
-      onRefresh(props) {
-        if (props.name !== this.state.shown) {
+      // Mount and every parent re-render: a new name swaps the child, the same
+      // name keeps it and hands it the new props (re-render on change + onRefresh).
+      onRefresh(props, changed) {
+        if ('name' in changed) {
           this.show(props);
           return;
         }
@@ -29,7 +27,6 @@ const loadDefaults = () => {
       }
 
       show(props) {
-        this.state.shown = props.name;
         if (Fez.index[props.name]?.class) {
           const tag = document.createElement(props.name);
           tag.props = this.childProps(props);

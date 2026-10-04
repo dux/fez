@@ -296,7 +296,8 @@ function connectNode(name, node) {
       Fez.state.set(key, typeof value === 'function' ? value.call(fez) : value);
     }
   }
-  fez.onRefresh(fez.props);
+  // every prop counts as changed at mount, so a component can load from onRefresh alone
+  fez.onRefresh(fez.props, { ...fez._propsRaw });
 
   // Form submit handling
   if (fez.onSubmit) {

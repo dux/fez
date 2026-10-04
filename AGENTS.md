@@ -210,10 +210,9 @@ Deployment does not publish to the package registry.
 
 Rules for wiring components into an app; the component rules are above.
 
-1. Mount order is `init`, first render, `onMount`, then `onRefresh` once.
-   An `onRefresh` that always reloads therefore fetches twice on mount; guard it with `if (!this.state.loading)`.
-2. A parent re-render hands a preserved child its new props: it re-renders when a value changed, then `onRefresh(props)` fires.
-   There is no `onPropsChange`; react in `onRefresh`, comparing against what was last loaded (`state.loadedRef`).
+1. Mount order is `init`, first render, `onMount`, then `onRefresh(props, changed)` with every prop in `changed`.
+2. A parent re-render hands a preserved child its new props: it re-renders when a value changed, then `onRefresh(props, changed)` fires with only the props whose value differs (`{}` when none did).
+   There is no `onPropsChange`: load prop-driven data in `onRefresh` alone, `if ('container' in changed) this.load()`, never in `onMount` too and never by tracking the last value in state.
 3. Load data in `onMount` and set `state.loading = true` only in `init()`.
    Reloads then keep the current DOM and morph to the new data instead of flashing a spinner.
 4. Renders are batched per animation frame; the DOM does not change synchronously after a state write.
@@ -305,9 +304,9 @@ The `<script>` block has two zones:
       this.state.editor?.destroy()
     }
 
-    onRefresh(props) {
-      // runs after onMount, and again whenever the parent re-renders and reuses this child
-      // call this.refresh() here if the child should re-render in response
+    onRefresh(props, changed) {
+      // runs after onMount (changed = every prop), and again whenever the parent re-renders and
+      // reuses this child (changed = props whose value differs); the child already re-rendered for those
     }
 
     onWindowResize() {} // on Window resize
@@ -1142,7 +1141,7 @@ See `pages_src/root/fez/demo-global-state.fez` for the demo.
 
 To show a global value in static HTML without writing a component, use `<fez-inline>{globalState.key}</fez-inline>`: children are compiled as the template, it re-renders on change and accepts `:state="{...}"` for local state.
 
-To render a component chosen at runtime (a router outlet), use `<fez-component name={state.page} :props="state.query">fallback</fez-component>`: prop changes reach the same child (re-render + `onRefresh`), a new `name` swaps it, and the children show while `name` is not registered.
+To render a component chosen at runtime (a router outlet), use `<fez-component name={state.page} :props="state.query">fallback</fez-component>`: prop changes reach the same child (re-render + `onRefresh(props, changed)`), a new `name` swaps it, and the children show while `name` is not registered.
 
 ### DOM / `addEventListener` listeners
 

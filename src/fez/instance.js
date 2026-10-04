@@ -591,20 +591,25 @@ export default class FezBase {
   /**
    * Replace props with an already cast object, the way a parent re-render
    * hands them to a preserved child: re-render when a value changed, then
-   * always fire onRefresh. Compares against _propsRaw - the props proxy hands
-   * out a fresh wrapper on every object read, so identity checks need the raw
-   * object.
+   * always fire onRefresh(props, changed), where changed maps every key whose
+   * value differs to its new value (a removed key maps to undefined).
+   * Compares against _propsRaw - the props proxy hands out a fresh wrapper on
+   * every object read, so identity checks need the raw object.
    */
   fezApplyProps(nextProps) {
     const prevProps = this._propsRaw || {};
-    const keys = new Set([...Object.keys(prevProps), ...Object.keys(nextProps)]);
-    const changed = [...keys].some((key) => prevProps[key] !== nextProps[key]);
+    const changed = {};
+    for (const key of new Set([...Object.keys(prevProps), ...Object.keys(nextProps)])) {
+      if (prevProps[key] !== nextProps[key]) {
+        changed[key] = nextProps[key];
+      }
+    }
 
     this.props = nextProps;
-    if (changed) {
+    if (Object.keys(changed).length) {
       this.refresh();
     }
-    this.onRefresh(this.props);
+    this.onRefresh(this.props, changed);
   }
 
   /**

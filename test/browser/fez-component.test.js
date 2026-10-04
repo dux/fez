@@ -45,7 +45,7 @@ async function createTestPage() {
 
     window.Fez('x-page-a', class {
       init(props) { window.log.inits.push(['a', props.item]); }
-      onRefresh(props) { window.log.refreshes.push(['a', props.item]); }
+      onRefresh(props, changed) { window.log.refreshes.push(['a', props.item, { ...changed }]); }
       HTML = '<b class="page-a">A {props.item}</b>';
     });
 
@@ -58,9 +58,10 @@ async function createTestPage() {
       init() {
         this.state.page = 'x-page-a';
         this.state.query = { item: 'one' };
+        this.state.tick = 0;
         window.host = this;
       }
-      HTML = '<fez-component name={state.page} :props="state.query"><p class="missing">Not found</p></fez-component>';
+      HTML = '<i class="tick">{state.tick}</i><fez-component name={state.page} :props="state.query"><p class="missing">Not found</p></fez-component>';
     });
 
     document.getElementById('app').innerHTML = '<x-host></x-host>';
@@ -95,7 +96,25 @@ test('a prop change reaches the same child: re-render and onRefresh, no remount'
 
     const log = await page.evaluate(() => window.log);
     expect(log.inits).toEqual([['a', 'one']]);
-    expect(log.refreshes).toContainEqual(['a', 'two']);
+    expect(log.refreshes.at(-1)).toEqual(['a', 'two', { item: 'two' }]);
+  } finally {
+    await closePage(page);
+  }
+});
+
+test('onRefresh(props, changed): every prop at mount, only the changed ones later', async () => {
+  const page = await createTestPage();
+  try {
+    expect(await page.evaluate(() => window.log.refreshes)).toEqual([['a', 'one', { item: 'one' }]]);
+
+    // a parent re-render that leaves the props alone still fires onRefresh, with nothing changed
+    await page.evaluate(() => { window.host.state.tick = 1; });
+    await page.waitForFunction(() => window.log.refreshes.length === 2);
+    expect(await page.evaluate(() => window.log.refreshes[1])).toEqual(['a', 'one', {}]);
+
+    await page.evaluate(() => { window.host.state.query = { item: 'two' }; });
+    await page.waitForFunction(() => window.log.refreshes.length === 3);
+    expect(await page.evaluate(() => window.log.refreshes[2])).toEqual(['a', 'two', { item: 'two' }]);
   } finally {
     await closePage(page);
   }
