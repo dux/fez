@@ -1,5 +1,9 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Window } from "happy-dom";
+import { FezBase } from "../src/fez.js";
+
+// Stand-in instances borrow the real props hand-off the morph calls on a preserved child.
+const fezApplyProps = FezBase.prototype.fezApplyProps;
 
 // Use the Fez instance loaded by test/setup.js. Only override `document`
 // so Fez's runtime resolves a real DOM at call time. Do NOT replace
@@ -143,7 +147,7 @@ describe("Fez.nodeMorph - sibling fez components", () => {
       el.classList.add("fez", "fez-test-img");
       el.setAttribute("key", `0-0-${i}`);
       el.setAttribute("src", `img-${i}.jpg`);
-      el.fez = { UID: 1000 + i, _destroyed: false, props: {}, onRefresh: () => {} };
+      el.fez = { UID: 1000 + i, _destroyed: false, props: {}, onRefresh: () => {}, fezApplyProps };
       el._marker = `M${i}`;
       target.appendChild(el);
     }
@@ -182,6 +186,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     old.fez = {
       UID: 9000,
       _destroyed: false,
+      fezApplyProps,
       props: {},
       onRefresh: () => {},
       fezOnDestroy: () => {
@@ -210,7 +215,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
       const old = document.createElement("test-card-alias");
       old.classList.add("fez", "fez-test-card-alias");
       old._fezSignature = sourceSignature("<test-card-alias></test-card-alias>");
-      old.fez = { UID: 9100 + i, _destroyed: false, props: {}, onRefresh: () => {} };
+      old.fez = { UID: 9100 + i, _destroyed: false, props: {}, onRefresh: () => {}, fezApplyProps };
       old._marker = `OLD-${i}`;
       target.appendChild(old);
     }
@@ -240,6 +245,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     old.fez = {
       UID: 9300,
       _destroyed: false,
+      fezApplyProps,
       props: {},
       onRefresh: () => {},
       fezOnDestroy: () => {
@@ -271,6 +277,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     old.fez = {
       UID: 9301,
       _destroyed: false,
+      fezApplyProps,
       props: {},
       onRefresh: () => {},
     };
@@ -303,6 +310,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     old.fez = {
       UID: 9302,
       _destroyed: false,
+      fezApplyProps,
       props: {},
       onRefresh: () => {},
       fezOnDestroy: () => {
@@ -341,6 +349,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     old.fez = {
       UID: 9310,
       _destroyed: false,
+      fezApplyProps,
       props: {},
       onRefresh: () => {},
       fezOnDestroy: () => {
@@ -373,6 +382,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     old.fez = {
       UID: 9320,
       _destroyed: false,
+      fezApplyProps,
       props: { href: "/a" },
       class: {
         getProps(node) {
@@ -438,6 +448,7 @@ describe("Fez.morphdom - preserved component props", () => {
     old.fez = {
       UID: 9200,
       _destroyed: false,
+      fezApplyProps,
       props: { value: "a", removed: "yes" },
       class: {
         getProps(node) {

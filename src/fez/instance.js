@@ -589,6 +589,25 @@ export default class FezBase {
   onRefresh() {}
 
   /**
+   * Replace props with an already cast object, the way a parent re-render
+   * hands them to a preserved child: re-render when a value changed, then
+   * always fire onRefresh. Compares against _propsRaw - the props proxy hands
+   * out a fresh wrapper on every object read, so identity checks need the raw
+   * object.
+   */
+  fezApplyProps(nextProps) {
+    const prevProps = this._propsRaw || {};
+    const keys = new Set([...Object.keys(prevProps), ...Object.keys(nextProps)]);
+    const changed = [...keys].some((key) => prevProps[key] !== nextProps[key]);
+
+    this.props = nextProps;
+    if (changed) {
+      this.refresh();
+    }
+    this.onRefresh(this.props);
+  }
+
+  /**
    * Centralized destroy logic - called by MutationObserver when element is removed
    */
   fezOnDestroy() {

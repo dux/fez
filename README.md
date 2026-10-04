@@ -1943,11 +1943,17 @@ Fez includes several built-in components available when you include `defaults.js
 
 ### fez-component
 
-Dynamically includes a Fez component by name:
+Mounts the component named by `name` with `props` (or `data-props`; without either, its own props):
 
 ```html
-<fez-component name="some-node" :props="fez.props"></fez-component>
+<fez-component name={state.page} :props="state.query">
+  <p>Page not found</p>
+</fez-component>
 ```
+
+* When a parent re-render changes only the props, the same child gets them, as it would from a parent: it re-renders on a changed value and `onRefresh` fires.
+* When `name` changes, the child is replaced.
+* Its children are the fallback, shown while `name` is not a registered component.
 
 ### fez-include
 

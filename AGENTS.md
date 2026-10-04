@@ -1122,6 +1122,8 @@ See `pages_src/root/fez/demo-global-state.fez` for the demo.
 
 To show a global value in static HTML without writing a component, use `<fez-inline>{globalState.key}</fez-inline>`: children are compiled as the template, it re-renders on change and accepts `:state="{...}"` for local state.
 
+To render a component chosen at runtime (a router outlet), use `<fez-component name={state.page} :props="state.query">fallback</fez-component>`: prop changes reach the same child (re-render + `onRefresh`), a new `name` swaps it, and the children show while `name` is not registered.
+
 ### DOM / `addEventListener` listeners
 
 For events fired on `document`, `window`, or arbitrary DOM nodes (custom `pjax:render`, `keydown`, `resize`, third-party `CustomEvent`s, etc.), `this.subscribe` does not apply — those go through native `addEventListener`. Use **`this.on`** — it binds `this`, guards on `isConnected`, and auto-removes on destroy.

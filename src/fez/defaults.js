@@ -1,20 +1,46 @@
 // Wrap defaults in a function to avoid immediate execution
 const loadDefaults = () => {
-  // include fez component by name
-  //<fez-component name="some-node" :props="fez.props"></fez-component>
+  // include fez component by name; children are the fallback for an unknown name
+  //<fez-component name="some-node" :props="fez.props"><p>Not found</p></fez-component>
   Fez(
     'fez-component',
     class {
       init(props) {
-        const tag = document.createElement(props.name);
-        tag.props = props.props || props['data-props'] || props;
+        this.state.fallback = this.root.innerHTML;
+        this.state.shown = null;
+        this.show(props);
+      }
 
-        while (this.root.firstChild) {
-          this.root.parentNode.insertBefore(this.root.lastChild, tag.nextSibling);
+      // A parent re-render: the same name keeps the child and hands it the new
+      // props (re-render on change + onRefresh); another name swaps the child.
+      onRefresh(props) {
+        if (props.name !== this.state.shown) {
+          this.show(props);
+          return;
         }
+        const node = this.root.firstElementChild;
+        const child = node?.fez;
+        if (child && !child._destroyed) {
+          child.fezApplyProps(child.class.castProps(this.childProps(props), props.name));
+        } else if (node?.tagName.toLowerCase() === props.name) {
+          // not connected yet - it reads node.props when it does
+          node.props = this.childProps(props);
+        }
+      }
 
-        this.root.innerHTML = '';
-        this.root.appendChild(tag);
+      show(props) {
+        this.state.shown = props.name;
+        if (Fez.index[props.name]?.class) {
+          const tag = document.createElement(props.name);
+          tag.props = this.childProps(props);
+          this.root.replaceChildren(tag);
+        } else {
+          this.root.innerHTML = this.state.fallback;
+        }
+      }
+
+      childProps(props) {
+        return props.props || props['data-props'] || props;
       }
     },
   );

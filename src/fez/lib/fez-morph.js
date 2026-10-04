@@ -151,28 +151,12 @@ function refreshPreservedComponent(oldNode, newNode) {
     return;
   }
 
-  // _propsRaw, not fez.props - reading an object through the reactive props
-  // proxy returns a new wrapper every time, so identity comparison below
-  // would report every object prop as changed.
-  let nextProps = fez._propsRaw || fez.props || {};
+  // _propsRaw, not fez.props - see fezApplyProps
+  let nextProps = fez._propsRaw || {};
   if (newNode && fez.class?.getProps) {
     nextProps = fez.class.getProps(newNode, oldNode);
   }
-
-  const prevProps = fez._propsRaw || fez.props || {};
-  const keys = new Set([...Object.keys(prevProps), ...Object.keys(nextProps)]);
-  const changedKeys = [];
-  for (const key of keys) {
-    if (prevProps[key] !== nextProps[key]) {
-      changedKeys.push(key);
-    }
-  }
-
-  fez.props = nextProps;
-  if (changedKeys.length) {
-    fez.refresh();
-  }
-  fez.onRefresh(fez.props);
+  fez.fezApplyProps(nextProps);
 }
 
 /**
