@@ -1,33 +1,38 @@
 <info>
   <ul>
     <li>Starter component - edit anything on the right, the demo on the left recompiles as you type.</li>
-    <li>Typed props via <code>PROPS</code>, local <code>this.state</code>, scoped <code>&lt;style&gt;</code>.</li>
+    <li>Typed props via <code>PROPS</code>, a prop seeded into <code>this.state</code>, an auto-cleaned <code>this.setInterval</code>, scoped <code>&lt;style&gt;</code>.</li>
   </ul>
 </info>
 
 <demo>
-  <my-counter start="3"></my-counter>
-  <my-counter></my-counter>
+  <my-clock city="Zagreb" zone="Europe/Zagreb"></my-clock>
+  <my-clock city="New York" zone="America/New_York" ampm></my-clock>
 </demo>
 
 <script>
   class {
     PROPS = {
-      start: { type: Number, default: 0 },
+      city: { type: String, default: 'Local time' },
+      zone: String,                          // IANA zone, empty is the browser zone
+      ampm: { type: Boolean, state: true },  // seeds state.ampm, the button flips it
     }
 
-    init(props) {
-      this.state.count = props.start
+    init() {
+      this.tick()
+      this.setInterval(() => this.tick(), 1000)
     }
 
-    add(n) {
-      this.state.count += n
+    tick() {
+      this.state.now = new Date()
     }
 
-    label() {
-      if (this.state.count < 0) return 'negative'
-      if (this.state.count === 0) return 'zero'
-      return this.state.count % 2 ? 'odd' : 'even'
+    toggle() {
+      this.state.ampm = !this.state.ampm
+    }
+
+    format(options) {
+      return this.state.now.toLocaleString('en-GB', { timeZone: this.props.zone, ...options })
     }
   }
 </script>
@@ -35,39 +40,34 @@
 <style>
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin: 6px 10px 6px 0;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border: 1px solid #ddd;
   border-radius: 10px;
   font-size: 16px;
 
-  button {
-    width: 30px;
-    height: 30px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    background: #fff;
-    font-size: 16px;
-    cursor: pointer;
-
-    &:hover { border-color: #c8102e; color: #c8102e; }
-  }
-
   b {
-    min-width: 2ch;
-    text-align: center;
+    font: 600 22px/1 ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
   }
 
   small {
     color: #888;
   }
+
+  button {
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 13px;
+    cursor: pointer;
+
+    &:hover { border-color: #c8102e; color: #c8102e; }
+  }
 </style>
 
-<button onclick="fez.add(-1)">-</button>
-<b>{state.count}</b>
-<button onclick="fez.add(1)">+</button>
-<small>{label()}</small>
-{#if state.count >= 10}
-  <span fez:in="pop">double digits!</span>
-{/if}
+<b>{format({ hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: state.ampm })}</b>
+<small>{props.city} - {format({ weekday: 'short', day: 'numeric', month: 'short' })}</small>
+<button onclick="fez.toggle()">{state.ampm ? '24h' : '12h'}</button>

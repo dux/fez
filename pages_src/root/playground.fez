@@ -9,7 +9,7 @@
     const DRAFT_PREFIX = 'fez-playground:'
     const LAYOUT_KEY = 'fez-playground:layout'
     const STARTER = './playground-starter.fez'
-    const STARTER_NAME = 'my-counter'
+    const STARTER_NAME = 'my-clock'
     const RUN_DELAY = 450
 
     // <demo> block of a .fez source, dedented - the same thing Fez.compile
@@ -138,6 +138,12 @@
 
         // draft: typed here earlier, or handed over from the examples page
         let draft = Fez.localStorage.get(this.draftKey())
+        // a draft only applies to the file it was typed over (examples hand over without a base)
+        if (draft && draft.from !== 'examples' && draft.base !== fileSource) {
+          Fez.localStorage.remove(this.draftKey())
+          this.capture('info', 'file changed since the saved draft - draft discarded')
+          draft = null
+        }
         if (draft && draft.source.trim() === fileSource.trim() && (draft.demo || '').trim() === this.original.demo) {
           Fez.localStorage.remove(this.draftKey())
           draft = null
@@ -176,6 +182,7 @@
           return
         }
         Fez.localStorage.set(this.draftKey(), {
+          base: this.original.source,
           source: this.doc(this.sourceView),
           demo: this.doc(this.demoView),
           at: Date.now(),
