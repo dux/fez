@@ -1,4 +1,4 @@
-// v: 3.7.0 | AGENTS: https://raw.githubusercontent.com/dux/fez/refs/heads/main/AGENTS.md
+// v: 3.7.3 | AGENTS: https://raw.githubusercontent.com/dux/fez/refs/heads/main/AGENTS.md
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -6520,7 +6520,7 @@ entryKey = (name) => reservedNames.has(name) ? ENTRY_PREFIX + name : name;
 var lib_default = index;
 
 // package.json
-var version = "3.7.0";
+var version = "3.7.3";
 
 // src/fez/lib/utility.js
 var utility_default = (Fez3) => {
