@@ -26,7 +26,7 @@ Fez ships the former `dux-pjax` package (ported to JS) in `src/fez/pjax/` and ex
 - Components follow navigation via `this.on('pjax:render', () => this.refresh())`.
 - URL state: `Fez.qs()` (real query) and `Fez.hash()` (slashless fragment params) are history-only setters/getters. `Fez.hpath()`/`Fez.hqs()` address a hash route: a fragment whose path part contains a `/` is a route (`#/traffic?app=x`), the route name is the last path segment, and `hqs` reads/writes its query. A slashless fragment (`#foo`, `#tab=settings`) stays an anchor or `hash()` parameter list. Path setters canonicalize to `#/name` and clear on empty.
 - Tests: `test/pjax-core.test.js`, `test/pjax-onclick.test.js`, `test/pjax-events.test.js` (shared env and `installMockXHR` / `respond` in `test/pjax-env.js`), browser coverage in `test/browser/pjax-url-state.test.js`. `fez refactor` flags legacy `Pjax.` calls (`bin/fez-refactor`, tested in `test/fez-bin.test.js`). Types in `fez.d.ts` (`PjaxStatic`, `PjaxLoadOptions`, `PjaxHashPathOptions`).
-- The old `~/dev/gems/dux-pjax` repo is deprecated reference only - changes happen here.
+- The old `~/dev/libs/dux-pjax` repo is deprecated reference only - changes happen here.
 
 ---
 

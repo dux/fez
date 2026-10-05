@@ -345,7 +345,7 @@ Noticed at first and done in a follow-up (with the split into `url-state.js` / `
 * `bun test` covers the pjax core, onclick and events suites.
 * Run the browser suite for `test/browser/pjax-url-state.test.js`.
 * `fez compile 'pages_src/root/fez/demo-hash-*.fez'`.
-* `bin/fez-refactor ~/dev/ruby/soho-tasks/app/assets` (read-only report) lists the `Pjax.*` sites with correct suggestions.
+* `bin/fez-refactor ~/dev/web/soho-tasks/app/assets` (read-only report) lists the `Pjax.*` sites with correct suggestions.
 * `rg -n '\bPjax\.' src pages_src README.md AGENTS.md test fez.d.ts` should leave only the internal references in `src/fez/pjax/*.js` and the `createPjax` tests.
 * `rg -n "reload|replacePath|\bdone\b|opts\.(node|ajax_node|force|cache)" src/fez/pjax` should find nothing.
 * Manual check: the user runs `bun run dev` on `http://localhost:8000/`. Confirm:
