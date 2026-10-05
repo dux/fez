@@ -2,16 +2,16 @@
   <ul>
     <li>Analog clock with SVG rendering and smooth second hand</li>
     <li>Pure Fez, no external dependencies</li>
-    <li>Supports timezone offset, auto-cleanup on destroy</li>
+    <li>Optional <code>zone</code> prop (IANA name like <code>Europe/Zagreb</code>, daylight saving included), auto-cleanup on destroy</li>
     <li>Uses <code>this.state</code> for values the template never renders - writing them never re-renders</li>
   </ul>
 </info>
 
 <demo>
   <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 200px)); gap: 20px;">
-    <ui-clock city="Zagreb" utc="1"></ui-clock>
-    <ui-clock city="NYC" utc="-5"></ui-clock>
-    <ui-clock city="Sydney" utc="10"></ui-clock>
+    <ui-clock city="Zagreb" zone="Europe/Zagreb"></ui-clock>
+    <ui-clock city="NYC" zone="America/New_York"></ui-clock>
+    <ui-clock city="Sydney" zone="Australia/Sydney"></ui-clock>
   </div>
 </demo>
 
@@ -23,10 +23,13 @@
 
   setVars() {
     // will only render once on next tick
-    let time = new Date(Date.now() - (this.state.offsetHours * 60 * 60 * 1000))
-    this.state.hours = time.getHours()
-    this.state.minutes = time.getMinutes()
-    this.state.seconds = time.getSeconds()
+    // wall-clock time in props.zone, browser zone when empty
+    const [hours, minutes, seconds] = new Date()
+      .toLocaleTimeString('en-GB', { timeZone: this.props.zone || undefined, hourCycle: 'h23' })
+      .split(':').map(Number)
+    this.state.hours = hours
+    this.state.minutes = minutes
+    this.state.seconds = seconds
     this.setStyle('--color', this.randomColor())
 
     if (this.props.publish) {
@@ -35,7 +38,6 @@
   }
 
   init(props) {
-    this.state.offsetHours = parseFloat(this.props.utc || 0)
     this.setVars()
     this.setInterval(this.setVars, 1000)
   }
