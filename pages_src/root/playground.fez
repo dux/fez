@@ -8,8 +8,8 @@
 
     const DRAFT_PREFIX = 'fez-playground:'
     const LAYOUT_KEY = 'fez-playground:layout'
-    const STARTER = './playground-starter.fez'
-    const STARTER_NAME = 'my-clock'
+    const STARTER = './fez/ui-clock.fez'
+    const STARTER_NAME = 'ui-clock'
     const RUN_DELAY = 450
 
     // <demo> block of a .fez source, dedented - the same thing Fez.compile
@@ -129,7 +129,7 @@
           .then(text => this.start(name || STARTER_NAME, Fez.stripGeneratedNotice(text)))
           .catch(e => {
             this.capture('error', `Could not load ${url} (${e.message}) - starting with the blank component`)
-            fetch(STARTER).then(res => res.text()).then(text => this.start(STARTER_NAME, text))
+            fetch(STARTER).then(res => res.text()).then(text => this.start(STARTER_NAME, Fez.stripGeneratedNotice(text)))
           })
       }
 
