@@ -1,0 +1,591 @@
+<info>
+  <ul>
+    <li>One small app that uses most Fez features together - a task board, a form, live stats and a page outlet</li>
+    <li>Props: typed <code>PROPS</code> (Array transform, Number, Boolean, enum, required Object, Function into state)</li>
+    <li>Lifecycle: <code>init</code>, <code>beforeRender</code>, <code>onMount</code>, <code>onRefresh(props, changed)</code>, <code>onGlobalStateChange</code></li>
+    <li>Template: Slim, <code>{#if}</code> / <code>{#unless}</code>, <code>{#each}</code> with <code>:else</code>, object <code>{#for k, v}</code>, <code>{#await}</code>, <code>{@html}</code>, <code>{@json}</code>, <code>class:</code>, strict <code>onclick!</code>, arrow handlers with loop objects</li>
+    <li>DOM: <code>fez:this</code>, <code>fez:bind</code> (text, select, checkbox, radio, textarea), <code>fez:use</code>, <code>fez:keep</code>, keyed <code>fez:in</code> / <code>fez:out</code> / <code>fez:animate</code></li>
+    <li>Wiring: bubbling <code>publish</code>, <code>globalState</code>, <code>GLOBAL_STATE</code>, <code>MOUNT</code> + <code>GLOBAL</code> toast, <code>fez-component</code> outlet, <code>fez-inline</code>, <code>slot</code> and <code>slot unwrap</code></li>
+    <li>Styles: scoped nesting, <code>&amp;</code>, mixins (<code>:kitchen-card;</code>, <code>:mobile</code>, <code>:dark</code>), <code>:global()</code>, <code>&lt;style global&gt;</code></li>
+    <li>A template-less controller component with <code>this.on(..., { throttle })</code> and <code>setInterval</code></li>
+  </ul>
+</info>
+
+<demo>
+  <kitchen-app></kitchen-app>
+</demo>
+
+<!-- toast host: mounted once on body, reachable as window.KitchenToast -->
+<xmp fez="kitchen-toast">
+  <script>
+    // declaration mixins used by the components below; registered before any
+    // of their styles are injected
+    Fez.cssMixin('kitchen-card', 'padding: 8px 10px; border: 1px solid var(--kitchen-line, #ccc); border-radius: 6px;')
+    Fez.cssMixin('kitchen-lift', 'transition: transform .15s; &:hover { transform: translateY(-1px); }')
+
+    class {
+      MOUNT = true
+      GLOBAL = 'KitchenToast'
+
+      init() {
+        this.state.items = []
+        this.state.uid = 0
+      }
+
+      show(text, kind = 'info') {
+        const id = ++this.state.uid
+        this.state.items.push({ id, text, kind })
+        this.setTimeout(() => this.dismiss(id), 2500)
+      }
+
+      dismiss(id) {
+        this.state.items = this.state.items.filter((t) => t.id !== id)
+      }
+    }
+  </script>
+
+  <style>
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    z-index: 20;
+
+    .toast {
+      :kitchen-card;
+      margin-top: 6px;
+      background: #fff;
+      cursor: pointer;
+
+      &.error {
+        border-color: tomato;
+      }
+    }
+  </style>
+
+  {#each state.items as t}
+    <div
+      key={t.id}
+      class="toast"
+      class:error={t.kind === 'error'}
+      fez:in="fly, from=right, duration=150"
+      fez:out="fade, duration=150"
+      onclick!="fez.dismiss({t.id})"
+    >{t.text}</div>
+  {/each}
+</xmp>
+
+<!-- one task card: typed props, a callback prop, events bubbling to the board -->
+<xmp fez="kitchen-card">
+  <script>
+    class {
+      PROPS = {
+        task: { type: Object, required: true },
+        compact: Boolean,
+        priority: { type: String, default: 'mid', enum: ['low', 'mid', 'high'] },
+        onselect: { type: Function, state: true, default: () => {} },
+      }
+
+      move(dir) {
+        this.publish('kitchen:move', { id: this.props.task.id, dir })
+      }
+
+      pick() {
+        this.state.onselect(this.props.task)
+      }
+    }
+  </script>
+
+  <style>
+    article {
+      :kitchen-card;
+      :kitchen-lift;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      background: var(--kitchen-bg);
+
+      &.done span {
+        text-decoration: line-through;
+      }
+
+      &.high {
+        border-left: 3px solid tomato;
+      }
+
+      span {
+        flex: 1;
+        cursor: pointer;
+      }
+
+      small {
+        opacity: .6;
+      }
+
+      button {
+        padding: 2px 8px;
+      }
+
+      :mobile {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+
+  <article
+    class="card"
+    class:done={props.task.done}
+    class:high={props.priority === 'high'}
+    data-id={props.task.id}
+  >
+    <span onclick="fez.pick()">{props.task.title}</span>
+    {#unless props.compact}
+      <small>{props.task.tags.join(', ')}</small>
+    {/unless}
+    <button class="left" onclick="fez.move(-1)">&larr;</button>
+    <button class="right" onclick="fez.move(1)">&rarr;</button>
+  </article>
+</xmp>
+
+<!-- the board: Slim template, keyed animated lists, {#await}, arrow handlers -->
+<xmp fez="kitchen-board">
+  <script>
+    class {
+      PROPS = {
+        columns: { type: Array, default: (raw) => (raw || 'todo, doing, done').split(/\s*,\s*/) },
+      }
+
+      init() {
+        this.state.filter = ''
+        this.state.selected = null
+        this.state.uid = 3
+        this.state.tasks = [
+          { id: 1, title: 'Write spec', col: 'todo', done: false, tags: ['doc'] },
+          { id: 2, title: 'Build compiler', col: 'doing', done: false, tags: ['core', 'js'] },
+          { id: 3, title: 'Ship it', col: 'done', done: true, tags: ['ops'] },
+        ]
+        this.state.remote = new Promise((resolve) => setTimeout(() => resolve({ owner: 'dux', stars: 42 }), 300))
+        this.subscribe('kitchen:move', ({ id, dir }) => this.moveCard(id, dir))
+      }
+
+      beforeRender() {
+        const q = this.state.filter.toLowerCase()
+        const visible = this.state.tasks.filter((t) => !q || t.title.toLowerCase().includes(q))
+        this.state.byCol = Object.fromEntries(
+          this.props.columns.map((col) => [col, visible.filter((t) => t.col === col)]),
+        )
+      }
+
+      onMount() {
+        this.globalState.kitchenTaskCount = this.state.tasks.length
+      }
+
+      add() {
+        const title = this.state.titleInput.value.trim() || `Task ${this.state.uid + 1}`
+        this.state.tasks.push({ id: ++this.state.uid, title, col: this.props.columns[0], done: false, tags: [] })
+        this.state.titleInput.value = ''
+        this.globalState.kitchenTaskCount = this.state.tasks.length
+        KitchenToast.show(`Added ${title}`)
+      }
+
+      remove(task) {
+        this.state.tasks = this.state.tasks.filter((t) => t.id !== task.id)
+        this.globalState.kitchenTaskCount = this.state.tasks.length
+      }
+
+      moveCard(id, dir) {
+        const cols = this.props.columns
+        const task = this.state.tasks.find((t) => t.id === id)
+        const next = cols[cols.indexOf(task.col) + dir]
+        if (!next) {
+          return KitchenToast.show('Nowhere to move', 'error')
+        }
+        task.col = next
+        task.done = next === cols[cols.length - 1]
+        this.publish('kitchen:changed', task.title)
+      }
+
+      select(task) {
+        this.state.selected = task.title
+      }
+
+      applyFilter() {
+        this.state.filter = this.state.filterInput.value
+      }
+    }
+  </script>
+
+  <style>
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 8px;
+
+      input {
+        flex: 1 1 140px;
+        min-width: 0;
+      }
+    }
+
+    .cols {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+      gap: 8px;
+    }
+
+    .col h4 {
+      margin: 0 0 4px;
+      text-transform: capitalize;
+    }
+
+    .task {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 4px;
+
+      .fez-kitchen-card {
+        flex: 1;
+        min-width: 0;
+      }
+
+      button.del {
+        padding: 2px 8px;
+      }
+    }
+
+    .empty {
+      opacity: .5;
+    }
+
+    :global(.kitchen-highlight) {
+      outline: 2px dashed tomato;
+    }
+  </style>
+
+  .board
+    .toolbar
+      input.title type="text" fez:this="titleInput" placeholder="New task"
+      button.add onclick="fez.add()" Add
+      input.filter type="search" fez:this="filterInput" placeholder="Filter" oninput="fez.applyFilter()"
+      - if state.selected
+        span.selected Selected: #{state.selected}
+    .cols
+      - each props.columns as col
+        section.col data-col={col}
+          h4 = col
+          - each state.byCol[col] as task
+            .task key={task.id} fez:in="fade, duration=150" fez:out="fade, duration=150" fez:animate="flip, duration=200"
+              kitchen-card :task="task" :onselect="fez.select" priority={task.tags.includes('core') ? 'high' : 'mid'}
+              button.del onclick={() => remove(task)} &times;
+          - else
+            p.empty empty
+    - await state.remote
+      p.loading Loading repository...
+    - then info
+      p.remote Owner #{info.owner} has #{info.stars} stars
+    - catch err
+      p.err = err.message
+</xmp>
+
+<!-- reads globalState, publishes its own GLOBAL_STATE while mounted -->
+<xmp fez="kitchen-stats">
+  <script>
+    class {
+      PROPS = { label: { type: String, default: 'stats' } }
+
+      GLOBAL_STATE = {
+        kitchenStatsMounted: true,
+        kitchenStatsLabel() {
+          return this.props.label
+        },
+      }
+
+      init() {
+        this.state.meta = { version: Fez.version, mode: 'demo' }
+        this.state.note = 'Rendered with <b>{@html}</b>'
+        this.state.changes = 0
+      }
+
+      onGlobalStateChange() {
+        this.state.changes++
+      }
+    }
+  </script>
+
+  <style>
+    .rows {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0 12px;
+
+      span {
+        flex: 0 0 110px;
+        opacity: .6;
+      }
+
+      b {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+    }
+
+    pre {
+      overflow: auto;
+      font-size: 12px;
+    }
+  </style>
+
+  <div class="rows" fez:animate="height, duration=150">
+    <div class="row"><span>tasks</span><b class="count">{globalState.kitchenTaskCount}</b></div>
+    <div class="row"><span>global changes</span><b class="changes">{state.changes}</b></div>
+    {#for key, val in state.meta}
+      <div class="row"><span>{key}</span><b class={'meta-' + key}>{val}</b></div>
+    {/for}
+  </div>
+  <p class="note">{@html state.note}</p>
+  {@json state.meta}
+</xmp>
+
+<!-- default slot keeps a wrapper, so this panel stays reactive -->
+<xmp fez="kitchen-panel">
+  <script>
+    class {
+      PROPS = { title: { type: String, default: 'Panel' } }
+    }
+  </script>
+
+  <style>
+    :kitchen-card;
+    display: block;
+    margin: 8px 0;
+    background: var(--kitchen-bg);
+
+    h3 {
+      margin: 0 0 8px;
+    }
+  </style>
+
+  <h3>{props.title}</h3>
+  <slot />
+</xmp>
+
+<!-- slot unwrap: children land straight in the <ul>, the component renders once -->
+<xmp fez="kitchen-unwrap">
+  <ul class="unwrapped"><slot unwrap /></ul>
+</xmp>
+
+<!-- fez:bind on every input kind, fez:use, formData() -->
+<xmp fez="kitchen-form">
+  <script>
+    class {
+      init() {
+        this.state.form = { name: 'Ana', role: 'dev', agree: true, size: 'm', bio: 'Hello' }
+        this.state.submitted = null
+      }
+
+      submit(event) {
+        event.preventDefault()
+        this.state.submitted = this.formData()
+      }
+    }
+  </script>
+
+  <style>
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+
+      input[name=name],
+      textarea {
+        flex: 1 1 140px;
+        min-width: 0;
+        max-width: 100%;
+      }
+    }
+
+    .echo {
+      overflow-wrap: anywhere;
+    }
+  </style>
+
+  <form onsubmit="fez.submit(event)">
+    <input name="name" fez:bind="state.form.name" fez:use={el => el.dataset.ready = 'yes'} />
+    <select name="role" fez:bind="state.form.role">
+      <option value="dev">dev</option>
+      <option value="ops">ops</option>
+    </select>
+    <label><input type="checkbox" name="agree" fez:bind="state.form.agree" /> agree</label>
+    {#for s in ['s', 'm', 'l']}
+      <label><input type="radio" name="size" value={s} fez:bind="state.form.size" />{s}</label>
+    {/for}
+    <textarea name="bio" fez:bind="state.form.bio"></textarea>
+    <button type="submit">Save</button>
+  </form>
+  <p class="echo">{state.form.name} | {state.form.role} | {state.form.agree} | {state.form.size} | {state.form.bio}</p>
+  {#if state.submitted}
+    <pre class="submitted">{JSON.stringify(state.submitted)}</pre>
+  {/if}
+</xmp>
+
+<!-- no template: a controller that writes the DOM itself -->
+<xmp fez="kitchen-ticker">
+  <script>
+    class {
+      PROPS = {
+        step: { type: Number, default: 1 },
+        every: { type: Number, default: 1000 },
+      }
+
+      init() {
+        this.state.n = 0
+        this.state.scrolls = 0
+      }
+
+      onMount() {
+        this.state.out = document.createElement('code')
+        this.root.append('Ticker: ', this.state.out)
+        this.tick()
+        this.setInterval(() => this.tick(), this.props.every)
+        this.on('scroll', () => this.state.scrolls++, { throttle: 100 })
+      }
+
+      tick() {
+        this.state.n += this.props.step
+        this.state.out.textContent = this.state.n
+      }
+    }
+  </script>
+</xmp>
+
+<!-- pages for the fez-component outlet -->
+<xmp fez="kitchen-page-home">
+  <script>
+    class {
+      PROPS = { greeting: { type: String, default: 'hello' } }
+
+      init() {
+        this.state.refreshes = 0
+      }
+
+      onRefresh(props, changed) {
+        if ('greeting' in changed) {
+          this.state.refreshes++
+        }
+      }
+    }
+  </script>
+
+  <p class="home">{props.greeting} (greeting changes: {state.refreshes})</p>
+</xmp>
+
+<xmp fez="kitchen-page-about">
+  <p class="about">About page, greeting {props.greeting}</p>
+</xmp>
+
+<!-- the app shell: outlet, theme, events from the board -->
+<xmp fez="kitchen-app">
+  <script>
+    class {
+      init() {
+        this.state.page = 'kitchen-page-home'
+        this.state.query = { greeting: 'hi' }
+        this.state.dark = Fez.localStorage.get('kitchen-dark', false)
+        this.state.events = []
+        this.state.showStats = true
+        this.subscribe('kitchen:changed', (title) => this.state.events.push(`moved ${title}`))
+      }
+
+      go(page) {
+        this.state.page = page
+      }
+
+      greet(text) {
+        this.state.query = { greeting: text }
+      }
+
+      toggleDark() {
+        this.state.dark = !this.state.dark
+        Fez.localStorage.set('kitchen-dark', this.state.dark)
+      }
+
+      toggleStats() {
+        this.state.showStats = !this.state.showStats
+      }
+    }
+  </script>
+
+  <style>
+    display: block;
+
+    .shell {
+      --kitchen-bg: #fff;
+      --kitchen-line: #ccc;
+      padding: 12px;
+      color: #222;
+      background: #f6f6f6;
+      border-radius: 8px;
+
+      :dark {
+        --kitchen-bg: #222;
+        --kitchen-line: #444;
+        color: #eee;
+        background: #111;
+      }
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+
+      button.active {
+        font-weight: bold;
+      }
+    }
+
+    .events {
+      opacity: .7;
+    }
+  </style>
+
+  <div class="shell" class:dark={state.dark}>
+    <nav>
+      <button class="go-home" class:active={state.page === 'kitchen-page-home'} onclick="fez.go('kitchen-page-home')">Home</button>
+      <button class="go-about" class:active={state.page === 'kitchen-page-about'} onclick="fez.go('kitchen-page-about')">About</button>
+      <button class="go-missing" onclick="fez.go('kitchen-page-missing')">Missing page</button>
+      <button class="greet" onclick="fez.greet('yo')">Change greeting</button>
+      <button class="theme" onclick="fez.toggleDark()">{state.dark ? 'Light' : 'Dark'}</button>
+      <button class="stats-toggle" onclick="fez.toggleStats()">Toggle stats</button>
+    </nav>
+
+    <fez-component name={state.page} :props="state.query"><p class="fallback">Page not found</p></fez-component>
+
+    <kitchen-panel title="Board">
+      <kitchen-board columns="todo, doing, done" />
+    </kitchen-panel>
+
+    {#if state.showStats}
+      <kitchen-panel title="Stats"><kitchen-stats label="live" /></kitchen-panel>
+    {:else}
+      <p class="no-stats">Stats hidden - their GLOBAL_STATE keys are gone</p>
+    {/if}
+
+    <kitchen-panel title="Form"><kitchen-form /></kitchen-panel>
+
+    <kitchen-unwrap><li>unwrapped one</li><li>unwrapped two</li></kitchen-unwrap>
+
+    <span fez:keep="ticker"><kitchen-ticker step="2" /></span>
+
+    <p class="events">{state.events.join(', ')}</p>
+    <p class="inline">Total tasks: <fez-inline>{globalState.kitchenTaskCount}</fez-inline></p>
+  </div>
+</xmp>
