@@ -16,21 +16,7 @@ import { assertStyleScope, splitScript } from './lib/validate.js';
 import { stripTypeScript } from './lib/strip-types.js';
 import createTemplate from './lib/template.js';
 import { locateSlimError } from './lib/slim.js';
-
-function escapeTemplateLiteral(value) {
-  return String(value).replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('$', '\\$');
-}
-
-function escapeHtmlLiteral(value) {
-  return value.replaceAll('`', '&#x60;').replaceAll('$', '\\$');
-}
-
-function normalizeHtml(html) {
-  return html
-    .split('\n')
-    .map((line) => line.trim())
-    .join('\n');
-}
+import { buildClassSource, trimTemplateLines } from './lib/class-source.js';
 
 function assertName(name) {
   if (!name.includes('-')) {
@@ -99,24 +85,10 @@ function compileUnit(name, source, { minify }) {
   assertScriptSyntax(name, klass);
   assertStyleScope(name, parts.style, false);
   assertStyleScope(name, parts.styleGlobal, true);
-  parts.html = normalizeHtml(parts.html);
+  parts.html = trimTemplateLines(parts.html);
   assertTemplate(name, parts.html, parts.template);
 
-  if (!splitScript(klass).hasClass) {
-    klass = `class {\n${klass}\n}`;
-  }
-
-  if (String(parts.style).includes(':')) {
-    const css = escapeTemplateLiteral(parts.style);
-    klass = klass.replace(/\}\s*$/, `\n  CSS = \`:fez {\n${css}\n}\`\n}`);
-  }
-  if (String(parts.styleGlobal).includes(':')) {
-    const cssGlobal = escapeTemplateLiteral(parts.styleGlobal);
-    klass = klass.replace(/\}\s*$/, `\n  CSS_GLOBAL = \`${cssGlobal}\`\n}`);
-  }
-  if (/\w/.test(String(parts.html))) {
-    klass = klass.replace(/\}\s*$/, `\n  HTML = \`${escapeHtmlLiteral(parts.html.trim())}\`\n}`);
-  }
+  klass = buildClassSource({ ...parts, script: klass });
 
   const { preamble, body } = splitScript(klass);
   const metadata = [];

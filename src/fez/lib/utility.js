@@ -311,8 +311,12 @@ export default (Fez) => {
       return Promise.resolve(cached.data);
     }
 
-    // Helper to process and cache response
+    // Helper to process and cache response. An error status rejects: a 404
+    // page must never be cached or compiled as if it were the resource.
     const processResponse = (response) => {
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText} for ${method} ${url}`.trim());
+      }
       if (response.headers.get('content-type')?.includes('application/json')) {
         return response.json();
       }
@@ -435,6 +439,17 @@ export default (Fez) => {
     return text === undefined ? '' : text;
   };
 
+  // Escape a value for a quoted JS string inside handler code, so a quote in
+  // the data cannot end the string: onclick="fez.rm('{id}')"
+  Fez.jsEscape = (value) => {
+    if (value == null) {
+      return '';
+    }
+    return JSON.stringify(String(value))
+      .slice(1, -1)
+      .replace(/['`$]/g, '\\$&');
+  };
+
   // create dom root and return it
   Fez.domRoot = (data, name = 'div') => {
     if (data instanceof Node) {
@@ -517,7 +532,7 @@ export default (Fez) => {
     } else if (typeof pointer === 'string') {
       // Check if it's a function expression (arrow function or function keyword)
       // Arrow function: (args) => or args =>
-      const arrowFuncPattern = /^\s*\(?\s*\w+(\s*,\s*\w+)*\s*\)?\s*=>/;
+      const arrowFuncPattern = /^\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*=>/;
       const functionPattern = /^\s*function\s*\(/;
 
       if (arrowFuncPattern.test(pointer) || functionPattern.test(pointer)) {

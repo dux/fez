@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { Window } from "happy-dom";
-import { fezMorph, syncClassList, isFormInput } from "../src/fez/lib/morph.js";
+import { nodeMorph, syncClassList, isFormInput } from "../src/fez/lib/morph.js";
 
 let document;
 
@@ -22,7 +22,7 @@ function morph(oldHtml, newHtml, opts = {}) {
   const newNode = document.createElement("div");
   newNode.innerHTML = newHtml;
 
-  fezMorph(container, newNode, opts);
+  nodeMorph(container, newNode, opts);
 
   const result = container.innerHTML;
   container.remove();
@@ -37,7 +37,7 @@ function morphEl(oldHtml, newHtml, opts = {}) {
   const newNode = document.createElement("div");
   newNode.innerHTML = newHtml;
 
-  fezMorph(container, newNode, opts);
+  nodeMorph(container, newNode, opts);
   return container;
 }
 
@@ -179,7 +179,7 @@ describe("isFormInput", () => {
 // Basic morphing
 // ---------------------------------------------------------------------------
 
-describe("fezMorph basics", () => {
+describe("nodeMorph basics", () => {
   test("updates text content", () => {
     expect(morph("<p>old</p>", "<p>new</p>")).toBe("<p>new</p>");
   });
@@ -243,7 +243,7 @@ describe("fezMorph basics", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<p class="y">new</p>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     const current = container.querySelector("p");
     expect(current._marker).toBe("original"); // same element, morphed in place
@@ -269,7 +269,7 @@ describe("attribute sync", () => {
     // Template newNode has no class - root classes should be preserved
     newNode.setAttribute("data-y", "2");
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     // Root attributes are NOT synced - they belong to Fez, not the template
     expect(container.getAttribute("class")).toBe("fez fez-my-comp go123");
@@ -289,7 +289,7 @@ describe("attribute sync", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<input value="new" />';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     // Value should NOT be updated because input is focused
     const current = container.querySelector("input");
@@ -308,7 +308,7 @@ describe("attribute sync", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<input value="new" />';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     const current = container.querySelector("input");
     expect(current.getAttribute("value")).toBe("new");
@@ -325,7 +325,7 @@ describe("attribute sync", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<input type="checkbox" checked />';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     const current = container.querySelector("input");
     expect(current.hasAttribute("checked")).toBe(true);
@@ -333,7 +333,7 @@ describe("attribute sync", () => {
 
     const unchecked = document.createElement("div");
     unchecked.innerHTML = '<input type="checkbox" />';
-    fezMorph(container, unchecked);
+    nodeMorph(container, unchecked);
 
     expect(current.hasAttribute("checked")).toBe(false);
     expect(current.checked).toBe(false);
@@ -350,7 +350,7 @@ describe("attribute sync", () => {
     const falseNode = document.createElement("div");
     falseNode.innerHTML = '<input type="checkbox" checked="false" />';
 
-    fezMorph(container, falseNode);
+    nodeMorph(container, falseNode);
 
     expect(input.hasAttribute("checked")).toBe(false);
     expect(input.checked).toBe(false);
@@ -361,7 +361,7 @@ describe("attribute sync", () => {
     const undefinedNode = document.createElement("div");
     undefinedNode.innerHTML = '<input type="checkbox" checked="undefined" />';
 
-    fezMorph(container, undefinedNode);
+    nodeMorph(container, undefinedNode);
 
     expect(input.hasAttribute("checked")).toBe(false);
     expect(input.checked).toBe(false);
@@ -378,7 +378,7 @@ describe("attribute sync", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<button disabled="false">Next</button>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     expect(button.hasAttribute("disabled")).toBe(false);
     expect(button.disabled).toBe(false);
@@ -397,7 +397,7 @@ describe("attribute sync", () => {
     newNode.innerHTML =
       '<select><option value="a">A</option><option value="b" selected>B</option></select>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     expect(select.value).toBe("b");
     expect(select.options[0].selected).toBe(false);
@@ -422,7 +422,7 @@ describe("attribute sync", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<div class="a b c"></div>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     expect(addCalled).toBe(true);
     expect(el.classList.contains("c")).toBe(true);
@@ -440,7 +440,7 @@ describe("attribute sync", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<div class="card"></div>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     expect(container.querySelector("div").getAttribute("style")).toBe(
       "transform: translateX(40px);"
@@ -461,7 +461,7 @@ describe("attribute sync", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<div class="box flex gap-3 p-3"></div>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     const el = container.querySelector("div");
     expect(el.hasAttribute("style")).toBe(false);
@@ -489,7 +489,7 @@ describe("attribute sync", () => {
       "<th>Relacija</th>" +
       "</tr></thead></table>";
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     const ths = [...container.querySelectorAll("th")];
     expect(ths.map((th) => th.textContent)).toEqual(["Zaposlenik", "Relacija"]);
@@ -507,7 +507,7 @@ describe("attribute sync", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<div class="card" style="color: blue;"></div>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     expect(container.querySelector("div").getAttribute("style")).toBe("color: blue;");
 
@@ -530,7 +530,7 @@ describe("fez-keep", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<div fez-keep="child-1"><span>Updated</span></div>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     const el = container.querySelector('[fez-keep="child-1"]');
     expect(el._marker).toBe("original");
@@ -549,7 +549,7 @@ describe("fez-keep", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<div fez-keep="child-2"><span>New</span></div>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     expect(container.querySelector('[fez-keep="child-1"]')).toBeNull();
     expect(
@@ -571,7 +571,7 @@ describe("fez-keep", () => {
     newNode.innerHTML =
       '<div class="new-before">New Before</div><div fez-keep="kept">Kept</div><div class="new-after">New After</div>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     expect(container.querySelector('[fez-keep="kept"]')._marker).toBe(
       "survived",
@@ -596,7 +596,7 @@ describe("fez-keep", () => {
     newNode.innerHTML =
       '<div fez-keep="c">C</div><div fez-keep="a">A</div><div fez-keep="d">D</div>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     expect(container.querySelector('[fez-keep="a"]')._m).toBe("A");
     expect(container.querySelector('[fez-keep="c"]')._m).toBe("C");
@@ -616,7 +616,7 @@ describe("fez-keep", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<div fez-keep="child-1" class="child"></div>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     expect(container.querySelector(".child")._state.counter).toBe(42);
 
@@ -633,7 +633,7 @@ describe("fez-keep", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<div fez-keep="child-2" class="child"></div>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     expect(container.querySelector('[fez-keep="child-1"]')).toBeNull();
     expect(
@@ -662,7 +662,7 @@ describe("id-based preservation", () => {
     newNode.id = "fez-c-42";
     newNode.innerHTML = '<input id="fez-42-name" /><span>v2</span>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     const current = container.querySelector("#fez-42-name");
     expect(current._marker).toBe("original");
@@ -687,7 +687,7 @@ describe("id-based preservation", () => {
     newNode.id = "fez-c-42";
     newNode.innerHTML = '<input id="fez-42-first" /><input id="fez-42-last" />';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     expect(container.querySelector("#fez-42-first")._m).toBe("first");
     expect(container.querySelector("#fez-42-last")._m).toBe("last");
@@ -717,7 +717,7 @@ describe("fez component preservation", () => {
     newNode.innerHTML =
       '<div class="fez fez-my-comp"><span>Changed</span></div>';
 
-    fezMorph(container, newNode, {
+    nodeMorph(container, newNode, {
       skipNode: (node) =>
         node.classList?.contains("fez") && node.fez && !node.fez._destroyed,
     });
@@ -743,7 +743,7 @@ describe("fez component preservation", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = "<p>Keep</p>";
 
-    fezMorph(container, newNode, {
+    nodeMorph(container, newNode, {
       skipNode: (node) =>
         node.classList?.contains("fez") && node.fez && !node.fez._destroyed,
       beforeRemove: (node) => {
@@ -770,7 +770,7 @@ describe("fez component preservation", () => {
     newNode.innerHTML = '<div fez-keep="k"><span>new</span></div>';
 
     const preserved = [];
-    fezMorph(container, newNode, {
+    nodeMorph(container, newNode, {
       onPreserve: (oldNode) => preserved.push(oldNode),
     });
 
@@ -797,7 +797,7 @@ describe("fez component preservation", () => {
     newNode.innerHTML =
       '<div class="fez fez-b" id="comp-2">B-new</div><p>text</p><div class="fez fez-a" id="comp-1">A-new</div>';
 
-    fezMorph(container, newNode, {
+    nodeMorph(container, newNode, {
       skipNode: (node) =>
         node.classList?.contains("fez") && node.fez && !node.fez._destroyed,
     });
@@ -859,7 +859,7 @@ describe("node identity preservation", () => {
     // Morph with identical content
     const newNode = document.createElement("div");
     newNode.innerHTML = "<p>hello</p><span>world</span>";
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     // Same DOM nodes should be reused - markers still present
     expect(container.children[0]._marker).toBe(marker1);
@@ -881,7 +881,7 @@ describe("node identity preservation", () => {
 
     const newNode = document.createElement("div");
     newNode.innerHTML = "<p>keep</p><p>changed</p><p>keep-too</p>";
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     // First and third nodes preserved (same tag, soft-matched)
     expect(container.children[0]._marker).toBe(marker1);
@@ -906,7 +906,7 @@ describe("node identity preservation", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML =
       '<div class="a"><ul><li>one</li><li>two</li></ul></div>';
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     // Deep node should be the same object
     expect(container.querySelector("li")._marker).toBe(marker);
@@ -925,7 +925,7 @@ describe("node identity preservation", () => {
     // Change tag from p to span
     const newNode = document.createElement("div");
     newNode.innerHTML = "<span>text</span>";
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     // Different tag - node was replaced, marker is gone
     expect(container.children[0]._marker).toBeUndefined();
@@ -951,7 +951,7 @@ describe("node identity preservation", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML =
       '<div fez-keep="c">C</div><div fez-keep="a">A</div><div fez-keep="b">B</div>';
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     // All three nodes should be the same objects, just reordered
     expect(container.children[0]._marker).toBe(markerC);
@@ -979,7 +979,7 @@ describe("node identity preservation", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<div class="button">Button</div><input type="hidden" />';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     // The button should be matched to the OLD button element (same class)
     const currentButton = container.querySelector(".button");
@@ -1016,7 +1016,7 @@ describe("node identity preservation", () => {
     newNode.innerHTML =
       '<div class="overlay">Overlay</div><div class="picker">Picker</div><div class="button">Button</div><input type="hidden" />';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     // The button should be matched to the old button (same class), not to the overlay
     const currentButton = container.querySelector(".button");
@@ -1045,7 +1045,7 @@ describe("node identity preservation", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<div class="picker">Updated</div>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     const current = container.querySelector(".picker");
     expect(current.style.left).toBe("100px");
@@ -1067,7 +1067,7 @@ describe("node identity preservation", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<div class="box" style="color: blue;">Text</div>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     const current = container.querySelector(".box");
     expect(current.getAttribute("style")).toBe("color: blue;");
@@ -1091,7 +1091,7 @@ describe("node identity preservation", () => {
     newNode.innerHTML =
       '<div class="preview" style="background: blue;">Preview</div><input />';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     // Preview should be updated, not replaced with picker content
     const preview = container.querySelector(".preview");
@@ -1117,7 +1117,7 @@ describe("node identity preservation", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<div key="2" class="button">Button</div>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     const current = container.querySelector(".button");
     expect(current._marker).toBe("original-button");
@@ -1139,7 +1139,7 @@ describe("node identity preservation", () => {
     newNode.innerHTML =
       '<div key="0" class="overlay">Overlay</div><div key="1" class="picker">Picker</div><div key="2" class="button">Button</div><input key="3" />';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     const current = container.querySelector(".button");
     expect(current._marker).toBe("original-button");
@@ -1167,7 +1167,7 @@ describe("node identity preservation", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML =
       '<p>before</p><div class="fez fez-my-comp">template placeholder</div><p>after</p>';
-    fezMorph(container, newNode, {
+    nodeMorph(container, newNode, {
       skipNode: (node) =>
         node.classList?.contains("fez") && node.fez && !node.fez._destroyed,
     });

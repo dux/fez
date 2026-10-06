@@ -52,29 +52,7 @@ export default function createPjax() {
 
       Pjax.onDocumentClick();
 
-      window.addEventListener('popstate', () => {
-        const path = Pjax.path();
-        const previousPath = Pjax._historyPath;
-        Pjax._historyPath = path;
-        // Fragment-only history changes leave the current page mounted.
-        if (path === previousPath) {
-          return;
-        }
-        window.requestAnimationFrame(() => {
-          const entry = Pjax.historyData[path];
-          if (entry) {
-            Pjax.console(`from history: ${path}`);
-            const root = document.createElement('div');
-            root.innerHTML = entry.html;
-            Pjax.setPageBody(root, path);
-            if (entry.scrollY) {
-              window.scrollTo(0, entry.scrollY);
-            }
-          } else {
-            Pjax.load(path, { history: false });
-          }
-        });
-      });
+      window.addEventListener('popstate', () => Pjax.onPopState());
 
       document.body.addEventListener('submit', (e) => {
         const form = e.target;
@@ -83,6 +61,46 @@ export default function createPjax() {
           e.preventDefault();
           const target = pjaxAttr === 'true' ? undefined : pjaxAttr;
           Pjax.load(form.getAttribute('action'), { form, target });
+        }
+      });
+    }
+
+    // Back/Forward: restore a cached full-swap page without a fetch, or load it
+    static onPopState() {
+      const path = Pjax.path();
+      const previousPath = Pjax._historyPath;
+      Pjax._historyPath = path;
+      // Fragment-only history changes leave the current page mounted.
+      if (path === previousPath) {
+        return;
+      }
+      window.requestAnimationFrame(() => {
+        const entry = Pjax.historyData[path];
+        if (entry) {
+          Pjax.console(`from history: ${path}`);
+          // a request still in flight must not land on the restored page
+          Pjax._abort('full');
+          const root = document.createElement('div');
+          root.innerHTML = entry.html;
+          Promise.resolve(Pjax.setPageBody(root, path)).then((applied) => {
+            if (!applied) {
+              return;
+            }
+            if (entry.scrollY) {
+              window.scrollTo(0, entry.scrollY);
+            }
+            Pjax._dispatchRender({
+              from: previousPath,
+              to: path,
+              status: 200,
+              error: null,
+              duration: 0,
+              mode: 'full',
+              opts: { history: false },
+            });
+          }, Pjax.error);
+        } else {
+          Pjax.load(path, { history: false });
         }
       });
     }
@@ -358,11 +376,12 @@ export default function createPjax() {
         Pjax.after(href);
       };
 
+      // With a view transition the swap runs later: hand back a promise that
+      // settles when it is done (and rejects when it failed)
       if (Pjax.useViewTransition && document.startViewTransition) {
-        document.startViewTransition(finish);
-      } else {
-        finish();
+        return document.startViewTransition(finish).updateCallbackDone.then(() => true);
       }
+      finish();
       return true;
     }
 
@@ -388,24 +407,12 @@ export default function createPjax() {
       if (!root || !id) {
         return;
       }
-      if (root.getElementById) {
-        return root.getElementById(id);
-      }
-      for (const node of root.querySelectorAll('[id]')) {
-        if (node.id === id) {
-          return node;
-        }
-      }
-      return null;
+      return root.querySelector(`[id="${id.replace(/["\\]/g, '\\$&')}"]`);
     }
 
     // --- history management ---
 
     static _addHistoryEntry(href, html) {
-      if (html == null) {
-        html = href;
-        href = Pjax.path();
-      }
       const keys = Object.keys(Pjax.historyData);
       const max = Pjax.config.history_max || 20;
       if (keys.length >= max) {
@@ -514,7 +521,10 @@ export default function createPjax() {
       } else {
         const parsed = new URL(url, location.href);
         if (parsed.origin !== location.origin) {
-          location.href = url; // external host -> real navigation
+          // external host -> real navigation; the promise settles first, in
+          // case that navigation does not unload the page (204, download)
+          this.resolve(null);
+          location.href = url;
           return false;
         }
         path = parsed.pathname + parsed.search;
@@ -522,6 +532,7 @@ export default function createPjax() {
 
       this.redirects = (this.redirects || 0) + 1;
       if (this.redirects > 5) {
+        this.resolve(null);
         return this.redirect();
       }
 
@@ -733,22 +744,32 @@ export default function createPjax() {
 
       this.historyAddCurrent(this.historyHref());
 
+      const failed = (err) => {
+        Pjax.error(`Apply failed: ${err?.message || err}`);
+        console.error(err);
+        return false;
+      };
+      const done = (applied) => {
+        if (!applied) {
+          this.emitDone({ status: res.status, error: 'apply' });
+          return this.redirect();
+        }
+        this.emitDone({ status: res.status });
+        this.scrollAfterSwap();
+      };
+
       let applied;
       try {
         applied = this.applyLoadedData();
       } catch (err) {
-        Pjax.error(`Apply failed: ${err?.message || err}`);
-        console.error(err);
-        applied = false;
+        applied = failed(err);
       }
-
-      if (!applied) {
-        this.emitDone({ status: res.status, error: 'apply' });
-        return this.redirect();
+      // a view transition applies the swap asynchronously (setPageBody)
+      if (applied?.then) {
+        applied.then(done, (err) => done(failed(err)));
+      } else {
+        done(applied);
       }
-
-      this.emitDone({ status: res.status });
-      this.scrollAfterSwap();
     }
 
     scrollAfterSwap() {

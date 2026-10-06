@@ -988,25 +988,18 @@ describe('Pjax module', () => {
 
   test('_addHistoryEntry caps entries at history_max', () => {
     Pjax.config.history_max = 3;
-    let callCount = 0;
-    const originalPath = Pjax.path;
-    Pjax.path = () => `/page-${++callCount}`;
-    try {
-      Pjax._addHistoryEntry('page1');
-      Pjax._addHistoryEntry('page2');
-      Pjax._addHistoryEntry('page3');
-      expect(Object.keys(Pjax.historyData).length).toBe(3);
-      Pjax._addHistoryEntry('page4');
-      expect(Object.keys(Pjax.historyData).length).toBe(3);
-      expect(Pjax.historyData['/page-1']).toBeUndefined();
-    } finally {
-      Pjax.path = originalPath;
-    }
+    Pjax._addHistoryEntry('/page-1', 'page1');
+    Pjax._addHistoryEntry('/page-2', 'page2');
+    Pjax._addHistoryEntry('/page-3', 'page3');
+    expect(Object.keys(Pjax.historyData).length).toBe(3);
+    Pjax._addHistoryEntry('/page-4', 'page4');
+    expect(Object.keys(Pjax.historyData).length).toBe(3);
+    expect(Pjax.historyData['/page-1']).toBeUndefined();
   });
 
   test('_addHistoryEntry stores html and scrollY', () => {
-    Pjax._addHistoryEntry('<p>test</p>');
-    const entry = Pjax.historyData[Pjax.path()];
+    Pjax._addHistoryEntry('/stored', '<p>test</p>');
+    const entry = Pjax.historyData['/stored'];
     expect(entry.html).toBe('<p>test</p>');
     expect(entry.scrollY).toBe(0);
   });

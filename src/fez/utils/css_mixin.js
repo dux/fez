@@ -32,15 +32,19 @@ export default (Fez) => {
   Fez.cssMixin = (name, content) => {
     // Two-arg form registers; one-arg form expands. `content !== undefined`
     // (not truthiness) so an empty body can be registered.
+    // Patterns are built once, at registration.
     if (content !== undefined) {
-      CssMixins[name] = content;
+      CssMixins[name] = { body: content, decl: declRe(name), block: blockRe(name) };
       return;
     }
 
-    Object.entries(CssMixins).forEach(([key, val]) => {
-      name = name.replace(declRe(key), (_, lead) => `${lead}${val.replace(/;\s*$/, '')};`);
-      name = name.replace(blockRe(key), (_, lead) => `${lead}${val}`);
-    });
+    for (const [key, mixin] of Object.entries(CssMixins)) {
+      if (!name.includes(key)) {
+        continue;
+      }
+      name = name.replace(mixin.decl, (_, lead) => `${lead}${mixin.body.replace(/;\s*$/, '')};`);
+      name = name.replace(mixin.block, (_, lead) => `${lead}${mixin.body}`);
+    }
 
     return name;
   };

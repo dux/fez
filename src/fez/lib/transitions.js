@@ -120,7 +120,7 @@ const computed = (node) => {
 // = natural state); outro plays the same frames reversed.
 // ---------------------------------------------------------------------------
 
-export const builtins = {
+const builtins = {
   fade(node, p) {
     const cs = computed(node);
     return {
@@ -405,21 +405,29 @@ export function playFlip(entries) {
   if (!entries?.length || reducedMotion()) {
     return;
   }
-  for (const { node, rect, spec } of entries) {
-    if (!node.isConnected || node._fezLeaving || typeof node.animate !== 'function') {
-      continue;
-    }
-    // a still-running flip would skew the measurement - drop it first, the new
-    // delta starts from where the node visually was (old rect included it)
+  const live = entries.filter(
+    ({ node }) => node.isConnected && !node._fezLeaving && typeof node.animate === 'function',
+  );
+
+  // Three passes, so layout is computed once: cancel every running flip (a
+  // still-running one would skew the measurement - the old rect already holds
+  // where the node visually was), read every new position, then animate.
+  // Interleaving them forces a layout per node, and a nested flip node would be
+  // measured with its parent's new translate already applied.
+  for (const { node } of live) {
     node._fezFlipAnim?.cancel();
+  }
+  const moves = [];
+  for (const { node, rect, spec } of live) {
     const next = node.getBoundingClientRect();
     const dx = rect.left - next.left;
     const dy = rect.top - next.top;
-    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
-      continue;
+    if (Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5) {
+      moves.push({ node, spec, dx, dy, base: baseValue(computed(node), 'transform') });
     }
+  }
 
-    const base = baseValue(computed(node), 'transform');
+  for (const { node, spec, dx, dy, base } of moves) {
     const p = spec.params || {};
     const anim = node.animate(
       [{ transform: `${base} translate(${dx}px, ${dy}px)`.trim() }, { transform: base || 'none' }],

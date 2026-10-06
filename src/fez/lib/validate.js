@@ -1,17 +1,34 @@
-// Shared source validation used by the runtime compiler and the build-time
-// module compiler. Keep messages in sync with validateStyle() in bin/fez-compile.
+// Shared source validation used by the runtime compiler, the build-time
+// module compiler and `fez compile`.
 
-export const STYLE_SCOPE_ERRORS = {
-  body: 'body { } in a scoped <style>. Move these rules to <style global>.',
-  host: ':host is not supported. <style> is already scoped - use `&` for the root node.',
-  fez: ':fez is no longer an author-facing selector. <style> is already scoped - use `&` for the root node.',
-  globalInGlobal:
-    ':global() inside <style global>. These rules are already global - drop the wrapper.',
-};
+// `on`: which block a rule applies to - scoped <style>, <style global> or both
+const STYLE_SCOPE_RULES = [
+  {
+    on: 'scoped',
+    re: /(?:^|\s)body\s*\{/,
+    message: 'body { } in a scoped <style>. Move these rules to <style global>.',
+  },
+  {
+    on: 'global',
+    re: /:global\(/,
+    message: ':global() inside <style global>. These rules are already global - drop the wrapper.',
+  },
+  {
+    on: 'both',
+    re: /:host\b/,
+    message: ':host is not supported. <style> is already scoped - use `&` for the root node.',
+  },
+  {
+    on: 'both',
+    re: /:fez\b/,
+    message:
+      ':fez is no longer an author-facing selector. <style> is already scoped - use `&` for the root node.',
+  },
+];
 
 // Blank out comments while keeping length and line breaks, so scope checks
 // never fire on prose - "was :fez before" in a comment is not an error.
-export function withoutComments(style) {
+function withoutComments(style) {
   return style
     .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
     .replace(/^([ \t]*)\/\/[^\n]*/gm, (m, indent) => indent + ' '.repeat(m.length - indent.length));
@@ -196,26 +213,24 @@ export function splitScript(script) {
   };
 }
 
-export function assertStyleScope(tagName, rawStyle, isGlobal) {
+/**
+ * Style scope violations as [{ message, index }] (index into rawStyle), in
+ * rule order. Comments never count.
+ */
+export function styleScopeErrors(rawStyle, isGlobal) {
   if (!rawStyle) {
-    return;
+    return [];
   }
   const style = withoutComments(rawStyle);
+  const block = isGlobal ? 'global' : 'scoped';
+  return STYLE_SCOPE_RULES.filter((rule) => rule.on === 'both' || rule.on === block)
+    .map((rule) => ({ message: rule.message, index: style.search(rule.re) }))
+    .filter((error) => error.index >= 0);
+}
 
-  const fail = (message) => {
-    throw new Error(`<${tagName}> style error: ${message}`);
-  };
-
-  if (!isGlobal && /(?:^|\s)body\s*\{/.test(style)) {
-    fail(STYLE_SCOPE_ERRORS.body);
-  }
-  if (/:host\b/.test(style)) {
-    fail(STYLE_SCOPE_ERRORS.host);
-  }
-  if (/:fez\b/.test(style)) {
-    fail(STYLE_SCOPE_ERRORS.fez);
-  }
-  if (isGlobal && /:global\(/.test(style)) {
-    fail(STYLE_SCOPE_ERRORS.globalInGlobal);
+export function assertStyleScope(tagName, rawStyle, isGlobal) {
+  const [error] = styleScopeErrors(rawStyle, isGlobal);
+  if (error) {
+    throw new Error(`<${tagName}> style error: ${error.message}`);
   }
 }

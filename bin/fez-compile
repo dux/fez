@@ -7,10 +7,12 @@ import { globSync } from 'glob';
 import prettier from 'prettier';
 import createTemplate, { clearTemplateCache } from '../src/fez/lib/template.js';
 import { extractFezDefinitions, parseFezSource } from '../src/fez/lib/source-parser.js';
+import { captureConsoleErrors, debugTemplateFunction, firstLine } from './template-cli.js';
 import { locateSlimError, slimToFez } from '../src/fez/lib/slim.js';
 import { stripNodeWhitespace } from '../src/fez/lib/template-compiler-lib.js';
 import { stripTypeScript } from '../src/fez/lib/strip-types.js';
-import { splitScript } from '../src/fez/lib/validate.js';
+import { splitScript, styleScopeErrors } from '../src/fez/lib/validate.js';
+import { buildClassSource } from '../src/fez/lib/class-source.js';
 
 const INFO = 'Compile Fez components and report errors';
 
@@ -99,10 +101,6 @@ if (values.json) {
     const detail = result.components === 1 ? '' : ` (${result.components} components)`;
     console.log(`${result.file}: compiled without errors${detail}`);
   }
-}
-
-function firstLine(message) {
-  return String(message || 'Unknown error').split('\n')[0];
 }
 
 function expandInputs(inputs) {
@@ -308,45 +306,13 @@ function scriptError(error, filePath, lineOffset) {
   return result;
 }
 
-function withoutComments(style) {
-  return style
-    .replace(/\/\*[\s\S]*?\*\//g, (match) => match.replace(/[^\n]/g, ' '))
-    .replace(
-      /^([ \t]*)\/\/[^\n]*/gm,
-      (match, indent) => indent + ' '.repeat(match.length - indent.length),
-    );
-}
-
 function validateStyleScope(rawStyle, filePath, isGlobal, lineOffset) {
-  const errors = [];
-  const style = withoutComments(rawStyle);
-  const add = (regex, message) => {
-    const index = style.search(regex);
-    if (index < 0) {
-      return;
-    }
-    errors.push({
-      message,
-      file: filePath,
-      kind: 'Style',
-      line: lineOffset + style.slice(0, index).split('\n').length,
-    });
-  };
-
-  if (!isGlobal) {
-    add(/(?:^|\s)body\s*\{/, 'body { } in a scoped <style>. Move these rules to <style global>.');
-  } else {
-    add(
-      /:global\(/,
-      ':global() inside <style global>. These rules are already global - drop the wrapper.',
-    );
-  }
-  add(/:host\b/, ':host is not supported. <style> is already scoped - use `&` for the root node.');
-  add(
-    /:fez\b/,
-    ':fez is no longer an author-facing selector. <style> is already scoped - use `&` for the root node.',
-  );
-  return errors;
+  return styleScopeErrors(rawStyle, isGlobal).map(({ message, index }) => ({
+    message,
+    file: filePath,
+    kind: 'Style',
+    line: lineOffset + rawStyle.slice(0, index).split('\n').length,
+  }));
 }
 
 function validateStyle(style, filePath, isGlobal = false, lineOffset = 0) {
@@ -564,69 +530,8 @@ function reportErrors(errors) {
   }
 }
 
-function captureConsoleErrors(callback) {
-  const oldError = console.error;
-  const logs = [];
-  console.error = (...args) => logs.push(args.map(String).join(' '));
-  try {
-    callback();
-  } finally {
-    clearTemplateCache();
-    console.error = oldError;
-  }
-  return logs;
-}
-
-function debugTemplateFunction(html, componentName) {
-  const RealFunction = globalThis.Function;
-  const oldError = console.error;
-  let debug = '';
-  globalThis.Function = function (...args) {
-    try {
-      return RealFunction(...args);
-    } catch (error) {
-      debug = [
-        `Generated template function for <${componentName}> failed: ${error.message}`,
-        '',
-        args.join('\n---ARG---\n'),
-      ].join('\n');
-      throw error;
-    }
-  };
-  console.error = () => {};
-  try {
-    clearTemplateCache();
-    createTemplate(html, { name: componentName });
-  } finally {
-    console.error = oldError;
-    globalThis.Function = RealFunction;
-    clearTemplateCache();
-  }
-  return debug;
-}
-
-function escapeTemplateLiteral(value) {
-  return String(value).replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('$', '\\$');
-}
-
 function generateCompiledJS(parsed, componentName) {
-  let klass = parsed.script;
-  if (!splitScript(klass).hasClass) {
-    klass = `class {\n${klass}\n}`;
-  }
-
-  if (parsed.style && parsed.style.includes(':')) {
-    const css = escapeTemplateLiteral(parsed.style);
-    klass = klass.replace(/\}\s*$/, `\n  CSS = \`:fez {\n${css}\n}\`\n}`);
-  }
-  if (parsed.styleGlobal && parsed.styleGlobal.includes(':')) {
-    const cssGlobal = escapeTemplateLiteral(parsed.styleGlobal);
-    klass = klass.replace(/\}\s*$/, `\n  CSS_GLOBAL = \`${cssGlobal}\`\n}`);
-  }
-  if (parsed.html && /\w/.test(parsed.html)) {
-    const html = parsed.html.trim().replaceAll('`', '&#x60;').replaceAll('$', '\\$');
-    klass = klass.replace(/\}\s*$/, `\n  HTML = \`${html}\`\n}`);
-  }
+  const klass = buildClassSource(parsed);
 
   const { preamble, body } = splitScript(klass);
   const classBody = `class {\n${body}`;

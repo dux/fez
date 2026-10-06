@@ -107,7 +107,7 @@ describe('All error types include component name', () => {
   test('destroy error includes component name', () => {
     const instance = new FezBase()
     instance.fezName = 'cleanup-test'
-    instance._onDestroyCallbacks = [() => { throw new Error('Cleanup failed') }]
+    instance.addOnDestroy(() => { throw new Error('Cleanup failed') })
 
     instance.fezOnDestroy()
 

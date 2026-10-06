@@ -14,3 +14,16 @@ test('fnv1 is deterministic and stays a positive base36 string', () => {
   expect(a).not.toContain('-');
   expect(Fez.fnv1('hello world')).not.toBe(a);
 });
+
+test('getFunction compiles zero-param and async arrows', async () => {
+  expect(Fez.getFunction('() => 42')()).toBe(42);
+  expect(await Fez.getFunction('async (a, b) => a + b')(1, 2)).toBe(3);
+  expect(Fez.getFunction('x => x * 2')(4)).toBe(8);
+});
+
+test('jsEscape keeps data inside a quoted JS string', () => {
+  const value = `');alert(1);//\`\${x}\\\n`;
+  expect(new Function(`return '${Fez.jsEscape(value)}'`)()).toBe(value);
+  expect(new Function(`return \`${Fez.jsEscape(value)}\``)()).toBe(value);
+  expect(Fez.jsEscape(null)).toBe('');
+});

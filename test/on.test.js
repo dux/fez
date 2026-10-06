@@ -21,14 +21,14 @@ function makeTarget() {
 
 function makeInstance() {
   const inst = Object.create(FezBase.prototype);
-  inst._onDestroyCallbacks = [];
   inst.root = { isConnected: true };
   return inst;
 }
 
 function destroy(inst) {
-  inst._onDestroyCallbacks.forEach(cb => cb());
-  inst._onDestroyCallbacks = [];
+  const callbacks = inst._onDestroyCallbacks;
+  inst._onDestroyCallbacks = null;
+  callbacks?.forEach(cb => cb());
 }
 
 test("on -2-arg form defaults target to document", () => {

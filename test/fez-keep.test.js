@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Window } from "happy-dom";
-import { fezMorph } from "../src/fez/lib/morph.js";
+import { nodeMorph } from "../src/fez/lib/morph.js";
 
 // Setup happy-dom globals, saving originals to restore later
 let window, document;
@@ -53,11 +53,11 @@ afterAll(() => {
 });
 
 /**
- * Morph container innerHTML to match newContainer innerHTML using fezMorph.
+ * Morph container innerHTML to match newContainer innerHTML using nodeMorph.
  */
 function doMorph(container, newContainer) {
   const newNode = newContainer.cloneNode(true);
-  fezMorph(container, newNode);
+  nodeMorph(container, newNode);
 }
 
 describe("fez-keep", () => {
@@ -212,7 +212,7 @@ describe("fez-this auto-ID (morph outerHTML)", () => {
     newContainer.innerHTML =
       '<input fez-this="name" id="fez-42-name" /><span>v2</span>';
 
-    fezMorph(container, newContainer);
+    nodeMorph(container, newContainer);
 
     const current = document.querySelector("#fez-42-name");
     expect(current._marker).toBe("original");
@@ -242,7 +242,7 @@ describe("fez-this auto-ID (morph outerHTML)", () => {
       <input id="fez-42-last" />
     `;
 
-    fezMorph(container, newContainer);
+    nodeMorph(container, newContainer);
 
     expect(document.querySelector("#fez-42-first")._m).toBe("first");
     expect(document.querySelector("#fez-42-last")._m).toBe("last");

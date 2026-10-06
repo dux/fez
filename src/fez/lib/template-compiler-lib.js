@@ -52,6 +52,8 @@ const JS_GLOBALS = new Set([
   'prompt',
   'fetch',
   'event',
+  'Fez',
+  'fez',
 ]);
 
 // Control-flow keywords that can be followed by `(`; prefixing them would
@@ -75,10 +77,67 @@ const JS_KEYWORDS = new Set([
   'instanceof',
 ]);
 
-function prefixBareCalls(body) {
-  return body.replace(/(?<![.\w])([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g, (match, funcName) =>
-    JS_GLOBALS.has(funcName) || JS_KEYWORDS.has(funcName) ? match : `fez.${funcName}(`,
-  );
+// Template scope names a handler body reaches through the component
+const COMPONENT_NAMES = new Set(['state', 'props', 'globalState']);
+
+/**
+ * Rewrite the identifiers of a JS snippet, skipping string literals, property
+ * names (`a.name`) and object keys (`{ name: 1 }`). `fn(name, next)` gets the
+ * identifier and the next non-space character, and returns its replacement.
+ */
+export function mapIdentifiers(code, fn) {
+  let out = '';
+  let i = 0;
+  while (i < code.length) {
+    const ch = code[i];
+    if (ch === '"' || ch === "'" || ch === '`') {
+      let j = i + 1;
+      while (j < code.length && code[j] !== ch) {
+        j += code[j] === '\\' ? 2 : 1;
+      }
+      out += code.slice(i, j + 1);
+      i = j + 1;
+    } else if (/[0-9]/.test(ch)) {
+      // whole number literal, so `1e5` never yields an identifier `e5`
+      let j = i + 1;
+      while (j < code.length && /[\w.]/.test(code[j])) {
+        j++;
+      }
+      out += code.slice(i, j);
+      i = j;
+    } else if (/[A-Za-z_$]/.test(ch)) {
+      let j = i + 1;
+      while (j < code.length && /[\w$]/.test(code[j])) {
+        j++;
+      }
+      const name = code.slice(i, j);
+      const before = out.trimEnd();
+      const prev = before[before.length - 1];
+      const next = code.slice(j).trimStart()[0];
+      const isProperty = prev === '.' && before[before.length - 2] !== '.';
+      const isKey = next === ':' && (prev === '{' || prev === ',');
+      out += isProperty || isKey ? name : fn(name, next);
+      i = j;
+    } else {
+      out += ch;
+      i++;
+    }
+  }
+  return out;
+}
+
+// A bare call `save()` runs on the component, and `state.x` / `props.x` are
+// the component's: handler bodies run as attribute code, outside the template scope
+function prefixComponentNames(body, keep = []) {
+  return mapIdentifiers(body, (name, next) => {
+    if (keep.includes(name)) {
+      return name;
+    }
+    if (COMPONENT_NAMES.has(name) || (next === '(' && !JS_GLOBALS.has(name) && !JS_KEYWORDS.has(name))) {
+      return `fez.${name}`;
+    }
+    return name;
+  });
 }
 
 /**
@@ -110,16 +169,16 @@ export function parseLoopBinding(binding) {
 }
 
 /**
- * Get loop variable names from binding
+ * Get loop variable names from binding. `implicitIndex` says whether the loop
+ * binds the implicit `i` (see buildLoopParams).
  */
-export function getLoopVarNames(binding) {
+export function getLoopVarNames(binding, implicitIndex = true) {
   const parsed = parseLoopBinding(binding);
   const names = [...parsed.params];
   if (parsed.indexParam) {
     names.push(parsed.indexParam);
   }
-  // Add implicit i for single-param
-  if (parsed.params.length === 1 && !names.includes('i')) {
+  if (implicitIndex && !names.includes('i') && (parsed.params.length === 1 || parsed.isDestructured)) {
     names.push('i');
   }
   return names;
@@ -176,30 +235,40 @@ export function buildCollectionExpr(collection, binding) {
 }
 
 /**
- * Build loop callback params
+ * Build loop callback params. Every loop binds a hidden index `_fezI<depth>`,
+ * unique per nesting level - auto keys and {#await} ids are built from it, so
+ * nested loops never collide whatever the user named their variables. The
+ * user's index name is a default parameter aliasing it.
+ *
+ * A destructured loop (`k, v` / `[a, b]`) also binds an implicit `i`, unless
+ * an enclosing loop already has one: hiding the outer `i` would break
+ * `pick(i, j)` style handlers.
+ *
+ * Returns { params, implicitIndex }.
  */
-export function buildLoopParams(binding) {
+export function buildLoopParams(binding, depth = 0, outerVars = []) {
   const parsed = parseLoopBinding(binding);
-
+  let head;
+  let index;
   if (parsed.isDestructured) {
-    const destructure = '[' + parsed.params.join(', ') + ']';
-    const indexName = parsed.indexParam || (parsed.params.includes('i') ? '_i' : 'i');
-    return destructure + ', ' + indexName;
-  }
-
-  if (parsed.params.length >= 3) {
+    head = '[' + parsed.params.join(', ') + ']';
+    index =
+      parsed.indexParam ||
+      (parsed.params.includes('i') || outerVars.includes('i') ? null : 'i');
+  } else if (parsed.params.length >= 3) {
     const params = [...parsed.params];
-    const index = params.pop();
-    return '[' + params.join(', ') + '], ' + index;
+    index = params.pop();
+    head = '[' + params.join(', ') + ']';
+  } else {
+    head = parsed.params[0];
+    // an item named `i` moves the index to `_i`
+    index = head === 'i' ? '_i' : 'i';
   }
-
-  if (parsed.params.length === 2) {
-    return parsed.params.join(', ');
-  }
-
-  // If loop var is 'i', use '_i' for index to avoid collision
-  const indexName = parsed.params[0] === 'i' ? '_i' : 'i';
-  return parsed.params[0] + ', ' + indexName;
+  const hidden = `_fezI${depth}`;
+  return {
+    params: `${head}, ${hidden}, _fezA${depth}` + (index ? `, ${index} = ${hidden}` : ''),
+    implicitIndex: index === 'i',
+  };
 }
 
 /**
@@ -233,44 +302,29 @@ export function transformArrowToHandler(expr, loopVars = [], loopItemVars = []) 
   // Check if arrow has event param: (e) => or (event) => or e =>
   const paramMatch = expr.match(/^\s*\(?\s*([a-zA-Z_$][a-zA-Z0-9_$]*)?\s*(?:,\s*[^)]+)?\)?\s*=>/);
   const eventParam = paramMatch?.[1];
-  const hasEventParam = eventParam && ['e', 'event', 'ev'].includes(eventParam);
+  if (eventParam && eventParam !== 'event' && ['e', 'ev'].includes(eventParam)) {
+    body = mapIdentifiers(body, (name) => (name === eventParam ? 'event' : name));
+  }
 
-  // Check if body references loop item variables (non-index vars that could be objects)
-  const usedItemVars = loopItemVars.filter((varName) => {
-    const varRegex = new RegExp(`\\b${varName}\\b`);
-    return varRegex.test(body);
+  // Item variables (non-index loop vars, possibly objects) in the body
+  const used = new Set();
+  mapIdentifiers(body, (name) => {
+    used.add(name);
+    return name;
   });
+  const usedItemVars = loopItemVars.filter((name) => used.has(name));
 
-  // If arrow function uses item variables (not just indices), store the function in fezGlobals
-  // This ensures object references are captured at render time
+  // Item references: store the function in fezGlobals so the object is
+  // captured at render time, and call it from the attribute. Handler slots are
+  // positional per render; stale ones are dropped on commit.
   if (usedItemVars.length > 0) {
-    // Replace event param with 'event' in the body if needed
-    if (hasEventParam && eventParam !== 'event') {
-      const eventRegex = new RegExp(`\\b${eventParam}\\b`, 'g');
-      body = body.replace(eventRegex, 'event');
-    }
-
-    body = prefixBareCalls(body);
-
-    // Store the function with captured loop vars, retrieve and call at click time.
-    // Handler slots are positional per render; stale ones are dropped on commit.
+    body = prefixComponentNames(body, loopVars);
     return `\${'Fez(' + UID + ').fezGlobals.handler(' + fez.fezGlobals.setHandler((event) => ${body}) + ')(event)'}`;
   }
 
-  // No item variables - use simple interpolation for indices (original behavior)
-  if (hasEventParam && eventParam !== 'event') {
-    const eventRegex = new RegExp(`\\b${eventParam}\\b`, 'g');
-    body = body.replace(eventRegex, 'event');
-  }
-
-  for (const varName of loopVars) {
-    const varRegex = new RegExp(`(?<!\\$\\{)\\b${varName}\\b(?![^{]*\\})`, 'g');
-    body = body.replace(varRegex, `\${${varName}}`);
-  }
-
-  body = prefixBareCalls(body);
-
-  return body;
+  // Index-only references are primitives - interpolate them at render time
+  body = prefixComponentNames(body, loopVars);
+  return mapIdentifiers(body, (name) => (loopVars.includes(name) ? `\${${name}}` : name));
 }
 
 /**
@@ -306,6 +360,161 @@ export function extractBracedExpression(text, startIndex) {
 }
 
 /**
+ * Index of the `>` closing the tag whose attributes start at `pos`, skipping
+ * quoted values and {expressions} (which may hold `>`, quotes or braces).
+ * Returns -1 when the tag never closes.
+ */
+export function scanTagEnd(text, pos) {
+  let j = pos;
+  while (j < text.length) {
+    const ch = text[j];
+    if (ch === '"' || ch === "'") {
+      const close = text.indexOf(ch, j + 1);
+      if (close < 0) {
+        return -1;
+      }
+      j = close + 1;
+    } else if (ch === '{') {
+      try {
+        j = extractBracedExpression(text, j).endIndex + 1;
+      } catch {
+        j++;
+      }
+    } else if (ch === '>') {
+      return j;
+    } else {
+      j++;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Attributes of one tag (`<name ...>` or `<name .../>`), as
+ * { name, value, quote, start, end }: `quote` is `"`, `'`, `{` or '' (bare or
+ * no value), `start` is the whitespace before the attribute, `end` is exclusive.
+ */
+export function scanAttributes(tag) {
+  const attrs = [];
+  let j = tag.search(/[\s/>]/);
+  while (j >= 0 && j < tag.length) {
+    const start = j;
+    while (/\s/.test(tag[j] || '')) {
+      j++;
+    }
+    if (j >= tag.length || tag[j] === '>' || (tag[j] === '/' && tag[j + 1] === '>')) {
+      break;
+    }
+    const nameStart = j;
+    while (j < tag.length && !/[\s=>]/.test(tag[j]) && !(tag[j] === '/' && tag[j + 1] === '>')) {
+      j++;
+    }
+    const attr = { name: tag.slice(nameStart, j), value: '', quote: '', start };
+    if (j === nameStart) {
+      j++;
+      continue;
+    }
+    if (tag[j] === '=') {
+      j++;
+      const q = tag[j];
+      if (q === '"' || q === "'") {
+        const close = tag.indexOf(q, j + 1);
+        attr.value = tag.slice(j + 1, close);
+        attr.quote = q;
+        j = close + 1;
+      } else if (q === '{') {
+        const { expression, endIndex } = extractBracedExpression(tag, j);
+        attr.value = expression;
+        attr.quote = '{';
+        j = endIndex + 1;
+      } else {
+        const valueStart = j;
+        while (j < tag.length && !/[\s>]/.test(tag[j])) {
+          j++;
+        }
+        attr.value = tag.slice(valueStart, j);
+      }
+    }
+    attr.end = j;
+    attrs.push(attr);
+  }
+  return attrs;
+}
+
+/**
+ * Rewrite every opening tag outside {expressions}: `fn(tag)` returns the new
+ * tag text. Escaped braces (`\{`) are plain text.
+ */
+export function mapTags(text, fn) {
+  let out = '';
+  let pos = 0;
+  while (pos < text.length) {
+    const ch = text[pos];
+    if (ch === '\\' && text[pos + 1] === '{') {
+      out += '\\{';
+      pos += 2;
+    } else if (ch === '{') {
+      let end;
+      try {
+        end = extractBracedExpression(text, pos).endIndex;
+      } catch {
+        end = pos;
+      }
+      out += text.slice(pos, end + 1);
+      pos = end + 1;
+    } else if (ch === '<' && /[a-zA-Z]/.test(text[pos + 1] || '')) {
+      const end = scanTagEnd(text, pos + 1);
+      if (end < 0) {
+        out += text.slice(pos);
+        break;
+      }
+      out += fn(text.slice(pos, end + 1));
+      pos = end + 1;
+    } else {
+      out += ch;
+      pos++;
+    }
+  }
+  return out;
+}
+
+const ENTITIES = { '&lt;': '<', '&gt;': '>', '&amp;': '&', '&quot;': '"', '&#39;': "'" };
+const RAW_TEXT_RE = /<(script|style)\b[\s\S]*?<\/\1\s*>/gi;
+
+/**
+ * Decode HTML entities inside {expressions} only. For template source read
+ * back from the DOM (`<template>.innerHTML`, a tag's outerHTML), which escapes
+ * `<`, `>` and `&` - text and attributes are valid HTML as serialized, but an
+ * expression needs its raw `a > b && c`. <script> and <style> bodies serialize
+ * raw and are left alone.
+ */
+export function decodeExpressionEntities(text) {
+  const raw = [];
+  const masked = text.replace(RAW_TEXT_RE, (block) => {
+    raw.push(block);
+    return `\u0000${raw.length - 1}\u0000`;
+  });
+  let out = '';
+  let pos = 0;
+  while (pos < masked.length) {
+    if (masked[pos] !== '{') {
+      out += masked[pos++];
+      continue;
+    }
+    let end;
+    try {
+      end = extractBracedExpression(masked, pos).endIndex;
+    } catch {
+      out += masked[pos++];
+      continue;
+    }
+    out += masked.slice(pos, end + 1).replace(/&(?:lt|gt|amp|quot|#39);/g, (e) => ENTITIES[e]);
+    pos = end + 1;
+  }
+  return out.replace(/\u0000(\d+)\u0000/g, (_, index) => raw[index]);
+}
+
+/**
  * Check if position is inside an attribute (attr={...})
  * Returns the attribute name if inside one, null otherwise
  */
@@ -333,7 +542,7 @@ export function getAttributeContext(text, pos) {
       attrName &&
       /^[a-zA-Z]/.test(attrName) &&
       (j < 0 || /\s/.test(text[j])) &&
-      !insideQuotedAttrValue(text, j)
+      !quotedAttrContext(text, j)
     ) {
       return attrName.toLowerCase();
     }
@@ -342,17 +551,20 @@ export function getAttributeContext(text, pos) {
 }
 
 /**
- * True when `pos` sits inside an already-quoted attribute value of the
- * enclosing tag, e.g. the `y={...}` in fez:in="fly, y={state.y}". Such a
- * match is plain text, not an unquoted attr={expr}.
+ * When `pos` sits inside an already-quoted attribute value of the enclosing
+ * tag - the `{x}` in onclick="fez.rm('{x}')" or fez:in="fly, y={state.y}" -
+ * returns { name } of that attribute, else null. {expressions} earlier in the
+ * tag are skipped whole, so their quotes do not count.
  */
-function insideQuotedAttrValue(text, pos) {
+export function quotedAttrContext(text, pos) {
   const tagStart = text.lastIndexOf('<', pos);
   if (tagStart < 0) {
-    return false;
+    return null;
   }
   let quote = null;
-  for (let k = tagStart; k <= pos; k++) {
+  let name = null;
+  let k = tagStart;
+  while (k < pos) {
     const ch = text[k];
     if (quote) {
       if (ch === quote) {
@@ -360,11 +572,19 @@ function insideQuotedAttrValue(text, pos) {
       }
     } else if (ch === '"' || ch === "'") {
       quote = ch;
+      name = text.slice(tagStart, k).match(/([^\s=]+)\s*=\s*$/)?.[1] || '';
+    } else if (ch === '{') {
+      try {
+        k = extractBracedExpression(text, k).endIndex;
+      } catch {
+        // unbalanced - treat as text
+      }
     } else if (ch === '>') {
-      return false; // tag closed before pos - we are in text content
+      return null; // tag closed before pos - we are in text content
     }
+    k++;
   }
-  return quote !== null;
+  return quote ? { name } : null;
 }
 
 /**

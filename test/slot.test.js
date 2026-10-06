@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Window } from "happy-dom";
-import { fezMorph } from "../src/fez/lib/morph.js";
+import { nodeMorph } from "../src/fez/lib/morph.js";
 
 let window, document;
 let savedGlobals = {};
@@ -96,7 +96,7 @@ function childNodes(root, _fezChildNodes) {
 }
 
 function morphdom(target, newNode) {
-  fezMorph(target, newNode, {
+  nodeMorph(target, newNode, {
     skipNode: (oldNode) => {
       return (
         oldNode.classList?.contains("fez") &&

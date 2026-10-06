@@ -373,9 +373,6 @@ declare abstract class FezBase {
     clear(): void;
     readonly valuesChanged: boolean;
   };
-
-  /** Block template functions */
-  fezBlocks: Record<string, Function>;
 }
 
 // =============================================================================
@@ -574,6 +571,9 @@ interface FezStatic {
 
   /** Check if value is truthy (from props) */
   isTrue(value: any): boolean;
+
+  /** Escape a value for a quoted JS string in handler code (templates use it for onclick="fez.rm('{id}')") */
+  jsEscape(value: any): string;
 
   /** Get type short identifier */
   typeof(value: any): 'o' | 'f' | 's' | 'a' | 'i' | 'n' | 'u';

@@ -2,9 +2,11 @@
  * Convert self-closing tags to full open+close format
  * <my-comp /> -> <my-comp></my-comp>
  * Standard HTML void elements (input, br, img, ...) are left as-is.
- * The (?:=>|[^>])* group skips `=>` (arrow functions) inside attributes and the
- * `i` flag covers uppercase custom tags (<My-Comp />).
+ * The tag end is found past quoted values and {expressions}, so `title="a > b"`
+ * or `:on="() => go()"` never cut a tag short.
  */
+
+import { scanTagEnd } from './template-compiler-lib.js';
 
 const SELF_CLOSING_TAGS = new Set([
   'area',
@@ -23,13 +25,23 @@ const SELF_CLOSING_TAGS = new Set([
 ]);
 
 export default function closeCustomTags(html) {
-  return html.replace(/<([a-z][a-z0-9-]*)\b((?:=>|[^>])*)>/gi, (match, tag, attrs) => {
-    if (!attrs.trimEnd().endsWith('/')) {
-      return match;
+  const tagRe = /<([a-z][a-z0-9-]*)\b/gi;
+  let out = '';
+  let pos = 0;
+  let match;
+  while ((match = tagRe.exec(html))) {
+    const attrsStart = match.index + match[0].length;
+    const end = scanTagEnd(html, attrsStart);
+    if (end < 0) {
+      break;
     }
-    if (SELF_CLOSING_TAGS.has(tag.toLowerCase())) {
-      return match;
+    const tag = match[1];
+    const attrs = html.slice(attrsStart, end);
+    if (attrs.trimEnd().endsWith('/') && !SELF_CLOSING_TAGS.has(tag.toLowerCase())) {
+      out += html.slice(pos, match.index) + `<${tag}${attrs.replace(/\s*\/$/, '')}></${tag}>`;
+      pos = end + 1;
     }
-    return `<${tag}${attrs.replace(/\s*\/$/, '')}></${tag}>`;
-  });
+    tagRe.lastIndex = end + 1;
+  }
+  return out + html.slice(pos);
 }

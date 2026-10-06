@@ -207,19 +207,6 @@ export default function attachMorph(Fez) {
     describeOld: fezDescribeOld,
     describeNew: fezDescribeNew,
 
-    // Defensive: if a fez component slips past keying, still skip its subtree
-    skipNode: (oldNode) => {
-      if (oldNode.classList?.contains('fez') && oldNode.fez && !oldNode.fez._destroyed) {
-        if (Fez.LOG) {
-          console.log(
-            `Fez: preserved child component ${oldNode.fez.fezName} (UID ${oldNode.fez.UID})`,
-          );
-        }
-        return true;
-      }
-      return false;
-    },
-
     // Keyed preserve is only valid when source (attrs + slot content) still matches
     shouldPreserve: shouldPreserveFezComponent,
 

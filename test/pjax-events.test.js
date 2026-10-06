@@ -505,3 +505,60 @@ describe('fez boot gating', () => {
     expect(Fez.pjax._booted).toBe(true);
   });
 });
+
+describe('Back/Forward and async swaps', () => {
+  test('a cache restore aborts the in-flight request and fires pjax:render', async () => {
+    const mock = installMockFetch();
+    const renders = [];
+    const onRender = (e) => renders.push(e.detail);
+    document.addEventListener('pjax:render', onRender);
+    try {
+      Pjax.load('/slow');
+      const slow = mock.requests[0];
+
+      Pjax._historyPath = '/slow';
+      Pjax.historyData['/'] = { html: '<main class="pjax" id="pjax"><h1>cached</h1></main>', scrollY: 0 };
+      Pjax.onPopState();
+      await settle();
+
+      expect(slow.aborted).toBe(true);
+      expect(document.querySelector('h1').textContent).toBe('cached');
+      const restore = renders.find((d) => d.to === '/');
+      expect(restore).toMatchObject({ from: '/slow', mode: 'full', status: 200 });
+    } finally {
+      document.removeEventListener('pjax:render', onRender);
+      mock.restore();
+    }
+  });
+
+  test('with a view transition, pjax:render fires after the swap', async () => {
+    const mock = installMockFetch();
+    const original = document.startViewTransition;
+    document.startViewTransition = (cb) => ({
+      updateCallbackDone: new Promise((resolve) => setTimeout(() => resolve(cb()), 5)),
+    });
+    Pjax.useViewTransition = true;
+    const seen = [];
+    const onRender = () => seen.push(document.querySelector('h1')?.textContent);
+    document.addEventListener('pjax:render', onRender);
+    try {
+      const done = Pjax.load('/next');
+      await respond(mock.requests[0], '<main class="pjax" id="pjax"><h1>new</h1></main>');
+      const detail = await done;
+      expect(detail.status).toBe(200);
+      expect(seen).toEqual(['new']);
+    } finally {
+      document.removeEventListener('pjax:render', onRender);
+      document.startViewTransition = original;
+      mock.restore();
+    }
+  });
+
+  test('findById matches ids that are not valid selectors', () => {
+    const root = document.createElement('div');
+    root.innerHTML = '<p></p><p id="a:b.c"></p>';
+    expect(Pjax.findById(root, 'a:b.c')).toBe(root.lastChild);
+    expect(Pjax.findById(root, 'missing')).toBeNull();
+  });
+});
+

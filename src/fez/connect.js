@@ -117,18 +117,35 @@ function ensureFezBase(Fez, name, klass) {
     return klass;
   }
 
-  // Create FezBase subclass
+  // Throwaway instance, read once for config fields (HTML, CSS, PROPS, ...)
   const instance = new klass();
-  const newKlass = class extends FezBase {};
+  const userKlass = klass;
 
-  // Copy properties and methods
-  const props = [
-    ...Object.getOwnPropertyNames(instance),
-    ...Object.getOwnPropertyNames(klass.prototype),
-  ].filter((p) => p !== 'constructor' && p !== 'prototype');
+  // Each component runs the user class's field initializers on itself, so an
+  // arrow field (`inc = () => this.state.n++`) binds to the live instance and an
+  // object field (`cache = {}`) is not shared between instances.
+  const newKlass = class extends FezBase {
+    constructor() {
+      super();
+      const own = Reflect.construct(userKlass, [], new.target);
+      for (const key of Object.keys(this)) {
+        if (!Object.hasOwn(own, key)) {
+          own[key] = this[key];
+        }
+      }
+      return own;
+    }
+  };
 
-  for (const prop of props) {
-    newKlass.prototype[prop] = instance[prop];
+  // descriptors, so getters and setters stay accessors
+  for (const prop of Object.getOwnPropertyNames(klass.prototype)) {
+    if (prop !== 'constructor') {
+      Object.defineProperty(
+        newKlass.prototype,
+        prop,
+        Object.getOwnPropertyDescriptor(klass.prototype, prop),
+      );
+    }
   }
 
   // Map config properties

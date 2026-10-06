@@ -162,17 +162,33 @@ describe("GlobalState", () => {
     visited.length = 0;
     GlobalState.forEach(key, (c) => visited.push(c.name));
     expect(visited).toEqual(["a"]);
+    // detached but alive: skipped, still subscribed
+    expect([...GlobalState.subs.get(key)].filter((s) => s.fez).length).toBe(2);
+
+    b._destroyed = true;
+    GlobalState.forEach(key, () => {});
     expect([...GlobalState.subs.get(key)].filter((s) => s.fez).length).toBe(1);
   });
 
-  test("notify prunes disconnected components without calling them", () => {
+  test("notify prunes destroyed components without calling them", () => {
     const key = uniq("prune");
     const comp = fakeComponent("gone");
     comp.globalState[key];
-    comp.connected = false;
+    comp._destroyed = true;
     GlobalState.set(key, 1);
     expect(comp.hookCalls).toEqual([]);
     expect(GlobalState.subs.get(key)?.size || 0).toBe(0);
+  });
+
+  test("a detached but live component keeps its subscription", () => {
+    const key = uniq("detached");
+    const comp = fakeComponent("moved");
+    comp.globalState[key];
+    comp.connected = false;
+    GlobalState.set(key, 1);
+    comp.connected = true;
+    GlobalState.set(key, 2);
+    expect(comp.hookCalls.map((c) => c[1])).toEqual([1, 2]);
   });
 
   test("destroy unsubscribes every key the component read", () => {

@@ -46,9 +46,6 @@ export function nodeMorph(target, newNode, opts = {}) {
   }
 }
 
-// Back-compat alias
-export const fezMorph = nodeMorph;
-
 // ---------------------------------------------------------------------------
 // Attribute Sync
 // ---------------------------------------------------------------------------
@@ -309,6 +306,7 @@ function diffChildren(target, newParent, opts) {
   // Two-pass: collect all candidate pairs with scores, then assign highest first.
   // This prevents low-quality matches from consuming candidates needed by better ones.
   const unmatchedOld = oldChildren.filter((c) => !usedOld.has(c));
+  const oldIndex = new Map(oldChildren.map((child, index) => [child, index]));
   const candidates = [];
 
   for (let i = 0; i < matches.length; i++) {
@@ -326,6 +324,7 @@ function diffChildren(target, newParent, opts) {
       }
     }
 
+    const newUserKey = userKey(newChild);
     for (let j = 0; j < unmatchedOld.length; j++) {
       const candidate = unmatchedOld[j];
       // Caller can opt nodes out of soft-matching (e.g. fez components, fez-keep)
@@ -337,16 +336,24 @@ function diffChildren(target, newParent, opts) {
         if (desc && desc.softMatch === false) {
           continue;
         }
+        // Two different user keys are two different items: reusing the node
+        // would carry DOM state over and skip their fez:in / fez:out
+        if (newUserKey && userKey(candidate)) {
+          continue;
+        }
       }
       const score = scoreSoftMatch(candidate, newChild);
       if (score > 0) {
-        candidates.push({ matchIdx: i, oldIdx: j, score });
+        const dist = Math.abs(i - oldIndex.get(candidate));
+        candidates.push({ matchIdx: i, oldIdx: j, score, dist });
       }
     }
   }
 
-  // Sort by score descending - highest quality matches get priority
-  candidates.sort((a, b) => b.score - a.score);
+  // Sort by score descending - highest quality matches get priority. Equal
+  // scores go to the pair closest in position, so identical siblings
+  // (<option>, <li>) keep their own node instead of trading places.
+  candidates.sort((a, b) => b.score - a.score || a.dist - b.dist);
 
   // Assign matches: best-scored pairs first
   const usedOldIdx = new Set();
@@ -416,10 +423,11 @@ function diffChildren(target, newParent, opts) {
           // Skip this subtree entirely
         } else if (oldChild.nodeName === newChild.nodeName) {
           // Same tag: sync attributes and recurse
+          const formDefaults = isFormControl(oldChild) ? readFormDefaults(oldChild) : null;
           syncAttributes(oldChild, newChild);
           syncInternalKeys(oldChild, newChild);
           diffChildren(oldChild, newChild, opts);
-          syncDomProperties(oldChild, newChild);
+          syncDomProperties(oldChild, newChild, formDefaults);
         } else {
           // Different tag: replace
           const replacement = newChild;
@@ -449,38 +457,59 @@ function diffChildren(target, newParent, opts) {
   }
 }
 
-function syncDomProperties(oldNode, newNode) {
+const FORM_CONTROLS = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'OPTION']);
+
+function isFormControl(node) {
+  return FORM_CONTROLS.has(node.nodeName);
+}
+
+// What the template said last render: value/checked/selected attributes and
+// the textarea body. Only a change there may overwrite what the user did.
+function readFormDefaults(node) {
+  return {
+    value: node.getAttribute('value'),
+    checked: node.getAttribute('checked'),
+    selected: node.getAttribute('selected'),
+    text: node.nodeName === 'TEXTAREA' ? node.defaultValue : null,
+  };
+}
+
+/**
+ * Sync live form state (value, checked, selected) from the template. A user's
+ * input is kept unless the template's own value for it changed: an unrelated
+ * re-render must not wipe what was typed into a field nothing binds.
+ */
+function syncDomProperties(oldNode, newNode, before) {
   if (oldNode.nodeType !== 1 || newNode.nodeType !== 1) {
     return;
   }
 
-  const isActiveInput = oldNode === document.activeElement && isFormInput(oldNode);
-  const tag = oldNode.nodeName;
-
   if ('disabled' in oldNode) {
     syncBooleanProperty(oldNode, newNode, 'disabled');
   }
+  if (!before || (oldNode === document.activeElement && isFormInput(oldNode))) {
+    return;
+  }
 
+  const tag = oldNode.nodeName;
   if (tag === 'INPUT') {
     const type = (oldNode.getAttribute('type') || '').toLowerCase();
-    if (!isActiveInput && oldNode.value !== newNode.value) {
-      // newNode.value is '' when the template dropped the value attribute, so a
-      // stale value does not survive the render.
+    // a file input's value can only be cleared, and the template never sets it
+    if (type !== 'file' && newNode.getAttribute('value') !== before.value) {
+      // '' when the template dropped the value attribute
       oldNode.value = newNode.value;
     }
-    if (!isActiveInput && (type === 'checkbox' || type === 'radio')) {
+    if ((type === 'checkbox' || type === 'radio') && newNode.getAttribute('checked') !== before.checked) {
       syncBooleanProperty(oldNode, newNode, 'checked');
     }
   } else if (tag === 'TEXTAREA') {
-    if (!isActiveInput) {
-      oldNode.value = newNode.value;
-    }
-  } else if (tag === 'SELECT') {
-    if (!isActiveInput) {
+    if (newNode.defaultValue !== before.text) {
       oldNode.value = newNode.value;
     }
   } else if (tag === 'OPTION') {
-    syncBooleanProperty(oldNode, newNode, 'selected');
+    if (newNode.getAttribute('selected') !== before.selected) {
+      syncBooleanProperty(oldNode, newNode, 'selected');
+    }
   }
 }
 
@@ -580,6 +609,11 @@ function removeChild(target, child, opts) {
   } else {
     target.removeChild(child);
   }
+}
+
+// A key the author wrote (`key=`), not the compiler's positional fez-key
+function userKey(node) {
+  return node.nodeType === 1 ? node.getAttribute('key') : null;
 }
 
 function isLive(node) {

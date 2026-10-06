@@ -24,6 +24,8 @@ import {
   stripGeneratedNotice,
 } from './lib/source-parser.js';
 import { assertStyleScope, splitScript } from './lib/validate.js';
+import { buildClassSource, trimTemplateLines } from './lib/class-source.js';
+import { decodeExpressionEntities } from './lib/template-compiler-lib.js';
 
 const compileCache = new Map();
 
@@ -31,8 +33,10 @@ const compileCache = new Map();
 // HELPERS
 // =============================================================================
 
-function escapeTemplateLiteral(value) {
-  return String(value).replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('$', '\\$');
+// A <template> serializes its content HTML-escaped (`a > b` comes back as
+// `a &gt; b`); only {expressions} need the raw characters. <xmp> is raw text.
+function definitionSource(node) {
+  return node.nodeName === 'TEMPLATE' ? decodeExpressionEntities(node.innerHTML) : node.innerHTML;
 }
 
 // =============================================================================
@@ -138,7 +142,7 @@ function compileBulk(data) {
       return;
     }
 
-    return compile(fezName, node.innerHTML);
+    return compile(fezName, definitionSource(node));
   }
 
   // HTML string or document
@@ -176,7 +180,7 @@ function compileFromUrl(url) {
             console.error(`Fez: Invalid name "${name}". Must contain a dash.`);
             return;
           }
-          compile(name, el.innerHTML);
+          compile(name, definitionSource(el));
         });
       } else {
         // Single component, derive name from URL
@@ -188,8 +192,6 @@ function compileFromUrl(url) {
       Fez.onError('compile', `Load error for "${url}": ${error.message}`);
     });
 }
-
-export { compileFromUrl as compile_from_url };
 
 // =============================================================================
 // PARSE COMPONENT SOURCE
@@ -203,10 +205,7 @@ function compileToClass(html) {
   if (result.errors.length) {
     throw new Error(formatSourceError(result.errors[0]));
   }
-  result.html = result.html
-    .split('\n')
-    .map((line) => line.trim())
-    .join('\n');
+  result.html = trimTemplateLines(result.html);
 
   // Process head elements (scripts, links, etc.)
   if (result.head) {
@@ -269,36 +268,14 @@ function processHeadElements(headHtml) {
  * Generate executable class code from parsed parts
  */
 function generateClassCode(tagName, parts) {
-  let klass = parts.script;
-
-  // Wrap in class if needed
-  if (!splitScript(klass).hasClass) {
-    klass = `class {\n${klass}\n}`;
-  }
-
-  // Add CSS. Scope comes from the tag, never from the content: <style> is
-  // always wrapped, <style global> is always passed through untouched.
-  // :fez is only the marker the runtime rewrites to .fez.fez-<name>.
+  // Scope comes from the tag, never from the content: <style> is always
+  // wrapped, <style global> is always passed through untouched. :fez is only
+  // the marker the runtime rewrites to .fez.fez-<name>; :global(...) and
+  // non-nestable at-rules are lifted out by the flattener at injection time.
   assertStyleScope(tagName, parts.style, false);
   assertStyleScope(tagName, parts.styleGlobal, true);
 
-  // :global(...) and non-nestable at-rules are lifted out by the flattener at
-  // injection time, so the compiler just labels the two channels.
-  if (String(parts.style).includes(':')) {
-    const css = escapeTemplateLiteral(parts.style);
-    klass = klass.replace(/\}\s*$/, `\n  CSS = \`:fez {\n${css}\n}\`\n}`);
-  }
-
-  if (String(parts.styleGlobal).includes(':')) {
-    const cssGlobal = escapeTemplateLiteral(parts.styleGlobal);
-    klass = klass.replace(/\}\s*$/, `\n  CSS_GLOBAL = \`${cssGlobal}\`\n}`);
-  }
-
-  // Add HTML
-  if (/\w/.test(String(parts.html))) {
-    const html = parts.html.replaceAll('`', '&#x60;').replaceAll('$', '\\$');
-    klass = klass.replace(/\}\s*$/, `\n  HTML = \`${html}\`\n}`);
-  }
+  const klass = buildClassSource(parts);
 
   // Store demo content in index (close self-closing custom tags for innerHTML)
   if (parts.demo?.trim()) {

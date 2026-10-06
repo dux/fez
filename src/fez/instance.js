@@ -55,6 +55,33 @@ export const WINDOW_EVENTS = new Set([
 export const PROPS_ATTR = 'fez-props';
 const PROPS_ATTR_MAX_STRING = 60;
 
+// Store proxy -> its target, so a value read out of a store and written back
+// (state.list = [...state.list, x]) lands raw instead of stacking wrappers
+const storeTargets = new WeakMap();
+const unwrapStore = (value) => storeTargets.get(value) || value;
+
+// Writes unwrap the value and its direct children - what spreading or
+// copying a store value (`[...state.list]`, `{ ...state.user }`) leaves behind
+function unwrapStoreValue(value) {
+  value = unwrapStore(value);
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const raw = storeTargets.get(value[i]);
+      if (raw) {
+        value[i] = raw;
+      }
+    }
+  } else if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+    for (const key in value) {
+      const raw = storeTargets.get(value[key]);
+      if (raw) {
+        value[key] = raw;
+      }
+    }
+  }
+  return value;
+}
+
 /**
  * Serialize props CSS-declaration style: `count: 3; label: Hits; user: {}`.
  * Primitives print their value; anything structured is only typed - `{}`,
@@ -433,7 +460,6 @@ export default class FezBase {
   constructor() {}
 
   n = parseNode;
-  fezBlocks = {};
 
   // Depth of noChangeStateTrigger() scopes; while > 0, state and props writes
   // land silently: no onStateChange, no render scheduling.
@@ -496,13 +522,6 @@ export default class FezBase {
       () => {
         this.fezSyncPropsAttr();
         if (this._fezSilent) {
-          return;
-        }
-        // <slot unwrap /> dissolves the slot wrapper on first render and the
-        // children can never be re-inserted, so those components render once -
-        // the same reason this.state is disabled for them. The write lands,
-        // it just does not schedule a render.
-        if (this._fezStateDisabled) {
           return;
         }
         this.fezNextTick(this.fezRender, 'fezRender');
@@ -623,16 +642,15 @@ export default class FezBase {
     this._destroyed = true;
 
     // Execute cleanup callbacks (intervals, observers, event listeners)
-    if (this._onDestroyCallbacks) {
-      this._onDestroyCallbacks.forEach((callback) => {
-        try {
-          callback();
-        } catch (e) {
-          this.fezError('destroy', 'Error in cleanup callback', e);
-        }
-      });
-      this._onDestroyCallbacks = [];
-    }
+    const callbacks = this._onDestroyCallbacks;
+    this._onDestroyCallbacks = null;
+    callbacks?.forEach((callback) => {
+      try {
+        callback();
+      } catch (e) {
+        this.fezError('destroy', 'Error in cleanup callback', e);
+      }
+    });
 
     // Call user's onDestroy hook
     this.onDestroy();
@@ -656,11 +674,12 @@ export default class FezBase {
   }
 
   /**
-   * Add a cleanup callback for destroy
+   * Add a cleanup callback for destroy. Returns a function that drops it, for
+   * resources released early (a fired timeout, a disposed listener).
    */
   addOnDestroy(callback) {
-    this._onDestroyCallbacks = this._onDestroyCallbacks || [];
-    this._onDestroyCallbacks.push(callback);
+    (this._onDestroyCallbacks ||= new Set()).add(callback);
+    return () => this._onDestroyCallbacks?.delete(callback);
   }
 
   // ===========================================================================
@@ -686,10 +705,12 @@ export default class FezBase {
   fezNextTick(func, name) {
     if (name) {
       this._nextTicks ||= {};
+      // cleared before the call: a throwing render must not block every later
+      // one, and a refresh requested while it runs gets a frame of its own
       this._nextTicks[name] ||= window.requestAnimationFrame(() => {
-        func.bind(this)();
         this._nextTicks[name] = null;
-      }, name);
+        func.call(this);
+      });
     } else {
       window.requestAnimationFrame(func.bind(this));
     }
@@ -721,6 +742,14 @@ export default class FezBase {
     if (!template || !this.root) {
       return;
     }
+
+    // <slot unwrap /> dissolves the slot wrapper on first render and the
+    // children can never be re-inserted, so those components render once. Every
+    // later request (props, globalState, a settled {#await}) lands here.
+    if (this._fezStateDisabled && this._fezRendered) {
+      return;
+    }
+    this._fezRendered = true;
 
     // A render is one silent scope: beforeRender, the template and afterRender
     // may write state without firing onStateChange or scheduling another
@@ -789,7 +818,18 @@ export default class FezBase {
     // fez-animate: where were the kept nodes before the morph moved them
     const flip = measureFlip(this._fezFlipNodes);
 
-    Fez.morphdom(this.root, newNode);
+    // Children the morph mounts or refreshes run their own code, which may write
+    // this component's state (a publish, a callback prop). Those writes are not
+    // part of this render: they fire and schedule like any outside write.
+    const silent = this._fezSilent;
+    this._fezSilent = 0;
+    this._isRendering = false;
+    try {
+      Fez.morphdom(this.root, newNode);
+    } finally {
+      this._fezSilent = silent;
+      this._isRendering = true;
+    }
 
     this.fezRestoreInputValues(inputValues);
     this.fezRenderPostProcess();
@@ -808,7 +848,8 @@ export default class FezBase {
   fezSaveInputValues() {
     const saved = new Map();
     for (const el of this.root.querySelectorAll('input, textarea, select')) {
-      if (el._fezThisName) {
+      // a file input keeps its files across the morph and cannot be assigned
+      if (el._fezThisName && el.type !== 'file') {
         saved.set(el._fezThisName, {
           value: el.value,
           checked: el.checked,
@@ -832,7 +873,7 @@ export default class FezBase {
       if (el.defaultValue === entry.defaultValue) {
         el.value = entry.value;
       }
-      if (entry.checked !== undefined && el.defaultChecked === entry.defaultChecked) {
+      if (el.defaultChecked === entry.defaultChecked) {
         el.checked = entry.checked;
       }
     }
@@ -943,17 +984,20 @@ export default class FezBase {
     fetchAttr('fez-bind', (text, n) => {
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(n.nodeName)) {
         const value = new Function(`return this.${text}`).bind(this)();
-        const isCb = n.type.toLowerCase() === 'checkbox';
+        const type = n.type.toLowerCase();
+        const isCb = type === 'checkbox';
+        const isRadio = type === 'radio';
         // "input" covers typing, paste, autofill and slider drags alike;
-        // select and checkbox have no meaningful intermediate state
-        const eventName = ['SELECT'].includes(n.nodeName) || isCb ? 'onchange' : 'oninput';
+        // select, checkbox and radio have no meaningful intermediate state
+        const eventName = n.nodeName === 'SELECT' || isCb || isRadio ? 'onchange' : 'oninput';
         n.setAttribute(
           eventName,
           `${this.fezHtmlRoot}${text} = this.${isCb ? 'checked' : 'value'}`,
         );
         this.val(n, value);
-        // Mark element for value preservation on re-render
-        n._fezThisName = text;
+        // Mark element for value preservation on re-render; radios of one
+        // group share the binding, so each keeps its own entry
+        n._fezThisName = isRadio ? `${text}=${n.value}` : text;
       } else {
         this.fezError(
           'fez-bind',
@@ -1023,21 +1067,10 @@ export default class FezBase {
   // ===========================================================================
 
   /**
-   * Register component: setup CSS, state, and bind methods
+   * Register component: setup state and bind methods. CSS is registered once
+   * per class in connect().
    */
   fezRegister() {
-    if (this.css) {
-      Fez.globalCss(this.css, { name: this.fezName, wrap: true });
-    }
-
-    if (this.class.css) {
-      Fez.globalCss(this.class.css, { name: this.fezName });
-    }
-
-    if (this.class.cssGlobal) {
-      Fez.globalCss(this.class.cssGlobal);
-    }
-
     // <slot unwrap /> dissolves the slot wrapper on first render and the
     // children can never be re-inserted, so those components render once.
     // State still works for everything the template does not read.
@@ -1175,6 +1208,7 @@ export default class FezBase {
     // write (state.list.push) is reported against the key the template reads.
     // The top-level proxy (no rootKey) is also where render reads are tracked.
     function createReactive(obj, handler, rootKey) {
+      obj = unwrapStore(obj);
       if (!shouldProxy(obj)) {
         return obj;
       }
@@ -1188,8 +1222,9 @@ export default class FezBase {
       const changed = (target, property, value, currentValue) =>
         handler(target, property, value, currentValue, isRoot ? property : rootKey);
 
-      return new Proxy(obj, {
+      const proxy = new Proxy(obj, {
         set(target, property, value, receiver) {
+          value = unwrapStoreValue(value);
           const currentValue = Reflect.get(target, property, receiver);
 
           if (currentValue !== value) {
@@ -1230,6 +1265,8 @@ export default class FezBase {
           return Reflect.ownKeys(target);
         },
       });
+      storeTargets.set(proxy, obj);
+      return proxy;
     }
 
     return createReactive(obj, handler);
@@ -1276,6 +1313,8 @@ export default class FezBase {
         if (typeof data !== 'undefined') {
           if (node.type === 'checkbox') {
             node.checked = !!data;
+          } else if (node.type === 'radio') {
+            node.checked = node.value === String(data);
           } else {
             node.value = data;
           }
@@ -1476,8 +1515,11 @@ export default class FezBase {
     };
     const fn = opts?.throttle ? Fez.throttle(guarded, opts.throttle) : guarded;
     target.addEventListener(eventName, fn, opts);
-    const dispose = () => target.removeEventListener(eventName, fn, opts);
-    this.addOnDestroy(dispose);
+    const dispose = () => {
+      target.removeEventListener(eventName, fn, opts);
+      forget();
+    };
+    const forget = this.addOnDestroy(dispose);
     return dispose;
   }
 
@@ -1522,28 +1564,30 @@ export default class FezBase {
    */
   setTimeout(func, delay) {
     const timeoutID = setTimeout(() => {
+      forget();
       if (this.isConnected) {
         func();
       }
     }, delay);
 
-    this.addOnDestroy(() => clearTimeout(timeoutID));
+    const forget = this.addOnDestroy(() => clearTimeout(timeoutID));
 
     return timeoutID;
   }
 
   /**
-   * Interval with auto-cleanup
+   * Interval with auto-cleanup. A named interval replaces the running one
+   * with the same name.
    */
   setInterval(func, tick, name) {
     if (typeof func === 'number') {
       [tick, func] = [func, tick];
     }
 
-    name ||= Fez.fnv1(String(func));
-
     this._setIntervalCache ||= {};
-    clearInterval(this._setIntervalCache[name]);
+    if (name) {
+      this._setIntervalCache[name]?.();
+    }
 
     const intervalID = setInterval(() => {
       if (this.isConnected) {
@@ -1551,12 +1595,17 @@ export default class FezBase {
       }
     }, tick);
 
-    this._setIntervalCache[name] = intervalID;
-
-    this.addOnDestroy(() => {
+    const stop = () => {
       clearInterval(intervalID);
-      delete this._setIntervalCache[name];
-    });
+      forget();
+      if (this._setIntervalCache[name] === stop) {
+        delete this._setIntervalCache[name];
+      }
+    };
+    const forget = this.addOnDestroy(stop);
+    if (name) {
+      this._setIntervalCache[name] = stop;
+    }
 
     return intervalID;
   }
@@ -1596,22 +1645,9 @@ export default class FezBase {
    */
   fezSlot(source, target) {
     target ||= document.createElement('template');
-    const isSlot = target.nodeName === 'SLOT';
-
     while (source.firstChild) {
-      if (isSlot) {
-        target.parentNode.insertBefore(source.lastChild, target.nextSibling);
-      } else {
-        target.appendChild(source.firstChild);
-      }
+      target.appendChild(source.firstChild);
     }
-
-    if (isSlot) {
-      target.parentNode.removeChild(target);
-    } else {
-      source.innerHTML = '';
-    }
-
     return target;
   }
 }

@@ -2,7 +2,7 @@
  * Fez Template Compiler
  *
  * Compiles Fez templates to render functions.
- * Supports legacy {{ }} and [[ ]] syntax via auto-conversion.
+ * Supports legacy {{ }} syntax via auto-conversion.
  *
  * Syntax:
  *   {expression}        - Output escaped value
@@ -65,13 +65,13 @@ function normalizeTemplateText(text, opts = {}) {
 // =============================================================================
 
 /**
- * Check if text uses old {{ }} or [[ ]] syntax
+ * Check if text uses old {{ }} syntax
  */
 function hasLegacySyntax(text) {
   return text.includes('{{') && text.includes('}}');
 }
 /**
- * Convert {{ }}/[[ ]] syntax to { } syntax
+ * Convert {{ }} syntax to { } syntax
  *
  * Mappings:
  *   {{ expr }}      -> {expr}

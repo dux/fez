@@ -5,7 +5,7 @@
  */
 import { describe, test, expect, beforeAll } from "bun:test";
 import { Window } from "happy-dom";
-import { syncClassList, isFormInput, fezMorph } from "../src/fez/lib/morph.js";
+import { syncClassList, isFormInput, nodeMorph } from "../src/fez/lib/morph.js";
 
 // Setup happy-dom globals
 let document;
@@ -116,7 +116,7 @@ describe("syncClassList", () => {
   });
 });
 
-describe("ignoreValueOfActiveElement (via fezMorph)", () => {
+describe("ignoreValueOfActiveElement (via nodeMorph)", () => {
   test("skips value update on focused INPUT", () => {
     const container = document.createElement("div");
     container.innerHTML = '<input value="old" />';
@@ -128,7 +128,7 @@ describe("ignoreValueOfActiveElement (via fezMorph)", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<input value="new" />';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     expect(container.querySelector("input").getAttribute("value")).toBe("old");
 
@@ -148,7 +148,7 @@ describe("ignoreValueOfActiveElement (via fezMorph)", () => {
     newNode.innerHTML = "<textarea>new</textarea>";
     newNode.querySelector("textarea").setAttribute("value", "new");
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     // Value attribute should be preserved on focused textarea
     expect(container.querySelector("textarea").getAttribute("value")).toBe(
@@ -166,7 +166,7 @@ describe("ignoreValueOfActiveElement (via fezMorph)", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<input value="new" />';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     expect(container.querySelector("input").getAttribute("value")).toBe("new");
 
@@ -184,7 +184,7 @@ describe("ignoreValueOfActiveElement (via fezMorph)", () => {
     const newNode = document.createElement("div");
     newNode.innerHTML = '<div tabindex="-1" class="new">New</div>';
 
-    fezMorph(container, newNode);
+    nodeMorph(container, newNode);
 
     // DIV should be morphed normally (not a form input)
     expect(container.querySelector("div").className).toBe("new");

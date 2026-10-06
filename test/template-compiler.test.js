@@ -11,6 +11,7 @@ globalThis.Node = window.Node;
 
 // Mock Fez
 globalThis.Fez = {
+  jsEscape: (v) => (v == null ? "" : JSON.stringify(String(v)).slice(1, -1).replace(/['`$]/g, "\\$&")),
   htmlEscape: (s) =>
     String(s == null ? "" : s).replace(
       /[&<>"']/g,

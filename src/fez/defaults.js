@@ -1,3 +1,5 @@
+import { decodeExpressionEntities } from './lib/template-compiler-lib.js';
+
 // Wrap defaults in a function to avoid immediate execution
 const loadDefaults = () => {
   // include fez component by name; children are the fallback for an unknown name
@@ -83,7 +85,15 @@ const loadDefaults = () => {
       NAME = 'span';
 
       init(props) {
-        const template = this.root.innerHTML.trim();
+        // From the source snapshot, not the live children: a component inside
+        // may already have mounted while the slot moved in, and its rendered
+        // DOM would be compiled as static template text. The snapshot is
+        // serialized HTML, so expressions get their raw `>` / `&&` back.
+        const source = document.createElement('template');
+        source.innerHTML = this.root._fezSignature || '';
+        const template = decodeExpressionEntities(
+          (source.content.firstElementChild?.innerHTML || '').trim(),
+        );
         this.root.innerHTML = '';
         // children are the template, not slot content
         this._fezSlotNodes = this._fezChildNodes = undefined;
@@ -105,9 +115,12 @@ const loadDefaults = () => {
   Fez(
     'fez-demo-nav',
     class {
-      init(props) {
-        this.for = props.for || '';
-        this.offset = Number(props.offset ?? 16);
+      PROPS = {
+        for: { type: String, default: '' },
+        offset: { type: Number, default: 16 },
+      };
+
+      init() {
         this.state.items = [];
         this.state.activeIndex = -1;
         this.state.markerTop = 0;
@@ -139,8 +152,8 @@ const loadDefaults = () => {
         // the page renders a fresh picker wherever the selection moves - the one
         // placed above the selected section brings itself into view, the one at
         // the top does so only after a clear (flag set by clearSelection)
-        if (this.for) {
-          if (this.for === this.globalState.demoSelected) {
+        if (this.props.for) {
+          if (this.props.for === this.globalState.demoSelected) {
             this.whenSectionsReady(() => this.reveal());
           }
         } else if (Fez.state.get('demoNavReveal')) {
@@ -301,7 +314,7 @@ const loadDefaults = () => {
         if (!node?.getBoundingClientRect) {
           return;
         }
-        const top = node.getBoundingClientRect().top + window.scrollY - this.offset;
+        const top = node.getBoundingClientRect().top + window.scrollY - this.props.offset;
         window.scrollTo({ top: Math.max(top, 0), behavior: 'auto' });
       }
 
@@ -692,11 +705,12 @@ const loadDefaults = () => {
             if (Fez.index[name]?.demo) {
               this.state.components = [name];
               this.markReady();
-            } else if (Fez.index[name]?.class && ++nameTicks > 20) {
+            } else if (++nameTicks > (Fez.index[name]?.class ? 20 : 50)) {
+              // registered without a demo, or never registered at all
               this.state.components = [];
               this.markReady();
             } else {
-              setTimeout(checkReady, 100);
+              this.setTimeout(checkReady, 100);
             }
           } else {
             const all = Fez.index.names().filter(notFez);
@@ -712,7 +726,7 @@ const loadDefaults = () => {
               this.state.undocumented = all.filter((n) => !Fez.index[n]?.demo).sort();
               this.markReady();
             } else {
-              setTimeout(checkReady, 100);
+              this.setTimeout(checkReady, 100);
             }
           }
         };

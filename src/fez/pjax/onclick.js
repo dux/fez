@@ -5,6 +5,10 @@
 export default function createOnClick(Pjax) {
   const PjaxOnClick = {
     main(event) {
+      // the page's own handler already took the click
+      if (event.defaultPrevented) {
+        return;
+      }
       const node = event.target.closest(
         '*[click]:not([click=""]), *[href]:not([href=""]), *[pjax-refresh]:not([pjax-refresh=""])',
       );
@@ -24,17 +28,21 @@ export default function createOnClick(Pjax) {
         return;
       }
 
+      // A modified or non-primary click asks for a new tab / window / download.
+      // A real link does that natively; for other [href] nodes we open it.
+      const newTab =
+        event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button > 0;
+      if (newTab && node.tagName === 'A' && href && !node.hasAttribute('click')) {
+        return;
+      }
+
       event.stopPropagation();
       event.preventDefault();
 
       // Snapshot the parts of the event we need; the post-confirm path may run
       // on a future tick (custom modal returning a Promise) when the original
       // MouseEvent is no longer trustworthy.
-      const ctx = {
-        node,
-        which: event.which,
-        metaKey: event.metaKey,
-      };
+      const ctx = { node, newTab };
 
       const proceed = () => PjaxOnClick.execute(ctx);
 
@@ -71,9 +79,9 @@ export default function createOnClick(Pjax) {
       const history = node.hasAttribute('pjax-replace') ? 'replace' : undefined;
       const target = node.getAttribute('target');
 
-      // middle-click / cmd-click is a user gesture to open a new tab, before any
-      // in-page swap (pjax-target / pjax-refresh) gets a chance to run.
-      if ((ctx.which === 2 || ctx.metaKey) && href) {
+      // a new-tab gesture on a non-link [href] node, before any in-page swap
+      // (pjax-target / pjax-refresh) gets a chance to run
+      if (ctx.newTab && href) {
         return window.open(href);
       }
 
@@ -101,6 +109,11 @@ export default function createOnClick(Pjax) {
 
       if (!href) {
         return;
+      }
+
+      // an in-page anchor that went through pjax-confirm: jump like the browser
+      if (href.startsWith('#')) {
+        return PjaxOnClick.leave(href);
       }
 
       // Opt out of pjax when the link, or any ancestor, carries a no-pjax class

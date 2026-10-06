@@ -71,8 +71,10 @@ const GlobalState = {
     const subs = this.subs.get(key);
     if (subs) {
       for (const sub of subs) {
-        // Component gone without running its destroy hook - drop it
-        if (sub.fez && !sub.fez.isConnected) {
+        // Destroyed components unsubscribe in their destroy hook; this is the
+        // backstop. A component that is only detached (moved, about to be
+        // re-inserted) keeps listening - its proxy would never subscribe again.
+        if (sub.fez?._destroyed) {
           subs.delete(sub);
           continue;
         }
@@ -135,10 +137,10 @@ const GlobalState = {
       if (!sub.fez) {
         continue;
       }
-      if (sub.fez.isConnected) {
-        func(sub.fez);
-      } else {
+      if (sub.fez._destroyed) {
         subs.delete(sub);
+      } else if (sub.fez.isConnected) {
+        func(sub.fez);
       }
     }
   },

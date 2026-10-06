@@ -28,3 +28,9 @@ test('is callable without a component context and leaves fez. strings alone', ()
   const node = n('div', { title: 't', 'data-handler': 'fez.go()' });
   expect(node.getAttribute('data-handler')).toBe('fez.go()');
 });
+
+test('0 and empty string are content, null and false are not', () => {
+  expect(n('span', 0).outerHTML).toBe('<span>0</span>');
+  expect(n('span', null).outerHTML).toBe('<span></span>');
+  expect(n('span', false).outerHTML).toBe('<span></span>');
+});

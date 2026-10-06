@@ -23,6 +23,8 @@ function installDeferredFetch(body = "hello", contentType = "text/plain") {
     return new Promise((resolve) => {
       state.resolvers.push(() =>
         resolve({
+          ok: true,
+          status: 200,
           headers: { get: () => contentType },
           text: async () => body,
           json: async () => JSON.parse(body),
@@ -157,5 +159,18 @@ describe("Fez.fetch in-flight de-dup", () => {
     expect(st.calls).toBe(2);
     st.rejecters.forEach((r) => r());
     expect(await c).toBe("err-c");
+  });
+
+  test("an error status rejects and is not cached", async () => {
+    const Fez = makeFez();
+    let calls = 0;
+    global.fetch = async () => {
+      calls++;
+      return { ok: false, status: 404, statusText: "Not Found", headers: { get: () => "text/html" }, text: async () => "<h1>404</h1>" };
+    };
+
+    await expect(Fez.fetch("/missing.fez")).rejects.toThrow("404 Not Found for GET /missing.fez");
+    await Fez.fetch("/missing.fez").catch(() => {});
+    expect(calls).toBe(2);
   });
 });

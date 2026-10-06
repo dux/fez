@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Window } from "happy-dom";
 import createTemplateCompiler from "../src/fez/lib/template-compiler.js";
+import { decodeExpressionEntities } from "../src/fez/lib/template-compiler-lib.js";
 import RenderSlots from "../src/fez/lib/render-slots.js";
 
 // Setup happy-dom globals (scoped to this test file)
@@ -8,6 +9,7 @@ let window, document;
 
 // Mock Fez for template tests
 const MockFez = {
+  jsEscape: (v) => (v == null ? "" : JSON.stringify(String(v)).slice(1, -1).replace(/['`$]/g, "\\$&")),
   htmlEscape: (str) => {
     if (str == null) return "";
     return String(str)
@@ -344,21 +346,26 @@ describe("template compiler", () => {
   });
 
   describe("HTML entity decoding", () => {
-    test("decodes &amp;&amp; in expressions", () => {
-      // Browser DOM might encode && as &amp;&amp;
-      const html = render("<div>{state.a &amp;&amp; state.b}</div>", {
-        state: { a: true, b: "yes" },
-        props: {},
-      });
-      expect(html).toBe("<div>yes</div>");
+    // Source strings are taken as written; only template source read back from
+    // the DOM goes through decodeExpressionEntities (compile.js, fez-inline)
+    test("keeps entities in text, decodes none in source strings", () => {
+      const html = render("<code>&lt;img onerror=x&gt;</code>", { state: {}, props: {} });
+      expect(html).toBe("<code>&lt;img onerror=x&gt;</code>");
     });
 
-    test("decodes &lt; and &gt; in expressions", () => {
-      const html = render('<div>{state.n &gt; 5 ? "big" : "small"}</div>', {
+    test("decodeExpressionEntities decodes inside expressions only", () => {
+      const source = '<p title="a &amp; b">&lt;b&gt; {state.n &gt; 5 &amp;&amp; "big"}</p>';
+      expect(decodeExpressionEntities(source)).toBe('<p title="a &amp; b">&lt;b&gt; {state.n > 5 && "big"}</p>');
+      const html = render(decodeExpressionEntities('<div>{state.n &gt; 5 ? "big" : "small"}</div>'), {
         state: { n: 10 },
         props: {},
       });
       expect(html).toBe("<div>big</div>");
+    });
+
+    test("decodeExpressionEntities leaves script and style bodies alone", () => {
+      const source = "<script>const s = '&amp;' + {a: 1}</script>{x &amp;&amp; y}";
+      expect(decodeExpressionEntities(source)).toBe("<script>const s = '&amp;' + {a: 1}</script>{x && y}");
     });
   });
 

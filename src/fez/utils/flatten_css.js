@@ -152,7 +152,35 @@ function splitSelectors(selector) {
   return parts;
 }
 
-const unwrapGlobal = (sel) => sel.replace(/:global\(([^)]*)\)/g, '$1').trim();
+// :global(x) -> x, with nested parens inside x (:global(:is(.a, .b) .c))
+function unwrapGlobal(sel) {
+  let out = '';
+  let pos = 0;
+  let start;
+  while ((start = sel.indexOf(':global(', pos)) >= 0) {
+    let depth = 1;
+    let j = start + 8;
+    while (j < sel.length && depth) {
+      if (sel[j] === '(') {
+        depth++;
+      } else if (sel[j] === ')') {
+        depth--;
+      }
+      j++;
+    }
+    out += sel.slice(pos, start) + sel.slice(start + 8, j - 1);
+    pos = j;
+  }
+  return (out + sel.slice(pos)).trim();
+}
+
+// Replace the nesting `&` with the parent, but not inside quoted attribute
+// values (a[title="x&y"])
+function replaceAmp(selector, parent) {
+  return selector.replace(/"[^"]*"|'[^']*'|&/g, (m) => (m === '&' ? parent : m));
+}
+
+const hasAmp = (selector) => /&/.test(selector.replace(/"[^"]*"|'[^']*'/g, ''));
 
 /**
  * Resolve a nested selector against its parents, SCSS style.
@@ -175,7 +203,7 @@ function resolve(parents, selector) {
     }
 
     for (const parent of parents) {
-      out.push(child.includes('&') ? child.replace(/&/g, parent) : `${parent} ${child}`);
+      out.push(hasAmp(child) ? replaceAmp(child, parent) : `${parent} ${child}`);
     }
   }
 

@@ -118,11 +118,15 @@ function publish(channel, ...args) {
     }
   }
 
-  // Also trigger component subscriptions (legacy compatibility)
+  // Component subscriptions hear global publishes too
   if (componentSubs[channel]) {
     componentSubs[channel].forEach(([comp, cb]) => {
       if (comp.isConnected) {
-        cb.bind(comp)(...args);
+        try {
+          cb.call(comp, ...args);
+        } catch (e) {
+          console.error(`Fez pubsub error on "${channel}":`, e);
+        }
       }
     });
   }
@@ -211,4 +215,4 @@ function componentPublish(component, channel, ...args) {
 // EXPORTS
 // =============================================================================
 
-export { subscribe, publish, componentSubscribe, componentPublish, globalSubs, componentSubs };
+export { subscribe, publish, componentSubscribe, componentPublish };

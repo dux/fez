@@ -512,4 +512,51 @@ describe('PjaxOnClick', () => {
       mock.restore();
     }
   });
+
+  test('a click the page already handled (defaultPrevented) is left alone', () => {
+    document.body.innerHTML = '<main class="pjax" id="pjax"><a href="/b" id="l">B</a></main>';
+    let loaded = false;
+    Pjax.load = () => (loaded = true);
+    const e = createClickEvent({ target: document.getElementById('l') });
+    e.preventDefault();
+    PjaxOnClick.main(e);
+    expect(loaded).toBe(false);
+  });
+
+  test('modified clicks on a real link go to the browser', () => {
+    document.body.innerHTML = '<main class="pjax" id="pjax"><a href="/b" id="l">B</a></main>';
+    let loaded = false;
+    Pjax.load = () => (loaded = true);
+    for (const mod of [{ ctrlKey: true }, { shiftKey: true }, { altKey: true }, { metaKey: true }, { button: 1 }]) {
+      const e = createClickEvent({ target: document.getElementById('l'), ...mod });
+      PjaxOnClick.main(e);
+      expect(e.defaultPrevented).toBe(false);
+    }
+    expect(loaded).toBe(false);
+  });
+
+  test('a ctrl-click on a non-link [href] node opens a new tab', () => {
+    document.body.innerHTML = '<div href="/b" id="d">B</div>';
+    let opened = null;
+    const originalOpen = window.open;
+    window.open = (url) => (opened = url);
+    try {
+      PjaxOnClick.main(createClickEvent({ target: document.getElementById('d'), ctrlKey: true }));
+      expect(opened).toBe('/b');
+    } finally {
+      window.open = originalOpen;
+    }
+  });
+
+  test('a confirmed #anchor link jumps instead of loading', () => {
+    document.body.innerHTML = '<main class="pjax" id="pjax"><a href="#sec" pjax-confirm="Sure?" id="l">B</a><p id="sec"></p></main>';
+    let loaded = false;
+    let left = null;
+    Pjax.load = () => (loaded = true);
+    Pjax.confirm = () => true;
+    PjaxOnClick.leave = (href) => (left = href);
+    PjaxOnClick.main(createClickEvent({ target: document.getElementById('l') }));
+    expect(loaded).toBe(false);
+    expect(left).toBe('#sec');
+  });
 });

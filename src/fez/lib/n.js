@@ -70,7 +70,8 @@ export default function n(name, attrs = {}, data) {
     }
   }
 
-  if (data) {
+  // 0 and '' are content too; null, undefined and false are not
+  if (data != null && data !== false) {
     if (Array.isArray(data)) {
       for (const item of data) {
         node.appendChild(item);

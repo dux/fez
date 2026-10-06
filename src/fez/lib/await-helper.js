@@ -42,31 +42,22 @@ export default function awaitHelper(component, awaitId, promiseOrValue) {
   const state = { status: 'pending', value: null, error: null, promise: promiseOrValue };
   component._awaitStates.set(awaitId, state);
 
-  // Handle promise resolution
-  promiseOrValue
-    .then((value) => {
-      // Only update if this is still the current promise for this await block
-      const current = component._awaitStates.get(awaitId);
-      if (current && current.promise === promiseOrValue) {
-        current.status = 'resolved';
-        current.value = value;
-        // Trigger re-render
-        if (component.isConnected) {
-          component.fezNextTick(component.fezRender, 'fezRender');
-        }
-      }
-    })
-    .catch((error) => {
-      const current = component._awaitStates.get(awaitId);
-      if (current && current.promise === promiseOrValue) {
-        current.status = 'rejected';
-        current.error = error;
-        // Trigger re-render
-        if (component.isConnected) {
-          component.fezNextTick(component.fezRender, 'fezRender');
-        }
-      }
-    });
+  // Settle only if this is still the current promise for this await block and
+  // the component was not destroyed meanwhile (destroy drops _awaitStates).
+  // Two-arg then: a rejection is handled here and never escapes as unhandled.
+  const settle = (status, key, result) => {
+    const current = component._awaitStates?.get(awaitId);
+    if (current?.promise !== promiseOrValue) {
+      return;
+    }
+    current.status = status;
+    current[key] = result;
+    component.fezNextTick?.(component.fezRender, 'fezRender');
+  };
+  promiseOrValue.then(
+    (value) => settle('resolved', 'value', value),
+    (error) => settle('rejected', 'error', error),
+  );
 
   return state;
 }
