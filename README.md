@@ -567,7 +567,7 @@ Fez uses a Svelte-inspired template syntax with single braces `{ }` for expressi
 **Note on passing props:** Use `:prop="expr"` syntax to pass JavaScript objects, arrays, or functions as props. Regular `prop={expr}` will stringify the value.
 Declare a `PROPS` schema (see [Typed props](#typed-props-props)) and stringified numbers, booleans and JSON are coerced back for you.
 
-**Component Isolation:** Child components in loops are automatically preserved during parent re-renders. They only re-render when their props actually change - making loops with many items very efficient.
+**Component Isolation:** Child components in loops are automatically preserved during parent re-renders. They only re-render when their props actually change (by identity: an object read from `this.state` is a fresh proxy each render, so it always counts as changed).
 
 ### Preserving Elements with `fez:keep`
 

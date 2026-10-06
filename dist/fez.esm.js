@@ -1,4 +1,4 @@
-// v: 3.7.8 | AGENTS: https://raw.githubusercontent.com/dux/fez/refs/heads/main/AGENTS.md
+// v: 3.8.0 | AGENTS: https://raw.githubusercontent.com/dux/fez/refs/heads/main/AGENTS.md
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -9,6 +9,463 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
+// src/fez/lib/template-compiler-lib.js
+function mapIdentifiers(code, fn) {
+  let out = "";
+  let i = 0;
+  while (i < code.length) {
+    const ch = code[i];
+    if (ch === '"' || ch === "'" || ch === "`") {
+      let j = i + 1;
+      while (j < code.length && code[j] !== ch) {
+        j += code[j] === "\\" ? 2 : 1;
+      }
+      out += code.slice(i, j + 1);
+      i = j + 1;
+    } else if (/[0-9]/.test(ch)) {
+      let j = i + 1;
+      while (j < code.length && /[\w.]/.test(code[j])) {
+        j++;
+      }
+      out += code.slice(i, j);
+      i = j;
+    } else if (/[A-Za-z_$]/.test(ch)) {
+      let j = i + 1;
+      while (j < code.length && /[\w$]/.test(code[j])) {
+        j++;
+      }
+      const name = code.slice(i, j);
+      const before = out.trimEnd();
+      const prev = before[before.length - 1];
+      const next = code.slice(j).trimStart()[0];
+      const isProperty = prev === "." && before[before.length - 2] !== ".";
+      const isKey = next === ":" && (prev === "{" || prev === ",");
+      out += isProperty || isKey ? name : fn(name, next);
+      i = j;
+    } else {
+      out += ch;
+      i++;
+    }
+  }
+  return out;
+}
+function prefixComponentNames(body, keep = []) {
+  return mapIdentifiers(body, (name, next) => {
+    if (keep.includes(name)) {
+      return name;
+    }
+    if (COMPONENT_NAMES.has(name) || next === "(" && !JS_GLOBALS.has(name) && !JS_KEYWORDS.has(name)) {
+      return `fez.${name}`;
+    }
+    return name;
+  });
+}
+function parseLoopBinding(binding) {
+  const isDestructured = binding.startsWith("[");
+  if (isDestructured) {
+    const match = binding.match(/^\[([^\]]+)\](?:\s*,\s*(\w+))?$/);
+    if (match) {
+      return {
+        params: match[1].split(",").map((s) => s.trim()),
+        indexParam: match[2] || null,
+        isDestructured: true
+      };
+    }
+  }
+  const parts = binding.split(",").map((s) => s.trim());
+  if (parts.length === 2) {
+    return { params: parts, indexParam: null, isDestructured: true };
+  }
+  return { params: parts, indexParam: null, isDestructured: false };
+}
+function getLoopVarNames(binding, implicitIndex = true) {
+  const parsed = parseLoopBinding(binding);
+  const names = [...parsed.params];
+  if (parsed.indexParam) {
+    names.push(parsed.indexParam);
+  }
+  if (implicitIndex && !names.includes("i") && (parsed.params.length === 1 || parsed.isDestructured)) {
+    names.push("i");
+  }
+  return names;
+}
+function getLoopItemVars(binding, objectPairs = false) {
+  const parsed = parseLoopBinding(binding);
+  if (parsed.isDestructured && parsed.params.length === 2) {
+    return objectPairs ? [parsed.params[0], parsed.params[1]] : [parsed.params[0]];
+  }
+  if (parsed.isDestructured) {
+    return parsed.params;
+  }
+  if (parsed.params.length >= 3) {
+    return parsed.params.slice(0, -1);
+  }
+  if (parsed.params.length === 2) {
+    return [parsed.params[0]];
+  }
+  return parsed.params;
+}
+function buildCollectionExpr(collection, binding) {
+  const parsed = parseLoopBinding(binding);
+  if (parsed.isDestructured && parsed.params.length === 2) {
+    return `Fez.toPairs(${collection})`;
+  }
+  if (parsed.isDestructured || parsed.params.length >= 3) {
+    return `((_c)=>Array.isArray(_c)?_c:(_c&&typeof _c==="object")?Object.entries(_c):[])(${collection})`;
+  }
+  return `(${collection}||[])`;
+}
+function buildLoopParams(binding, depth = 0, outerVars = []) {
+  const parsed = parseLoopBinding(binding);
+  let head;
+  let index2;
+  if (parsed.isDestructured) {
+    head = "[" + parsed.params.join(", ") + "]";
+    index2 = parsed.indexParam || (parsed.params.includes("i") || outerVars.includes("i") ? null : "i");
+  } else if (parsed.params.length >= 3) {
+    const params = [...parsed.params];
+    index2 = params.pop();
+    head = "[" + params.join(", ") + "]";
+  } else {
+    head = parsed.params[0];
+    index2 = head === "i" ? "_i" : "i";
+  }
+  const hidden = `_fezI${depth}`;
+  return {
+    params: `${head}, ${hidden}, _fezA${depth}` + (index2 ? `, ${index2} = ${hidden}` : ""),
+    implicitIndex: index2 === "i"
+  };
+}
+function isArrowFunction(expr) {
+  return /^\s*(\([^)]*\)|[a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>/.test(expr);
+}
+function transformArrowToHandler(expr, loopVars = [], loopItemVars = []) {
+  const arrowMatch = expr.match(/^\s*(?:\([^)]*\)|[a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>\s*(.+)$/s);
+  if (!arrowMatch) {
+    return expr;
+  }
+  let body = arrowMatch[1].trim();
+  const paramMatch = expr.match(/^\s*\(?\s*([a-zA-Z_$][a-zA-Z0-9_$]*)?\s*(?:,\s*[^)]+)?\)?\s*=>/);
+  const eventParam = paramMatch?.[1];
+  if (eventParam && eventParam !== "event" && ["e", "ev"].includes(eventParam)) {
+    body = mapIdentifiers(body, (name) => name === eventParam ? "event" : name);
+  }
+  const used = /* @__PURE__ */ new Set();
+  mapIdentifiers(body, (name) => {
+    used.add(name);
+    return name;
+  });
+  const usedItemVars = loopItemVars.filter((name) => used.has(name));
+  if (usedItemVars.length > 0) {
+    body = prefixComponentNames(body, loopVars);
+    return `\${'Fez(' + UID + ').fezGlobals.handler(' + fez.fezGlobals.setHandler((event) => ${body}) + ')(event)'}`;
+  }
+  body = prefixComponentNames(body, loopVars);
+  return mapIdentifiers(body, (name) => loopVars.includes(name) ? `\${${name}}` : name);
+}
+function extractBracedExpression(text, startIndex) {
+  let depth = 0;
+  let i = startIndex;
+  while (i < text.length) {
+    const char = text[i];
+    if (char === "{") {
+      depth++;
+    } else if (char === "}") {
+      depth--;
+      if (depth === 0) {
+        return { expression: text.slice(startIndex + 1, i), endIndex: i };
+      }
+    } else if (char === '"' || char === "'" || char === "`") {
+      const quote = char;
+      i++;
+      while (i < text.length && text[i] !== quote) {
+        if (text[i] === "\\") {
+          i++;
+        }
+        i++;
+      }
+    }
+    i++;
+  }
+  throw new Error(`Unmatched brace at ${startIndex}`);
+}
+function scanTagEnd(text, pos) {
+  let j = pos;
+  while (j < text.length) {
+    const ch = text[j];
+    if (ch === '"' || ch === "'") {
+      const close = text.indexOf(ch, j + 1);
+      if (close < 0) {
+        return -1;
+      }
+      j = close + 1;
+    } else if (ch === "{") {
+      try {
+        j = extractBracedExpression(text, j).endIndex + 1;
+      } catch {
+        j++;
+      }
+    } else if (ch === ">") {
+      return j;
+    } else {
+      j++;
+    }
+  }
+  return -1;
+}
+function scanAttributes(tag) {
+  const attrs = [];
+  let j = tag.search(/[\s/>]/);
+  while (j >= 0 && j < tag.length) {
+    const start = j;
+    while (/\s/.test(tag[j] || "")) {
+      j++;
+    }
+    if (j >= tag.length || tag[j] === ">" || tag[j] === "/" && tag[j + 1] === ">") {
+      break;
+    }
+    const nameStart = j;
+    while (j < tag.length && !/[\s=>]/.test(tag[j]) && !(tag[j] === "/" && tag[j + 1] === ">")) {
+      j++;
+    }
+    const attr = { name: tag.slice(nameStart, j), value: "", quote: "", start };
+    if (j === nameStart) {
+      j++;
+      continue;
+    }
+    if (tag[j] === "=") {
+      j++;
+      const q = tag[j];
+      if (q === '"' || q === "'") {
+        const close = tag.indexOf(q, j + 1);
+        attr.value = tag.slice(j + 1, close);
+        attr.quote = q;
+        j = close + 1;
+      } else if (q === "{") {
+        const { expression, endIndex } = extractBracedExpression(tag, j);
+        attr.value = expression;
+        attr.quote = "{";
+        j = endIndex + 1;
+      } else {
+        const valueStart = j;
+        while (j < tag.length && !/[\s>]/.test(tag[j])) {
+          j++;
+        }
+        attr.value = tag.slice(valueStart, j);
+      }
+    }
+    attr.end = j;
+    attrs.push(attr);
+  }
+  return attrs;
+}
+function mapTags(text, fn) {
+  let out = "";
+  let pos = 0;
+  while (pos < text.length) {
+    const ch = text[pos];
+    if (ch === "\\" && text[pos + 1] === "{") {
+      out += "\\{";
+      pos += 2;
+    } else if (ch === "{") {
+      let end;
+      try {
+        end = extractBracedExpression(text, pos).endIndex;
+      } catch {
+        end = pos;
+      }
+      out += text.slice(pos, end + 1);
+      pos = end + 1;
+    } else if (ch === "<" && /[a-zA-Z]/.test(text[pos + 1] || "")) {
+      const end = scanTagEnd(text, pos + 1);
+      if (end < 0) {
+        out += text.slice(pos);
+        break;
+      }
+      out += fn(text.slice(pos, end + 1));
+      pos = end + 1;
+    } else {
+      out += ch;
+      pos++;
+    }
+  }
+  return out;
+}
+function decodeExpressionEntities(text) {
+  const raw = [];
+  const masked = text.replace(RAW_TEXT_RE, (block) => {
+    raw.push(block);
+    return `\0${raw.length - 1}\0`;
+  });
+  let out = "";
+  let pos = 0;
+  while (pos < masked.length) {
+    if (masked[pos] !== "{") {
+      out += masked[pos++];
+      continue;
+    }
+    let end;
+    try {
+      end = extractBracedExpression(masked, pos).endIndex;
+    } catch {
+      out += masked[pos++];
+      continue;
+    }
+    out += masked.slice(pos, end + 1).replace(/&(?:lt|gt|amp|quot|#39);/g, (e) => ENTITIES[e]);
+    pos = end + 1;
+  }
+  return out.replace(/\u0000(\d+)\u0000/g, (_, index2) => raw[index2]);
+}
+function getAttributeContext(text, pos) {
+  let j = pos - 1;
+  while (j >= 0 && (text[j] === "{" || text[j] === " " || text[j] === "	")) {
+    j--;
+  }
+  if (j >= 0 && text[j] === "=") {
+    j--;
+    while (j >= 0 && (text[j] === " " || text[j] === "	")) {
+      j--;
+    }
+    const attrEnd = j + 1;
+    while (j >= 0 && /[a-zA-Z0-9_:-]/.test(text[j])) {
+      j--;
+    }
+    const attrName = text.slice(j + 1, attrEnd);
+    if (attrName && /^[a-zA-Z]/.test(attrName) && (j < 0 || /\s/.test(text[j])) && !quotedAttrContext(text, j)) {
+      return attrName.toLowerCase();
+    }
+  }
+  return null;
+}
+function quotedAttrContext(text, pos) {
+  const tagStart = text.lastIndexOf("<", pos);
+  if (tagStart < 0) {
+    return null;
+  }
+  let quote = null;
+  let name = null;
+  let k = tagStart;
+  while (k < pos) {
+    const ch = text[k];
+    if (quote) {
+      if (ch === quote) {
+        quote = null;
+      }
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+      name = text.slice(tagStart, k).match(/([^\s=]+)\s*=\s*$/)?.[1] || "";
+    } else if (ch === "{") {
+      try {
+        k = extractBracedExpression(text, k).endIndex;
+      } catch {
+      }
+    } else if (ch === ">") {
+      return null;
+    }
+    k++;
+  }
+  return quote ? { name } : null;
+}
+function getEventAttributeContext(text, pos) {
+  const attr = getAttributeContext(text, pos);
+  if (attr && /^on[a-z]+$/.test(attr)) {
+    return attr;
+  }
+  return null;
+}
+function stripNodeWhitespace(text) {
+  const kept = [...text.matchAll(PRESERVE_WHITESPACE_RE)].map((m) => [
+    m.index,
+    m.index + m[0].length
+  ]);
+  return text.replace(NODE_GAP_RE, (gap, lead, offset) => {
+    const start = offset + lead.length;
+    return kept.some(([from, to]) => start >= from && start < to) ? gap : lead;
+  });
+}
+var JS_GLOBALS, JS_KEYWORDS, COMPONENT_NAMES, ENTITIES, RAW_TEXT_RE, PRESERVE_WHITESPACE_RE, NODE_GAP_RE;
+var init_template_compiler_lib = __esm({
+  "src/fez/lib/template-compiler-lib.js"() {
+    JS_GLOBALS = /* @__PURE__ */ new Set([
+      "console",
+      "window",
+      "document",
+      "globalThis",
+      "Math",
+      "JSON",
+      "Date",
+      "Array",
+      "Object",
+      "String",
+      "Number",
+      "Boolean",
+      "RegExp",
+      "Error",
+      "TypeError",
+      "RangeError",
+      "Promise",
+      "Map",
+      "Set",
+      "WeakMap",
+      "WeakSet",
+      "Symbol",
+      "Intl",
+      "URL",
+      "URLSearchParams",
+      "FormData",
+      "Blob",
+      "CustomEvent",
+      "localStorage",
+      "parseInt",
+      "parseFloat",
+      "isNaN",
+      "isFinite",
+      "encodeURIComponent",
+      "decodeURIComponent",
+      "encodeURI",
+      "decodeURI",
+      "structuredClone",
+      "queueMicrotask",
+      "requestAnimationFrame",
+      "cancelAnimationFrame",
+      "setTimeout",
+      "setInterval",
+      "clearTimeout",
+      "clearInterval",
+      "alert",
+      "confirm",
+      "prompt",
+      "fetch",
+      "event",
+      "Fez",
+      "fez"
+    ]);
+    JS_KEYWORDS = /* @__PURE__ */ new Set([
+      "if",
+      "for",
+      "while",
+      "switch",
+      "catch",
+      "return",
+      "typeof",
+      "function",
+      "new",
+      "delete",
+      "void",
+      "do",
+      "else",
+      "in",
+      "of",
+      "instanceof"
+    ]);
+    COMPONENT_NAMES = /* @__PURE__ */ new Set(["state", "props", "globalState"]);
+    ENTITIES = { "&lt;": "<", "&gt;": ">", "&amp;": "&", "&quot;": '"', "&#39;": "'" };
+    RAW_TEXT_RE = /<(script|style)\b[\s\S]*?<\/\1\s*>/gi;
+    PRESERVE_WHITESPACE_RE = /<(pre|textarea)\b[\s\S]*?<\/\1\s*>/gi;
+    NODE_GAP_RE = /(>|\{[#:/][^{}]*\})\s+(?=<|\{[#:/])/g;
+  }
+});
+
 // src/fez/defaults.js
 var defaults_exports = {};
 __export(defaults_exports, {
@@ -17,6 +474,7 @@ __export(defaults_exports, {
 var loadDefaults;
 var init_defaults = __esm({
   "src/fez/defaults.js"() {
+    init_template_compiler_lib();
     loadDefaults = () => {
       Fez(
         "fez-component",
@@ -82,7 +540,11 @@ var init_defaults = __esm({
           // renders inline so it can sit inside running text
           NAME = "span";
           init(props) {
-            const template = this.root.innerHTML.trim();
+            const source = document.createElement("template");
+            source.innerHTML = this.root._fezSignature || "";
+            const template = decodeExpressionEntities(
+              (source.content.firstElementChild?.innerHTML || "").trim()
+            );
             this.root.innerHTML = "";
             this._fezSlotNodes = this._fezChildNodes = void 0;
             if (template) {
@@ -99,9 +561,11 @@ var init_defaults = __esm({
       Fez(
         "fez-demo-nav",
         class {
-          init(props) {
-            this.for = props.for || "";
-            this.offset = Number(props.offset ?? 16);
+          PROPS = {
+            for: { type: String, default: "" },
+            offset: { type: Number, default: 16 }
+          };
+          init() {
             this.state.items = [];
             this.state.activeIndex = -1;
             this.state.markerTop = 0;
@@ -123,8 +587,8 @@ var init_defaults = __esm({
             this.on("hashchange", this.syncToHash);
             this.on(this.root, "click", this.handleClick);
             this.on(document, "click", this.closeOnOutsideClick);
-            if (this.for) {
-              if (this.for === this.globalState.demoSelected) {
+            if (this.props.for) {
+              if (this.props.for === this.globalState.demoSelected) {
                 this.whenSectionsReady(() => this.reveal());
               }
             } else if (Fez.state.get("demoNavReveal")) {
@@ -255,7 +719,7 @@ var init_defaults = __esm({
             if (!node?.getBoundingClientRect) {
               return;
             }
-            const top = node.getBoundingClientRect().top + window.scrollY - this.offset;
+            const top = node.getBoundingClientRect().top + window.scrollY - this.props.offset;
             window.scrollTo({ top: Math.max(top, 0), behavior: "auto" });
           }
           reveal() {
@@ -618,11 +1082,11 @@ var init_defaults = __esm({
                 if (Fez.index[name]?.demo) {
                   this.state.components = [name];
                   this.markReady();
-                } else if (Fez.index[name]?.class && ++nameTicks > 20) {
+                } else if (++nameTicks > (Fez.index[name]?.class ? 20 : 50)) {
                   this.state.components = [];
                   this.markReady();
                 } else {
-                  setTimeout(checkReady, 100);
+                  this.setTimeout(checkReady, 100);
                 }
               } else {
                 const all = Fez.index.names().filter(notFez);
@@ -637,7 +1101,7 @@ var init_defaults = __esm({
                   this.state.undocumented = all.filter((n2) => !Fez.index[n2]?.demo).sort();
                   this.markReady();
                 } else {
-                  setTimeout(checkReady, 100);
+                  this.setTimeout(checkReady, 100);
                 }
               }
             };
@@ -979,7 +1443,7 @@ function n(name, attrs = {}, data) {
       node.setAttribute(k, value);
     }
   }
-  if (data) {
+  if (data != null && data !== false) {
     if (Array.isArray(data)) {
       for (const item of data) {
         node.appendChild(item);
@@ -993,279 +1457,11 @@ function n(name, attrs = {}, data) {
   return node;
 }
 
-// src/fez/lib/template-compiler-lib.js
-var JS_GLOBALS = /* @__PURE__ */ new Set([
-  "console",
-  "window",
-  "document",
-  "globalThis",
-  "Math",
-  "JSON",
-  "Date",
-  "Array",
-  "Object",
-  "String",
-  "Number",
-  "Boolean",
-  "RegExp",
-  "Error",
-  "TypeError",
-  "RangeError",
-  "Promise",
-  "Map",
-  "Set",
-  "WeakMap",
-  "WeakSet",
-  "Symbol",
-  "Intl",
-  "URL",
-  "URLSearchParams",
-  "FormData",
-  "Blob",
-  "CustomEvent",
-  "localStorage",
-  "parseInt",
-  "parseFloat",
-  "isNaN",
-  "isFinite",
-  "encodeURIComponent",
-  "decodeURIComponent",
-  "encodeURI",
-  "decodeURI",
-  "structuredClone",
-  "queueMicrotask",
-  "requestAnimationFrame",
-  "cancelAnimationFrame",
-  "setTimeout",
-  "setInterval",
-  "clearTimeout",
-  "clearInterval",
-  "alert",
-  "confirm",
-  "prompt",
-  "fetch",
-  "event"
-]);
-var JS_KEYWORDS = /* @__PURE__ */ new Set([
-  "if",
-  "for",
-  "while",
-  "switch",
-  "catch",
-  "return",
-  "typeof",
-  "function",
-  "new",
-  "delete",
-  "void",
-  "do",
-  "else",
-  "in",
-  "of",
-  "instanceof"
-]);
-function prefixBareCalls(body) {
-  return body.replace(
-    /(?<![.\w])([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g,
-    (match, funcName) => JS_GLOBALS.has(funcName) || JS_KEYWORDS.has(funcName) ? match : `fez.${funcName}(`
-  );
-}
-function parseLoopBinding(binding) {
-  const isDestructured = binding.startsWith("[");
-  if (isDestructured) {
-    const match = binding.match(/^\[([^\]]+)\](?:\s*,\s*(\w+))?$/);
-    if (match) {
-      return {
-        params: match[1].split(",").map((s) => s.trim()),
-        indexParam: match[2] || null,
-        isDestructured: true
-      };
-    }
-  }
-  const parts = binding.split(",").map((s) => s.trim());
-  if (parts.length === 2) {
-    return { params: parts, indexParam: null, isDestructured: true };
-  }
-  return { params: parts, indexParam: null, isDestructured: false };
-}
-function getLoopVarNames(binding) {
-  const parsed = parseLoopBinding(binding);
-  const names = [...parsed.params];
-  if (parsed.indexParam) {
-    names.push(parsed.indexParam);
-  }
-  if (parsed.params.length === 1 && !names.includes("i")) {
-    names.push("i");
-  }
-  return names;
-}
-function getLoopItemVars(binding, objectPairs = false) {
-  const parsed = parseLoopBinding(binding);
-  if (parsed.isDestructured && parsed.params.length === 2) {
-    return objectPairs ? [parsed.params[0], parsed.params[1]] : [parsed.params[0]];
-  }
-  if (parsed.isDestructured) {
-    return parsed.params;
-  }
-  if (parsed.params.length >= 3) {
-    return parsed.params.slice(0, -1);
-  }
-  if (parsed.params.length === 2) {
-    return [parsed.params[0]];
-  }
-  return parsed.params;
-}
-function buildCollectionExpr(collection, binding) {
-  const parsed = parseLoopBinding(binding);
-  if (parsed.isDestructured && parsed.params.length === 2) {
-    return `Fez.toPairs(${collection})`;
-  }
-  if (parsed.isDestructured || parsed.params.length >= 3) {
-    return `((_c)=>Array.isArray(_c)?_c:(_c&&typeof _c==="object")?Object.entries(_c):[])(${collection})`;
-  }
-  return `(${collection}||[])`;
-}
-function buildLoopParams(binding) {
-  const parsed = parseLoopBinding(binding);
-  if (parsed.isDestructured) {
-    const destructure = "[" + parsed.params.join(", ") + "]";
-    const indexName2 = parsed.indexParam || (parsed.params.includes("i") ? "_i" : "i");
-    return destructure + ", " + indexName2;
-  }
-  if (parsed.params.length >= 3) {
-    const params = [...parsed.params];
-    const index2 = params.pop();
-    return "[" + params.join(", ") + "], " + index2;
-  }
-  if (parsed.params.length === 2) {
-    return parsed.params.join(", ");
-  }
-  const indexName = parsed.params[0] === "i" ? "_i" : "i";
-  return parsed.params[0] + ", " + indexName;
-}
-function isArrowFunction(expr) {
-  return /^\s*(\([^)]*\)|[a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>/.test(expr);
-}
-function transformArrowToHandler(expr, loopVars = [], loopItemVars = []) {
-  const arrowMatch = expr.match(/^\s*(?:\([^)]*\)|[a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>\s*(.+)$/s);
-  if (!arrowMatch) {
-    return expr;
-  }
-  let body = arrowMatch[1].trim();
-  const paramMatch = expr.match(/^\s*\(?\s*([a-zA-Z_$][a-zA-Z0-9_$]*)?\s*(?:,\s*[^)]+)?\)?\s*=>/);
-  const eventParam = paramMatch?.[1];
-  const hasEventParam = eventParam && ["e", "event", "ev"].includes(eventParam);
-  const usedItemVars = loopItemVars.filter((varName) => {
-    const varRegex = new RegExp(`\\b${varName}\\b`);
-    return varRegex.test(body);
-  });
-  if (usedItemVars.length > 0) {
-    if (hasEventParam && eventParam !== "event") {
-      const eventRegex = new RegExp(`\\b${eventParam}\\b`, "g");
-      body = body.replace(eventRegex, "event");
-    }
-    body = prefixBareCalls(body);
-    return `\${'Fez(' + UID + ').fezGlobals.handler(' + fez.fezGlobals.setHandler((event) => ${body}) + ')(event)'}`;
-  }
-  if (hasEventParam && eventParam !== "event") {
-    const eventRegex = new RegExp(`\\b${eventParam}\\b`, "g");
-    body = body.replace(eventRegex, "event");
-  }
-  for (const varName of loopVars) {
-    const varRegex = new RegExp(`(?<!\\$\\{)\\b${varName}\\b(?![^{]*\\})`, "g");
-    body = body.replace(varRegex, `\${${varName}}`);
-  }
-  body = prefixBareCalls(body);
-  return body;
-}
-function extractBracedExpression(text, startIndex) {
-  let depth = 0;
-  let i = startIndex;
-  while (i < text.length) {
-    const char = text[i];
-    if (char === "{") {
-      depth++;
-    } else if (char === "}") {
-      depth--;
-      if (depth === 0) {
-        return { expression: text.slice(startIndex + 1, i), endIndex: i };
-      }
-    } else if (char === '"' || char === "'" || char === "`") {
-      const quote = char;
-      i++;
-      while (i < text.length && text[i] !== quote) {
-        if (text[i] === "\\") {
-          i++;
-        }
-        i++;
-      }
-    }
-    i++;
-  }
-  throw new Error(`Unmatched brace at ${startIndex}`);
-}
-function getAttributeContext(text, pos) {
-  let j = pos - 1;
-  while (j >= 0 && (text[j] === "{" || text[j] === " " || text[j] === "	")) {
-    j--;
-  }
-  if (j >= 0 && text[j] === "=") {
-    j--;
-    while (j >= 0 && (text[j] === " " || text[j] === "	")) {
-      j--;
-    }
-    const attrEnd = j + 1;
-    while (j >= 0 && /[a-zA-Z0-9_:-]/.test(text[j])) {
-      j--;
-    }
-    const attrName = text.slice(j + 1, attrEnd);
-    if (attrName && /^[a-zA-Z]/.test(attrName) && (j < 0 || /\s/.test(text[j])) && !insideQuotedAttrValue(text, j)) {
-      return attrName.toLowerCase();
-    }
-  }
-  return null;
-}
-function insideQuotedAttrValue(text, pos) {
-  const tagStart = text.lastIndexOf("<", pos);
-  if (tagStart < 0) {
-    return false;
-  }
-  let quote = null;
-  for (let k = tagStart; k <= pos; k++) {
-    const ch = text[k];
-    if (quote) {
-      if (ch === quote) {
-        quote = null;
-      }
-    } else if (ch === '"' || ch === "'") {
-      quote = ch;
-    } else if (ch === ">") {
-      return false;
-    }
-  }
-  return quote !== null;
-}
-function getEventAttributeContext(text, pos) {
-  const attr = getAttributeContext(text, pos);
-  if (attr && /^on[a-z]+$/.test(attr)) {
-    return attr;
-  }
-  return null;
-}
-var PRESERVE_WHITESPACE_RE = /<(pre|textarea)\b[\s\S]*?<\/\1\s*>/gi;
-var NODE_GAP_RE = /(>|\{[#:/][^{}]*\})\s+(?=<|\{[#:/])/g;
-function stripNodeWhitespace(text) {
-  const kept = [...text.matchAll(PRESERVE_WHITESPACE_RE)].map((m) => [
-    m.index,
-    m.index + m[0].length
-  ]);
-  return text.replace(NODE_GAP_RE, (gap, lead, offset) => {
-    const start = offset + lead.length;
-    return kept.some(([from, to]) => start >= from && start < to) ? gap : lead;
-  });
-}
+// src/fez/lib/template-compiler.js
+init_template_compiler_lib();
 
 // src/fez/lib/close-custom-tags.js
+init_template_compiler_lib();
 var SELF_CLOSING_TAGS = /* @__PURE__ */ new Set([
   "area",
   "base",
@@ -1282,15 +1478,25 @@ var SELF_CLOSING_TAGS = /* @__PURE__ */ new Set([
   "wbr"
 ]);
 function closeCustomTags(html) {
-  return html.replace(/<([a-z][a-z0-9-]*)\b((?:=>|[^>])*)>/gi, (match, tag, attrs) => {
-    if (!attrs.trimEnd().endsWith("/")) {
-      return match;
+  const tagRe = /<([a-z][a-z0-9-]*)\b/gi;
+  let out = "";
+  let pos = 0;
+  let match;
+  while (match = tagRe.exec(html)) {
+    const attrsStart = match.index + match[0].length;
+    const end = scanTagEnd(html, attrsStart);
+    if (end < 0) {
+      break;
     }
-    if (SELF_CLOSING_TAGS.has(tag.toLowerCase())) {
-      return match;
+    const tag = match[1];
+    const attrs = html.slice(attrsStart, end);
+    if (attrs.trimEnd().endsWith("/") && !SELF_CLOSING_TAGS.has(tag.toLowerCase())) {
+      out += html.slice(pos, match.index) + `<${tag}${attrs.replace(/\s*\/$/, "")}></${tag}>`;
+      pos = end + 1;
     }
-    return `<${tag}${attrs.replace(/\s*\/$/, "")}></${tag}>`;
-  });
+    tagRe.lastIndex = end + 1;
+  }
+  return out + html.slice(pos);
 }
 
 // src/fez/lib/template-compiler.js
@@ -1299,37 +1505,13 @@ function createTemplateCompiler(text, opts = {}) {
   const staticMode = opts.static === true;
   try {
     if (!staticMode) {
-      text = text.replaceAll("&#x60;", "`").replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&amp;", "&");
       text = text.replace(/\bfez:([a-z][a-z0-9-]*)=/gi, "fez-$1=");
       text = text.replace(
         /\bon([a-z]+)!=(["'])([\s\S]*?)\2/gi,
         (_, ev, q, body) => `on${ev}=${q}fez.fezBang(event) && (${body})${q}`
       );
     }
-    text = text.replace(/<[a-z][a-z0-9-]*\b[^>]*>/gi, (tag) => {
-      if (!/\bclass:[\w-]+=/.test(tag)) {
-        return tag;
-      }
-      const directives = [];
-      tag = tag.replace(/\s*\bclass:([\w-]+)=\{([^}]*)\}/g, (_, name, expr) => {
-        directives.push({ name, expr });
-        return "";
-      });
-      tag = tag.replace(/\s*\bclass:([\w-]+)="([^"]*)"/g, (_, name, expr) => {
-        directives.push({ name, expr });
-        return "";
-      });
-      if (!directives.length) {
-        return tag;
-      }
-      const ternaries = directives.map((d) => ` {(${d.expr}) ? '${d.name}' : ''}`).join("");
-      if (/\bclass="/.test(tag)) {
-        tag = tag.replace(/class="([^"]*)"/, (_, val) => `class="${val}${ternaries}"`);
-      } else {
-        tag = tag.replace(/(\s*\/?>)$/, ` class="${ternaries.trim()}"$1`);
-      }
-      return tag;
-    });
+    text = mapTags(text, rewriteClassDirectives);
     const keepOnComponent = text.match(/<([a-z]+-[a-z][a-z0-9-]*)\b[^>]*\bfez-keep=/);
     if (keepOnComponent) {
       console.error(
@@ -1343,11 +1525,11 @@ function createTemplateCompiler(text, opts = {}) {
     });
     text = text.replace(/\{@block:(\w+)\}/g, (_, name) => blocks[name] || "");
     if (!staticMode) {
-      text = text.replace(/:(\w+)="([^"{}]+)"/g, (match, attr, expr) => {
+      text = text.replace(/(\s):(\w+)="([^"{}]+)"/g, (match, space, attr, expr) => {
         if (/^\d+$/.test(expr.trim())) {
           return match;
         }
-        return `:${attr}={\`Fez(\${UID}).fezGlobals.value(\${fez.fezGlobals.set(${expr})})\`}`;
+        return `${space}:${attr}={\`Fez(\${UID}).fezGlobals.value(\${fez.fezGlobals.set(${expr})})\`}`;
       });
       text = text.replace(/<!--[\s\S]*?-->/g, "");
       text = stripNodeWhitespace(text).trim();
@@ -1366,6 +1548,22 @@ function createTemplateCompiler(text, opts = {}) {
     const blockStack = [];
     const awaitStack = [];
     let awaitCounter = 0;
+    const openBlock = (kind, open) => blockStack.push({ kind, open });
+    const closeBlock = (kind, close) => {
+      const top = blockStack.pop();
+      if (top?.kind !== kind) {
+        throw new Error(
+          top ? `{${close}} closes {${top.open}}` : `{${close}} without an open block`
+        );
+      }
+    };
+    const currentBlock = () => blockStack[blockStack.length - 1]?.kind;
+    const currentAwait = (tag) => {
+      if (currentBlock() !== "await") {
+        throw new Error(`{${tag}} without matching {#await}`);
+      }
+      return awaitStack[awaitStack.length - 1];
+    };
     while (i < text.length) {
       if (text[i] === "`") {
         result += "\\`";
@@ -1422,8 +1620,8 @@ function createTemplateCompiler(text, opts = {}) {
         }
         continue;
       }
-      if (text[i] === "\\" && text[i + 1] === "{") {
-        result += "{";
+      if (text[i] === "\\" && (text[i + 1] === "{" || text[i + 1] === "}")) {
+        result += text[i + 1];
         i += 2;
         continue;
       }
@@ -1435,41 +1633,42 @@ function createTemplateCompiler(text, opts = {}) {
           i = endIndex + 1;
           continue;
         }
+        const elseIf = expr.match(ELSE_IF_RE);
         if (expr.startsWith("#if ")) {
           const cond = expr.slice(4);
           result += "${Fez.isTruthy(" + cond + ") ? `";
           ifStack.push(false);
-          blockStack.push("if");
+          openBlock("if", "#if");
         } else if (expr.startsWith("#unless ")) {
           const cond = expr.slice(8);
           result += "${!Fez.isTruthy(" + cond + ") ? `";
           ifStack.push(false);
-          blockStack.push("if");
+          openBlock("if", "#unless");
         } else if (expr === ":else" || expr === "else") {
-          const currentBlock = blockStack[blockStack.length - 1];
-          if (currentBlock === "loop") {
-            const loopInfo = loopStack[loopStack.length - 1];
-            loopInfo.hasElse = true;
+          if (currentBlock() === "loop") {
+            loopStack[loopStack.length - 1].hasElse = true;
             result += '`).join("") : `';
-          } else if (currentBlock === "if") {
+          } else if (currentBlock() === "if") {
             result += "` : `";
             ifStack[ifStack.length - 1] = true;
           } else {
             throw new Error("{:else} without matching {#if}, {#unless}, {#each}, or {#for}");
           }
-        } else if (expr.startsWith(":else if ") || expr.startsWith("else if ") || expr.startsWith("elsif ") || expr.startsWith("elseif ")) {
-          const cond = expr.startsWith(":else if ") ? expr.slice(9) : expr.startsWith("else if ") ? expr.slice(8) : expr.startsWith("elseif ") ? expr.slice(7) : expr.slice(6);
-          result += "` : Fez.isTruthy(" + cond + ") ? `";
+        } else if (elseIf) {
+          if (currentBlock() !== "if") {
+            throw new Error(`{${expr}} without matching {#if}`);
+          }
+          result += "` : Fez.isTruthy(" + expr.slice(elseIf[0].length) + ") ? `";
         } else if (expr === "/if" || expr === "/unless") {
+          closeBlock("if", expr);
           const hasElse = ifStack.pop();
-          blockStack.pop();
           result += hasElse ? "`}" : "` : ``}";
         } else if (expr.startsWith("#each ") || expr.startsWith("#for ")) {
           const isEach = expr.startsWith("#each ");
           let collection, binding;
           if (isEach) {
             const rest = expr.slice(6);
-            const asIdx = rest.indexOf(" as ");
+            const asIdx = rest.lastIndexOf(" as ");
             if (asIdx < 0) {
               throw new Error(`{#each} is missing " as ": {${expr}}`);
             }
@@ -1484,87 +1683,70 @@ function createTemplateCompiler(text, opts = {}) {
             binding = rest.slice(0, inIdx).trim();
             collection = rest.slice(inIdx + 4).trim();
           }
+          const depth = loopStack.length;
           const collectionExpr = buildCollectionExpr(collection, binding);
-          const loopParams = buildLoopParams(binding);
-          loopVarStack.push(getLoopVarNames(binding));
+          const { params, implicitIndex } = buildLoopParams(binding, depth, loopVarStack.flat());
+          loopVarStack.push(getLoopVarNames(binding, implicitIndex));
           loopItemVarStack.push(getLoopItemVars(binding, !isEach));
-          loopStack.push({ collectionExpr, hasElse: false });
-          blockStack.push("loop");
-          result += "${((_arr) => _arr.length ? _arr.map((" + loopParams + ") => `";
+          loopStack.push({ collectionExpr, hasElse: false, depth });
+          openBlock("loop", isEach ? "#each" : "#for");
+          result += "${((_arr) => _arr.length ? _arr.map((" + params + ") => `";
         } else if (expr === "/each" || expr === "/for") {
+          closeBlock("loop", expr);
           loopVarStack.pop();
           loopItemVarStack.pop();
           const loopInfo = loopStack.pop();
-          blockStack.pop();
           if (loopInfo.hasElse) {
             result += "`)(" + loopInfo.collectionExpr + ")}";
           } else {
             result += '`).join("") : "")(' + loopInfo.collectionExpr + ")}";
           }
         } else if (expr.startsWith("#await ")) {
-          const promiseExpr = expr.slice(7).trim();
-          const awaitId = awaitCounter++;
+          const loopKeys = loopStack.filter((l) => !l.hasElse).map((l) => ` + "-" + _fezI${l.depth}`);
           awaitStack.push({
-            awaitId,
-            promiseExpr,
+            awaitKey: `"${awaitCounter++}"${loopKeys.join("")}`,
+            promiseExpr: expr.slice(7).trim(),
             hasThen: false,
-            hasCatch: false,
-            thenVar: "_value",
-            catchVar: "_error"
+            hasCatch: false
           });
+          openBlock("await", "#await");
           result += '${((_aw) => _aw.status === "pending" ? `';
-        } else if (expr.startsWith(":then")) {
-          const awaitInfo = awaitStack[awaitStack.length - 1];
-          if (awaitInfo) {
-            awaitInfo.hasThen = true;
-            awaitInfo.thenVar = expr.slice(5).trim() || "_value";
-            result += '` : _aw.status === "resolved" ? ((' + awaitInfo.thenVar + ") => `";
-          }
-        } else if (expr.startsWith(":catch")) {
-          const awaitInfo = awaitStack[awaitStack.length - 1];
-          if (awaitInfo) {
-            awaitInfo.hasCatch = true;
-            awaitInfo.catchVar = expr.slice(6).trim() || "_error";
-            if (awaitInfo.hasThen) {
-              result += '`)(_aw.value) : _aw.status === "rejected" ? ((' + awaitInfo.catchVar + ") => `";
-            } else {
-              result += '` : _aw.status === "rejected" ? ((' + awaitInfo.catchVar + ") => `";
-            }
-          }
+        } else if (expr === ":then" || expr.startsWith(":then ")) {
+          const awaitInfo = currentAwait(":then");
+          awaitInfo.hasThen = true;
+          const thenVar = expr.slice(5).trim() || "_value";
+          result += '` : _aw.status === "resolved" ? ((' + thenVar + ") => `";
+        } else if (expr === ":catch" || expr.startsWith(":catch ")) {
+          const awaitInfo = currentAwait(":catch");
+          awaitInfo.hasCatch = true;
+          const catchVar = expr.slice(6).trim() || "_error";
+          result += (awaitInfo.hasThen ? "`)(_aw.value)" : "`") + ' : _aw.status === "rejected" ? ((' + catchVar + ") => `";
         } else if (expr === "/await") {
+          closeBlock("await", expr);
           const awaitInfo = awaitStack.pop();
-          if (awaitInfo) {
-            if (awaitInfo.hasThen && awaitInfo.hasCatch) {
-              result += "`)(_aw.error) : ``)(Fez.fezAwait(fez, " + awaitInfo.awaitId + ", " + awaitInfo.promiseExpr + "))}";
-            } else if (awaitInfo.hasThen) {
-              result += "`)(_aw.value) : ``)(Fez.fezAwait(fez, " + awaitInfo.awaitId + ", " + awaitInfo.promiseExpr + "))}";
-            } else if (awaitInfo.hasCatch) {
-              result += "`)(_aw.error) : ``)(Fez.fezAwait(fez, " + awaitInfo.awaitId + ", " + awaitInfo.promiseExpr + "))}";
-            } else {
-              result += "` : ``)(Fez.fezAwait(fez, " + awaitInfo.awaitId + ", " + awaitInfo.promiseExpr + "))}";
-            }
-          }
+          const tail = awaitInfo.hasCatch ? "`)(_aw.error)" : awaitInfo.hasThen ? "`)(_aw.value)" : "`";
+          result += tail + " : ``)(Fez.fezAwait(fez, " + awaitInfo.awaitKey + ", " + awaitInfo.promiseExpr + "))}";
         } else if (expr.startsWith("@html ")) {
           const content = expr.slice(6);
           result += "${" + content + "}";
         } else if (expr.startsWith("@json ")) {
           const content = expr.slice(6);
           result += '${`<pre class="json">${Fez.htmlEscape(JSON.stringify(' + content + ", null, 2))}</pre>`}";
-        } else if (isArrowFunction(expr)) {
-          const eventAttr = getEventAttributeContext(text, i);
-          if (eventAttr) {
+        } else if (isArrowFunction(expr) && getAttributeContext(text, i)) {
+          if (getEventAttributeContext(text, i)) {
             const allLoopVars = loopVarStack.flat();
             const allItemVars = loopItemVarStack.flat();
-            let handler = transformArrowToHandler(expr, allLoopVars, allItemVars);
-            handler = handler.replace(/"/g, "&quot;");
-            result += '"' + handler + '"';
+            const handler = transformArrowToHandler(expr, allLoopVars, allItemVars);
+            result += '"' + handler.replace(/"/g, "&quot;") + '"';
           } else {
-            result += "${" + expr + "}";
+            result += '"' + escapeLiteralAttr(expr) + '"';
           }
         } else {
           const attrContext = getAttributeContext(text, i);
           if (attrContext) {
             result += '"${Fez.htmlEscape(' + expr + ')}"';
+          } else if (/^on[a-z]+$/i.test(quotedAttrContext(text, i)?.name || "")) {
+            result += "${Fez.htmlEscape(Fez.jsEscape(" + expr + "))}";
           } else {
             result += "${Fez.htmlEscape(" + expr + ")}";
           }
@@ -1581,17 +1763,8 @@ function createTemplateCompiler(text, opts = {}) {
       }
       i++;
     }
-    if (!staticMode) {
-      result = result.replace(
-        /(<[a-z][a-z0-9-]*\s+)([^>]*?)(fez-this="([^"{}]+)")([^>]*?)>/gi,
-        (match, tagStart, before, fezThisAttr, fezThisValue, after) => {
-          if (/\bid=/.test(before) || /\bid=/.test(after)) {
-            return match;
-          }
-          const sanitized = fezThisValue.replace(/[^a-zA-Z0-9]/g, "-");
-          return `${tagStart}${before}${fezThisAttr}${after} id="fez-\${UID}-${sanitized}">`;
-        }
-      );
+    if (blockStack.length) {
+      throw new Error(`{${blockStack[blockStack.length - 1].open}} is never closed`);
     }
     if (typeof Fez !== "undefined" && Fez.LOG) {
       const dynamicFezThis = result.match(/fez-this="[^"]*\{[^}]+\}[^"]*"/g);
@@ -1638,158 +1811,93 @@ function createTemplateCompiler(text, opts = {}) {
     return () => "";
   }
 }
-function getLoopIndexVar(directive) {
-  if (directive.startsWith("#each ")) {
-    const rest = directive.slice(6);
-    const asIdx = rest.indexOf(" as ");
-    if (asIdx < 0) {
-      return "i";
-    }
-    const binding = rest.slice(asIdx + 4).trim();
-    const parts = binding.split(",").map((s) => s.trim());
-    return parts.length >= 2 ? parts[parts.length - 1] : "i";
-  }
-  if (directive.startsWith("#for ")) {
-    const rest = directive.slice(5);
-    const inIdx = rest.indexOf(" in ");
-    if (inIdx < 0) {
-      return "i";
-    }
-    const binding = rest.slice(0, inIdx).trim();
-    const parts = binding.split(",").map((s) => s.trim());
-    if (parts.length >= 3) {
-      return parts[parts.length - 1];
-    }
-    return "i";
-  }
-  return "i";
+var ELSE_IF_RE = /^:?(?:else\s+if|elseif|elsif)\s+/;
+function escapeLiteralAttr(value) {
+  return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("\\", "\\\\").replaceAll("`", "\\`").replaceAll("${", "\\${");
 }
-function getLoopItemKeyVar(directive) {
-  let binding = "";
-  if (directive.startsWith("#each ")) {
-    const rest = directive.slice(6);
-    const asIdx = rest.indexOf(" as ");
-    if (asIdx < 0) {
-      return "";
-    }
-    binding = rest.slice(asIdx + 4).trim();
-  } else if (directive.startsWith("#for ")) {
-    const rest = directive.slice(5);
-    const inIdx = rest.indexOf(" in ");
-    if (inIdx < 0) {
-      return "";
-    }
-    binding = rest.slice(0, inIdx).trim();
+function rewriteClassDirectives(tag) {
+  if (!/\sclass:[\w-]+=/.test(tag)) {
+    return tag;
   }
-  const first = binding.replace(/^\[/, "").replace(/\]$/, "").split(",")[0].trim();
-  return /^[A-Za-z_$][\w$]*$/.test(first) ? first : "";
+  const attrs = scanAttributes(tag);
+  const directives = attrs.filter((a) => a.name.startsWith("class:"));
+  if (!directives.length) {
+    return tag;
+  }
+  const classAttr = attrs.find((a) => a.name === "class");
+  const dropped = /* @__PURE__ */ new Set([...directives, classAttr]);
+  let out = "";
+  let pos = 0;
+  for (const attr of attrs) {
+    if (dropped.has(attr)) {
+      out += tag.slice(pos, attr.start);
+      pos = attr.end;
+    }
+  }
+  out += tag.slice(pos);
+  const base = !classAttr ? "" : classAttr.quote === "{" ? `{${classAttr.value}}` : classAttr.value;
+  const ternaries = directives.map((d) => ` {(${d.value}) ? '${d.name.slice(6)}' : ''}`).join("");
+  return out.replace(/\s*(\/?>)$/, ` class="${(base + ternaries).trim()}"$1`);
 }
 function autoInjectKeys(text) {
-  let result = "";
-  let pos = 0;
   let keyCounter = 0;
   const scopeStack = [];
+  let result = "";
+  let pos = 0;
+  const injectTag = (tag) => {
+    const attrs = scanAttributes(tag);
+    let extra = "";
+    if (!attrs.some((a) => a.name === "key")) {
+      const loops = scopeStack.filter((s) => s.type === "loop" && !s.inElse);
+      const suffix = loops.map((loop) => `-{_fezI${loop.depth}}`).join("");
+      extra += ` fez-key="${keyCounter++}${suffix}"`;
+    }
+    const fezThis = attrs.find((a) => a.name === "fez-this");
+    if (fezThis?.quote === '"' && !fezThis.value.includes("{") && !attrs.some((a) => a.name === "id")) {
+      extra += ` id="fez-{UID}-${fezThis.value.replace(/[^a-zA-Z0-9]/g, "-")}"`;
+    }
+    return tag.endsWith("/>") ? tag.slice(0, -2) + extra + "/>" : tag.slice(0, -1) + extra + ">";
+  };
   while (pos < text.length) {
-    if (text[pos] === "{" && pos + 1 < text.length && /[#/:]/.test(text[pos + 1])) {
-      let j = pos + 1;
-      let depth = 1;
-      while (j < text.length) {
-        if (text[j] === "{") {
-          depth++;
-        } else if (text[j] === "}") {
-          depth--;
-          if (depth === 0) {
-            break;
-          }
-        }
-        j++;
+    const ch = text[pos];
+    if (ch === "\\" && text[pos + 1] === "{") {
+      result += "\\{";
+      pos += 2;
+    } else if (ch === "{") {
+      let end;
+      try {
+        end = extractBracedExpression(text, pos).endIndex;
+      } catch {
+        end = pos;
       }
-      const directive = text.slice(pos + 1, j).trim();
-      if (directive.startsWith("#if ") || directive.startsWith("#unless ")) {
-        scopeStack.push({ type: "if" });
-      } else if (directive.startsWith("#each ") || directive.startsWith("#for ")) {
-        scopeStack.push({
-          type: "loop",
-          indexVar: getLoopIndexVar(directive),
-          itemKeyVar: getLoopItemKeyVar(directive),
-          inElse: false
-        });
-      } else if (directive === "/if" || directive === "/unless") {
-        if (scopeStack.length) {
-          scopeStack.pop();
-        }
-      } else if (directive === "/each" || directive === "/for") {
-        if (scopeStack.length) {
-          scopeStack.pop();
-        }
-      } else if (directive === ":else" || directive === "else" || directive.startsWith(":else if ") || directive.startsWith("else if ")) {
+      const directive = text.slice(pos + 1, end).trim();
+      if (/^#(if|unless|await) /.test(directive)) {
+        scopeStack.push({ type: "block" });
+      } else if (/^#(each|for) /.test(directive)) {
+        const depth = scopeStack.filter((s) => s.type === "loop").length;
+        scopeStack.push({ type: "loop", depth, inElse: false });
+      } else if (/^\/(if|unless|await|each|for)$/.test(directive)) {
+        scopeStack.pop();
+      } else if (directive === ":else" || directive === "else" || ELSE_IF_RE.test(directive)) {
         const top = scopeStack[scopeStack.length - 1];
-        if (top && top.type === "loop") {
+        if (top?.type === "loop") {
           top.inElse = true;
         }
       }
-      result += text.slice(pos, j + 1);
-      pos = j + 1;
-      continue;
+      result += text.slice(pos, end + 1);
+      pos = end + 1;
+    } else if (ch === "<" && /[a-zA-Z]/.test(text[pos + 1] || "")) {
+      const end = scanTagEnd(text, pos + 1);
+      if (end < 0) {
+        result += text.slice(pos);
+        break;
+      }
+      result += injectTag(text.slice(pos, end + 1));
+      pos = end + 1;
+    } else {
+      result += ch;
+      pos++;
     }
-    if (text[pos] === "<" && pos + 1 < text.length && /[a-zA-Z]/.test(text[pos + 1])) {
-      let j = pos + 1;
-      while (j < text.length) {
-        if (text[j] === '"' || text[j] === "'") {
-          const q = text[j++];
-          while (j < text.length && text[j] !== q) {
-            j++;
-          }
-        } else if (text[j] === "{") {
-          let d = 1;
-          j++;
-          while (j < text.length && d > 0) {
-            if (text[j] === "{") {
-              d++;
-            } else if (text[j] === "}") {
-              d--;
-            }
-            j++;
-          }
-          continue;
-        } else if (text[j] === ">") {
-          break;
-        }
-        j++;
-      }
-      const tag = text.slice(pos, j + 1);
-      if (/\bkey\s*=/.test(tag)) {
-        result += tag;
-        pos = j + 1;
-        continue;
-      }
-      const n2 = keyCounter++;
-      const activeLoops = scopeStack.filter((s) => s.type === "loop" && !s.inElse);
-      let keyValue;
-      if (activeLoops.length > 0) {
-        const indexCounts = activeLoops.reduce((counts, loop) => {
-          counts[loop.indexVar] = (counts[loop.indexVar] || 0) + 1;
-          return counts;
-        }, {});
-        const suffix = activeLoops.map((loop) => {
-          const keyVar = indexCounts[loop.indexVar] > 1 && loop.itemKeyVar ? loop.itemKeyVar : loop.indexVar;
-          return `-{${keyVar}}`;
-        }).join("");
-        keyValue = `${n2}${suffix}`;
-      } else {
-        keyValue = `${n2}`;
-      }
-      if (tag.trimEnd().endsWith("/>")) {
-        const slashPos = tag.lastIndexOf("/");
-        result += tag.slice(0, slashPos) + ` fez-key="${keyValue}"/>`;
-      } else {
-        result += tag.slice(0, -1) + ` fez-key="${keyValue}">`;
-      }
-      pos = j + 1;
-      continue;
-    }
-    result += text[pos];
-    pos++;
   }
   return result;
 }
@@ -1971,7 +2079,11 @@ function publish(channel, ...args) {
   if (componentSubs[channel]) {
     componentSubs[channel].forEach(([comp, cb]) => {
       if (comp.isConnected) {
-        cb.bind(comp)(...args);
+        try {
+          cb.call(comp, ...args);
+        } catch (e) {
+          console.error(`Fez pubsub error on "${channel}":`, e);
+        }
       }
     });
   }
@@ -2335,18 +2447,22 @@ function playFlip(entries) {
   if (!entries?.length || reducedMotion()) {
     return;
   }
-  for (const { node, rect, spec } of entries) {
-    if (!node.isConnected || node._fezLeaving || typeof node.animate !== "function") {
-      continue;
-    }
+  const live = entries.filter(
+    ({ node }) => node.isConnected && !node._fezLeaving && typeof node.animate === "function"
+  );
+  for (const { node } of live) {
     node._fezFlipAnim?.cancel();
+  }
+  const moves = [];
+  for (const { node, rect, spec } of live) {
     const next = node.getBoundingClientRect();
     const dx = rect.left - next.left;
     const dy = rect.top - next.top;
-    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
-      continue;
+    if (Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5) {
+      moves.push({ node, spec, dx, dy, base: baseValue(computed(node), "transform") });
     }
-    const base = baseValue(computed(node), "transform");
+  }
+  for (const { node, spec, dx, dy, base } of moves) {
     const p = spec.params || {};
     const anim = node.animate(
       [{ transform: `${base} translate(${dx}px, ${dy}px)`.trim() }, { transform: base || "none" }],
@@ -2460,6 +2576,27 @@ var WINDOW_EVENTS = /* @__PURE__ */ new Set([
 ]);
 var PROPS_ATTR = "fez-props";
 var PROPS_ATTR_MAX_STRING = 60;
+var storeTargets = /* @__PURE__ */ new WeakMap();
+var unwrapStore = (value) => storeTargets.get(value) || value;
+function unwrapStoreValue(value) {
+  value = unwrapStore(value);
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const raw = storeTargets.get(value[i]);
+      if (raw) {
+        value[i] = raw;
+      }
+    }
+  } else if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
+    for (const key in value) {
+      const raw = storeTargets.get(value[key]);
+      if (raw) {
+        value[key] = raw;
+      }
+    }
+  }
+  return value;
+}
 function formatPropsAttr(props) {
   const parts = [];
   for (const [key, value] of Object.entries(props || {})) {
@@ -2770,7 +2907,6 @@ var FezBase = class _FezBase {
   constructor() {
   }
   n = n;
-  fezBlocks = {};
   // Depth of noChangeStateTrigger() scopes; while > 0, state and props writes
   // land silently: no onStateChange, no render scheduling.
   _fezSilent = 0;
@@ -2823,9 +2959,6 @@ var FezBase = class _FezBase {
       () => {
         this.fezSyncPropsAttr();
         if (this._fezSilent) {
-          return;
-        }
-        if (this._fezStateDisabled) {
           return;
         }
         this.fezNextTick(this.fezRender, "fezRender");
@@ -2940,16 +3073,15 @@ var FezBase = class _FezBase {
       return;
     }
     this._destroyed = true;
-    if (this._onDestroyCallbacks) {
-      this._onDestroyCallbacks.forEach((callback) => {
-        try {
-          callback();
-        } catch (e) {
-          this.fezError("destroy", "Error in cleanup callback", e);
-        }
-      });
-      this._onDestroyCallbacks = [];
-    }
+    const callbacks = this._onDestroyCallbacks;
+    this._onDestroyCallbacks = null;
+    callbacks?.forEach((callback) => {
+      try {
+        callback();
+      } catch (e) {
+        this.fezError("destroy", "Error in cleanup callback", e);
+      }
+    });
     this.onDestroy();
     this.onDestroy = () => {
     };
@@ -2965,11 +3097,12 @@ var FezBase = class _FezBase {
     this.root = void 0;
   }
   /**
-   * Add a cleanup callback for destroy
+   * Add a cleanup callback for destroy. Returns a function that drops it, for
+   * resources released early (a fired timeout, a disposed listener).
    */
   addOnDestroy(callback) {
-    this._onDestroyCallbacks = this._onDestroyCallbacks || [];
-    this._onDestroyCallbacks.push(callback);
+    (this._onDestroyCallbacks ||= /* @__PURE__ */ new Set()).add(callback);
+    return () => this._onDestroyCallbacks?.delete(callback);
   }
   // ===========================================================================
   // RENDERING
@@ -2992,9 +3125,9 @@ var FezBase = class _FezBase {
     if (name) {
       this._nextTicks ||= {};
       this._nextTicks[name] ||= window.requestAnimationFrame(() => {
-        func.bind(this)();
         this._nextTicks[name] = null;
-      }, name);
+        func.call(this);
+      });
     } else {
       window.requestAnimationFrame(func.bind(this));
     }
@@ -3021,6 +3154,10 @@ var FezBase = class _FezBase {
     if (!template || !this.root) {
       return;
     }
+    if (this._fezStateDisabled && this._fezRendered) {
+      return;
+    }
+    this._fezRendered = true;
     this._isRendering = true;
     try {
       this.noChangeStateTrigger(() => this.fezRenderPass(template));
@@ -3066,7 +3203,15 @@ var FezBase = class _FezBase {
     this.fezKeepNode(newNode);
     const inputValues = this.fezSaveInputValues();
     const flip = measureFlip(this._fezFlipNodes);
-    Fez.morphdom(this.root, newNode);
+    const silent = this._fezSilent;
+    this._fezSilent = 0;
+    this._isRendering = false;
+    try {
+      Fez.morphdom(this.root, newNode);
+    } finally {
+      this._fezSilent = silent;
+      this._isRendering = true;
+    }
     this.fezRestoreInputValues(inputValues);
     this.fezRenderPostProcess();
     playFlip(flip);
@@ -3083,7 +3228,7 @@ var FezBase = class _FezBase {
   fezSaveInputValues() {
     const saved = /* @__PURE__ */ new Map();
     for (const el of this.root.querySelectorAll("input, textarea, select")) {
-      if (el._fezThisName) {
+      if (el._fezThisName && el.type !== "file") {
         saved.set(el._fezThisName, {
           value: el.value,
           checked: el.checked,
@@ -3106,7 +3251,7 @@ var FezBase = class _FezBase {
       if (el.defaultValue === entry.defaultValue) {
         el.value = entry.value;
       }
-      if (entry.checked !== void 0 && el.defaultChecked === entry.defaultChecked) {
+      if (el.defaultChecked === entry.defaultChecked) {
         el.checked = entry.checked;
       }
     }
@@ -3189,14 +3334,16 @@ var FezBase = class _FezBase {
     fetchAttr("fez-bind", (text, n2) => {
       if (["INPUT", "SELECT", "TEXTAREA"].includes(n2.nodeName)) {
         const value = new Function(`return this.${text}`).bind(this)();
-        const isCb = n2.type.toLowerCase() === "checkbox";
-        const eventName = ["SELECT"].includes(n2.nodeName) || isCb ? "onchange" : "oninput";
+        const type = n2.type.toLowerCase();
+        const isCb = type === "checkbox";
+        const isRadio = type === "radio";
+        const eventName = n2.nodeName === "SELECT" || isCb || isRadio ? "onchange" : "oninput";
         n2.setAttribute(
           eventName,
           `${this.fezHtmlRoot}${text} = this.${isCb ? "checked" : "value"}`
         );
         this.val(n2, value);
-        n2._fezThisName = text;
+        n2._fezThisName = isRadio ? `${text}=${n2.value}` : text;
       } else {
         this.fezError(
           "fez-bind",
@@ -3259,18 +3406,10 @@ var FezBase = class _FezBase {
   // REACTIVE STATE
   // ===========================================================================
   /**
-   * Register component: setup CSS, state, and bind methods
+   * Register component: setup state and bind methods. CSS is registered once
+   * per class in connect().
    */
   fezRegister() {
-    if (this.css) {
-      Fez.globalCss(this.css, { name: this.fezName, wrap: true });
-    }
-    if (this.class.css) {
-      Fez.globalCss(this.class.css, { name: this.fezName });
-    }
-    if (this.class.cssGlobal) {
-      Fez.globalCss(this.class.cssGlobal);
-    }
     if (this.class.fezSlotUnwrap) {
       this._fezStateDisabled = true;
     }
@@ -3365,6 +3504,7 @@ var FezBase = class _FezBase {
       return proto === Object.prototype || proto === null;
     }
     function createReactive(obj2, handler2, rootKey) {
+      obj2 = unwrapStore(obj2);
       if (!shouldProxy(obj2)) {
         return obj2;
       }
@@ -3375,8 +3515,9 @@ var FezBase = class _FezBase {
         }
       };
       const changed = (target, property, value, currentValue) => handler2(target, property, value, currentValue, isRoot ? property : rootKey);
-      return new Proxy(obj2, {
+      const proxy = new Proxy(obj2, {
         set(target, property, value, receiver) {
+          value = unwrapStoreValue(value);
           const currentValue = Reflect.get(target, property, receiver);
           if (currentValue !== value) {
             const result = Reflect.set(target, property, value, receiver);
@@ -3413,6 +3554,8 @@ var FezBase = class _FezBase {
           return Reflect.ownKeys(target);
         }
       });
+      storeTargets.set(proxy, obj2);
+      return proxy;
     }
     return createReactive(obj, handler);
   }
@@ -3447,6 +3590,8 @@ var FezBase = class _FezBase {
         if (typeof data !== "undefined") {
           if (node.type === "checkbox") {
             node.checked = !!data;
+          } else if (node.type === "radio") {
+            node.checked = node.value === String(data);
           } else {
             node.value = data;
           }
@@ -3624,8 +3769,11 @@ var FezBase = class _FezBase {
     };
     const fn = opts?.throttle ? Fez.throttle(guarded, opts.throttle) : guarded;
     target.addEventListener(eventName, fn, opts);
-    const dispose = () => target.removeEventListener(eventName, fn, opts);
-    this.addOnDestroy(dispose);
+    const dispose = () => {
+      target.removeEventListener(eventName, fn, opts);
+      forget();
+    };
+    const forget = this.addOnDestroy(dispose);
     return dispose;
   }
   /**
@@ -3663,33 +3811,42 @@ var FezBase = class _FezBase {
    */
   setTimeout(func, delay) {
     const timeoutID = setTimeout(() => {
+      forget();
       if (this.isConnected) {
         func();
       }
     }, delay);
-    this.addOnDestroy(() => clearTimeout(timeoutID));
+    const forget = this.addOnDestroy(() => clearTimeout(timeoutID));
     return timeoutID;
   }
   /**
-   * Interval with auto-cleanup
+   * Interval with auto-cleanup. A named interval replaces the running one
+   * with the same name.
    */
   setInterval(func, tick, name) {
     if (typeof func === "number") {
       [tick, func] = [func, tick];
     }
-    name ||= Fez.fnv1(String(func));
     this._setIntervalCache ||= {};
-    clearInterval(this._setIntervalCache[name]);
+    if (name) {
+      this._setIntervalCache[name]?.();
+    }
     const intervalID = setInterval(() => {
       if (this.isConnected) {
         func();
       }
     }, tick);
-    this._setIntervalCache[name] = intervalID;
-    this.addOnDestroy(() => {
+    const stop = () => {
       clearInterval(intervalID);
-      delete this._setIntervalCache[name];
-    });
+      forget();
+      if (this._setIntervalCache[name] === stop) {
+        delete this._setIntervalCache[name];
+      }
+    };
+    const forget = this.addOnDestroy(stop);
+    if (name) {
+      this._setIntervalCache[name] = stop;
+    }
     return intervalID;
   }
   // ===========================================================================
@@ -3723,18 +3880,8 @@ var FezBase = class _FezBase {
    */
   fezSlot(source, target) {
     target ||= document.createElement("template");
-    const isSlot = target.nodeName === "SLOT";
     while (source.firstChild) {
-      if (isSlot) {
-        target.parentNode.insertBefore(source.lastChild, target.nextSibling);
-      } else {
-        target.appendChild(source.firstChild);
-      }
-    }
-    if (isSlot) {
-      target.parentNode.removeChild(target);
-    } else {
-      source.innerHTML = "";
+      target.appendChild(source.firstChild);
     }
     return target;
   }
@@ -3890,7 +4037,30 @@ function splitSelectors(selector) {
   }
   return parts;
 }
-var unwrapGlobal = (sel) => sel.replace(/:global\(([^)]*)\)/g, "$1").trim();
+function unwrapGlobal(sel) {
+  let out = "";
+  let pos = 0;
+  let start;
+  while ((start = sel.indexOf(":global(", pos)) >= 0) {
+    let depth = 1;
+    let j = start + 8;
+    while (j < sel.length && depth) {
+      if (sel[j] === "(") {
+        depth++;
+      } else if (sel[j] === ")") {
+        depth--;
+      }
+      j++;
+    }
+    out += sel.slice(pos, start) + sel.slice(start + 8, j - 1);
+    pos = j;
+  }
+  return (out + sel.slice(pos)).trim();
+}
+function replaceAmp(selector, parent) {
+  return selector.replace(/"[^"]*"|'[^']*'|&/g, (m) => m === "&" ? parent : m);
+}
+var hasAmp = (selector) => /&/.test(selector.replace(/"[^"]*"|'[^']*'/g, ""));
 function resolve(parents, selector) {
   const out = [];
   for (const rawChild of splitSelectors(selector)) {
@@ -3904,7 +4074,7 @@ function resolve(parents, selector) {
       continue;
     }
     for (const parent of parents) {
-      out.push(child.includes("&") ? child.replace(/&/g, parent) : `${parent} ${child}`);
+      out.push(hasAmp(child) ? replaceAmp(child, parent) : `${parent} ${child}`);
     }
   }
   return out;
@@ -4135,6 +4305,7 @@ function diffChildren(target, newParent, opts) {
     }
   }
   const unmatchedOld = oldChildren.filter((c) => !usedOld.has(c));
+  const oldIndex = new Map(oldChildren.map((child, index2) => [child, index2]));
   const candidates = [];
   for (let i = 0; i < matches.length; i++) {
     if (matches[i].old) {
@@ -4147,6 +4318,7 @@ function diffChildren(target, newParent, opts) {
         continue;
       }
     }
+    const newUserKey = userKey(newChild);
     for (let j = 0; j < unmatchedOld.length; j++) {
       const candidate = unmatchedOld[j];
       if (candidate.nodeType === 1) {
@@ -4157,14 +4329,18 @@ function diffChildren(target, newParent, opts) {
         if (desc && desc.softMatch === false) {
           continue;
         }
+        if (newUserKey && userKey(candidate)) {
+          continue;
+        }
       }
       const score = scoreSoftMatch(candidate, newChild);
       if (score > 0) {
-        candidates.push({ matchIdx: i, oldIdx: j, score });
+        const dist = Math.abs(i - oldIndex.get(candidate));
+        candidates.push({ matchIdx: i, oldIdx: j, score, dist });
       }
     }
   }
-  candidates.sort((a, b) => b.score - a.score);
+  candidates.sort((a, b) => b.score - a.score || a.dist - b.dist);
   const usedOldIdx = /* @__PURE__ */ new Set();
   const assignedMatch = /* @__PURE__ */ new Set();
   for (const c of candidates) {
@@ -4215,10 +4391,11 @@ function diffChildren(target, newParent, opts) {
       } else if (oldChild.nodeType === 1 && newChild.nodeType === 1) {
         if (opts.skipNode && opts.skipNode(oldChild)) {
         } else if (oldChild.nodeName === newChild.nodeName) {
+          const formDefaults = isFormControl(oldChild) ? readFormDefaults(oldChild) : null;
           syncAttributes(oldChild, newChild);
           syncInternalKeys(oldChild, newChild);
           diffChildren(oldChild, newChild, opts);
-          syncDomProperties(oldChild, newChild);
+          syncDomProperties(oldChild, newChild, formDefaults);
         } else {
           const replacement = newChild;
           target.insertBefore(replacement, oldChild);
@@ -4242,33 +4419,45 @@ function diffChildren(target, newParent, opts) {
     }
   }
 }
-function syncDomProperties(oldNode, newNode) {
+var FORM_CONTROLS = /* @__PURE__ */ new Set(["INPUT", "TEXTAREA", "SELECT", "OPTION"]);
+function isFormControl(node) {
+  return FORM_CONTROLS.has(node.nodeName);
+}
+function readFormDefaults(node) {
+  return {
+    value: node.getAttribute("value"),
+    checked: node.getAttribute("checked"),
+    selected: node.getAttribute("selected"),
+    text: node.nodeName === "TEXTAREA" ? node.defaultValue : null
+  };
+}
+function syncDomProperties(oldNode, newNode, before) {
   if (oldNode.nodeType !== 1 || newNode.nodeType !== 1) {
     return;
   }
-  const isActiveInput = oldNode === document.activeElement && isFormInput(oldNode);
-  const tag = oldNode.nodeName;
   if ("disabled" in oldNode) {
     syncBooleanProperty(oldNode, newNode, "disabled");
   }
+  if (!before || oldNode === document.activeElement && isFormInput(oldNode)) {
+    return;
+  }
+  const tag = oldNode.nodeName;
   if (tag === "INPUT") {
     const type = (oldNode.getAttribute("type") || "").toLowerCase();
-    if (!isActiveInput && oldNode.value !== newNode.value) {
+    if (type !== "file" && newNode.getAttribute("value") !== before.value) {
       oldNode.value = newNode.value;
     }
-    if (!isActiveInput && (type === "checkbox" || type === "radio")) {
+    if ((type === "checkbox" || type === "radio") && newNode.getAttribute("checked") !== before.checked) {
       syncBooleanProperty(oldNode, newNode, "checked");
     }
   } else if (tag === "TEXTAREA") {
-    if (!isActiveInput) {
-      oldNode.value = newNode.value;
-    }
-  } else if (tag === "SELECT") {
-    if (!isActiveInput) {
+    if (newNode.defaultValue !== before.text) {
       oldNode.value = newNode.value;
     }
   } else if (tag === "OPTION") {
-    syncBooleanProperty(oldNode, newNode, "selected");
+    if (newNode.getAttribute("selected") !== before.selected) {
+      syncBooleanProperty(oldNode, newNode, "selected");
+    }
   }
 }
 function booleanAttrEnabled(node, attr) {
@@ -4335,6 +4524,9 @@ function removeChild(target, child, opts) {
   } else {
     target.removeChild(child);
   }
+}
+function userKey(node) {
+  return node.nodeType === 1 ? node.getAttribute("key") : null;
 }
 function isLive(node) {
   return !node._fezLeaving;
@@ -4471,18 +4663,6 @@ function attachMorph(Fez3) {
   const fezMorphOpts = {
     describeOld: fezDescribeOld,
     describeNew: fezDescribeNew,
-    // Defensive: if a fez component slips past keying, still skip its subtree
-    skipNode: (oldNode) => {
-      if (oldNode.classList?.contains("fez") && oldNode.fez && !oldNode.fez._destroyed) {
-        if (Fez3.LOG) {
-          console.log(
-            `Fez: preserved child component ${oldNode.fez.fezName} (UID ${oldNode.fez.UID})`
-          );
-        }
-        return true;
-      }
-      return false;
-    },
     // Keyed preserve is only valid when source (attrs + slot content) still matches
     shouldPreserve: shouldPreserveFezComponent,
     // Cleanup destroyed fez components
@@ -4870,14 +5050,27 @@ function ensureFezBase(Fez3, name, klass) {
     return klass;
   }
   const instance = new klass();
+  const userKlass = klass;
   const newKlass = class extends FezBase {
+    constructor() {
+      super();
+      const own = Reflect.construct(userKlass, [], new.target);
+      for (const key of Object.keys(this)) {
+        if (!Object.hasOwn(own, key)) {
+          own[key] = this[key];
+        }
+      }
+      return own;
+    }
   };
-  const props = [
-    ...Object.getOwnPropertyNames(instance),
-    ...Object.getOwnPropertyNames(klass.prototype)
-  ].filter((p) => p !== "constructor" && p !== "prototype");
-  for (const prop of props) {
-    newKlass.prototype[prop] = instance[prop];
+  for (const prop of Object.getOwnPropertyNames(klass.prototype)) {
+    if (prop !== "constructor") {
+      Object.defineProperty(
+        newKlass.prototype,
+        prop,
+        Object.getOwnPropertyDescriptor(klass.prototype, prop)
+      );
+    }
   }
   const configMap = {
     GLOBAL: "GLOBAL",
@@ -5734,12 +5927,28 @@ function hasFezDefinitions(source) {
 }
 
 // src/fez/lib/validate.js
-var STYLE_SCOPE_ERRORS = {
-  body: "body { } in a scoped <style>. Move these rules to <style global>.",
-  host: ":host is not supported. <style> is already scoped - use `&` for the root node.",
-  fez: ":fez is no longer an author-facing selector. <style> is already scoped - use `&` for the root node.",
-  globalInGlobal: ":global() inside <style global>. These rules are already global - drop the wrapper."
-};
+var STYLE_SCOPE_RULES = [
+  {
+    on: "scoped",
+    re: /(?:^|\s)body\s*\{/,
+    message: "body { } in a scoped <style>. Move these rules to <style global>."
+  },
+  {
+    on: "global",
+    re: /:global\(/,
+    message: ":global() inside <style global>. These rules are already global - drop the wrapper."
+  },
+  {
+    on: "both",
+    re: /:host\b/,
+    message: ":host is not supported. <style> is already scoped - use `&` for the root node."
+  },
+  {
+    on: "both",
+    re: /:fez\b/,
+    message: ":fez is no longer an author-facing selector. <style> is already scoped - use `&` for the root node."
+  }
+];
 function withoutComments2(style) {
   return style.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " ")).replace(/^([ \t]*)\/\/[^\n]*/gm, (m, indent) => indent + " ".repeat(m.length - indent.length));
 }
@@ -5896,32 +6105,68 @@ function splitScript(script) {
     hasClass: true
   };
 }
-function assertStyleScope(tagName, rawStyle, isGlobal) {
+function styleScopeErrors(rawStyle, isGlobal) {
   if (!rawStyle) {
-    return;
+    return [];
   }
   const style = withoutComments2(rawStyle);
-  const fail = (message) => {
-    throw new Error(`<${tagName}> style error: ${message}`);
-  };
-  if (!isGlobal && /(?:^|\s)body\s*\{/.test(style)) {
-    fail(STYLE_SCOPE_ERRORS.body);
-  }
-  if (/:host\b/.test(style)) {
-    fail(STYLE_SCOPE_ERRORS.host);
-  }
-  if (/:fez\b/.test(style)) {
-    fail(STYLE_SCOPE_ERRORS.fez);
-  }
-  if (isGlobal && /:global\(/.test(style)) {
-    fail(STYLE_SCOPE_ERRORS.globalInGlobal);
+  const block = isGlobal ? "global" : "scoped";
+  return STYLE_SCOPE_RULES.filter((rule) => rule.on === "both" || rule.on === block).map((rule) => ({ message: rule.message, index: style.search(rule.re) })).filter((error) => error.index >= 0);
+}
+function assertStyleScope(tagName, rawStyle, isGlobal) {
+  const [error] = styleScopeErrors(rawStyle, isGlobal);
+  if (error) {
+    throw new Error(`<${tagName}> style error: ${error.message}`);
   }
 }
 
-// src/fez/compile.js
-var compileCache = /* @__PURE__ */ new Map();
+// src/fez/lib/class-source.js
+var PRESERVE_RE = /<(pre|textarea)\b[\s\S]*?<\/\1\s*>/gi;
 function escapeTemplateLiteral(value) {
   return String(value).replaceAll("\\", "\\\\").replaceAll("`", "\\`").replaceAll("$", "\\$");
+}
+function trimTemplateLines(html) {
+  const kept = [];
+  const masked = String(html).replace(PRESERVE_RE, (block) => {
+    kept.push(block);
+    return `\0${kept.length - 1}\0`;
+  });
+  return masked.split("\n").map((line) => line.trim()).join("\n").replace(/\u0000(\d+)\u0000/g, (_, index2) => kept[index2]);
+}
+function buildClassSource(parts) {
+  const [style, styleGlobal, html] = [parts.style, parts.styleGlobal, parts.html].map(
+    (v) => String(v || "")
+  );
+  let klass = parts.script || "";
+  if (!splitScript(klass).hasClass) {
+    klass = `class {
+${klass}
+}`;
+  }
+  const addField = (field) => {
+    klass = klass.replace(/\}\s*$/, () => `
+  ${field}
+}`);
+  };
+  if (style.trim()) {
+    addField(`CSS = \`:fez {
+${escapeTemplateLiteral(style)}
+}\``);
+  }
+  if (styleGlobal.trim()) {
+    addField(`CSS_GLOBAL = \`${escapeTemplateLiteral(styleGlobal)}\``);
+  }
+  if (/\w/.test(html)) {
+    addField(`HTML = \`${escapeTemplateLiteral(html.trim())}\``);
+  }
+  return klass;
+}
+
+// src/fez/compile.js
+init_template_compiler_lib();
+var compileCache = /* @__PURE__ */ new Map();
+function definitionSource(node) {
+  return node.nodeName === "TEMPLATE" ? decodeExpressionEntities(node.innerHTML) : node.innerHTML;
 }
 function hasTopLevelFezElements(html) {
   return !!html && hasFezDefinitions(html);
@@ -5973,7 +6218,7 @@ function compileBulk(data) {
       console.error(`Fez: Invalid name "${fezName}". Must contain a dash.`);
       return;
     }
-    return compile(fezName, node.innerHTML);
+    return compile(fezName, definitionSource(node));
   }
   const root = data ? Fez.domRoot(data) : document.body;
   root.querySelectorAll("template[fez], xmp[fez]").forEach((n2) => compileBulk(n2));
@@ -5996,7 +6241,7 @@ function compileFromUrl(url) {
           console.error(`Fez: Invalid name "${name}". Must contain a dash.`);
           return;
         }
-        compile(name, el.innerHTML);
+        compile(name, definitionSource(el));
       });
     } else {
       const name = Fez.nameFromPath(url);
@@ -6011,7 +6256,7 @@ function compileToClass(html) {
   if (result.errors.length) {
     throw new Error(formatSourceError(result.errors[0]));
   }
-  result.html = result.html.split("\n").map((line) => line.trim()).join("\n");
+  result.html = trimTemplateLines(result.html);
   if (result.head) {
     processHeadElements(result.head);
   }
@@ -6047,34 +6292,9 @@ function processHeadElements(headHtml) {
   });
 }
 function generateClassCode(tagName, parts) {
-  let klass = parts.script;
-  if (!splitScript(klass).hasClass) {
-    klass = `class {
-${klass}
-}`;
-  }
   assertStyleScope(tagName, parts.style, false);
   assertStyleScope(tagName, parts.styleGlobal, true);
-  if (String(parts.style).includes(":")) {
-    const css = escapeTemplateLiteral(parts.style);
-    klass = klass.replace(/\}\s*$/, `
-  CSS = \`:fez {
-${css}
-}\`
-}`);
-  }
-  if (String(parts.styleGlobal).includes(":")) {
-    const cssGlobal = escapeTemplateLiteral(parts.styleGlobal);
-    klass = klass.replace(/\}\s*$/, `
-  CSS_GLOBAL = \`${cssGlobal}\`
-}`);
-  }
-  if (/\w/.test(String(parts.html))) {
-    const html = parts.html.replaceAll("`", "&#x60;").replaceAll("$", "\\$");
-    klass = klass.replace(/\}\s*$/, `
-  HTML = \`${html}\`
-}`);
-  }
+  const klass = buildClassSource(parts);
   if (parts.demo?.trim()) {
     Fez.index.ensure(tagName).demo = closeCustomTags(parts.demo);
   }
@@ -6198,7 +6418,7 @@ var GlobalState = {
     const subs = this.subs.get(key);
     if (subs) {
       for (const sub of subs) {
-        if (sub.fez && !sub.fez.isConnected) {
+        if (sub.fez?._destroyed) {
           subs.delete(sub);
           continue;
         }
@@ -6258,10 +6478,10 @@ var GlobalState = {
       if (!sub.fez) {
         continue;
       }
-      if (sub.fez.isConnected) {
-        func(sub.fez);
-      } else {
+      if (sub.fez._destroyed) {
         subs.delete(sub);
+      } else if (sub.fez.isConnected) {
+        func(sub.fez);
       }
     }
   },
@@ -6366,25 +6586,19 @@ function awaitHelper(component, awaitId, promiseOrValue) {
   }
   const state = { status: "pending", value: null, error: null, promise: promiseOrValue };
   component._awaitStates.set(awaitId, state);
-  promiseOrValue.then((value) => {
-    const current = component._awaitStates.get(awaitId);
-    if (current && current.promise === promiseOrValue) {
-      current.status = "resolved";
-      current.value = value;
-      if (component.isConnected) {
-        component.fezNextTick(component.fezRender, "fezRender");
-      }
+  const settle = (status, key, result) => {
+    const current = component._awaitStates?.get(awaitId);
+    if (current?.promise !== promiseOrValue) {
+      return;
     }
-  }).catch((error) => {
-    const current = component._awaitStates.get(awaitId);
-    if (current && current.promise === promiseOrValue) {
-      current.status = "rejected";
-      current.error = error;
-      if (component.isConnected) {
-        component.fezNextTick(component.fezRender, "fezRender");
-      }
-    }
-  });
+    current.status = status;
+    current[key] = result;
+    component.fezNextTick?.(component.fezRender, "fezRender");
+  };
+  promiseOrValue.then(
+    (value) => settle("resolved", "value", value),
+    (error) => settle("rejected", "error", error)
+  );
   return state;
 }
 
@@ -6500,7 +6714,7 @@ entryKey = (name) => reservedNames.has(name) ? ENTRY_PREFIX + name : name;
 var lib_default = index;
 
 // package.json
-var version = "3.7.8";
+var version = "3.8.0";
 
 // src/fez/lib/utility.js
 var utility_default = (Fez3) => {
@@ -6703,6 +6917,9 @@ var utility_default = (Fez3) => {
       return Promise.resolve(cached.data);
     }
     const processResponse = (response) => {
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText} for ${method} ${url}`.trim());
+      }
       if (response.headers.get("content-type")?.includes("application/json")) {
         return response.json();
       }
@@ -6763,6 +6980,12 @@ var utility_default = (Fez3) => {
       return text.replace(/font-family\s*:\s*(?:&[^;]+;|[^;])*?;/gi, "").replaceAll("&", "&amp;").replaceAll("'", "&apos;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
     }
     return text === void 0 ? "" : text;
+  };
+  Fez3.jsEscape = (value) => {
+    if (value == null) {
+      return "";
+    }
+    return JSON.stringify(String(value)).slice(1, -1).replace(/['`$]/g, "\\$&");
   };
   Fez3.domRoot = (data, name = "div") => {
     if (data instanceof Node) {
@@ -6828,7 +7051,7 @@ var utility_default = (Fez3) => {
     } else if (typeof pointer === "function") {
       return pointer;
     } else if (typeof pointer === "string") {
-      const arrowFuncPattern = /^\s*\(?\s*\w+(\s*,\s*\w+)*\s*\)?\s*=>/;
+      const arrowFuncPattern = /^\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*=>/;
       const functionPattern = /^\s*function\s*\(/;
       if (arrowFuncPattern.test(pointer) || functionPattern.test(pointer)) {
         return new Function("return " + pointer)();
@@ -6952,13 +7175,16 @@ var blockRe = (key) => new RegExp(`(^|[\\s{;])(?::|@include\\s+)${escapeRe(key)}
 var css_mixin_default = (Fez3) => {
   Fez3.cssMixin = (name, content) => {
     if (content !== void 0) {
-      CssMixins[name] = content;
+      CssMixins[name] = { body: content, decl: declRe(name), block: blockRe(name) };
       return;
     }
-    Object.entries(CssMixins).forEach(([key, val]) => {
-      name = name.replace(declRe(key), (_, lead) => `${lead}${val.replace(/;\s*$/, "")};`);
-      name = name.replace(blockRe(key), (_, lead) => `${lead}${val}`);
-    });
+    for (const [key, mixin] of Object.entries(CssMixins)) {
+      if (!name.includes(key)) {
+        continue;
+      }
+      name = name.replace(mixin.decl, (_, lead) => `${lead}${mixin.body.replace(/;\s*$/, "")};`);
+      name = name.replace(mixin.block, (_, lead) => `${lead}${mixin.body}`);
+    }
     return name;
   };
   Fez3.cssMixin("mobile", "@media (max-width: 767px)");
@@ -7115,6 +7341,9 @@ var root_default = Fez2;
 function createOnClick(Pjax) {
   const PjaxOnClick = {
     main(event) {
+      if (event.defaultPrevented) {
+        return;
+      }
       const node = event.target.closest(
         '*[click]:not([click=""]), *[href]:not([href=""]), *[pjax-refresh]:not([pjax-refresh=""])'
       );
@@ -7125,13 +7354,13 @@ function createOnClick(Pjax) {
       if (node.tagName === "A" && href?.startsWith("#") && !node.hasAttribute("click") && !node.hasAttribute("pjax-target") && !node.hasAttribute("pjax-refresh") && !node.hasAttribute("pjax-confirm")) {
         return;
       }
+      const newTab = event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button > 0;
+      if (newTab && node.tagName === "A" && href && !node.hasAttribute("click")) {
+        return;
+      }
       event.stopPropagation();
       event.preventDefault();
-      const ctx = {
-        node,
-        which: event.which,
-        metaKey: event.metaKey
-      };
+      const ctx = { node, newTab };
       const proceed = () => PjaxOnClick.execute(ctx);
       const confirmMsg = node.getAttribute("pjax-confirm");
       if (confirmMsg) {
@@ -7159,7 +7388,7 @@ function createOnClick(Pjax) {
       const href = node.getAttribute("href");
       const history = node.hasAttribute("pjax-replace") ? "replace" : void 0;
       const target = node.getAttribute("target");
-      if ((ctx.which === 2 || ctx.metaKey) && href) {
+      if (ctx.newTab && href) {
         return window.open(href);
       }
       const pjaxRefresh = node.getAttribute("pjax-refresh");
@@ -7184,6 +7413,9 @@ function createOnClick(Pjax) {
       }
       if (!href) {
         return;
+      }
+      if (href.startsWith("#")) {
+        return PjaxOnClick.leave(href);
       }
       const noPjaxSel = Pjax.config.no_pjax_class.map((cls) => `.${cls}`).join(", ");
       if (noPjaxSel && node.closest(noPjaxSel)) {
@@ -7355,28 +7587,7 @@ function createPjax() {
       Pjax._historyPath = Pjax.path();
       setTimeout(() => Pjax.sendGlobalEvent(), 0);
       Pjax.onDocumentClick();
-      window.addEventListener("popstate", () => {
-        const path = Pjax.path();
-        const previousPath = Pjax._historyPath;
-        Pjax._historyPath = path;
-        if (path === previousPath) {
-          return;
-        }
-        window.requestAnimationFrame(() => {
-          const entry = Pjax.historyData[path];
-          if (entry) {
-            Pjax.console(`from history: ${path}`);
-            const root = document.createElement("div");
-            root.innerHTML = entry.html;
-            Pjax.setPageBody(root, path);
-            if (entry.scrollY) {
-              window.scrollTo(0, entry.scrollY);
-            }
-          } else {
-            Pjax.load(path, { history: false });
-          }
-        });
-      });
+      window.addEventListener("popstate", () => Pjax.onPopState());
       document.body.addEventListener("submit", (e) => {
         const form = e.target;
         const pjaxAttr = form.getAttribute("data-pjax");
@@ -7384,6 +7595,43 @@ function createPjax() {
           e.preventDefault();
           const target = pjaxAttr === "true" ? void 0 : pjaxAttr;
           Pjax.load(form.getAttribute("action"), { form, target });
+        }
+      });
+    }
+    // Back/Forward: restore a cached full-swap page without a fetch, or load it
+    static onPopState() {
+      const path = Pjax.path();
+      const previousPath = Pjax._historyPath;
+      Pjax._historyPath = path;
+      if (path === previousPath) {
+        return;
+      }
+      window.requestAnimationFrame(() => {
+        const entry = Pjax.historyData[path];
+        if (entry) {
+          Pjax.console(`from history: ${path}`);
+          Pjax._abort("full");
+          const root = document.createElement("div");
+          root.innerHTML = entry.html;
+          Promise.resolve(Pjax.setPageBody(root, path)).then((applied) => {
+            if (!applied) {
+              return;
+            }
+            if (entry.scrollY) {
+              window.scrollTo(0, entry.scrollY);
+            }
+            Pjax._dispatchRender({
+              from: previousPath,
+              to: path,
+              status: 200,
+              error: null,
+              duration: 0,
+              mode: "full",
+              opts: { history: false }
+            });
+          }, Pjax.error);
+        } else {
+          Pjax.load(path, { history: false });
         }
       });
     }
@@ -7618,10 +7866,9 @@ function createPjax() {
         Pjax.after(href);
       };
       if (Pjax.useViewTransition && document.startViewTransition) {
-        document.startViewTransition(finish);
-      } else {
-        finish();
+        return document.startViewTransition(finish).updateCallbackDone.then(() => true);
       }
+      finish();
       return true;
     }
     // `source` is an element whose children become the target's children, or
@@ -7645,22 +7892,10 @@ function createPjax() {
       if (!root || !id) {
         return;
       }
-      if (root.getElementById) {
-        return root.getElementById(id);
-      }
-      for (const node of root.querySelectorAll("[id]")) {
-        if (node.id === id) {
-          return node;
-        }
-      }
-      return null;
+      return root.querySelector(`[id="${id.replace(/["\\]/g, "\\$&")}"]`);
     }
     // --- history management ---
     static _addHistoryEntry(href, html) {
-      if (html == null) {
-        html = href;
-        href = Pjax.path();
-      }
       const keys = Object.keys(Pjax.historyData);
       const max = Pjax.config.history_max || 20;
       if (keys.length >= max) {
@@ -7754,6 +7989,7 @@ function createPjax() {
       } else {
         const parsed = new URL(url, location.href);
         if (parsed.origin !== location.origin) {
+          this.resolve(null);
           location.href = url;
           return false;
         }
@@ -7761,6 +7997,7 @@ function createPjax() {
       }
       this.redirects = (this.redirects || 0) + 1;
       if (this.redirects > 5) {
+        this.resolve(null);
         return this.redirect();
       }
       this.href = path;
@@ -7931,20 +8168,30 @@ function createPjax() {
         this.href = url.pathname + url.search;
       }
       this.historyAddCurrent(this.historyHref());
+      const failed = (err) => {
+        Pjax.error(`Apply failed: ${err?.message || err}`);
+        console.error(err);
+        return false;
+      };
+      const done = (applied2) => {
+        if (!applied2) {
+          this.emitDone({ status: res.status, error: "apply" });
+          return this.redirect();
+        }
+        this.emitDone({ status: res.status });
+        this.scrollAfterSwap();
+      };
       let applied;
       try {
         applied = this.applyLoadedData();
       } catch (err) {
-        Pjax.error(`Apply failed: ${err?.message || err}`);
-        console.error(err);
-        applied = false;
+        applied = failed(err);
       }
-      if (!applied) {
-        this.emitDone({ status: res.status, error: "apply" });
-        return this.redirect();
+      if (applied?.then) {
+        applied.then(done, (err) => done(failed(err)));
+      } else {
+        done(applied);
       }
-      this.emitDone({ status: res.status });
-      this.scrollAfterSwap();
     }
     scrollAfterSwap() {
       if (!this.opts.scroll || Pjax.shouldSkipScroll(this.target || this.opts.source)) {
