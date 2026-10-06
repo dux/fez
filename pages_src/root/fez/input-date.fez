@@ -1,8 +1,10 @@
 <info>
   <ul>
-    <li>Beautiful date picker with calendar popup</li>
-    <li>Powered by <code>flatpickr</code> library</li>
-    <li>Supports date ranges, time selection, and custom formats</li>
+    <li>Date picker with a calendar popup - pure Fez, no external library</li>
+    <li>Props: <code>name</code>, <code>value</code>, <code>title</code>, <code>class</code>, <code>onchange</code></li>
+    <li><code>value</code> takes a date (<code>2024-01-15</code>, <code>15.01.2024</code>), a unix timestamp, or a day offset from today (<code>-1</code> is yesterday)</li>
+    <li>Submits <code>dd.mm.yyyy</code> through a hidden input named <code>name</code>, so forms and <code>formData()</code> pick it up</li>
+    <li><code>onchange(value)</code> runs when the date changes; Esc or a click outside closes the calendar</li>
   </ul>
 </info>
 
@@ -23,105 +25,133 @@
 </demo>
 
 <script>
-  // init with yesterday
-  // <input-date name="date" value="-1" title="Birth Date" onchange="..." />
+  const pad = (n) => String(n).padStart(2, '0')
 
-  import flatpickr from 'https://cdn.jsdelivr.net/npm/flatpickr/+esm'
+  // local calendar date as YYYY-MM-DD, never through UTC
+  const isoDate = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 
-  Fez.head({css: 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css'})
+  // "2024-01-15", "15.01.2024", a unix timestamp or a day offset (-365..365)
+  function parseDate(value) {
+    const text = String(value ?? '').trim()
+    if (!text) {
+      return null
+    }
+    if (/^-?\d+$/.test(text)) {
+      const number = Number(text)
+      if (Math.abs(number) <= 365) {
+        const date = new Date()
+        date.setDate(date.getDate() + number)
+        return date
+      }
+      return new Date(number * 1000)
+    }
+    let match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
+    if (match) {
+      return new Date(+match[1], match[2] - 1, +match[3])
+    }
+    match = text.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/)
+    if (match) {
+      return new Date(+match[3], match[2] - 1, +match[1])
+    }
+    const date = new Date(text)
+    return isNaN(date.getTime()) ? null : date
+  }
 
   class {
+    MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-    init() {
-      // Initialize state
-      this.state.selectedDate = ''
-      this.state.buttonText = this.props.title || 'Select date'
-      this.state.oldValue = null
+    PROPS = {
+      name: String,
+      value: String,
+      title: { type: String, default: 'Select date' },
+      class: { type: String, default: '' },
+      onchange: { type: Function, state: true, default: () => {} },
     }
 
-    onMount(props) {
-      let initialDate = null
+    init(props) {
+      const date = parseDate(props.value)
+      this.state.selected = date ? isoDate(date) : ''
+      this.state.open = false
+      this.state.above = false
+      this.showMonth(date || new Date())
+    }
 
-      // Process initial value if provided
-      if (this.props.value !== undefined && this.props.value !== '') {
-        const val = String(this.props.value).trim()
-
-        // Skip invalid/empty values (including things like "/" or empty)
-        if (val && !/^[\s\/\-\.]*$/.test(val)) {
-          try {
-            // If value is a small integer (-365 to 365), treat as days offset from today
-            if (Number.isInteger(+val) && Math.abs(+val) <= 365) {
-              initialDate = new Date()
-              initialDate.setDate(initialDate.getDate() + parseInt(val))
-            } else if (Number(val) && Number(val) > 365) {
-              // Unix timestamp
-              initialDate = new Date(parseInt(val) * 1000)
-            } else {
-              // Date string - validate before using
-              const parsed = new Date(val)
-              if (!isNaN(parsed.getTime())) {
-                initialDate = parsed
-              }
-            }
-
-            if (initialDate && !isNaN(initialDate.getTime())) {
-              this.state.oldValue = this.state.selectedDate = flatpickr.formatDate(initialDate, "d.m.Y")
-            } else {
-              initialDate = null
-            }
-          } catch (e) {
-            console.warn('input-date: Invalid date value:', val)
-            initialDate = null
-          }
+    onMount() {
+      this.on(document, 'click', (event) => {
+        if (this.state.open && !this.root.contains(event.target)) {
+          this.state.open = false
         }
-      }
-
-      // Use wrap mode to handle custom trigger button
-      this.state.picker = flatpickr(this.find('.date-picker-wrapper'), {
-        wrap: true,
-        onChange: (selectedDates, dateStr) => {
-          this.setDate(dateStr)
-        },
-        enableTime: false,
-        dateFormat: "d.m.Y",
-        defaultDate: initialDate || undefined
+      })
+      this.on(document, 'keydown', (event) => {
+        if (event.key === 'Escape') {
+          this.state.open = false
+        }
       })
     }
 
-    onDestroy() {
-      this.state.picker?.destroy()
+    // a 6 week grid: whole weeks from the Sunday on or
+    // before the 1st, other months' days included
+    beforeRender() {
+      const { year, month, selected } = this.state
+      const today = isoDate(new Date())
+      const start = new Date(year, month, 1 - new Date(year, month, 1).getDay())
+      this.state.days = Array.from({ length: 42 }, (_, i) => {
+        const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i)
+        const iso = isoDate(date)
+        return { iso, day: date.getDate(), inMonth: date.getMonth() === month, today: iso === today, selected: iso === selected }
+      })
+      const [y, m, d] = selected.split('-')
+      this.state.display = selected ? `${d}.${m}.${y}` : ''
     }
 
-    setDate(value) {
-      value ||= ''
-      this.state.selectedDate = value
-      this.state.inputElement.value = value
+    showMonth(date) {
+      this.state.year = date.getFullYear()
+      this.state.month = date.getMonth()
+    }
 
-      if (this.state.oldValue != value) {
-        this.state.oldValue = value
+    toggle() {
+      if (this.state.open) {
+        this.state.open = false
+        return
+      }
+      // open above the button when the calendar does not fit below it
+      const rect = this.root.getBoundingClientRect()
+      this.state.above = window.innerHeight - rect.bottom < 330 && rect.top > 330
+      this.showMonth(parseDate(this.state.selected) || new Date())
+      this.state.open = true
+    }
 
-        // Trigger onchange handler if provided
-        if (this.props.onchange) {
-          Fez.resolveFunction(this.props.onchange, this.state.inputElement)
-        }
+    shiftMonth(step) {
+      this.showMonth(new Date(this.state.year, this.state.month + step, 1))
+    }
+
+    setMonth(month) {
+      this.state.month = Number(month)
+    }
+
+    setYear(year) {
+      if (/^\d{4}$/.test(year)) {
+        this.state.year = Number(year)
       }
     }
 
-    loadScript(src) {
-      if (!document.querySelector(`script[src="${src}"]`)) {
-        const script = document.createElement('script')
-        script.src = src
-        document.head.appendChild(script)
-      }
+    pick(iso) {
+      this.state.open = false
+      this.setDate(iso)
     }
 
-    loadStyle(href) {
-      if (!document.querySelector(`link[href="${href}"]`)) {
-        const link = document.createElement('link')
-        link.rel = 'stylesheet'
-        link.href = href
-        document.head.appendChild(link)
+    clear() {
+      this.setDate('')
+    }
+
+    setDate(iso) {
+      if (iso === this.state.selected) {
+        return
       }
+      this.state.selected = iso
+      const [y, m, d] = iso.split('-')
+      this.state.onchange(iso ? `${d}.${m}.${y}` : '')
     }
   }
 </script>
@@ -133,43 +163,260 @@
     position: relative;
   }
 
-  input[data-input] {
-    position: absolute;
-    opacity: 0;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0,0,0,0);
-    white-space: nowrap;
-    border: 0;
-  }
-
   span.close {
     margin-left: 5px;
   }
-</style>
 
-<!-- flatpickr appends its calendar to document.body, outside the component -->
-<style global>
-  .flatpickr-calendar {
-    &.arrowTop {
-      margin-top: 40px !important;
+  .calendar {
+    position: absolute;
+    top: calc(100% + 12px);
+    left: 0;
+    z-index: 99999;
+    box-sizing: border-box;
+    width: 307.875px;
+    max-width: calc(100vw - 16px);
+    font-size: 14px;
+    line-height: 24px;
+    text-align: center;
+    background: #fff;
+    border-radius: 5px;
+    box-shadow: 1px 0 0 #e6e6e6, -1px 0 0 #e6e6e6, 0 1px 0 #e6e6e6, 0 -1px 0 #e6e6e6, 0 3px 13px rgba(0, 0, 0, .08);
+    user-select: none;
+
+    /* arrow pointing at the button: outline triangle under a white one */
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 100%;
+      left: 22px;
+      height: 0;
+      width: 0;
+      border: solid transparent;
+      pointer-events: none;
     }
 
-    &.arrowBottom {
-      margin-top: -7px !important;
+    &::before {
+      margin-left: -5px;
+      border-width: 5px;
+      border-bottom-color: #e6e6e6;
+    }
+
+    &::after {
+      margin-left: -4px;
+      border-width: 4px;
+      border-bottom-color: #fff;
+    }
+
+    &.above {
+      top: auto;
+      bottom: calc(100% + 12px);
+
+      &::before,
+      &::after {
+        top: 100%;
+        bottom: auto;
+        border-bottom-color: transparent;
+      }
+
+      &::before {
+        border-top-color: #e6e6e6;
+      }
+
+      &::after {
+        border-top-color: #fff;
+      }
+    }
+  }
+
+  .months {
+    position: relative;
+    height: 34px;
+    color: rgba(0, 0, 0, .9);
+    fill: rgba(0, 0, 0, .9);
+    line-height: 1;
+
+    .prev,
+    .next {
+      position: absolute;
+      top: 0;
+      z-index: 3;
+      box-sizing: border-box;
+      height: 34px;
+      padding: 10px;
+      cursor: pointer;
+
+      svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      &:hover svg {
+        fill: #f64747;
+      }
+    }
+
+    .prev {
+      left: 0;
+    }
+
+    .next {
+      right: 0;
+    }
+  }
+
+  .current {
+    position: absolute;
+    left: 12.5%;
+    box-sizing: border-box;
+    width: 75%;
+    height: 34px;
+    padding-top: 7.48px;
+    font-size: 135%;
+    font-weight: 300;
+    line-height: 1;
+
+    select,
+    input {
+      box-sizing: border-box;
+      height: auto;
+      margin: 0;
+      padding: 0 0 0 .5ch;
+      color: inherit;
+      font-family: inherit;
+      font-size: inherit;
+      font-weight: 300;
+      line-height: inherit;
+      vertical-align: initial;
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      outline: none;
+      box-shadow: none;
+
+      &:hover {
+        background: rgba(0, 0, 0, .05);
+      }
+    }
+
+    select {
+      width: auto;
+      margin-top: -1px;
+      cursor: pointer;
+      appearance: menulist;
+    }
+
+    input {
+      width: 6ch;
+      cursor: text;
+      appearance: textfield;
+
+      &::-webkit-inner-spin-button,
+      &::-webkit-outer-spin-button {
+        margin: 0;
+        appearance: none;
+      }
+    }
+  }
+
+  .weekdays {
+    display: flex;
+    align-items: center;
+    height: 28px;
+
+    span {
+      flex: 1;
+      color: rgba(0, 0, 0, .54);
+      font-size: 90%;
+      font-weight: bolder;
+      line-height: 1;
+      cursor: default;
+    }
+  }
+
+  .days {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+  }
+
+  .day {
+    box-sizing: border-box;
+    flex-basis: 14.2857143%;
+    max-width: 39px;
+    height: 39px;
+    color: #393939;
+    line-height: 39px;
+    border: 1px solid transparent;
+    border-radius: 150px;
+    cursor: pointer;
+
+    &:hover {
+      background: #e6e6e6;
+      border-color: #e6e6e6;
+    }
+
+    &.other {
+      color: rgba(57, 57, 57, .3);
+    }
+
+    &.today {
+      border-color: #959ea9;
+    }
+
+    &.selected {
+      color: #fff;
+      background: #569ff7;
+      border-color: #569ff7;
     }
   }
 </style>
 
 <div class="date-picker-wrapper">
-  <input fez:this="inputElement" type="text" name={props.name} data-input value={state.selectedDate} />
-  <span data-toggle class="btn {props.class || ''} {state.selectedDate ? 'has-date' : 'no-date'}">
-    {state.selectedDate || state.buttonText}
-  </span>
-  {#if state.selectedDate}
-    <span onclick="fez.setDate('')" class="close btn {props.class || ''}">&times;</span>
+  <input type="hidden" name={props.name} value={state.display} />
+  <span
+    class="btn {props.class}"
+    class:has-date={state.display}
+    class:no-date={!state.display}
+    onclick="fez.toggle()"
+  >{state.display || props.title}</span>
+  {#if state.display}
+    <span onclick="fez.clear()" class="close btn {props.class}">&times;</span>
+  {/if}
+  {#if state.open}
+    <div class="calendar" class:above={state.above} fez:in="fly, y=-20, duration=300, easing=quintOut">
+      <div class="months">
+        <span class="prev" onclick="fez.shiftMonth(-1)">
+          <svg viewBox="0 0 17 17"><path d="M5.207 8.471l7.146 7.147-0.707 0.707-7.853-7.854 7.854-7.853 0.707 0.707-7.147 7.146z" /></svg>
+        </span>
+        <div class="current">
+          <select class="month" onchange="fez.setMonth(this.value)">
+            {#each MONTHS as name, m}
+              <option value={m} selected={m === state.month}>{name}</option>
+            {/each}
+          </select>
+          <input class="year" type="number" value={state.year} oninput="fez.setYear(this.value)" />
+        </div>
+        <span class="next" onclick="fez.shiftMonth(1)">
+          <svg viewBox="0 0 17 17"><path d="M13.207 8.472l-7.854 7.854-0.707-0.707 7.146-7.146-7.146-7.148 0.707-0.707 7.854 7.853z" /></svg>
+        </span>
+      </div>
+      <div class="weekdays">
+        {#each WEEKDAYS as name}
+          <span>{name}</span>
+        {/each}
+      </div>
+      <div class="days">
+        {#each state.days as day}
+          <span
+            class="day"
+            class:other={!day.inMonth}
+            class:today={day.today}
+            class:selected={day.selected}
+            onclick="fez.pick('{day.iso}')"
+          >{day.day}</span>
+        {/each}
+      </div>
+    </div>
   {/if}
 </div>
