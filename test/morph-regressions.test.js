@@ -80,3 +80,13 @@ test("an item with a new key is a new node, not the old one reused", () => {
   expect(first.getAttribute("key")).toBe("c");
   expect(first).not.toBe(a);
 });
+
+test("a template that moves a single select's selection wins in one step", () => {
+  const options = (sel) =>
+    ["a", "b", "c"].map((v, i) => `<option value="${v}" selected="${i === sel}">${v}</option>`).join("");
+  const c = mount(`<select>${options(0)}</select>`);
+  morphTo(c, `<select>${options(1)}</select>`);
+  expect(c.querySelector("select").value).toBe("b");
+  morphTo(c, `<select>${options(2)}</select>`);
+  expect(c.querySelector("select").value).toBe("c");
+});

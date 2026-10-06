@@ -457,7 +457,7 @@ function diffChildren(target, newParent, opts) {
   }
 }
 
-const FORM_CONTROLS = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'OPTION']);
+const FORM_CONTROLS = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
 
 function isFormControl(node) {
   return FORM_CONTROLS.has(node.nodeName);
@@ -469,9 +469,14 @@ function readFormDefaults(node) {
   return {
     value: node.getAttribute('value'),
     checked: node.getAttribute('checked'),
-    selected: node.getAttribute('selected'),
     text: node.nodeName === 'TEXTAREA' ? node.defaultValue : null,
+    options: node.nodeName === 'SELECT' ? templateSelection(node) : null,
   };
+}
+
+// which options the template marks selected, as a comparable string
+function templateSelection(select) {
+  return Array.from(select.options, (option) => (booleanAttrEnabled(option, 'selected') ? 1 : 0)).join('');
 }
 
 /**
@@ -506,9 +511,17 @@ function syncDomProperties(oldNode, newNode, before) {
     if (newNode.defaultValue !== before.text) {
       oldNode.value = newNode.value;
     }
-  } else if (tag === 'OPTION') {
-    if (newNode.getAttribute('selected') !== before.selected) {
-      syncBooleanProperty(oldNode, newNode, 'selected');
+  } else if (tag === 'SELECT') {
+    // Applied once for the whole select, after its options were diffed:
+    // toggling options one by one lets a single select fall back to its
+    // default option midway and lose the template's choice.
+    const wanted = templateSelection(newNode);
+    if (wanted !== before.options) {
+      if (oldNode.multiple) {
+        Array.from(oldNode.options).forEach((option, i) => (option.selected = wanted[i] === '1'));
+      } else if (wanted.includes('1')) {
+        oldNode.selectedIndex = wanted.indexOf('1');
+      }
     }
   }
 }
