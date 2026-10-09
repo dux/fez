@@ -389,7 +389,7 @@
       await new Promise(resolve => setTimeout(resolve, 100)); // Let it initialize
 
       // Get the replaced element with fez instance
-      const fezInstance = fezMount.querySelector('.fez-fez-counter');
+      const fezInstance = fezMount.querySelector('.fez-counter-fez');
 
       // Mount React component
       const reactRoot = ReactDOM.createRoot(reactMount);
@@ -445,7 +445,7 @@
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Get the replaced element with fez instance
-      const fezListInstance = fezMount.querySelector('.fez-fez-list');
+      const fezListInstance = fezMount.querySelector('.fez-list-fez');
 
       const reactRoot = ReactDOM.createRoot(reactMount);
       const ListWithRef = React.forwardRef((props, ref) => {

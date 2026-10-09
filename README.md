@@ -898,7 +898,7 @@ This example showcases:
 
 - **Native Custom Elements** - Creates and defines Custom HTML tags using the native browser interface for maximum performance
 - **Server-Side Friendly** - Works seamlessly with server-generated HTML, any routing library, and progressive enhancement strategies
-- **Semantic HTML Output** - Transforms custom elements to standard HTML nodes (e.g., `<ui-button>` → `<button class="fez fez-button">`), making components fully stylable with CSS
+- **Semantic HTML Output** - Transforms custom elements to standard HTML nodes (e.g., `<ui-button>` → `<button class="fez ui-button-fez">`), making components fully stylable with CSS
 - **Single-File Components** - Define CSS, HTML, and JavaScript in one file, no build step required
 - **Typed Props** - Opt-in `PROPS` schema validates and coerces attribute strings into numbers, booleans, arrays, dates... with defaults, `required` and `enum`, straight into `this.props`
 - **No Framework Magic** - Plain vanilla JS classes with clear, documented methods. No hooks, runes, or complex abstractions
@@ -1694,10 +1694,10 @@ The schema is also exposed on `Fez.index[name].props` for tooling and docs.
 
 ### Props in the DOM inspector (`fez-props`)
 
-On connect the source tag is replaced by the component wrapper, so the inspector would only show `<div class="fez fez-ui-pager">`. Fez mirrors `this.props` onto the wrapper as one read-only attribute, in CSS declaration style:
+On connect the source tag is replaced by the component wrapper, so the inspector would only show `<div class="fez ui-pager-fez">`. Fez mirrors `this.props` onto the wrapper as one read-only attribute, in CSS declaration style:
 
 ```html
-<div class="fez fez-ui-pager" fez-props="page: 3; open: true; size: md; items: []; user: {}; on_pick: ()=>{}">
+<div class="fez ui-pager-fez" fez-props="page: 3; open: true; size: md; items: []; user: {}; on_pick: ()=>{}">
 ```
 
 Primitives print their value (long strings are truncated); objects, arrays and functions are only typed as `{}`, `[]` and `()=>{}`. The attribute follows every props change (`this.props.x = ...`, keyed refresh from a parent render). It is orientation for the inspector, not an API - read `node.fez.props` for the real values, and note that writing an attribute on the wrapper never feeds props.

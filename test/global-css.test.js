@@ -13,7 +13,7 @@ const rewrite = (css, opts) => {
 describe("Fez.globalCss", () => {
   test("rewrites :fez to the component root selector", () => {
     const out = rewrite(":fez { color: red; }", { name: "ui-btn" });
-    expect(out).toContain(".fez.fez-ui-btn");
+    expect(out).toContain(".fez.ui-btn-fez");
     expect(out).not.toContain(":fez");
   });
 
@@ -22,7 +22,7 @@ describe("Fez.globalCss", () => {
       name: "ui-btn",
     });
     expect(out).not.toContain(":fez");
-    expect((out.match(/\.fez\.fez-ui-btn/g) || []).length).toBe(2);
+    expect((out.match(/\.fez\.ui-btn-fez/g) || []).length).toBe(2);
   });
 
   test("leaves a global sheet unscoped when no name is given", () => {
@@ -41,7 +41,7 @@ describe("Fez.globalCss", () => {
 
   test("wraps in :fez when opts.wrap is set", () => {
     const out = rewrite("outline: 1px dotted;", { name: "ui-btn", wrap: true });
-    expect(out).toContain(".fez.fez-ui-btn{");
+    expect(out).toContain(".fez.ui-btn-fez{");
     expect(out).toContain("outline: 1px dotted;");
   });
 
@@ -49,7 +49,7 @@ describe("Fez.globalCss", () => {
     const out = rewrite(":fez { .card { &:hover { color: red; } } }", {
       name: "ui-card",
     });
-    expect(out).toContain(".fez.fez-ui-card .card:hover{color: red;}");
+    expect(out).toContain(".fez.ui-card-fez .card:hover{color: red;}");
     expect(out).not.toContain("&");
   });
 
@@ -60,7 +60,7 @@ describe("Fez.globalCss", () => {
     );
     expect(out).toContain("@keyframes kf{to{opacity: 1;}}");
     // must not end up nested under the component selector
-    expect(out).not.toMatch(/\.fez\.fez-ui-anim[^{]*\{\s*@keyframes/);
+    expect(out).not.toMatch(/\.fez\.ui-anim-fez[^{]*\{\s*@keyframes/);
   });
 
   test("lets :global() escape the component scope", () => {
@@ -68,7 +68,7 @@ describe("Fez.globalCss", () => {
       name: "ui-esc",
     });
     expect(out).toContain(".widget{color: red;}");
-    expect(out).not.toContain(".fez.fez-ui-esc .widget");
+    expect(out).not.toContain(".fez.ui-esc-fez .widget");
   });
 
   test("injects identical CSS only once", () => {

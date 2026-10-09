@@ -44,12 +44,12 @@ async function createPage(html) {
     },
     { source, html },
   );
-  await page.waitForSelector('.fez-input-date .btn');
+  await page.waitForSelector('.input-date-fez .btn');
   return page;
 }
 
-const trigger = '.fez-input-date .btn >> nth=0';
-const hidden = (page) => page.$eval('.fez-input-date input[type=hidden]', (n) => n.value);
+const trigger = '.input-date-fez .btn >> nth=0';
+const hidden = (page) => page.$eval('.input-date-fez input[type=hidden]', (n) => n.value);
 
 test('picks a date: button, hidden form value and onchange; nothing loads from the network', async () => {
   const page = await createPage(
@@ -75,7 +75,7 @@ test('picks a date: button, hidden form value and onchange; nothing loads from t
     expect(await page.evaluate(() => window.changes)).toEqual(['22.01.2024']);
 
     await page.click('.close');
-    await page.waitForFunction(() => document.querySelector('.fez-input-date .btn').textContent === 'Select date');
+    await page.waitForFunction(() => document.querySelector('.input-date-fez .btn').textContent === 'Select date');
     expect(await hidden(page)).toBe('');
     expect(await page.evaluate(() => window.changes)).toEqual(['22.01.2024', '']);
 
@@ -120,7 +120,7 @@ test('initial value as a day offset, title fallback, Esc and outside click close
       return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
     });
     expect(await page.textContent(trigger)).toBe(expected);
-    expect(await page.textContent('.fez-input-date >> nth=1 >> .btn')).toBe('Pick');
+    expect(await page.textContent('.input-date-fez >> nth=1 >> .btn')).toBe('Pick');
 
     await page.click(trigger);
     await page.waitForSelector('.calendar');

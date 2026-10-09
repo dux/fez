@@ -30,7 +30,7 @@ afterAll(async () => {
 
 // Fez is injected before the markup so <fez-inline> connects as the parser
 // reaches it, same as a real page with fez.js in <head>. The rendered root is
-// a <span class="fez fez-fez-inline">, the custom tag itself is replaced.
+// a <span class="fez fez-inline-fez">, the custom tag itself is replaced.
 async function createTestPage(html) {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -57,7 +57,7 @@ test('renders children as template with props', async () => {
   try {
     await page.waitForSelector('.who');
     expect(await page.textContent('.who')).toBe('World');
-    expect(await page.textContent('.fez-fez-inline')).toContain('Hello World');
+    expect(await page.textContent('.fez-inline-fez')).toContain('Hello World');
   } finally {
     await closePage(page);
   }
@@ -132,7 +132,7 @@ test('empty fez-inline renders nothing and does not throw', async () => {
     page.on('pageerror', (e) => errors.push(e.message));
     await page.waitForSelector('.after');
     await page.waitForTimeout(100);
-    expect((await page.textContent('.fez-fez-inline')).trim()).toBe('');
+    expect((await page.textContent('.fez-inline-fez')).trim()).toBe('');
     expect(errors).toEqual([]);
   } finally {
     await closePage(page);

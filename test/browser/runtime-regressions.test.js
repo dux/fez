@@ -237,7 +237,7 @@ test('a detached global state reader keeps its subscription', async () => {
     () => {
       Fez('gs-x', class { HTML = '<b>{globalState.gsVal || "none"}</b>'; });
       app.innerHTML = '<div id="host"><gs-x></gs-x></div>';
-      const node = document.querySelector('.fez-gs-x');
+      const node = document.querySelector('.gs-x-fez');
       setTimeout(() => {
         node.remove();
         Fez.state.set('gsVal', 'a');
@@ -245,7 +245,7 @@ test('a detached global state reader keeps its subscription', async () => {
         setTimeout(() => Fez.state.set('gsVal', 'b'), 30);
       }, 20);
     },
-    () => document.querySelector('.fez-gs-x b').textContent,
+    () => document.querySelector('.gs-x-fez b').textContent,
   );
   expect(result).toBe('b');
 });
@@ -259,8 +259,8 @@ test('fez-inline inserted late compiles its source, not mounted children', async
       setTimeout(() => Fez.state.set('inlineN', 6), 30);
     },
     () => ({
-      text: document.querySelector('.fez-fez-inline').textContent,
-      live: !!document.querySelector('.fez-inline-child')?.fez,
+      text: document.querySelector('.fez-inline-fez').textContent,
+      live: !!document.querySelector('.inline-child-fez')?.fez,
     }),
   );
   expect(result).toEqual({ text: 'x 6', live: true });

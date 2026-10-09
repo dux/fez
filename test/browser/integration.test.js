@@ -604,7 +604,7 @@ test(':attr props - parent re-render with identical HTML still delivers new obje
 
     // Same shape, new object: must reach the child through the props refresh
     await page.evaluate(() => {
-      document.querySelector('.fez-slot-parent').fez.state.users = [{ name: 'Bob' }];
+      document.querySelector('.slot-parent-fez').fez.state.users = [{ name: 'Bob' }];
     });
     await page.waitForFunction(
       () => document.querySelector('.child-name')?.textContent === 'Bob',
@@ -615,7 +615,7 @@ test(':attr props - parent re-render with identical HTML still delivers new obje
     // the reactive store hands out a fresh proxy per read, so the slot value
     // differs by identity and the morph runs even though the HTML is identical
     await page.evaluate(() => {
-      document.querySelector('.fez-slot-parent').fez.state.users[0].name = 'Cid';
+      document.querySelector('.slot-parent-fez').fez.state.users[0].name = 'Cid';
     });
     await page.waitForFunction(
       () => document.querySelector('.child-name')?.textContent === 'Cid',
@@ -737,12 +737,12 @@ test('template - <slim> block compiles at runtime without whitespace nodes', asy
 `);
     });
 
-    await page.waitForFunction(() => document.querySelectorAll('.fez-test-slim li').length === 2, { timeout: 2000 });
-    await page.click('.fez-test-slim .add');
-    await page.waitForFunction(() => document.querySelectorAll('.fez-test-slim li').length === 3, { timeout: 2000 });
+    await page.waitForFunction(() => document.querySelectorAll('.test-slim-fez li').length === 2, { timeout: 2000 });
+    await page.click('.test-slim-fez .add');
+    await page.waitForFunction(() => document.querySelectorAll('.test-slim-fez li').length === 3, { timeout: 2000 });
 
     const result = await page.evaluate(() => {
-      const root = document.querySelector('.fez-test-slim');
+      const root = document.querySelector('.test-slim-fez');
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
       let blank = 0;
       while (walker.nextNode()) {
@@ -794,7 +794,7 @@ test('template - compiler keys are internal DOM properties', async () => {
     }, { timeout: 2000 });
 
     const before = await page.evaluate(() => {
-      const root = document.querySelector('.fez-test-internal-keys');
+      const root = document.querySelector('.test-internal-keys-fez');
       return {
         hasKeyAttrs: root.querySelector('[key], [fez-key]') !== null,
         keys: Array.from(root.querySelectorAll('.internal-key-item')).map((el) => el._fezKey),
@@ -814,7 +814,7 @@ test('template - compiler keys are internal DOM properties', async () => {
     }, { timeout: 2000 });
 
     const after = await page.evaluate(() => {
-      const root = document.querySelector('.fez-test-internal-keys');
+      const root = document.querySelector('.test-internal-keys-fez');
       return {
         hasKeyAttrs: root.querySelector('[key], [fez-key]') !== null,
         keys: Array.from(root.querySelectorAll('.internal-key-item')).map((el) => el._fezKey),
@@ -911,18 +911,18 @@ test('transitions - fez:in plays once on mount, fez:out defers removal', async (
     await page.waitForFunction(() => document.querySelector('.box').getAnimations().length === 0, { timeout: 2000 });
 
     // re-render without toggling: kept node gets no second intro
-    await page.evaluate(() => { document.querySelector('.fez-test-transition').fez.state.tick = 1; });
+    await page.evaluate(() => { document.querySelector('.test-transition-fez').fez.state.tick = 1; });
     await page.waitForFunction(() => document.querySelector('.tick').textContent === '1', { timeout: 2000 });
     expect(await page.evaluate(() => document.querySelector('.box').getAnimations().length)).toBe(0);
 
     // hide: node stays (flagged leaving) while the outro runs, then is detached
-    await page.evaluate(() => { document.querySelector('.fez-test-transition').fez.state.show = false; });
+    await page.evaluate(() => { document.querySelector('.test-transition-fez').fez.state.show = false; });
     await page.waitForFunction(() => document.querySelector('.box')?._fezLeaving === true, { timeout: 2000 });
     expect(await page.evaluate(() => document.querySelector('.box').getAnimations().length)).toBe(1);
     await page.waitForFunction(() => !document.querySelector('.box'), { timeout: 2000 });
 
     // show again: fresh node, fresh intro
-    await page.evaluate(() => { document.querySelector('.fez-test-transition').fez.state.show = true; });
+    await page.evaluate(() => { document.querySelector('.test-transition-fez').fez.state.show = true; });
     await page.waitForSelector('.box', { timeout: 2000 });
     expect(await page.evaluate(() => document.querySelector('.box').getAnimations().length)).toBe(1);
   } finally {
@@ -1009,7 +1009,7 @@ test('transitions - fez:transition sets both directions, explicit fez:in/out ove
     expect(state.mixedOut).toBe('markerB'); // explicit fez:out wins
 
     // outro runs for the shorthand too
-    await page.evaluate(() => { document.querySelector('.fez-test-both-transition').fez.state.show = false; });
+    await page.evaluate(() => { document.querySelector('.test-both-transition-fez').fez.state.show = false; });
     await page.waitForFunction(() => document.querySelector('.both')?._fezLeaving === true, { timeout: 2000 });
     await page.waitForFunction(() => !document.querySelector('.both') && !document.querySelector('.mixed'), { timeout: 2000 });
   } finally {
@@ -1036,7 +1036,7 @@ test('transitions - fez:animate="flip" glides kept items to their new position o
     await page.waitForSelector('.it-3', { timeout: 2000 });
     const before = await page.evaluate(() => document.querySelector('.it-3').getBoundingClientRect().left);
 
-    await page.evaluate(() => { document.querySelector('.fez-test-flip').fez.state.items = [3, 2, 1]; });
+    await page.evaluate(() => { document.querySelector('.test-flip-fez').fez.state.items = [3, 2, 1]; });
     await page.waitForFunction(() => document.querySelector('.it').textContent === '3', { timeout: 2000 });
 
     const state = await page.evaluate(() => {
@@ -1077,21 +1077,21 @@ test('fez-props - wrapper mirrors props and follows parent changes, root attribu
     await page.waitForFunction(() => document.querySelector('.child')?.textContent === '1', { timeout: 2000 });
 
     const initial = await page.evaluate(() => {
-      const node = document.querySelector('.fez-test-child');
+      const node = document.querySelector('.test-child-fez');
       return { attr: node.getAttribute('fez-props'), keys: Object.keys(node.fez.props) };
     });
     expect(initial.attr).toBe('count: 1; label: Hits; user: {}; on_pick: ()=>{}');
     expect(initial.keys).not.toContain('fez-props');
 
     // parent re-render -> keyed props refresh
-    await page.evaluate(() => { document.querySelector('.fez-test-parent').fez.state.n = 2; });
+    await page.evaluate(() => { document.querySelector('.test-parent-fez').fez.state.n = 2; });
     await page.waitForFunction(() => document.querySelector('.child')?.textContent === '2', { timeout: 2000 });
-    expect(await page.evaluate(() => document.querySelector('.fez-test-child').getAttribute('fez-props')))
+    expect(await page.evaluate(() => document.querySelector('.test-child-fez').getAttribute('fez-props')))
       .toBe('count: 2; label: Hits; user: {}; on_pick: ()=>{}');
 
     // an attribute written on the root is inert: props, render and mirror stay put
     const after = await page.evaluate(async () => {
-      const node = document.querySelector('.fez-test-child');
+      const node = document.querySelector('.test-child-fez');
       node.setAttribute('count', '7');
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
       return {
@@ -1222,7 +1222,7 @@ test('GLOBAL - window handle follows the live instance and clears on destroy', a
     const first = await page.evaluate(() => window.Probe.UID);
 
     // no MOUNT: the placed tag is the only instance
-    expect(await page.evaluate(() => document.querySelectorAll('.fez-x-probe').length)).toBe(1);
+    expect(await page.evaluate(() => document.querySelectorAll('.x-probe-fez').length)).toBe(1);
 
     await page.evaluate(() => { document.getElementById('host').innerHTML = ''; });
     await page.waitForFunction(() => window.Probe === undefined, { timeout: 2000 });
@@ -1256,9 +1256,9 @@ test('MOUNT - appends once, skipped when the page already placed the tag', async
     await page.waitForFunction(() => document.querySelector('.mounted'), { timeout: 2000 });
 
     const counts = await page.evaluate(() => ({
-      mounted: document.querySelectorAll('.fez-x-mounted').length,
-      placed: document.querySelectorAll('.fez-x-placed').length,
-      bad: document.querySelectorAll('.fez-x-bad').length,
+      mounted: document.querySelectorAll('.x-mounted-fez').length,
+      placed: document.querySelectorAll('.x-placed-fez').length,
+      bad: document.querySelectorAll('.x-bad-fez').length,
     }));
     expect(counts).toEqual({ mounted: 1, placed: 1, bad: 0 });
   } finally {
@@ -1277,7 +1277,7 @@ test("Fez('name', node) - resolves the enclosing parent instance", async () => {
       window.Fez('x-inner', class {
         onMount() {
           window.testResults.parentUID = window.Fez('x-outer', this.root).UID;
-          window.testResults.outerUID = document.querySelector('.fez-x-outer').fez.UID;
+          window.testResults.outerUID = document.querySelector('.x-outer-fez').fez.UID;
         }
         HTML = '<div class="inner">i</div>';
       });
@@ -1304,16 +1304,16 @@ test('Fez.instances - differ removal drops the entry', async () => {
         HTML = '<div class="list">{#if state.show}<x-item></x-item>{/if}</div>';
       });
     });
-    await page.waitForFunction(() => document.querySelector('.fez-x-item')?.fez, { timeout: 2000 });
+    await page.waitForFunction(() => document.querySelector('.x-item-fez')?.fez, { timeout: 2000 });
 
     const before = await page.evaluate(() => {
-      const uid = document.querySelector('.fez-x-item').fez.UID;
+      const uid = document.querySelector('.x-item-fez').fez.UID;
       return { uid, has: window.Fez.instances.has(uid), size: window.Fez.instances.size };
     });
     expect(before.has).toBe(true);
 
-    await page.evaluate(() => { document.querySelector('.fez-x-list').fez.state.show = false; });
-    await page.waitForFunction(() => !document.querySelector('.fez-x-item'), { timeout: 2000 });
+    await page.evaluate(() => { document.querySelector('.x-list-fez').fez.state.show = false; });
+    await page.waitForFunction(() => !document.querySelector('.x-item-fez'), { timeout: 2000 });
     await page.waitForTimeout(50);
 
     const after = await page.evaluate((uid) => ({

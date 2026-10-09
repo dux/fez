@@ -166,7 +166,7 @@ export default function attachMorph(Fez) {
   /**
    * Describe a template (new) fez component placeholder so it matches against
    * the live component's `fez-class-` alias. Recognizes three forms:
-   *   1. Inline-rendered: <div class="fez fez-x">   (already mounted-ish)
+   *   1. Inline-rendered: <div class="fez x-fez">   (already mounted-ish)
    *   2. Raw custom tag:  <my-comp>                 (server-rendered placeholder)
    *   3. fez= attribute:  <div fez="my-comp">       (server-rendered placeholder)
    */

@@ -15,7 +15,7 @@
   <br />
 
   <style>
-    .fez-ui-fa { margin-right: 10px; }
+    .ui-fa-fez { margin-right: 10px; }
   </style>
 
   <ui-fa name="home" :size="document.getElementById('fa_range').value"></ui-fa>

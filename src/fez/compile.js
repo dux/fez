@@ -270,7 +270,7 @@ function processHeadElements(headHtml) {
 function generateClassCode(tagName, parts) {
   // Scope comes from the tag, never from the content: <style> is always
   // wrapped, <style global> is always passed through untouched. :fez is only
-  // the marker the runtime rewrites to .fez.fez-<name>; :global(...) and
+  // the marker the runtime rewrites to .fez.<name>-fez; :global(...) and
   // non-nestable at-rules are lifted out by the flattener at injection time.
   assertStyleScope(tagName, parts.style, false);
   assertStyleScope(tagName, parts.styleGlobal, true);

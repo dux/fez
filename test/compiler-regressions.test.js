@@ -171,7 +171,7 @@ describe("class source", () => {
 
 describe("flattenCss", () => {
   test(":global() with nested parens", () => {
-    expect(flattenCss(".fez.fez-x { :global(:is(.a, .b) .c) { x: 1; } }")).toContain(":is(.a, .b) .c{x: 1;}");
+    expect(flattenCss(".fez.x-fez { :global(:is(.a, .b) .c) { x: 1; } }")).toContain(":is(.a, .b) .c{x: 1;}");
   });
 
   test("& inside an attribute string is not the parent", () => {

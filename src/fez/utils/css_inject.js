@@ -8,7 +8,7 @@
 // nothing) and inflated the specificity of every component rule.
 //
 // Nesting is now the browser's job. Component CSS is already scoped by the
-// .fez.fez-<name> selector the compiler emits, so the text can go in verbatim.
+// .fez.<name>-fez selector the compiler emits, so the text can go in verbatim.
 
 const injected = new Set();
 const chunks = [];

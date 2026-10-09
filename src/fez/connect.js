@@ -202,7 +202,7 @@ function ensureFezBase(Fez, name, klass) {
   // Skip when the page already placed the tag, so a mount is idempotent
   if (newKlass.MOUNT) {
     Fez.onReady(() => {
-      if (!document.querySelector(`${name}, .fez-${name}`)) {
+      if (!document.querySelector(`${name}, .${name}-fez`)) {
         document.body.appendChild(document.createElement(name));
       }
     });
@@ -233,7 +233,7 @@ function connectNode(name, node) {
 
   const klass = Fez.index[name]?.class;
   const newNode = klass.createRootNode(node);
-  newNode.classList.add('fez', `fez-${name}`);
+  newNode.classList.add('fez', `${name}-fez`);
 
   // Replace custom element with component node
   node.parentNode.replaceChild(newNode, node);

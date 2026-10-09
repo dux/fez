@@ -18,7 +18,7 @@ const squash = (css) => css.replace(/\s+/g, " ").trim();
 const scoped = (css, name = "demo") =>
   squash(
     flattenCss(
-      Fez.cssMixin(`:fez {\n${css}\n}`).replace(/:fez\b/g, `.fez.fez-${name}`),
+      Fez.cssMixin(`:fez {\n${css}\n}`).replace(/:fez\b/g, `.fez.${name}-fez`),
     ),
   );
 
@@ -28,7 +28,7 @@ const global = (css) => squash(flattenCss(Fez.cssMixin(css)));
 describe("cssMixin", () => {
   test("expands a registered macro to its at-rule", () => {
     expect(scoped("h1 { :mobile { font-size: 12px; } }")).toBe(
-      "@media (max-width: 767px){.fez.fez-demo h1{font-size: 12px;}}",
+      "@media (max-width: 767px){.fez.demo-fez h1{font-size: 12px;}}",
     );
   });
 
@@ -56,7 +56,7 @@ describe("cssMixin declarations", () => {
 
   test("inlines the body at the usage site, in place", () => {
     expect(scoped(".item { color: red; :card; margin: 0; }")).toBe(
-      ".fez.fez-demo .item{color: red;padding: 16px;border-radius: 8px;margin: 0;}",
+      ".fez.demo-fez .item{color: red;padding: 16px;border-radius: 8px;margin: 0;}",
     );
   });
 
@@ -66,8 +66,8 @@ describe("cssMixin declarations", () => {
 
   test("a body may carry nested rules", () => {
     expect(scoped(".item { :lift; }")).toBe(
-      ".fez.fez-demo .item{box-shadow: 0 2px 8px #0002;} " +
-        ".fez.fez-demo .item:hover{box-shadow: 0 6px 16px #0003;}",
+      ".fez.demo-fez .item{box-shadow: 0 2px 8px #0002;} " +
+        ".fez.demo-fez .item:hover{box-shadow: 0 6px 16px #0003;}",
     );
   });
 
@@ -79,7 +79,7 @@ describe("cssMixin declarations", () => {
 
   test("leaves a property value that shares the name alone", () => {
     expect(scoped(".a { pointer-events:none; }")).toBe(
-      ".fez.fez-demo .a{pointer-events:none;}",
+      ".fez.demo-fez .a{pointer-events:none;}",
     );
   });
 
@@ -91,15 +91,15 @@ describe("cssMixin declarations", () => {
 describe("cssMixin :dark", () => {
   test("resolves against the parent selector", () => {
     expect(scoped(".btn { background: #eee; :dark { background: #222; } }")).toBe(
-      ".fez.fez-demo .btn{background: #eee;} " +
-        ".fez.fez-demo .btn:where(.dark, .dark *){background: #222;}",
+      ".fez.demo-fez .btn{background: #eee;} " +
+        ".fez.demo-fez .btn:where(.dark, .dark *){background: #222;}",
     );
   });
 
   test("at block root it targets the component wrapper", () => {
     expect(scoped("color: #111; :dark { color: #eee; }")).toBe(
-      ".fez.fez-demo{color: #111;} " +
-        ".fez.fez-demo:where(.dark, .dark *){color: #eee;}",
+      ".fez.demo-fez{color: #111;} " +
+        ".fez.demo-fez:where(.dark, .dark *){color: #eee;}",
     );
   });
 
@@ -131,8 +131,8 @@ describe("cssMixin :dark", () => {
     const css = ".btn { background: #eee; :dark { background: #222; } }";
     Fez.cssMixin("dark", "@media (prefers-color-scheme: dark)");
     expect(scoped(css)).toBe(
-      ".fez.fez-demo .btn{background: #eee;} " +
-        "@media (prefers-color-scheme: dark){.fez.fez-demo .btn{background: #222;}}",
+      ".fez.demo-fez .btn{background: #eee;} " +
+        "@media (prefers-color-scheme: dark){.fez.demo-fez .btn{background: #222;}}",
     );
   });
 

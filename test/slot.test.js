@@ -331,12 +331,12 @@ describe("slot behavior", () => {
       root.innerHTML =
         '<div class="header"><span>Tab 1</span></div>' +
         '<div class="fez-slot" fez-keep="default-slot">' +
-        '<div class="fez fez-ui-clock"></div>' +
+        '<div class="fez ui-clock-fez"></div>' +
         "<div>Static content</div>" +
         "</div>";
       document.body.appendChild(root);
 
-      const clock = root.querySelector(".fez-ui-clock");
+      const clock = root.querySelector(".ui-clock-fez");
       clock.fez = { fezName: "ui-clock", UID: 99, _destroyed: false };
       clock._marker = "clock-component";
 
@@ -347,7 +347,7 @@ describe("slot behavior", () => {
       );
 
       const slot = root.querySelector(".fez-slot");
-      const preservedClock = slot.querySelector(".fez-ui-clock");
+      const preservedClock = slot.querySelector(".ui-clock-fez");
       expect(preservedClock).not.toBeNull();
       expect(preservedClock._marker).toBe("clock-component");
       expect(preservedClock.fez.UID).toBe(99);
@@ -415,7 +415,7 @@ describe("slot behavior", () => {
       const tab1 = document.createElement("div");
       tab1.setAttribute("title", "Tab1");
       const nestedComp = document.createElement("div");
-      nestedComp.className = "fez fez-inner-tabs";
+      nestedComp.className = "fez inner-tabs-fez";
       nestedComp.innerHTML =
         '<div class="header"><span>Nested1</span></div>' +
         '<div class="fez-slot" fez-keep="default-slot">' +
@@ -472,7 +472,7 @@ describe("slot behavior", () => {
       root.innerHTML =
         '<div fez-keep="my-widget">Old widget</div>' +
         '<div class="fez-slot" fez-keep="default-slot">' +
-        '<div class="fez fez-child">' +
+        '<div class="fez child-fez">' +
         '<div fez-keep="my-widget">Nested widget - should NOT be swapped</div>' +
         "</div>" +
         "</div>";
@@ -480,7 +480,7 @@ describe("slot behavior", () => {
       // Mark outer and nested elements
       directChild(root, '[fez-keep="my-widget"]')._marker = "outer-widget";
       root
-        .querySelector(".fez-child")
+        .querySelector(".child-fez")
         .querySelector('[fez-keep="my-widget"]')._marker = "nested-widget";
 
       fezRender(
@@ -496,7 +496,7 @@ describe("slot behavior", () => {
 
       // Nested widget inside slot is untouched
       const nestedWidget = root
-        .querySelector(".fez-slot .fez-child")
+        .querySelector(".fez-slot .child-fez")
         .querySelector('[fez-keep="my-widget"]');
       expect(nestedWidget._marker).toBe("nested-widget");
 
@@ -514,7 +514,7 @@ describe("slot behavior", () => {
         '<div class="header"><span>Tab1</span></div>' +
         '<div class="fez-slot" fez-keep="default-slot">' +
         '<div title="Tab1">' +
-        '<div class="fez fez-nested">' +
+        '<div class="fez nested-fez">' +
         '<div class="fez-slot" fez-keep="default-slot"><p>Deep content</p></div>' +
         "</div>" +
         "</div>" +
@@ -539,7 +539,7 @@ describe("slot behavior", () => {
 
       // Nested slot inside tab1 is still intact
       const deepContent = slot.children[0].querySelector(
-        ".fez-nested .fez-slot p",
+        ".nested-fez .fez-slot p",
       );
       expect(deepContent).not.toBeNull();
       expect(deepContent.textContent).toBe("Deep content");
@@ -788,7 +788,7 @@ describe("slot behavior", () => {
         '<div class="header"><span>H</span></div>' +
         '<div class="fez-slot" fez-keep="default-slot">' +
         '<div title="Tab1">' +
-        '<div class="fez fez-nested">' +
+        '<div class="fez nested-fez">' +
         '<div class="fez-slot" fez-keep="default-slot">' +
         "<p>Deep1</p><p>Deep2</p>" +
         "</div>" +

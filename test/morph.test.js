@@ -261,7 +261,7 @@ describe("nodeMorph basics", () => {
 describe("attribute sync", () => {
   test("preserves root element attributes (root is component wrapper)", () => {
     const container = document.createElement("div");
-    container.setAttribute("class", "fez fez-my-comp go123");
+    container.setAttribute("class", "fez my-comp-fez go123");
     container.setAttribute("data-x", "1");
     document.body.appendChild(container);
 
@@ -272,7 +272,7 @@ describe("attribute sync", () => {
     nodeMorph(container, newNode);
 
     // Root attributes are NOT synced - they belong to Fez, not the template
-    expect(container.getAttribute("class")).toBe("fez fez-my-comp go123");
+    expect(container.getAttribute("class")).toBe("fez my-comp-fez go123");
     expect(container.getAttribute("data-x")).toBe("1");
 
     container.remove();
@@ -706,7 +706,7 @@ describe("fez component preservation", () => {
   test("skipNode prevents morphing of child components", () => {
     const container = document.createElement("div");
     container.innerHTML =
-      '<div class="fez fez-my-comp"><span>Original</span></div>';
+      '<div class="fez my-comp-fez"><span>Original</span></div>';
     document.body.appendChild(container);
 
     const comp = container.querySelector(".fez");
@@ -715,7 +715,7 @@ describe("fez component preservation", () => {
 
     const newNode = document.createElement("div");
     newNode.innerHTML =
-      '<div class="fez fez-my-comp"><span>Changed</span></div>';
+      '<div class="fez my-comp-fez"><span>Changed</span></div>';
 
     nodeMorph(container, newNode, {
       skipNode: (node) =>
@@ -732,7 +732,7 @@ describe("fez component preservation", () => {
   test("beforeRemove called on removed fez components", () => {
     const container = document.createElement("div");
     container.innerHTML =
-      '<div class="fez fez-comp"><span>Comp</span></div><p>Keep</p>';
+      '<div class="fez comp-fez"><span>Comp</span></div><p>Keep</p>';
     document.body.appendChild(container);
 
     const comp = container.querySelector(".fez");
@@ -783,7 +783,7 @@ describe("fez component preservation", () => {
   test("fez component matched by UID when reordered", () => {
     const container = document.createElement("div");
     container.innerHTML =
-      '<p>text</p><div class="fez fez-a" id="comp-1">A</div><div class="fez fez-b" id="comp-2">B</div>';
+      '<p>text</p><div class="fez a-fez" id="comp-1">A</div><div class="fez b-fez" id="comp-2">B</div>';
     document.body.appendChild(container);
 
     const compA = container.querySelector("#comp-1");
@@ -795,7 +795,7 @@ describe("fez component preservation", () => {
 
     const newNode = document.createElement("div");
     newNode.innerHTML =
-      '<div class="fez fez-b" id="comp-2">B-new</div><p>text</p><div class="fez fez-a" id="comp-1">A-new</div>';
+      '<div class="fez b-fez" id="comp-2">B-new</div><p>text</p><div class="fez a-fez" id="comp-1">A-new</div>';
 
     nodeMorph(container, newNode, {
       skipNode: (node) =>
@@ -1152,7 +1152,7 @@ describe("node identity preservation", () => {
   test("fez component nodes are preserved and never morphed", () => {
     const container = document.createElement("div");
     container.innerHTML =
-      '<p>before</p><div class="fez fez-my-comp">internal content</div><p>after</p>';
+      '<p>before</p><div class="fez my-comp-fez">internal content</div><p>after</p>';
     document.body.appendChild(container);
 
     // Simulate a fez component instance on the node
@@ -1166,7 +1166,7 @@ describe("node identity preservation", () => {
 
     const newNode = document.createElement("div");
     newNode.innerHTML =
-      '<p>before</p><div class="fez fez-my-comp">template placeholder</div><p>after</p>';
+      '<p>before</p><div class="fez my-comp-fez">template placeholder</div><p>after</p>';
     nodeMorph(container, newNode, {
       skipNode: (node) =>
         node.classList?.contains("fez") && node.fez && !node.fez._destroyed,

@@ -134,7 +134,7 @@ test('PROPS - static PROPS on plain class and keyed refresh from parent re-rende
     });
     await page.waitForFunction(() => window.testResults.childInits === 1, { timeout: 3000 });
 
-    let text = await page.evaluate(() => document.querySelector('x-child, .fez-child span, .fez span')?.textContent);
+    let text = await page.evaluate(() => document.querySelector('x-child, .child-fez span, .fez span')?.textContent);
     expect(text).toBe('10');
 
     await page.evaluate(() => {
@@ -169,10 +169,10 @@ test('PROPS - props are reactive, writing this.props re-renders', async () => {
     expect(await page.textContent('.out')).toBe('start');
     expect(await page.textContent('.n')).toBe('1');
 
-    await page.evaluate(() => document.querySelector('.fez-x-write').fez.bump());
+    await page.evaluate(() => document.querySelector('.x-write-fez').fez.bump());
     await page.waitForFunction(() => document.querySelector('.n').textContent === '2', { timeout: 3000 });
 
-    await page.evaluate(() => document.querySelector('.fez-x-write').fez.rename());
+    await page.evaluate(() => document.querySelector('.x-write-fez').fez.rename());
     await page.waitForFunction(() => document.querySelector('.out').textContent === 'changed', { timeout: 3000 });
   } finally {
     await closePage(page);
@@ -203,13 +203,13 @@ test('PROPS - { state: true } seeds this.state before init, transform splits the
 
     // state owns the list from here - props keep the value they were seeded from,
     // in place mutation included (state is seeded with a copy)
-    await page.evaluate(() => document.querySelector('.fez-x-seed').fez.add('d'));
+    await page.evaluate(() => document.querySelector('.x-seed-fez').fez.add('d'));
     await page.waitForFunction(() => document.querySelectorAll('li').length === 4, { timeout: 3000 });
-    expect(await page.evaluate(() => document.querySelector('.fez-x-seed').fez.props.tags)).toEqual(['a', 'b', 'c']);
+    expect(await page.evaluate(() => document.querySelector('.x-seed-fez').fez.props.tags)).toEqual(['a', 'b', 'c']);
 
-    await page.evaluate(() => document.querySelector('.fez-x-seed').fez.state.tags.push('e'));
+    await page.evaluate(() => document.querySelector('.x-seed-fez').fez.state.tags.push('e'));
     await page.waitForFunction(() => document.querySelectorAll('li').length === 5, { timeout: 3000 });
-    expect(await page.evaluate(() => document.querySelector('.fez-x-seed').fez.props.tags)).toEqual(['a', 'b', 'c']);
+    expect(await page.evaluate(() => document.querySelector('.x-seed-fez').fez.props.tags)).toEqual(['a', 'b', 'c']);
   } finally {
     await closePage(page);
   }
@@ -254,7 +254,7 @@ test('PROPS - { state: true } seeds inside a <slot unwrap /> component, unread k
     expect(await page.evaluate(() => window.testResults.tags)).toEqual(['a', 'b']);
 
     // picker is never rendered - silent; label is rendered and can never update - reported
-    await page.evaluate(() => document.querySelector('.fez-x-unwrap-seed').fez.poke());
+    await page.evaluate(() => document.querySelector('.x-unwrap-seed-fez').fez.poke());
     await page.waitForTimeout(200);
     expect(await page.evaluate(() => document.querySelectorAll('.kid').length)).toBe(1);
     expect(await page.textContent('.lbl')).toBe('a');
@@ -305,16 +305,16 @@ test('state - a write renders only when the last render read that key', async ()
     await page.waitForSelector('.n');
     expect(await page.evaluate(() => window.testResults.renders)).toBe(1);
 
-    const fez = () => document.querySelector('.fez-x-reads').fez;
+    const fez = () => document.querySelector('.x-reads-fez').fez;
     // unread keys: plain field, nested object, DOM node ref style value
-    await page.evaluate(() => { const f = (() => document.querySelector('.fez-x-reads').fez)(); f.state.hidden++; f.state.editor.calls++; f.state.node = document.body; });
+    await page.evaluate(() => { const f = (() => document.querySelector('.x-reads-fez').fez)(); f.state.hidden++; f.state.editor.calls++; f.state.node = document.body; });
     await page.waitForTimeout(150);
     expect(await page.evaluate(() => window.testResults.renders)).toBe(1);
 
     // read keys, including a nested write on a rendered array
-    await page.evaluate(() => document.querySelector('.fez-x-reads').fez.state.shown++);
+    await page.evaluate(() => document.querySelector('.x-reads-fez').fez.state.shown++);
     await page.waitForFunction(() => document.querySelector('.n').textContent === '1 / 0', { timeout: 3000 });
-    await page.evaluate(() => document.querySelector('.fez-x-reads').fez.state.list.push('a'));
+    await page.evaluate(() => document.querySelector('.x-reads-fez').fez.state.list.push('a'));
     await page.waitForFunction(() => document.querySelector('.n').textContent === '1 / 1', { timeout: 3000 });
     expect(await page.evaluate(() => window.testResults.renders)).toBe(3);
   } finally {
@@ -333,12 +333,12 @@ test('PROPS - a prop write does not re-render a <slot unwrap /> component', asyn
     await page.waitForSelector('.kid');
 
     // unwrap dissolves the slot wrapper, so a re-render would drop the children
-    await page.evaluate(() => document.querySelector('.fez-x-unwrap').fez.poke());
+    await page.evaluate(() => document.querySelector('.x-unwrap-fez').fez.poke());
     await page.waitForTimeout(200);
 
     expect(await page.evaluate(() => document.querySelector('.kid')?.textContent)).toBe('slotted');
     expect(await page.evaluate(() => document.querySelector('.lbl').textContent)).toBe('a');
-    expect(await page.evaluate(() => document.querySelector('.fez-x-unwrap').fez.props.label)).toBe('b');
+    expect(await page.evaluate(() => document.querySelector('.x-unwrap-fez').fez.props.label)).toBe('b');
   } finally {
     await closePage(page);
   }
@@ -356,7 +356,7 @@ test('PROPS - object props keep their identity across reads', async () => {
     await page.waitForSelector('.n');
 
     const r = await page.evaluate(() => {
-      const fez = document.querySelector('.fez-x-ident').fez;
+      const fez = document.querySelector('.x-ident-fez').fez;
       fez.props.items = [{ id: 1 }];
       const a = fez.props.items;
       const b = fez.props.items;
@@ -391,8 +391,8 @@ test('PROPS - object props keep plain identity across component boundaries', asy
 
     // the object the child holds is the very object in the parent's array
     const r = await page.evaluate(() => {
-      const parent = document.querySelector('.fez-x-parent').fez;
-      const kid = document.querySelector('.fez-x-kid').fez;
+      const parent = document.querySelector('.x-parent-fez').fez;
+      const kid = document.querySelector('.x-kid-fez').fez;
       kid.pick();
       return {
         same: window.testResults.picked === parent.props.items[0],
@@ -421,7 +421,7 @@ test('PROPS - assigning a container prop re-renders and reaches the child', asyn
     await page.waitForSelector('.owned-name');
     expect(await page.textContent('.owned-name')).toBe('Ann');
 
-    await page.evaluate(() => document.querySelector('.fez-x-owner').fez.rename());
+    await page.evaluate(() => document.querySelector('.x-owner-fez').fez.rename());
     await page.waitForFunction(() => document.querySelector('.owned-name').textContent === 'Bob', { timeout: 3000 });
   } finally {
     await closePage(page);
@@ -446,7 +446,7 @@ test('PROPS - { state: true } seeds without firing onStateChange before init()',
     expect(await page.evaluate(() => window.testResults.events)).toEqual([]);
 
     // hooks work normally once mounted
-    await page.evaluate(() => document.querySelector('.fez-x-hooks').fez.add('c'));
+    await page.evaluate(() => document.querySelector('.x-hooks-fez').fez.add('c'));
     await page.waitForFunction(() => document.querySelector('.n').textContent === '3', { timeout: 3000 });
     expect(await page.evaluate(() => window.testResults.events)).toEqual(['tags']);
   } finally {
@@ -469,14 +469,14 @@ test('PROPS - fez.setAttribute casts into props and updates the state-linked key
     expect(await page.textContent('.n')).toBe('1:a');
 
     await page.evaluate(() => {
-      const fez = document.querySelector('.fez-x-set').fez;
+      const fez = document.querySelector('.x-set-fez').fez;
       fez.setAttribute('count', '42');
       fez.setAttribute('label', 'b');
     });
     await page.waitForFunction(() => document.querySelector('.n').textContent === '42:b', { timeout: 3000 });
 
     const r = await page.evaluate(() => {
-      const node = document.querySelector('.fez-x-set');
+      const node = document.querySelector('.x-set-fez');
       return {
         attrs: [node.getAttribute('count'), node.getAttribute('label')],
         count: node.fez.props.count,
@@ -492,9 +492,9 @@ test('PROPS - fez.setAttribute casts into props and updates the state-linked key
     expect(r.events).toEqual(['count']);
 
     // null removes the attribute and the prop falls back through the schema
-    await page.evaluate(() => document.querySelector('.fez-x-set').fez.setAttribute('label', null));
+    await page.evaluate(() => document.querySelector('.x-set-fez').fez.setAttribute('label', null));
     expect(await page.evaluate(() => {
-      const node = document.querySelector('.fez-x-set');
+      const node = document.querySelector('.x-set-fez');
       return [node.hasAttribute('label'), node.fez.props.label];
     })).toEqual([false, undefined]);
   } finally {

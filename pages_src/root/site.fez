@@ -132,8 +132,8 @@
     .src {
       pre { margin: 0; background: transparent; overflow-x: auto; }
       xmp { display: none; }
-      .fez-ui-editor pre { margin: 0; border: none; }
-      .fez-ui-editor code { font-size: 13.5px; line-height: 1.55; padding: 14px 18px; display: block; border: none; border-radius: 0; }
+      .ui-editor-fez pre { margin: 0; border: none; }
+      .ui-editor-fez code { font-size: 13.5px; line-height: 1.55; padding: 14px 18px; display: block; border: none; border-radius: 0; }
     }
 
     .out { padding: 22px 18px 18px 18px; border-top: 1px dashed var(--line-2); display: flex; align-items: center; justify-content: center; }

@@ -85,7 +85,7 @@ const Fez = (name, klass) => {
 
     // Fez('name', callback) - find all & execute
     if (isPureFn) {
-      const list = Array.from(document.querySelectorAll(`.fez.fez-${name}`)).filter((n) => n.fez);
+      const list = Array.from(document.querySelectorAll(`.fez.${name}-fez`)).filter((n) => n.fez);
       list.forEach((el) => klass(el.fez));
       return list;
     }
@@ -102,7 +102,7 @@ const Fez = (name, klass) => {
   // Find instance by name or node
   const node = name.nodeName
     ? name.closest('.fez')
-    : document.querySelector(name.includes('#') ? name : `.fez.fez-${name}`);
+    : document.querySelector(name.includes('#') ? name : `.fez.${name}-fez`);
 
   if (!node) {
     Fez.onError(
@@ -161,7 +161,7 @@ Fez.find = (onode, name) => {
     node = node[0];
   }
 
-  const selector = name ? `.fez.fez-${name}` : '.fez';
+  const selector = name ? `.fez.${name}-fez` : '.fez';
   const closestNode = node.closest(selector);
 
   if (closestNode?.fez) {
@@ -223,7 +223,7 @@ Fez.globalCss = (cssClass, opts = {}) => {
   // /g matters: a block with more than one :fez rule used to keep every
   // occurrence past the first as a literal (invalid) pseudo-class.
   if (opts.name) {
-    text = text.replace(/:fez\b/g, `.fez.fez-${opts.name}`);
+    text = text.replace(/:fez\b/g, `.fez.${opts.name}-fez`);
   }
 
   // Flatten here, not in the compiler: this is the one path every stylesheet

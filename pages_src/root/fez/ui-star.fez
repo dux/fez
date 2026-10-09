@@ -65,7 +65,7 @@
   </div>
 
   <style>
-    .fez-ui-star { margin-right: 5px; }
+    .ui-star-fez { margin-right: 5px; }
   </style>
 </demo>
 

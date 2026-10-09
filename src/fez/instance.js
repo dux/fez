@@ -48,7 +48,7 @@ export const WINDOW_EVENTS = new Set([
 /**
  * Wrapper attribute that mirrors this.props for the DOM inspector. The source
  * tag is replaced by the wrapper on connect (connect.js), so without it the
- * tree shows only <div class="fez fez-name"> - nothing about what the
+ * tree shows only <div class="fez name-fez"> - nothing about what the
  * component was created with. Write-only orientation: root attributes never
  * feed this.props, and the morph never syncs them.
  */
@@ -1441,7 +1441,7 @@ export default class FezBase {
   dissolve(inNode) {
     if (inNode) {
       inNode.classList.add('fez');
-      inNode.classList.add(`fez-${this.fezName}`);
+      inNode.classList.add(`${this.fezName}-fez`);
       inNode.fez = this;
       if (this.attr('id')) {
         inNode.setAttribute('id', this.attr('id'));

@@ -228,7 +228,7 @@ Rules for wiring components into an app; the component rules are above.
    A child whose template does not read a prop skips the re-render when only that prop changes.
 6. Pages and other components chosen at runtime: `<fez-component name={state.page} :props="state.query">fallback</fez-component>`.
    The same name keeps the child and hands it new props, a new name inserts the new tag, and an unregistered name shows the children.
-7. Style another component by its wrapper class `.fez-<name>`; its tag is replaced on mount.
+7. Style another component by its wrapper class `.<name>-fez`; its tag is replaced on mount.
 8. Scoped `<style>` rules reach into descendant components: in a component that renders others, never style bare tags or generic class names, and delete unused rules.
 9. Shared data goes in `globalState`, commands go to a `GLOBAL` component, and notifications use publish (see "Component communication").
 10. Check the result in a browser: stale props, double fetches and leaked styles all pass `fez compile`.

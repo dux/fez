@@ -96,14 +96,14 @@ test('fez:this - typed input value survives a re-render, ref points at the live 
     });
     await page.waitForSelector('input');
     await page.fill('input', 'typed');
-    await page.evaluate(() => document.querySelector('.fez-x-form').fez.bump());
+    await page.evaluate(() => document.querySelector('.x-form-fez').fez.bump());
     await page.waitForFunction(() => document.querySelector('.n').textContent === '1', { timeout: 3000 });
     await page.waitForTimeout(150);
 
     expect(await page.inputValue('input')).toBe('typed');
-    expect(await page.evaluate(() => document.querySelector('.fez-x-form').fez.read())).toBe('typed');
+    expect(await page.evaluate(() => document.querySelector('.x-form-fez').fez.read())).toBe('typed');
     expect(await page.evaluate(() => {
-      const fez = document.querySelector('.fez-x-form').fez;
+      const fez = document.querySelector('.x-form-fez').fez;
       return fez.state.nameInput === document.querySelector('input');
     })).toBe(true);
     // the ref re-assignment on each render must not schedule another render
