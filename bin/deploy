@@ -3,13 +3,12 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { formatVersion } from '../src/fez/lib/version.js';
 import { assertPagesNotCheckedOut, commitPages, pagesRefspec } from '../src/static/pages.js';
 
 const USAGE = `Usage: bun run deploy [--dry-run]
 
-Run tests, then stamp .version with the main commit count (v357 -> 3.5.7, counting the release
-commit) and package.json with its dotted form, build the library and pages,
+Run tests, then stamp .version and package.json via \`vstamp count --next\` (X.Y.Z from the
+main commit count, counting the release commit), build the library and pages,
 commit the version on main and commit the built site on top of the pages branch,
 then push both branches to GitHub.
 The push is atomic: main and pages must fast-forward; pages is never force-pushed.
@@ -69,18 +68,12 @@ async function deploy(args) {
   const manifestPath = path.join(root, 'package.json');
   const originalManifest = fs.readFileSync(manifestPath, 'utf8');
   const manifest = JSON.parse(originalManifest);
-  // +1: the release commit made below is part of the count it is named after
-  const stamp = `v${Number(git('rev-list', '--count', 'main')) + 1}`;
-  const version = formatVersion(stamp).slice(1);
   const versionPath = path.join(root, '.version');
-  // [path, content before the deploy (null when missing), stamped content]
+  const snapshot = (file) => (fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null);
+  // [path, content before the deploy (null when missing), stamped content (set after vstamp)]
   const stamped = [
-    [manifestPath, originalManifest, JSON.stringify({ ...manifest, version }, null, 2) + '\n'],
-    [
-      versionPath,
-      fs.existsSync(versionPath) ? fs.readFileSync(versionPath, 'utf8') : null,
-      `${stamp}\n`,
-    ],
+    [manifestPath, originalManifest, null],
+    [versionPath, snapshot(versionPath), null],
   ];
   const siteDir = path.join(root, 'tmp/fez-pages');
   let remotePages = '';
@@ -105,10 +98,17 @@ async function deploy(args) {
   let staged = false;
   try {
     run(process.execPath, ['run', 'test'], { stdio: 'inherit' });
-    for (const [file, , next] of stamped) {
-      fs.writeFileSync(file, next);
+    // --next: the release commit made below is part of the count it is named after
+    try {
+      run('vstamp', ['count', '--next']);
+    } finally {
+      // snapshot even when vstamp fails, so a partial write is restored below
+      for (const entry of stamped) {
+        entry[2] = snapshot(entry[0]);
+      }
     }
-    process.stdout.write(`deploy: ${manifest.version} -> ${version} (${stamp})\n`);
+    const version = /^version:\s*(\S+)/m.exec(stamped[1][2])?.[1];
+    process.stdout.write(`deploy: ${manifest.version} -> ${version}\n`);
     run(process.execPath, ['run', 'build'], { stdio: 'inherit' });
     run(process.execPath, ['run', 'static'], { stdio: 'inherit' });
     if (!fs.existsSync(path.join(siteDir, 'index.html'))) {
@@ -155,7 +155,7 @@ async function deploy(args) {
         git('reset', '-q', '--', 'package.json', '.version');
       }
       for (const [file, original, next] of stamped) {
-        if (fs.existsSync(file) && fs.readFileSync(file, 'utf8') === next) {
+        if (next !== null && snapshot(file) === next) {
           if (original === null) {
             fs.rmSync(file);
           } else {

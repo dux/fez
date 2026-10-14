@@ -115,7 +115,7 @@ test('deploy versions by main commit count, commits main, appends pages, and pus
     expect(result.exitCode).toBe(0);
     expect(result.stdout.toString()).toContain(`tests: ${previousVersion}\ndeploy:`);
     expect(version(root)).toBe(expected);
-    expect(stamp(root)).toBe(`v${git(root, 'rev-list', '--count', 'main')}`);
+    expect(stamp(root)).toBe(`version: ${expected}`);
     expect(git(remote, 'show', 'main:.version')).toBe(stamp(root));
     expect(fs.readFileSync(path.join(root, 'dist/fez.js'), 'utf8')).toBe(expected);
     expect(git(remote, 'show', 'pages:index.html')).toBe(expected);
@@ -139,7 +139,7 @@ test('a long history splits the commit count into a.b.c', () => {
   // 123 source commits + the release commit
   expect(deploy(root).exitCode).toBe(0);
   expect(version(root)).toBe('1.2.4');
-  expect(stamp(root)).toBe('v124');
+  expect(stamp(root)).toBe('version: 1.2.4');
   expect(git(root, 'rev-list', '--count', 'main')).toBe('124');
 });
 
@@ -178,6 +178,22 @@ for (const stage of ['test', 'build', 'site']) {
     }
   });
 }
+
+test('a stamp below the current .version fails without touching the version files', () => {
+  const { root, remote } = fixture();
+  fs.writeFileSync(path.join(root, '.version'), 'version: 5.0.0\n');
+  git(root, 'add', '.version');
+  git(root, 'commit', '-qm', 'Pin version');
+  const before = git(root, 'rev-parse', 'HEAD');
+  const result = deploy(root);
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain('below .version 5.0.0');
+  expect(stamp(root)).toBe('version: 5.0.0');
+  expect(version(root)).toBe('0.7.9');
+  expect(git(root, 'rev-parse', 'HEAD')).toBe(before);
+  expect(git(remote, 'rev-parse', 'main')).not.toBe(before);
+  expect(git(root, 'status', '--porcelain')).toBe('');
+});
 
 test('deploy refuses dirty source and leaves changes intact', () => {
   const { root } = fixture();

@@ -3,9 +3,8 @@
 import { parseArgs } from 'util';
 import fs from 'fs';
 import path from 'path';
-import { formatVersion } from '../src/fez/lib/version.js';
 
-const INFO = 'Print the Fez version (v<main commit count> from .version, dotted)';
+const INFO = 'Print the Fez version (X.Y.Z from .version)';
 
 let values;
 try {
@@ -13,7 +12,6 @@ try {
     args: Bun.argv.slice(2),
     options: {
       help: { type: 'boolean', short: 'h' },
-      raw: { type: 'boolean' },
       info: { type: 'boolean' },
     },
   }));
@@ -28,13 +26,12 @@ if (values.info) {
 }
 
 if (values.help) {
-  console.log(`Usage: fez version [--raw]
+  console.log(`Usage: fez version
 
 ${INFO}
 
 Options:
   -h, --help  Show this help message
-  --raw       Print the stamp as stored (v357) instead of dotted (v3.5.7)
 
 A checkout that was never stamped by 'bun run deploy' prints dev.`);
   process.exit(0);
@@ -42,5 +39,5 @@ A checkout that was never stamped by 'bun run deploy' prints dev.`);
 
 // realpath so the npm bin symlink resolves to the package dir
 const file = path.join(path.dirname(path.dirname(fs.realpathSync(Bun.argv[1]))), '.version');
-const raw = fs.existsSync(file) ? fs.readFileSync(file, 'utf8').trim() || 'dev' : 'dev';
-console.log(values.raw ? raw : formatVersion(raw));
+const text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+console.log(/^version:\s*(\S+)/m.exec(text)?.[1] || 'dev');

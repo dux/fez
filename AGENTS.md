@@ -83,7 +83,7 @@ import Button from './components/ui-button.fez'; // default export is the class
 fez agents
 # Add a pointer to ./AGENTS.md / ./CLAUDE.md of a project so agents know to run `fez agents`
 fez agents --init
-# Print the installed version (v<main commit count>, dotted: v3.5.7)
+# Print the installed version (X.Y.Z from .version)
 fez version
 
 # Compile and validate components - catches JS syntax errors and template issues
@@ -187,9 +187,9 @@ This repo publishes its generated site from the `pages` branch, served by GitHub
 `bun run dev` builds the library and site, watches source changes, and uses the existing static server with live reload at `http://localhost:8000/`.
 `bun run deploy` (`bin/deploy`) requires a clean `main` and runs `bun run test` before stamping, building, committing, or pushing.
 A test failure stops deployment.
-It stamps `.version` with `v<main commit count>` including the release commit, like dboss and lux-fw, and writes the dotted form to `package.json` (`v357` -> `3.5.7`, `v1123` -> `11.2.3`, `v5` -> `0.0.5`; `formatVersion` in `src/fez/lib/version.js`).
+It stamps the version with `vstamp count --next` ([vstamp](https://github.com/dux/vstamp)): the main commit count including the release commit, rendered dotted (`357` -> `3.5.7`, `1123` -> `11.2.3`, `5` -> `0.0.5`), written to `.version` (YAML, `version: X.Y.Z`) and `package.json`.
 It then builds dist + site and commits both files on `main` as `chore: release <version>`.
-`fez version` prints the dotted stamp (`--raw` for `v357`); `Fez.version` and the `// v:` dist banner read `package.json`. A checkout never stamped prints `dev`.
+`fez version` prints the `version` from `.version`; `Fez.version` and the `// v:` dist banner read `package.json`. A checkout never stamped prints `dev`.
 It commits the built site on top of the `pages` branch with `commitPages` from `src/static/pages.js` (a throwaway index + `git commit-tree` + `update-ref`, the same path `fez gh-pages` uses), so the primary checkout is never switched and the worktree under `tmp/` is gone.
 It pushes both branches to `origin` atomically; both must fast-forward and `pages` is never force-pushed.
 `--dry-run` runs tests, builds the next version and restores `.version` and `package.json`, without creating commits or pushing.

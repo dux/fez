@@ -71,7 +71,7 @@ bun run deploy
 
 `deploy` requires a clean working tree on `main`.
 It runs `bun run test` first and stops on failure before stamping a version, building, committing, or pushing.
-It stamps `.version` with `v<main commit count>`, including the release commit, like dboss and lux-fw, and writes its dotted form to `package.json` (`v357` -> `3.5.7`, `v1123` -> `11.2.3`).
+It stamps the version with `vstamp count --next` ([vstamp](https://github.com/dux/vstamp)): the main commit count including the release commit, rendered dotted (`357` -> `3.5.7`, `1123` -> `11.2.3`), written to `.version` (YAML, `version: X.Y.Z`) and `package.json`.
 It then builds the library and pages, commits both files on `main`, and commits the built site on top of the `pages` branch with the same commit-tree path as `fez gh-pages`.
 It then pushes both branches to GitHub (`origin`) atomically: both must fast-forward and `pages` is never force-pushed.
 The generated site is served from the root of the `pages` branch.
