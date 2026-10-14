@@ -127,9 +127,26 @@ test('deploy versions by main commit count, commits main, appends pages, and pus
     expect(git(remote, 'rev-list', '--count', 'pages')).toBe(String(publishes));
     expect(git(remote, 'rev-parse', 'main')).toBe(git(root, 'rev-parse', 'main'));
     expect(git(remote, 'rev-parse', 'pages')).toBe(git(root, 'rev-parse', 'pages'));
+    expect(git(root, 'rev-parse', `v${expected}`)).toBe(git(root, 'rev-parse', 'main'));
+    expect(git(remote, 'rev-parse', `v${expected}`)).toBe(git(root, 'rev-parse', 'main'));
     expect(git(root, 'status', '--porcelain')).toBe('');
     expect(fs.existsSync(path.join(root, 'tmp/pages-wt'))).toBe(false);
   }
+});
+
+test('an existing release tag aborts before building or committing', () => {
+  const { root, remote } = fixture();
+  const before = git(root, 'rev-parse', 'HEAD');
+  git(root, 'tag', 'v0.0.2');
+  const result = deploy(root);
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain('Tag v0.0.2 already exists');
+  expect(version(root)).toBe('0.7.9');
+  expect(stamp(root)).toBe(null);
+  expect(fs.existsSync(path.join(root, 'dist'))).toBe(false);
+  expect(git(root, 'rev-parse', 'HEAD')).toBe(before);
+  expect(git(remote, 'show-ref')).toBe(git(root, 'show-ref', '--heads'));
+  expect(git(root, 'status', '--porcelain')).toBe('');
 });
 
 test('a long history splits the commit count into a.b.c', () => {
@@ -228,6 +245,8 @@ test('a concurrent remote Pages update rejects the atomic push without publishin
   expect(git(remote, 'log', '-1', '--format=%s', 'pages')).toBe('Concurrent deployment');
   expect(version(root)).toBe('0.0.3');
   expect(git(root, 'log', '-1', '--format=%s')).toBe('chore: release 0.0.3');
+  expect(git(root, 'rev-parse', 'v0.0.3')).toBe(git(root, 'rev-parse', 'HEAD'));
+  expect(git(remote, 'tag', '--list', 'v0.0.3')).toBe('');
 });
 
 test('help describes all deployment steps without touching the repository', () => {
@@ -239,6 +258,7 @@ test('help describes all deployment steps without touching the repository', () =
     'library and pages',
     'commit the version on main',
     'on top of the pages branch',
+    'tag it v<version>',
     'atomic',
   ]) {
     expect(result.stdout.toString()).toContain(phrase);
