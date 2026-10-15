@@ -1853,9 +1853,15 @@ It resolves with the `pjax:render` detail - `{ from, to, status, error, duration
 ```js
 const detail = await Fez.load('/users')
 if (detail?.error) {
-  // 'status' | 'network' | 'timeout' | 'abort' | 'apply'
+  // 'status' | 'network' | 'timeout' | 'abort' | 'apply' | 'layout'
 }
 ```
+
+### Layout id
+
+When the page has `<meta name="pjax-layout" content="ID">`, a full swap sends `x-pjax-layout: ID`.
+The server may then answer with only `<title>` and the pjax container (lux `render_html` does).
+A response must echo the same `x-pjax-layout` header; a missing or different one (other layout, new deploy) is loaded as a full page and the result carries `error: 'layout'`.
 
 ### Concurrent loads
 

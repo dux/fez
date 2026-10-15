@@ -1146,6 +1146,71 @@ describe('Pjax.load and Pjax.refresh', () => {
     });
   });
 
+  describe('layout id', () => {
+    let redirects;
+    let saved;
+
+    beforeEach(() => {
+      redirects = [];
+      saved = Pjax.prototype.redirect;
+      Pjax.prototype.redirect = function () {
+        redirects.push(this.href);
+        return false;
+      };
+      document.head.insertAdjacentHTML('beforeend', '<meta name="pjax-layout" content="L1">');
+    });
+
+    afterEach(() => {
+      Pjax.prototype.redirect = saved;
+      document.head.querySelector('meta[name="pjax-layout"]')?.remove();
+    });
+
+    test('a full swap sends the mounted layout id', () => {
+      Pjax.load('/x');
+      expect(requests[0].headers['x-pjax-layout']).toBe('L1');
+    });
+
+    test('node and region swaps do not send it', () => {
+      Pjax.load('#panel');
+      Pjax.load(null, { source: document.querySelector('.ajax-trigger') });
+      expect(requests.map((r) => r.headers['x-pjax-layout'])).toEqual([undefined, undefined]);
+    });
+
+    test('no header without the meta tag', () => {
+      document.head.querySelector('meta[name="pjax-layout"]').remove();
+      Pjax.load('/x');
+      expect(requests[0].headers['x-pjax-layout']).toBeUndefined();
+    });
+
+    test('a body-only response with the same id swaps title and container', async () => {
+      const done = Pjax.load('/x');
+      await respond(
+        requests[0],
+        '<title>New</title>\n<main class="pjax" id="pjax"><div id="panel">fresh</div></main>',
+        200,
+        { 'x-pjax-layout': 'L1' },
+      );
+      const detail = await done;
+      expect(detail.error).toBeNull();
+      expect(redirects).toEqual([]);
+      expect(document.title).toBe('New');
+      expect(document.getElementById('panel').textContent).toBe('fresh');
+    });
+
+    for (const [name, headers] of [
+      ['another id', { 'x-pjax-layout': 'L2' }],
+      ['no id', {}],
+    ]) {
+      test(`a response with ${name} is loaded as a full page`, async () => {
+        const done = Pjax.load('/x');
+        await respond(requests[0], page('fresh'), 200, headers);
+        expect((await done).error).toBe('layout');
+        expect(redirects).toEqual(['/x']);
+        expect(document.getElementById('panel').textContent).toBe('old');
+      });
+    }
+  });
+
   describe('defaults', () => {
     const panel = () => document.getElementById('panel');
     const rows = [

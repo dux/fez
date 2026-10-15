@@ -341,6 +341,11 @@ export default function createPjax() {
       });
     }
 
+    // Layout id of the mounted page (<meta name="pjax-layout">), null without one.
+    static layout() {
+      return document.querySelector('meta[name="pjax-layout"]')?.getAttribute('content') || null;
+    }
+
     // The element a URL fragment points at, by id or by name like the browser.
     static _anchor(fragment) {
       if (!fragment) {
@@ -673,6 +678,12 @@ export default function createPjax() {
       if (this.fresh) {
         headers['cache-control'] = 'no-cache';
       }
+      // full swaps tell the server which layout is mounted, so it can answer
+      // with the pjax region alone (see handleResponse)
+      this.layout = this.swapMode() === 'full' ? Pjax.layout() : null;
+      if (this.layout) {
+        headers['x-pjax-layout'] = this.layout;
+      }
 
       let res;
       let html;
@@ -740,6 +751,13 @@ export default function createPjax() {
       if (res.url) {
         const url = new URL(res.url);
         this.href = url.pathname + url.search;
+      }
+
+      // a response from another layout or deploy (or none) cannot be morphed
+      // into the mounted chrome - load it as a full page
+      if (this.layout && res.headers.get('x-pjax-layout') !== this.layout) {
+        this.emitDone({ status: res.status, error: 'layout' });
+        return this.redirect();
       }
 
       this.historyAddCurrent(this.historyHref());

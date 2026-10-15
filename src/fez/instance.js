@@ -839,6 +839,30 @@ export default class FezBase {
   }
 
   /**
+   * Inputs this component rendered itself. A child component's inputs are left
+   * to the child: its refs share names across instances (every ui-input's ref is
+   * `input`), so saving them here would copy one child's value into the others,
+   * and restoring would undo the value the child just took from new props.
+   */
+  fezOwnInputs() {
+    const inputs = [];
+    const walk = (parent) => {
+      for (const node of parent.children) {
+        if (node.fez) {
+          continue;
+        }
+        if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA' || node.tagName === 'SELECT') {
+          inputs.push(node);
+        } else {
+          walk(node);
+        }
+      }
+    };
+    walk(this.root);
+    return inputs;
+  }
+
+  /**
    * Values typed into fez-this / fez-bind inputs survive the morph: the
    * differ syncs the template's value attribute, which would wipe them.
    * The template's own value (defaultValue / defaultChecked) is saved too:
@@ -847,7 +871,7 @@ export default class FezBase {
    */
   fezSaveInputValues() {
     const saved = new Map();
-    for (const el of this.root.querySelectorAll('input, textarea, select')) {
+    for (const el of this.fezOwnInputs()) {
       // a file input keeps its files across the morph and cannot be assigned
       if (el._fezThisName && el.type !== 'file') {
         saved.set(el._fezThisName, {
@@ -865,7 +889,7 @@ export default class FezBase {
     if (!saved.size) {
       return;
     }
-    for (const el of this.root.querySelectorAll('input, textarea, select')) {
+    for (const el of this.fezOwnInputs()) {
       const entry = el._fezThisName && saved.get(el._fezThisName);
       if (!entry) {
         continue;

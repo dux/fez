@@ -777,7 +777,7 @@ interface PjaxRenderDetail {
   from: string | null;
   to: string;
   status: number | null;
-  error: 'network' | 'abort' | 'timeout' | 'status' | 'apply' | null;
+  error: 'network' | 'abort' | 'timeout' | 'status' | 'apply' | 'layout' | null;
   duration: number;
   mode: 'full' | 'target' | 'ajax';
   opts: PjaxLoadOptions;
@@ -826,6 +826,8 @@ interface PjaxStatic {
   last(): string;
   /** The pjax container element (<pjax> tag or .pjax class) */
   node(): Element | undefined;
+  /** Layout id from <meta name="pjax-layout">, sent as x-pjax-layout on full swaps; null without one */
+  layout(): string | null;
 
   /** Hook: return false to cancel a navigation */
   before(href: string, opts: PjaxLoadOptions): boolean | void;

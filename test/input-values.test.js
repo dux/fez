@@ -73,4 +73,21 @@ describe("input values across a render", () => {
     fez.fezRestoreInputValues(saved);
     expect(input.checked).toBe(true); // template wins, the stale false is not restored
   });
+
+  test("inputs inside a child component are the child's, never saved or restored here", () => {
+    const fez = mount('<input data-ref="own" value=""><div class="child"><input data-ref="input" value=""></div><div class="child"><input data-ref="input" value=""></div>');
+    const [own, first, second] = fez.root.querySelectorAll("input");
+    for (const child of fez.root.querySelectorAll(".child")) child.fez = {}; // a mounted component root
+    own.value = "mine";
+    first.value = "first";
+    second.value = "second";
+    const saved = fez.fezSaveInputValues();
+    expect([...saved.keys()]).toEqual(["own"]);
+    morphValue(own, "");
+    first.value = "from new props"; // the child refreshed itself during the morph
+    fez.fezRestoreInputValues(saved);
+    expect(own.value).toBe("mine");
+    expect(first.value).toBe("from new props");
+    expect(second.value).toBe("second");
+  });
 });
