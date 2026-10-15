@@ -509,7 +509,7 @@ Text expressions are HTML-escaped as text, whatever the value type (arrays and o
 | `null` / `undefined` | dropped | dropped |
 | `false` | `name="false"` | dropped |
 | `true` | `name="true"` | `name=""` |
-| anything else | `name="escaped value"` | truthy: `name=""`, falsy (`''`, `0`): dropped |
+| anything else | `name="escaped value"` | truthy: `name=""`, falsy (`''`, `0`, `"false"`): dropped |
 
 ```html
 <button disabled={state.busy} aria-expanded={state.open} title={state.tip}>Save</button>

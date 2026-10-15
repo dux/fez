@@ -652,7 +652,7 @@ class {
 An unquoted `name={expr}` renders the whole attribute through `Fez.htmlAttr(name, value)`:
 
 * `null` / `undefined` leave the attribute out.
-* On a boolean attribute (`hidden`, `disabled`, `checked`, `selected`, `open`, `readonly`, `required`, `multiple`, `inert`, `autofocus`, ... - `BOOLEAN_ATTRS` in `src/fez/lib/attrs.js`) the value's truthiness decides: falsy (`false`, `''`, `0`) leaves it out, truthy renders `name=""` - so `disabled={busy ? 'disabled' : ''}` works too.
+* On a boolean attribute (`hidden`, `disabled`, `checked`, `selected`, `open`, `readonly`, `required`, `multiple`, `inert`, `autofocus`, ... - `BOOLEAN_ATTRS` in `src/fez/lib/attrs.js`) the value's truthiness decides: falsy (`false`, `''`, `0`, and the string `"false"` a plain attribute prop carries) leaves it out, truthy renders `name=""` - so `disabled={busy ? 'disabled' : ''}` works too.
 * On any other attribute `false` / `true` render as text, so `aria-expanded={state.open}` says `"false"` or `"true"`.
 * Everything else is escaped text.
 

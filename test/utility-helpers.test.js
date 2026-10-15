@@ -41,6 +41,7 @@ test('htmlAttr drops null and false booleans, keeps false on other attributes', 
   expect(Fez.htmlAttr('hidden', false)).toBe('');
   expect(Fez.htmlAttr('hidden', true)).toBe(' hidden=""');
   expect(Fez.htmlAttr('disabled', '')).toBe('');
+  expect(Fez.htmlAttr('checked', 'false')).toBe('');
   expect(Fez.htmlAttr('disabled', 'disabled')).toBe(' disabled=""');
   expect(Fez.htmlAttr('title', null)).toBe('');
   expect(Fez.htmlAttr('aria-expanded', false)).toBe(' aria-expanded="false"');
