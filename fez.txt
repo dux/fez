@@ -1,8 +1,11 @@
 fez/bubble-alerter
 fez/demo-await
+fez/demo-blocks
+fez/demo-context
 fez/demo-global-state
 fez/demo-hash-route
 fez/demo-hash-state
+fez/demo-kitchen-sink
 fez/demo-slim
 fez/fez-control
 fez/fez-demo-nav

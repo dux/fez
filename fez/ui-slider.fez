@@ -9,7 +9,7 @@
 
 <demo>
   <style>
-    .fez-c-slider {
+    .c-slider-fez {
       .fez-slot {
         > div {
            text-align: center;
@@ -98,7 +98,8 @@
   init() {
     this.state.slidesCount = this.childNodes().length
     this.setSlide(0)
-    this.onWindowResize(this.resizeSelf, 100)
+    this.on('resize', this.resizeSelf, { throttle: 100 })
+    this.resizeSelf()
   }
 </script>
 

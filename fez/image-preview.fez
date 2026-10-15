@@ -92,6 +92,7 @@
       this.state.descs = null
       this.state.index = 0
       this.state.expanded = false
+      this.on('resize', this.fitImage, { throttle: 200 })
     }
 
     open(url) {
@@ -116,6 +117,7 @@
     close() {
       this.state.open = false
       this.state.expanded = false
+      this.on('resize', this.fitImage, { throttle: 200 })
     }
 
     toggleExpand() {
@@ -139,10 +141,6 @@
 
     next() {
       this.select(this.state.index + 1)
-    }
-
-    onWindowResize() {
-      this.fitImage()
     }
 
     fitImage() {

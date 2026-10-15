@@ -1,0 +1,119 @@
+<!-- generated from src: pages_src/root/fez/demo-blocks.fez | DO NOT EDIT OR READ THIS FILE -->
+<info>
+  <p>Template blocks borrowed from Svelte, plus class getters and <code>tick()</code>.</p>
+  <ul>
+    <li><code>{#each items as item (item.id)}</code> - keyed each: the key lands on the first element of the body, so a reorder moves nodes (and child components) with their item.</li>
+    <li><code>{@const total = a * b}</code> - a local for the rest of the branch; handlers capture it like a loop variable.</li>
+    <li><code>{#key value}...{/key}</code> - the body is recreated when <code>value</code> changes (restarts <code>fez:in</code>).</li>
+    <li><code>style:width={x + 'px'}</code> - one CSS property, merged into <code>style</code>; <code>null</code>/<code>false</code> leave it out.</li>
+    <li><code>get done() {}</code> - a class getter is a derived value, recomputed on every render.</li>
+    <li><code>await this.tick()</code> - resolves after the pending render reached the DOM.</li>
+  </ul>
+</info>
+
+<demo>
+  <demo-blocks></demo-blocks>
+</demo>
+
+<script>
+  class {
+    init() {
+      this.state.items = [
+        { id: 'a', name: 'Alpha', qty: 2, price: 3 },
+        { id: 'b', name: 'Bravo', qty: 1, price: 10 },
+        { id: 'c', name: 'Charlie', qty: 4, price: 1 },
+      ]
+      this.state.round = 1
+      this.state.note = ''
+    }
+
+    get done() {
+      return this.state.items.filter((item) => item.qty === 0).length
+    }
+
+    shuffle() {
+      this.state.items.push(this.state.items.shift())
+    }
+
+    less(id) {
+      const item = this.state.items.find((row) => row.id === id)
+      item.qty = Math.max(0, item.qty - 1)
+    }
+
+    async next() {
+      this.state.round++
+      await this.tick()
+      this.state.note = `round ${this.state.round} painted: ${this.find('.round').textContent}`
+    }
+  }
+</script>
+
+<style>
+  display: block;
+
+  ul {
+    padding: 0;
+    margin: 0 0 12px;
+    list-style: none;
+  }
+
+  li {
+    display: grid;
+    grid-template-columns: 80px 160px 110px max-content;
+    justify-content: start;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+  }
+
+  .track {
+    height: 8px;
+    border-radius: 4px;
+    background: #e6e9f2;
+  }
+
+  .bar {
+    display: block;
+    height: 100%;
+    border-radius: 4px;
+    background: #4f7cff;
+  }
+
+  .sum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .round {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #eef2ff;
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+</style>
+
+<ul>
+  {#each state.items as item (item.id)}
+    <li fez:animate="flip">
+      {@const total = item.qty * item.price}
+      <strong>{item.name}</strong>
+      <span class="track"><span class="bar" style:width={total * 10 + 'px'} style:opacity={item.qty ? 1 : 0.3}></span></span>
+      <span class="sum">{item.qty} x {item.price} = {total}</span>
+      <button type="button" onclick="fez.less('{item.id}')">-1</button>
+    </li>
+  {/each}
+</ul>
+<p>Sold out: {done}</p>
+<div class="actions">
+  <button type="button" onclick="fez.shuffle()">Rotate</button>
+  <button type="button" onclick="fez.next()">Next round</button>
+</div>
+{#key state.round}
+  <p fez:in="fade"><span class="round">Round {state.round}</span></p>
+{/key}
+<p>{state.note}</p>

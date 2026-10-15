@@ -39,14 +39,14 @@
     this.copy('class', 'style', 'href', 'target')
     this.root.classList.add('label')
 
-    if (this.prop('sm') !== undefined) { this.root.classList.add('label-sm') }
-    if (this.prop('lg') !== undefined) { this.root.classList.add('label-lg') }
-    if (this.prop('primary') !== undefined) { this.root.classList.add('label-primary') }
-    if (this.prop('secondary') !== undefined) { this.root.classList.add('label-secondary') }
-    if (this.prop('success') !== undefined) { this.root.classList.add('label-success') }
-    if (this.prop('warning') !== undefined) { this.root.classList.add('label-warning') }
-    if (this.prop('danger') !== undefined) { this.root.classList.add('label-danger') }
-    if (this.prop('pill') !== undefined) { this.root.classList.add('label-pill') }
+    if (this.props.sm !== undefined) { this.root.classList.add('label-sm') }
+    if (this.props.lg !== undefined) { this.root.classList.add('label-lg') }
+    if (this.props.primary !== undefined) { this.root.classList.add('label-primary') }
+    if (this.props.secondary !== undefined) { this.root.classList.add('label-secondary') }
+    if (this.props.success !== undefined) { this.root.classList.add('label-success') }
+    if (this.props.warning !== undefined) { this.root.classList.add('label-warning') }
+    if (this.props.danger !== undefined) { this.root.classList.add('label-danger') }
+    if (this.props.pill !== undefined) { this.root.classList.add('label-pill') }
   }
 </script>
 

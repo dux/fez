@@ -74,14 +74,14 @@
     this.copy('class', 'onclick', 'name')
     this.root.classList.add('btn')
 
-    if (this.prop('loading') !== undefined)  this.isLoading(true)
-    if (this.prop('disabled') !== undefined)  this.isDisabled(true)
-    if (this.prop('sm') !== undefined) { this.root.classList.add('btn-sm') }
-    if (this.prop('lg') !== undefined) { this.root.classList.add('btn-lg') }
-    if (this.prop('primary') !== undefined) { this.root.classList.add('btn-primary') }
-    if (this.prop('secondary') !== undefined) { this.root.classList.add('btn-secondary') }
+    if (this.props.loading !== undefined)  this.isLoading(true)
+    if (this.props.disabled !== undefined)  this.isDisabled(true)
+    if (this.props.sm !== undefined) { this.root.classList.add('btn-sm') }
+    if (this.props.lg !== undefined) { this.root.classList.add('btn-lg') }
+    if (this.props.primary !== undefined) { this.root.classList.add('btn-primary') }
+    if (this.props.secondary !== undefined) { this.root.classList.add('btn-secondary') }
 
-    const listen = this.prop('listen')
+    const listen = this.props.listen
     if (listen) {
       this.subscribe(listen, this.toggleLoading)
     }

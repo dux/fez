@@ -144,7 +144,7 @@ Fez.head({ fez: './fez/ui-dialog.fez' })
 &lt;a href="/"&gt;Home&lt;/a&gt;
 
 &lt;site-nav&gt;&lt;/site-nav&gt;</code></pre></div>
-                <div class="out feature-result"><code>&lt;nav class="fez fez-site-nav"&gt;...&lt;/nav&gt;</code></div>
+                <div class="out feature-result"><code>&lt;nav class="fez site-nav-fez"&gt;...&lt;/nav&gt;</code></div>
                 <div class="out-label">custom-element ergonomics with ordinary, stylable output</div>
               </site-live>
             </article>
@@ -153,7 +153,7 @@ Fez.head({ fez: './fez/ui-dialog.fez' })
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">imports · head assets · import maps</p>
                 <h3>A module zone before the class</h3>
-                <p>Imports, shared constants and <code>Fez.head()</code> calls live before the component class. Import maps keep bare specifiers consistent across components; scripts and styles are deduplicated in <code>head</code>.</p>
+                <p>Imports, shared constants and <code>Fez.head()</code> calls live before the component class. Import maps keep bare specifiers consistent across components; scripts and styles are deduplicated in <code>head</code>. A <code>&lt;head&gt;</code> block is appended to <code>document.head</code> as HTML, with its scripts run, in the browser and through the bundler plugin alike.</p>
               </div>
               <site-live title="map-view.fez" right-title="ES modules">
                 <div class="src"><pre><code>&lt;script&gt;
@@ -307,6 +307,27 @@ resize() {
               </site-live>
             </article>
 
+            <article class="site-feature-row" id="getters">
+              <div class="site-feature-copy">
+                <p class="site-feature-kicker">get name() · derived values</p>
+                <h3>Class getters as derived values</h3>
+                <p>A getter on the component class reads like a field in the template and is recomputed on every render, so a derived value never goes stale and never needs its own state key.</p>
+              </div>
+              <site-live title="cart.fez" right-title="computed">
+                <div class="src"><pre><code>class {
+  get total() {
+    return this.state.items.reduce(
+      (sum, item) =&gt; sum + item.price, 0
+    )
+  }
+}
+
+&lt;p&gt;Total: {total}&lt;/p&gt;</code></pre></div>
+                <div class="out feature-result"><span class="result-demo">Total: <b>48</b></span></div>
+                <div class="out-label">reads inside the getter count as reads of the render</div>
+              </site-live>
+            </article>
+
             <article class="site-feature-row" id="reactive-props">
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">this.props · parent updates</p>
@@ -381,13 +402,15 @@ rename(name) {
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">:prop · data-props · Fez.getFunction</p>
                 <h3>Pass real values and callbacks</h3>
-                <p>A colon attribute parks objects, arrays, booleans and functions without stringifying them. <code>data-props</code> accepts a JSON object, and handler props normalize through <code>Fez.getFunction()</code>.</p>
+                <p>A colon attribute parks objects, arrays, booleans and functions without stringifying them. <code>:x="expr"</code>, <code>:x='expr'</code> and <code>:x={expr}</code> are the same, names may be hyphenated, and object literals work. The expression runs in template scope, loop variables included. <code>data-props</code> accepts a JSON object, and handler props normalize through <code>Fez.getFunction()</code>.</p>
               </div>
               <site-live title="parent template" right-title="live values">
                 <div class="src"><pre><code>&lt;user-card
   :user="state.current_user"
   :active="true"
-  :on_pick="fez.pick"
+  :on_pick={pick}
+  :cfg="{dense: true}"
+  :data-row="state.row"
 /&gt;
 
 &lt;user-card data-props='{"name":"Ada"}' /&gt;
@@ -404,7 +427,7 @@ PROPS = {
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">this.globalState · Fez.state · fez-inline</p>
                 <h3>Shared reactive state</h3>
-                <p>Reading a global key subscribes only that component. Writes notify <code>onGlobalStateChange</code> immediately and batch the required renders. Static HTML can join through <code>fez-inline</code>.</p>
+                <p>Reading a global key subscribes only that component. Writes notify <code>onGlobalStateChange</code> immediately and batch the required renders; only a key the last render read re-renders, so a read in a click handler fires the hook without painting. Static HTML can join through <code>fez-inline</code>.</p>
               </div>
               <site-live title="shared state" right-title="targeted updates">
                 <div class="src"><pre><code>increment() {
@@ -415,7 +438,8 @@ PROPS = {
 Fez.state.get('count')
 Fez.state.set('count', 4)
 Fez.state.subscribe('count', (value, old) =&gt; {})
-Fez.state.subscribe((key, value, old) =&gt; {})
+Fez.state.subscribe((value, old, key) =&gt; {})
+Fez.state.delete('count')
 Fez.state.forEach('count', component =&gt; {})
 Fez.state.createProxy(component)
 
@@ -472,7 +496,7 @@ Fez.state.get('boardView') // true while mounted
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">&#123;expression} · attributes</p>
                 <h3>Escaped expressions</h3>
-                <p>Read <code>state</code>, <code>props</code>, <code>globalState</code> and component methods in text or attributes. Text is HTML-escaped and expression attributes are quoted automatically.</p>
+                <p>Read <code>state</code>, <code>props</code>, <code>globalState</code>, component methods and getters in text or attributes. Every value is HTML-escaped as text, arrays and objects included; <code>null</code> and <code>undefined</code> render nothing. A backtick in text is a plain character, and <code>script</code> / <code>style</code> bodies inside a template are copied verbatim. Svelte-only syntax such as <code>{@debug}</code> or <code>on:click</code> fails with a hint at the Fez spelling.</p>
               </div>
               <site-live title="expressions" right-title="escaped by default">
                 <div class="src"><pre><code>&lt;h2&gt;{props.title}&lt;/h2&gt;
@@ -575,10 +599,11 @@ state.results = null</code></pre></div>
   &lt;p&gt;Failed: {error.message}&lt;/p&gt;
 {/await}
 
-// low-level equivalent
-Fez.fezAwait(promise, { pending, then, catch })</code></pre></div>
+// not this: the template builds the promise
+{#await load()}...{/await}
+// a new promise every render: reported after 3 cycles</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">pending</span><span>then</span><span>or</span><span>catch</span></div>
-                <div class="out-label">assign a fresh Promise to show the loading branch again</div>
+                <div class="out-label">assign a fresh Promise to show the loading branch again; a rejection without &#123;:catch} is reported</div>
               </site-live>
             </article>
 
@@ -602,6 +627,25 @@ Fez.fezAwait(promise, { pending, then, catch })</code></pre></div>
 {/each}</code></pre></div>
                 <div class="out feature-result"><span class="result-stack"><span>1. Ada</span><span>2. Grace</span><span>3. Linus</span></span></div>
                 <div class="out-label">keys let the differ move the existing node instead of replacing it</div>
+              </site-live>
+            </article>
+
+            <article class="site-feature-row" id="keyed-each">
+              <div class="site-feature-copy">
+                <p class="site-feature-kicker">&#123;#each items as item (item.id)}</p>
+                <h3>Keyed each</h3>
+                <p>Put the key in parentheses after the binding, Svelte style. It is written as <code>key={...}</code> on the first element of the loop body, so a reorder, insert or removal moves existing nodes and child components with their item.</p>
+                <p><a href="./examples.html#fez-demo-demo-blocks" data-fez-static-ignore>Try the blocks demo</a>.</p>
+              </div>
+              <site-live title="keyed loop" right-title="identity by item">
+                <div class="src"><pre><code>{#each state.rows as row, index (row.id)}
+  &lt;user-row :user="row" /&gt;
+{/each}
+
+// compiles to
+// &lt;user-row key={row.id} :user="row" /&gt;</code></pre></div>
+                <div class="out feature-result"><span class="result-chip">reverse()</span><span>each child instance keeps its own state</span></div>
+                <div class="out-label">an explicit key on the first element wins over the loop key</div>
               </site-live>
             </article>
 
@@ -645,34 +689,92 @@ Fez.fezAwait(promise, { pending, then, catch })</code></pre></div>
               </site-live>
             </article>
 
+            <article class="site-feature-row" id="const-tag">
+              <div class="site-feature-copy">
+                <p class="site-feature-kicker">&#123;@const name = expr}</p>
+                <h3>Local constants</h3>
+                <p>Name a value once for the rest of its branch, destructuring included. <code>{:else}</code>, <code>{:then}</code>, <code>{:catch}</code> and the closing tag end it, and event handlers capture it at render time like a loop variable.</p>
+              </div>
+              <site-live title="@const" right-title="branch local">
+                <div class="src"><pre><code>{#each state.items as item}
+  {@const total = item.price * item.qty}
+  &lt;p&gt;{item.name}: {total}&lt;/p&gt;
+  &lt;button onclick={() =&gt; pick(total)}&gt;Pick&lt;/button&gt;
+{/each}
+
+{@const { first, last } = state.user}
+&lt;h3&gt;{first} {last}&lt;/h3&gt;</code></pre></div>
+                <div class="out feature-result"><span class="result-stack"><span>Alpha: 6</span><span>Bravo: 10</span></span></div>
+                <div class="out-label">no beforeRender bookkeeping for a value used in one row</div>
+              </site-live>
+            </article>
+
+            <article class="site-feature-row" id="key-block">
+              <div class="site-feature-copy">
+                <p class="site-feature-kicker">&#123;#key expr}</p>
+                <h3>Recreate a subtree on change</h3>
+                <p>The body of a key block is rebuilt instead of morphed whenever the value changes: new nodes play their <code>fez:in</code> again, and child components inside start over through <code>init()</code>.</p>
+              </div>
+              <site-live title="key block" right-title="fresh nodes">
+                <div class="src"><pre><code>{#key state.slide}
+  &lt;img src={state.slide.url} fez:in="fade" /&gt;
+{/key}</code></pre></div>
+                <div class="out feature-result"><span class="result-chip">slide 1 -&gt; 2</span><span>new img, fade plays again</span></div>
+                <div class="out-label">same value, same nodes: the body morphs as usual</div>
+              </site-live>
+            </article>
+
             <article class="site-feature-row" id="template-attributes">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">ternary attributes · class:name</p>
+                <p class="site-feature-kicker">name=&#123;expr} · boolean attributes · class:name</p>
                 <h3>Dynamic attributes and classes</h3>
-                <p>Use a normal expression or ternary inside attributes. The <code>class:name</code> directive merges conditional classes without overwriting the static class list.</p>
+                <p>Use a normal expression or ternary inside attributes. An unquoted <code>name={expr}</code> writes the whole attribute: <code>null</code> and <code>undefined</code> drop it, <code>false</code> drops a boolean attribute such as <code>disabled</code> or <code>hidden</code> but renders <code>"false"</code> on others like <code>aria-expanded</code>, and <code>true</code> on a boolean attribute renders <code>name=""</code>. The <code>class:name</code> directive merges conditional classes without overwriting the static class list.</p>
               </div>
               <site-live title="attributes" right-title="expression syntax">
                 <div class="src"><pre><code>&lt;button
   class="btn"
   class:active={state.active}
   class:loading={state.loading}
-  disabled={state.loading ? 'disabled' : ''}
+  disabled={state.loading}
+  aria-expanded={state.open}
+  title={state.tip}
   aria-label={state.active ? 'Deactivate' : 'Activate'}
 &gt;Save&lt;/button&gt;</code></pre></div>
-                <div class="out feature-result"><button type="button" class="site-btn" style="padding: 10px 16px;">Save</button><span class="result-chip">class="btn active"</span></div>
-                <div class="out-label">control-flow blocks are never placed inside an attribute</div>
+                <div class="out feature-result"><button type="button" class="site-btn" style="padding: 10px 16px;">Save</button><span class="result-chip">class="btn active"</span><span class="result-chip">aria-expanded="false"</span><span class="result-chip">no title, not disabled</span></div>
+                <div class="out-label">control-flow blocks are never placed inside an attribute; Fez.htmlAttr(name, value) is the runtime rule</div>
+              </site-live>
+            </article>
+
+            <article class="site-feature-row" id="style-directive">
+              <div class="site-feature-copy">
+                <p class="site-feature-kicker">style:prop=&#123;value} · style:--custom</p>
+                <h3>One CSS property per directive</h3>
+                <p>A style directive merges one property, custom properties included, into the <code>style</code> attribute after its own declarations. <code>null</code>, <code>undefined</code> and <code>false</code> leave the property out.</p>
+              </div>
+              <site-live title="style directives" right-title="no string building">
+                <div class="src"><pre><code>&lt;div
+  style="padding: 4px"
+  style:color={state.color}
+  style:width={state.w + 'px'}
+  style:--accent={props.accent}
+&gt;...&lt;/div&gt;</code></pre></div>
+                <div class="out feature-result"><code>style="padding: 4px;color: red;width: 120px;"</code></div>
+                <div class="out-label">accent unset, so --accent is left out; Fez.styleProp is the runtime helper</div>
               </site-live>
             </article>
 
             <article class="site-feature-row" id="event-handlers">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">inline handlers · arrows · strict !</p>
+                <p class="site-feature-kicker">inline handlers · arrows · method refs · strict !</p>
                 <h3>Three event-handler forms</h3>
-                <p>String handlers are concise for scalar values. Arrow handlers capture complex loop objects. Appending <code>!</code> fires only on the element itself and also prevents default and stops propagation.</p>
+                <p>String handlers are concise for scalar values. Unquoted arrow handlers capture complex loop objects; <code>async</code> arrows work and the first parameter is the event whatever its name. <code>onclick={save}</code> calls the method with the event. Appending <code>!</code> fires only on the element itself and also prevents default and stops propagation.</p>
               </div>
               <site-live title="events" right-title="template aware">
                 <div class="src"><pre><code>&lt;button onclick="fez.save()"&gt;Save&lt;/button&gt;
 &lt;input onchange="fez.rename(this.value)" /&gt;
+&lt;button onclick={save}&gt;Save&lt;/button&gt;
+&lt;a onclick={(evt) =&gt; go(evt.target)}&gt;Go&lt;/a&gt;
+&lt;button onclick={async () =&gt; load()}&gt;Load&lt;/button&gt;
 
 {#each state.tasks as task}
   &lt;button onclick={() =&gt; edit(task)}&gt;Edit&lt;/button&gt;
@@ -776,7 +878,7 @@ Fez.fezAwait(promise, { pending, then, catch })</code></pre></div>
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">fez:this · stable auto-ID</p>
                 <h3>Direct element references</h3>
-                <p><code>fez:this</code> puts the live node in <code>this.state</code> after every render, silently: the ref write fires no hook and schedules no render. Static reference names also receive a stable generated ID, helping the differ preserve typed values and focus.</p>
+                <p><code>fez:this</code> puts the live node in <code>this.state</code> after every render, silently: the ref write fires no hook and schedules no render. Static reference names also receive a stable generated ID, one per row inside a loop, helping the differ preserve each typed value and focus.</p>
               </div>
               <site-live title="element refs" right-title="DOM ready">
                 <div class="src"><pre><code>&lt;input fez:this="name_input" /&gt;
@@ -794,19 +896,27 @@ submit() {
 
             <article class="site-feature-row" id="use-directive">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">fez:use</p>
+                <p class="site-feature-kicker">fez:use · update · destroy</p>
                 <h3>Run a DOM hook on insertion</h3>
-                <p>A use directive calls a component method or inline function with the inserted node. It is the focused escape hatch for setup that belongs to one element.</p>
+                <p>A use directive calls a component method or inline function with the inserted node, once per node. The action may return a cleanup function, or <code>{ update(node), destroy() }</code>: <code>update</code> runs on later renders, <code>destroy</code> when the node leaves or the component is destroyed.</p>
               </div>
               <site-live title="DOM action" right-title="node callback">
                 <div class="src"><pre><code>&lt;input fez:use="focusInput" /&gt;
-&lt;canvas fez:use="node =&gt; mountChart(node)" /&gt;
+&lt;span fez:use="tooltip" title={state.tip}&gt;?&lt;/span&gt;
 
 focusInput(node) {
   node.focus()
+}
+
+tooltip(node) {
+  const tip = new Tooltip(node)
+  return {
+    update: (node) =&gt; tip.setText(node.title),
+    destroy: () =&gt; tip.remove(),
+  }
 }</code></pre></div>
                 <div class="out feature-result"><span class="result-dot"></span><span>input focused when its node is added</span></div>
-                <div class="out-label">the callback receives the actual live DOM element</div>
+                <div class="out-label">the callback receives the actual live DOM element; a returned function is the cleanup</div>
               </site-live>
             </article>
 
@@ -814,16 +924,16 @@ focusInput(node) {
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">fez:class</p>
                 <h3>Delayed classes</h3>
-                <p>Add a class immediately or after a millisecond delay. This is useful when a CSS transition needs the initial frame to paint before its active class appears.</p>
+                <p>The value is split on spaces: every class but the last is added right after render, the last one a millisecond later. That gap lets the initial state paint, so a CSS transition runs into the final class.</p>
               </div>
               <site-live title="delayed class" right-title="CSS trigger">
-                <div class="src"><pre><code>&lt;span fez:class="visible:100"&gt;Ready&lt;/span&gt;
+                <div class="src"><pre><code>&lt;span fez:class="fade visible"&gt;Ready&lt;/span&gt;
 
 &lt;style&gt;
   span { opacity: 0; transition: opacity .2s; }
   span.visible { opacity: 1; }
 &lt;/style&gt;</code></pre></div>
-                <div class="out feature-result"><span class="result-chip">+ visible after 100ms</span></div>
+                <div class="out feature-result"><span class="result-chip">+ fade now</span><span class="result-chip">+ visible 1ms later</span></div>
                 <div class="out-label">for full enter and leave animation, use fez:in and fez:out</div>
               </site-live>
             </article>
@@ -851,7 +961,7 @@ focusInput(node) {
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">slot · slot unwrap · fezSlot</p>
                 <h3>Slots that preserve listeners</h3>
-                <p>A normal slot keeps children in a <code>.fez-slot</code> wrapper. <code>unwrap</code> dissolves that wrapper into the parent. Fez moves the real nodes, so existing listeners survive.</p>
+                <p>A normal slot keeps children in a <code>.fez-slot</code> wrapper. <code>unwrap</code> dissolves that wrapper into the parent. Fez moves the real nodes, so existing listeners survive. There is one default slot; named slots are not supported, so pass extra markup as a child component.</p>
               </div>
               <site-live title="panel.fez" right-title="native children">
                 <div class="src"><pre><code>&lt;section class="panel"&gt;
@@ -872,7 +982,7 @@ this.fezSlot(source, target)</code></pre></div>
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">onSubmit · formData()</p>
                 <h3>Forms become plain objects</h3>
-                <p>If a component owns or sits inside a form, <code>onSubmit(data)</code> receives its named fields automatically. Call <code>formData()</code> directly when submission is controlled elsewhere.</p>
+                <p>Define <code>onSubmit(data)</code> and every form the component renders submits into it with its named fields, including a form rendered later inside <code>{#if}</code>; a child component's form is left to the child. Call <code>formData()</code> directly when submission is controlled elsewhere.</p>
               </div>
               <site-live title="profile-form.fez" right-title="form object">
                 <div class="src"><pre><code>onSubmit({ name, role }) {
@@ -888,7 +998,7 @@ saveDraft() {
   &lt;select name="role"&gt;...&lt;/select&gt;
 &lt;/form&gt;</code></pre></div>
                 <div class="out feature-result"><code>{ name: 'Ada', role: 'admin' }</code></div>
-                <div class="out-label">Fez locates the closest parent or first child form</div>
+                <div class="out-label">one delegated submit listener on the root, default submit prevented</div>
               </site-live>
             </article>
           </div>
@@ -924,40 +1034,58 @@ saveDraft() {
     a:hover { color: #c8102e; }
   }
 &lt;/style&gt;</code></pre></div>
-                <div class="out feature-result"><span class="result-chip">.fez-ui-card</span><span>contains every emitted selector</span></div>
+                <div class="out feature-result"><span class="result-chip">.ui-card-fez</span><span>contains every emitted selector</span></div>
                 <div class="out-label">no CSS Modules, Sass compiler or shadow DOM required</div>
               </site-live>
             </article>
 
             <article class="site-feature-row" id="global-styles">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">style global · :global(...)</p>
-                <h3>Two deliberate global escapes</h3>
-                <p>A <code>&lt;style global&gt;</code> block is emitted document-wide and deduplicated. Inside scoped CSS, <code>:global(selector)</code> hoists just one rule for a third-party node outside the component.</p>
+                <p class="site-feature-kicker">:global(...) · Svelte semantics</p>
+                <h3>Escape the scope one selector at a time</h3>
+                <p>Inside scoped CSS, <code>:global(...)</code> works the Svelte way: the part inside it is never scoped. Alone it escapes the component; followed by more selector it sits above the scope, and <code>&amp;</code> places the scope explicitly.</p>
               </div>
               <site-live title="style channels" right-title="explicit scope">
                 <div class="src"><pre><code>&lt;style&gt;
   .toolbar { display: flex; }
   :global(.mapboxgl-popup) { z-index: 20; }
+  :global(.dark) .btn { color: #fff; }
+  :global(html.rtl) &amp; .icon { transform: scaleX(-1); }
 &lt;/style&gt;
 
-&lt;style global&gt;
+/* .mapboxgl-popup
+   .dark .fez.x-fez .btn
+   html.rtl .fez.x-fez .icon */</code></pre></div>
+                <div class="out feature-result"><span class="result-chip">escapes</span><span class="result-chip">above the scope</span><span class="result-chip">scope at &amp;</span></div>
+                <div class="out-label">a list inside :global(.a, .b) expands to one selector per item</div>
+              </site-live>
+            </article>
+
+            <article class="site-feature-row" id="global-styles-block">
+              <div class="site-feature-copy">
+                <p class="site-feature-kicker">style global</p>
+                <h3>Document-wide tokens and classes</h3>
+                <p>A <code>&lt;style global&gt;</code> block is emitted document-wide, verbatim and once, however many instances mount. Scope is declared on the style tag, never guessed from selectors. Use it for <code>:root</code> tokens, <code>@font-face</code> and app-wide classes.</p>
+              </div>
+              <site-live title="global block" right-title="verbatim">
+                <div class="src"><pre><code>&lt;style global&gt;
   :root { --brand: #c8102e; }
   .app-shell { min-height: 100vh; }
 &lt;/style&gt;</code></pre></div>
-                <div class="out feature-result"><span class="result-chip">scoped channel</span><span class="result-chip">global channel</span></div>
-                <div class="out-label">scope is declared on the style tag, never guessed from selectors</div>
+                <div class="out feature-result"><span class="result-chip">global channel</span><span>injected once</span></div>
+                <div class="out-label">wrapping a global rule in :global(...) is a compile error - it already is global</div>
               </site-live>
             </article>
 
             <article class="site-feature-row" id="css-hoisting">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">@keyframes · @font-face · @property</p>
+                <p class="site-feature-kicker">@keyframes · @font-face · @property · @import · @layer</p>
                 <h3>Legal at-rules from scoped files</h3>
-                <p>Rules that cannot legally nest inside a component selector are hoisted automatically. Media, supports and container rules remain nested around the scoped selector.</p>
+                <p>Rules that cannot legally nest inside a component selector are hoisted automatically, <code>@position-try</code> and <code>@view-transition</code> included. Media, supports, container, layer blocks and <code>@starting-style</code> remain nested around the scoped selector. <code>@import</code>, <code>@charset</code> and <code>@layer a, b;</code> move to the front of the sheet even from a scoped block. Comments are <code>/* */</code> only; a <code>//</code> line breaks the next rule.</p>
               </div>
               <site-live title="at-rules" right-title="automatic hoist">
                 <div class="src"><pre><code>&lt;style&gt;
+  @import url("./tokens.css");
   .notice { animation: enter .25s ease-out; }
 
   @keyframes enter {
@@ -969,8 +1097,8 @@ saveDraft() {
     .notice { padding: 20px; }
   }
 &lt;/style&gt;</code></pre></div>
-                <div class="out feature-result"><span class="result-chip">@keyframes hoisted</span><span class="result-chip">@media stays scoped</span></div>
-                <div class="out-label">font-face and property definitions follow the same legal-CSS rule</div>
+                <div class="out feature-result"><span class="result-chip">@import first</span><span class="result-chip">@keyframes hoisted</span><span class="result-chip">@media stays scoped</span></div>
+                <div class="out-label">@import and @layer statements land in a separate &lt;style id="fez-css-head"&gt; before the shared sheet</div>
               </site-live>
             </article>
 
@@ -1207,20 +1335,21 @@ Fez.animateSize(node, 'width, duration=180')</code></pre></div>
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">onMount(props)</p>
                 <h3>Work with the rendered DOM</h3>
-                <p><code>onMount</code> runs once after the first DOM render. Template refs, layout measurements, focus and third-party libraries belong here.</p>
+                <p><code>onMount</code> runs once after the first DOM render. Template refs, layout measurements, focus and third-party libraries belong here. A returned function is the cleanup, run on destroy.</p>
               </div>
               <site-live title="onMount" right-title="3 · DOM ready">
                 <div class="src"><pre><code>onMount(props) {
   this.state.name_input.focus()
-  this.state.editor = new Editor({
+  const editor = new Editor({
     element: this.state.editor_root,
   })
+  return () =&gt; editor.destroy()
 }
 
 &lt;input fez:this="name_input" /&gt;
 &lt;div fez:this="editor_root"&gt;&lt;/div&gt;</code></pre></div>
                 <div class="out feature-result"><span class="result-dot"></span><span>refs point to connected, rendered elements</span></div>
-                <div class="out-label">the template never reads state.editor, so the write never renders</div>
+                <div class="out-label">a throw in init, the first render or onMount is reported and the instance destroyed</div>
               </site-live>
             </article>
 
@@ -1228,7 +1357,7 @@ Fez.animateSize(node, 'width, duration=180')</code></pre></div>
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">afterRender()</p>
                 <h3>React after every morph</h3>
-                <p>This hook runs after the rendered HTML has been applied. Use it for a small side effect that genuinely needs the latest DOM after every component render.</p>
+                <p>This hook runs after the rendered HTML has been applied, and also when the render hash matched and the DOM was left alone. Use it for a small side effect that genuinely needs the latest DOM after every component render.</p>
               </div>
               <site-live title="afterRender" right-title="4 · every render">
                 <div class="src"><pre><code>afterRender() {
@@ -1246,7 +1375,7 @@ Fez.animateSize(node, 'width, duration=180')</code></pre></div>
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">onRefresh(props, changed)</p>
                 <h3>Know when a parent preserves you</h3>
-                <p><code>onRefresh</code> runs after mount and whenever a parent render keeps this child component; <code>changed</code> holds the props whose value differs (every prop at mount). The child already re-rendered for a changed prop. It does not fire for the child's own state render or for outside DOM events.</p>
+                <p><code>onRefresh</code> runs after mount and whenever this instance is kept and handed props: by a parent render, a pjax or <code>Fez.nodeMorph</code> swap, or <code>fez-component</code>. <code>changed</code> holds the props whose value differs (every prop at mount). The child already re-rendered for a changed prop. It does not fire for the child's own state render or for outside DOM events.</p>
               </div>
               <site-live title="onRefresh" right-title="parent preserve">
                 <div class="src"><pre><code>onRefresh(props, changed) {
@@ -1281,7 +1410,7 @@ Fez.animateSize(node, 'width, duration=180')</code></pre></div>
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">onGlobalStateChange(key, value, oldValue)</p>
                 <h3>Observe shared state</h3>
-                <p>Components that read a global key receive this hook synchronously when that key changes. Their render is scheduled once alongside any local state changes.</p>
+                <p>Components that read a global key receive this hook synchronously when that key changes. A key the last render read also schedules one render alongside any local state changes; a key read only in code, as below, fires the hook alone.</p>
               </div>
               <site-live title="onGlobalStateChange" right-title="shared observer">
                 <div class="src"><pre><code>init() {
@@ -1322,9 +1451,54 @@ onMount() {
 // this.on(...)
 // this.setTimeout(...)
 // this.setInterval(...)
-// this.subscribe(...)</code></pre></div>
+// this.subscribe(...)
+// this.observeResize(...)
+// onMount and fez:use cleanups</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">listeners removed</span><span class="result-chip">timers cleared</span><span class="result-chip">subscriptions dropped</span></div>
-                <div class="out-label">cleanup runs once, even if the node is removed more than once</div>
+                <div class="out-label">cleanup runs once, even if the node is removed more than once; a throwing onDestroy is reported and teardown completes</div>
+              </site-live>
+            </article>
+
+            <article class="site-feature-row" id="hook-on-error">
+              <div class="site-feature-copy">
+                <p class="site-feature-kicker">onError(error, component)</p>
+                <h3>Error boundaries</h3>
+                <p>Any ancestor that defines <code>onError</code> catches a descendant's mount error, render throw or template runtime error, with the failing instance as <code>component</code>. Set state to show a fallback, or throw to pass the error further up. Without a boundary, <code>Fez.onError</code> reports it as before; a failed template always keeps its last rendered DOM.</p>
+                <p><a href="./examples.html#fez-demo-demo-context" data-fez-static-ignore>Try the context and boundary demo</a>.</p>
+              </div>
+              <site-live title="boundary" right-title="contained failure">
+                <div class="src"><pre><code>onError(error, component) {
+  this.state.error =
+    `&lt;${component.fezName}&gt; ${error.message}`
+}
+
+&lt;risky-widget /&gt;
+{#if state.error}
+  &lt;p class="error"&gt;{state.error}&lt;/p&gt;
+{/if}</code></pre></div>
+                <div class="out feature-result"><span class="result-demo">&lt;risky-widget&gt; failed to start</span></div>
+                <div class="out-label">a child that fails to mount is destroyed; one that fails to render keeps its last DOM</div>
+              </site-live>
+            </article>
+
+            <article class="site-feature-row" id="context">
+              <div class="site-feature-copy">
+                <p class="site-feature-kicker">this.context(key, value?)</p>
+                <h3>Context down the component tree</h3>
+                <p><code>this.context(key, value)</code> provides a value; <code>this.context(key)</code> reads it from the nearest component up the tree, the caller included. Read it in <code>init()</code>. Context is not reactive: provide an object, or use <code>globalState</code> for values that change.</p>
+              </div>
+              <site-live title="context" right-title="no prop drilling">
+                <div class="src"><pre><code>// provider
+init() {
+  this.context('theme', { color: '#1f7a8c' })
+}
+
+// any descendant, however deep
+init() {
+  this.state.theme = this.context('theme')
+}</code></pre></div>
+                <div class="out feature-result"><span class="result-chip">theme found 3 levels up</span></div>
+                <div class="out-label">Svelte's setContext and getContext in one call</div>
               </site-live>
             </article>
           </div>
@@ -1387,20 +1561,18 @@ this.root.append(row)</code></pre></div>
 
             <article class="site-feature-row" id="instance-attributes">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">attr · prop · copy</p>
+                <p class="site-feature-kicker">attr · copy · setAttribute</p>
                 <h3>Attributes and DOM properties</h3>
-                <p><code>attr()</code> gets or sets a root attribute. <code>prop()</code> resolves an original property or prop and binds functions. <code>copy()</code> forwards chosen input props to the semantic root.</p>
+                <p><code>attr()</code> gets or sets a root attribute. <code>copy()</code> forwards chosen input props to the semantic root. From outside, <code>Fez(el).setAttribute(name, value)</code> feeds a value through <code>PROPS</code> into <code>this.props</code>.</p>
               </div>
               <site-live title="root attributes" right-title="forwarding">
                 <div class="src"><pre><code>init() {
   this.copy('href', 'target', 'aria-label')
   this.attr('data-ready', 'true')
-
-  const click = this.prop('onclick')
-  click?.()
+  this.props.href // read props directly
 }
 
-// &lt;smart-link href="/docs" target="_blank" /&gt;</code></pre></div>
+Fez('#docs-link').setAttribute('target', '_self')</code></pre></div>
                 <div class="out feature-result"><code>&lt;a href="/docs" target="_blank" data-ready="true"&gt;</code></div>
                 <div class="out-label">non-string values copied by copy() land as DOM properties</div>
               </site-live>
@@ -1408,21 +1580,18 @@ this.root.append(row)</code></pre></div>
 
             <article class="site-feature-row" id="instance-presentation">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">addClass · toggleClass · setStyle</p>
+                <p class="site-feature-kicker">setStyle · classList</p>
                 <h3>Focused presentation helpers</h3>
-                <p>Add several classes, toggle one with an optional force value, or set one or many CSS custom properties and styles on the root.</p>
+                <p>Set one or many CSS custom properties and styles on the root with <code>setStyle()</code>. Classes go through the native <code>classList</code>, or a <code>class:name</code> directive in the template.</p>
               </div>
               <site-live title="presentation" right-title="shortcuts">
-                <div class="src"><pre><code>this.addClass('ready compact')
-this.addClass('selected', this.find('li'))
-
-this.toggleClass('open')
-this.toggleClass('disabled', this.props.disabled)
+                <div class="src"><pre><code>this.root.classList.add('ready', 'compact')
+this.root.classList.toggle('open', this.props.open)
 
 this.setStyle('--accent', '#c8102e')
 this.setStyle({ color: 'white', background: '#17181c' })</code></pre></div>
                 <div class="out feature-result"><span class="result-demo" style="color: white; background: #17181c;">ready compact · --accent set</span></div>
-                <div class="out-label">pass a node to class helpers; setStyle targets the component root</div>
+                <div class="out-label">setStyle targets the component root</div>
               </site-live>
             </article>
 
@@ -1469,13 +1638,18 @@ this.dissolve(document.createElement('nav'))</code></pre></div>
 
             <article class="site-feature-row" id="instance-rendering">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">refresh · fezRefresh · fezRender · fezParseHtml · fezNextTick</p>
+                <p class="site-feature-kicker">refresh · tick · fezRender · fezParseHtml · fezNextTick</p>
                 <h3>Rendering controls</h3>
-                <p><code>refresh()</code> and <code>fezRefresh()</code> schedule the normal render. <code>fezRender()</code> can render the configured template or supplied content. <code>fezNextTick()</code> deduplicates named work into the next animation frame.</p>
+                <p><code>refresh()</code> schedules the normal render. <code>await this.tick()</code> resolves once the pending render has reached the DOM. <code>fezRender()</code> renders now, the configured template or a supplied one. <code>fezNextTick()</code> deduplicates named work into the next animation frame, or a timer while the tab is hidden.</p>
               </div>
               <site-live title="rendering" right-title="batched">
                 <div class="src"><pre><code>this.refresh()
-this.fezRefresh()
+
+async open() {
+  this.state.open = true
+  await this.tick()
+  this.find('input').focus()
+}
 
 this.fezRender()
 this.fezRender('&lt;p&gt;Temporary markup&lt;/p&gt;')
@@ -1492,18 +1666,20 @@ this.fezNextTick(() =&gt; {
 
             <article class="site-feature-row" id="instance-events">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">on · onWindowResize · onWindowScroll · onElementResize</p>
+                <p class="site-feature-kicker">on · observeResize · Fez.WINDOW_EVENTS</p>
                 <h3>Auto-cleaned event listeners</h3>
-                <p><code>on()</code> binds <code>this</code>, guards disconnected instances, supports throttling and returns a disposer. The resize and scroll shortcuts call once immediately; element resize uses ResizeObserver.</p>
+                <p><code>on()</code> binds <code>this</code>, guards disconnected instances, supports throttling and returns a disposer; window resize and scroll go through it too, and the handler is not called at bind time. <code>observeResize()</code> uses ResizeObserver and calls once right away with the element's rect.</p>
               </div>
               <site-live title="events" right-title="automatic cleanup">
                 <div class="src"><pre><code>const off = this.on('pjax:render', this.followPage)
 this.on(window, 'keydown', this.onKey)
 this.on(this.root, 'pointermove', this.move, { throttle: 50 })
 
-this.onWindowResize(this.layout, 100)
-this.onWindowScroll(this.markSection, 80)
-this.onElementResize(this.panel, this.fit, 120)
+this.on('resize', this.layout, { throttle: 100 })
+this.on('scroll', this.markSection, { throttle: 80 })
+this.layout() // first run, if needed
+
+this.observeResize(this.state.panel, (rect, el) =&gt; this.fit(rect), 120)
 
 Fez.WINDOW_EVENTS.add('app:layout')
 
@@ -1538,7 +1714,7 @@ this.setInterval(() =&gt; {
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">publish · subscribe</p>
                 <h3>Component-level messaging</h3>
-                <p>A component publish walks up through parent components until a matching subscriber handles it. Subscriptions clean up automatically and return an unsubscribe function.</p>
+                <p>A component publish walks up through parent components until a matching subscriber handles it. Subscriptions clean up automatically on destroy, survive a move of the component, and return an unsubscribe function.</p>
               </div>
               <site-live title="component events" right-title="bubbles to parents">
                 <div class="src"><pre><code>// child
@@ -1575,7 +1751,7 @@ init() {
               <div class="site-feature-copy">
                 <p class="site-feature-kicker">Fez(name, class) · Fez(selector) · Fez.find</p>
                 <h3>Register and find components</h3>
-                <p>The main function registers a class or finds instances by UID, selector, DOM node, component name and parent context. A callback visits every live instance of a name.</p>
+                <p>The main function registers a class or finds instances by UID, selector, DOM node, component name and parent context. A callback visits every live instance of a name and the call returns those instances. <code>Fez.find</code> returns <code>undefined</code> when nothing matches.</p>
               </div>
               <site-live title="Fez()" right-title="register · lookup">
                 <div class="src"><pre><code>Fez('status-pill', class {
@@ -1586,8 +1762,9 @@ Fez('#main-dialog').open()
 Fez(42)
 Fez(node)
 Fez('ui-tabs', this.root)
-Fez('ui-tabs', tabs =&gt; tabs.refresh())
-Fez.find(node, 'ui-tabs')</code></pre></div>
+const all = Fez('ui-tabs', tabs =&gt; tabs.refresh())
+Fez.find(node, 'ui-tabs')
+Fez.version // from package.json</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">register</span><span class="result-chip">one instance</span><span class="result-chip">all instances</span><span class="result-chip">parent context</span></div>
                 <div class="out-label">Fez.instances and Fez.instanceCount expose the live registry directly</div>
               </site-live>
@@ -1690,17 +1867,19 @@ off()</code></pre></div>
 
             <article class="site-feature-row" id="fez-dom-utilities">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">domRoot · tag · htmlEscape · activateNode · morphdom · nodeMorph</p>
+                <p class="site-feature-kicker">domRoot · tag · htmlEscape · htmlAttr · styleProp · activateNode · nodeMorph</p>
                 <h3>Low-level DOM utilities</h3>
-                <p>Create a root from HTML, build encoded tags, escape text, activate one sibling, or invoke the component-aware DOM differ directly. <code>nodeMorph</code> also accepts fragments and advanced matching options.</p>
+                <p>Create a root from HTML, build encoded tags, escape any value as text, render one attribute or style declaration by the template rules, activate one sibling, or invoke the component-aware DOM differ directly. <code>nodeMorph</code> accepts an HTML string, an element or a fragment, plus advanced matching options.</p>
               </div>
-              <site-live title="DOM runtime" right-title="six utilities">
+              <site-live title="DOM runtime" right-title="eight utilities">
                 <div class="src"><pre><code>const root = Fez.domRoot('&lt;section&gt;Hello&lt;/section&gt;')
 const html = Fez.tag('button', { disabled: true }, 'Save')
 const safe = Fez.htmlEscape('&lt;b&gt;unsafe&lt;/b&gt;')
+Fez.htmlAttr('hidden', false)        // ''
+Fez.styleProp('color', 'red')        // 'color: red;'
 
 Fez.activateNode(tab, 'active')
-Fez.morphdom(target, nextNode)
+Fez.nodeMorph(target, '&lt;p&gt;new HTML&lt;/p&gt;')
 Fez.nodeMorph(target, fragment, {
   skipNode: node =&gt; node.matches('.external')
 })</code></pre></div>
@@ -1722,6 +1901,7 @@ Fez.isTrue('false')       // false
 Fez.isTruthy([])          // false
 Fez.typeof({})            // 'o'
 Fez.typeof(1.5)           // 'n'
+Fez.typeof(true)          // 'b'
 
 Fez.toPairs(['a', 'b'])   // [['a',0], ['b',1]]
 Fez.toPairs({ a: 1 })     // [['a',1]]
@@ -1754,7 +1934,7 @@ Fez.sweepPointers()</code></pre></div>
 
             <article class="site-feature-row" id="fez-compiler-diagnostics">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">compile · createTemplate · LOG · DEV · onError · log · highlightAll</p>
+                <p class="site-feature-kicker">compile · createTemplate · LOG · DEV · onError · dump · highlightAll</p>
                 <h3>Compilation and diagnostics</h3>
                 <p>Compile source or create a template function at runtime. Enable logs and component overlays, inspect a component dump, customize errors, or use the low-level console helpers.</p>
               </div>
@@ -1770,7 +1950,7 @@ Fez.onError = (kind, error, context) =&gt; report(error)
 Fez.consoleLog('rendered')
 Fez.consoleError('invalid prop')
 this.fezError('editor', 'Could not mount', { node: this.root })
-Fez.log('#status')
+Fez.dump(this.state)
 Fez.highlightAll()</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">compiled</span><span class="result-chip">logged</span><span class="result-chip">inspected</span><span class="result-chip">highlighted</span></div>
                 <div class="out-label">development overlays can be toggled with Cmd/Ctrl + E</div>
@@ -1877,17 +2057,17 @@ this.state.server_status = 'saved'
 
             <article class="site-feature-row" id="performance-escape-hatches">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">fez:keep subtree · plain fields · controller-only</p>
+                <p class="site-feature-kicker">fez:keep subtree · unrendered state · controller-only</p>
                 <h3>Three direct-DOM escape hatches</h3>
-                <p>For a frequently updated component with hundreds or thousands of nodes, protect one subtree, store data outside state, or omit the template entirely. Lifecycle, props, CSS, events and cleanup still work.</p>
+                <p>For a frequently updated component with hundreds or thousands of nodes, protect one subtree, keep the data in state keys the template never reads, or omit the template entirely. Lifecycle, props, CSS, events and cleanup still work.</p>
               </div>
               <site-live title="large grid" right-title="vanilla DOM speed">
                 <div class="src"><pre><code>// 1. reactive shell, protected body
 &lt;h3&gt;{state.title}&lt;/h3&gt;
 &lt;div fez:keep="grid" fez:this="grid"&gt;&lt;/div&gt;
 
-// 2. plain field: no render
-this.rows = []
+// 2. unrendered state key: no render
+this.state.rows = []
 
 // 3. no template: pure controller
 onMount() {
@@ -1895,7 +2075,7 @@ onMount() {
 }
 
 patch(i, value) {
-  this.cells[i].textContent = value
+  this.state.cells[i].textContent = value
 }</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">10k rows</span><span>direct <code>textContent</code> updates at vanilla speed</span></div>
                 <div class="out-label">external DOM libraries use the same pattern: mount once, update their nodes directly</div>
@@ -2029,22 +2209,23 @@ Fez.pjax.useViewTransition = true
 
             <article class="site-feature-row" id="cli-tools">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">compile · template · refactor · index · debug · agents</p>
+                <p class="site-feature-kicker">compile · template · refactor · index · debug · agents · version</p>
                 <h3>Focused CLI tools</h3>
-                <p>Validate complete files or templates, inspect generated template code, report modernization candidates and legacy <code>Pjax.</code> calls, index component metadata, open a Playwright debugging REPL, and print or initialize the agent reference.</p>
+                <p>Validate complete files or templates, inspect generated template code, report modernization candidates, removed APIs, <code>//</code> comments in styles and legacy <code>Pjax.</code> calls, index component metadata, open a Playwright debugging REPL, print or initialize the agent reference, and print the version.</p>
               </div>
               <site-live title="terminal" right-title="bun-friendly tooling">
-                <div class="src"><pre><code>fez compile docs/fez/ui-card.fez
-fez compile 'docs/fez/**/*.fez'
-fez template docs/fez/ui-card.fez
-fez compile --debug-template docs/fez/ui-card.fez
-fez template --debug docs/fez/ui-card.fez
+                <div class="src"><pre><code>fez compile src/fez/ui-card.fez
+fez compile 'src/fez/**/*.fez'
+fez template src/fez/ui-card.fez
+fez compile --debug-template src/fez/ui-card.fez
+fez template --debug src/fez/ui-card.fez
 
-fez refactor docs/fez
-fez index docs/fez
-fez debug http://localhost:8000/docs/index.html
+fez refactor src/fez
+fez index src/fez
+fez debug http://localhost:8000/index.html
 fez agents
 fez agents --init
+fez version
 fez --help</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">syntax checked</span><span class="result-chip">template checked</span><span class="result-chip">metadata indexed</span><span class="result-chip">browser debugged</span></div>
                 <div class="out-label">the CLI uses the same compiler as the browser runtime</div>

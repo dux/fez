@@ -76,6 +76,7 @@
     }
 
     onMount() {
+      this.on('resize', this.resize, { throttle: 200 })
       this.state.container = this.find('.canvas-container')
       this.state.loadingOverlay = this.find('.loading-overlay')
       this.state.loadButton = this.find('.load-button')
@@ -302,7 +303,7 @@
       renderer.render(scene, camera)
     }
 
-    onWindowResize() {
+    resize() {
       const { container, camera, renderer } = this.state
       if (!container || !camera || !renderer) return
 
