@@ -109,7 +109,7 @@ describe("fez-props on the root", () => {
     const fez = mount({ count: 3 });
     fez.fezRegister();
     fez.root.innerHTML = "<p>old</p>";
-    globalThis.Fez.morphdom = (target, newNode) => {
+    globalThis.Fez.nodeMorph = (target, newNode) => {
       target.innerHTML = newNode.innerHTML;
     };
     globalThis.Fez.fnv1 = (s) => s;

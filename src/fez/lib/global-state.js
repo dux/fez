@@ -4,8 +4,8 @@
 // - Registers component as listener when reading a value
 // - Notifies component when that value changes
 // - Calls onGlobalStateChange(key, value, oldValue) right away, then
-//   schedules fezRender() on the next frame (same tick as local state, so
-//   several key changes in one handler render once)
+//   schedules fezRender() on the next frame when the last render read that
+//   key (same tick as local state, so several key changes render once)
 //
 // Example usage:
 //
@@ -29,7 +29,7 @@
 //   Fez.state.set('count', 10)
 //   Fez.state.get('count') // 10
 //   Fez.state.subscribe('count', (value, oldValue, key) => {})
-//   Fez.state.subscribe((key, value, oldValue) => {})
+//   Fez.state.subscribe((value, oldValue, key) => {})
 
 // One registry for everything that listens: a sub is { fn, fez? }. Component
 // subs carry their instance so forEach() and liveness pruning can see it;
@@ -88,7 +88,7 @@ const GlobalState = {
 
     for (const fn of this.anySubs) {
       try {
-        fn(key, value, oldValue);
+        fn(value, oldValue, key);
       } catch (error) {
         console.error('Error in global subscriber:', error);
       }
@@ -160,12 +160,14 @@ const GlobalState = {
       }
       const fn = (value, oldValue, _key, writer) => {
         component.onGlobalStateChange(key, value, oldValue);
-        // Mirror local state: a self-write inside a silent scope (init, a
-        // render in flight) is already covered. Anything else (another
-        // component, Fez.state.set) coalesces with local state changes into
-        // one frame.
+        // Mirror local state: only a key the last render read paints (one read
+        // in a click handler must not re-render on every change after), and a
+        // self-write inside a silent scope (init, a render in flight) is
+        // already covered. The rest coalesces with local state into one frame.
+        const reads = component._fezGlobalReads;
+        const rendered = !reads || component._fezGlobalReadsAll || reads.has(key);
         const selfWrite = writer === component && component._fezSilent;
-        if (!selfWrite) {
+        if (rendered && !selfWrite) {
           component.fezNextTick(component.fezRender, 'fezRender');
         }
       };
@@ -180,6 +182,9 @@ const GlobalState = {
             return undefined;
           }
           listen(key);
+          if (component._isRendering) {
+            component._fezGlobalReads?.add(key);
+          }
           return this.data[key];
         },
         set: (_, key, value) => {
@@ -188,7 +193,26 @@ const GlobalState = {
           }
           return true;
         },
+        deleteProperty: (_, key) => {
+          if (typeof key !== 'symbol') {
+            this.delete(key);
+          }
+          return true;
+        },
         has: (_, key) => typeof key !== 'symbol' && key in this.data,
+        // Object.keys / {@json globalState}: every key, all of them read
+        ownKeys: () => {
+          const all = Object.keys(this.data);
+          all.forEach(listen);
+          if (component._isRendering) {
+            component._fezGlobalReadsAll = true;
+          }
+          return all;
+        },
+        getOwnPropertyDescriptor: (_, key) =>
+          typeof key !== 'symbol' && key in this.data
+            ? { value: this.data[key], enumerable: true, configurable: true, writable: true }
+            : undefined,
       },
     );
   },

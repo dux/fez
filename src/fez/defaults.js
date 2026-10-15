@@ -755,11 +755,11 @@ const loadDefaults = () => {
 
       showHtml(name) {
         const html = Fez.index[name]?.demo || 'No demo HTML';
-        Fez.log('Demo HTML: ' + name + '\n\n' + html);
+        Fez.dump('Demo HTML: ' + name + '\n\n' + html);
       }
 
       showFez(name) {
-        Fez.log(
+        Fez.dump(
           'Fez source: ' +
             name +
             '\n\n' +

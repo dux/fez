@@ -47,7 +47,7 @@ describe("GlobalState", () => {
     const key = uniq("deleted");
     const comp = fakeComponent("reader");
     const seen = [];
-    const unsub = GlobalState.subscribe((k, value, oldValue) => seen.push([k, value, oldValue]));
+    const unsub = GlobalState.subscribe((value, oldValue, k) => seen.push([k, value, oldValue]));
     GlobalState.set(key, true);
     expect(comp.globalState[key]).toBe(true);
 
@@ -81,7 +81,7 @@ describe("GlobalState", () => {
   test("subscribe(fn) hears every key", () => {
     const k1 = uniq("a"), k2 = uniq("b");
     const seen = [];
-    const unsub = GlobalState.subscribe((key, v) => seen.push([key, v]));
+    const unsub = GlobalState.subscribe((v, _old, key) => seen.push([key, v]));
     GlobalState.set(k1, "x");
     GlobalState.set(k2, "y");
     unsub();
@@ -247,5 +247,33 @@ describe("GlobalState", () => {
       console.error = origError;
     }
     expect(typeof unsub).toBe("function");
+  });
+
+  test("a key the last render did not read fires the hook but schedules no render", () => {
+    const key = uniq("handlerRead");
+    const comp = fakeComponent("reader");
+    comp._fezGlobalReads = new Set(); // rendered once, without reading the key
+    comp.globalState[key]; // read in a click handler
+    GlobalState.set(key, 1);
+    expect(comp.hookCalls).toEqual([[key, 1, undefined]]);
+    expect(comp.scheduled).toEqual([]);
+
+    comp._isRendering = true;
+    comp.globalState[key]; // now the template reads it
+    comp._isRendering = false;
+    GlobalState.set(key, 2);
+    expect(comp.scheduled).toEqual(["fezRender"]);
+    comp.destroy();
+  });
+
+  test("Object.keys and delete work through the proxy", () => {
+    const key = uniq("listed");
+    const comp = fakeComponent("reader");
+    GlobalState.set(key, "v");
+    expect(Object.keys(comp.globalState)).toContain(key);
+    expect({ ...comp.globalState }[key]).toBe("v");
+    delete comp.globalState[key];
+    expect(GlobalState.get(key)).toBeUndefined();
+    comp.destroy();
   });
 });

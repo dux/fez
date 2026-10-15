@@ -164,6 +164,41 @@ describe('fez refactor', () => {
     expect(fs.readFileSync(script, 'utf8')).toBe(scriptSource);
   });
 
+  test('reports removed component APIs and // comments in <style>', async () => {
+    const dir = tempDir();
+    const source = [
+      '<script>',
+      '  class {',
+      '    onInit() { this.onWindowResize(this.fit) }',
+      "    pick() { this.addClass('on'); this.fezRefresh(); Fez.log(this.prop('x')) }",
+      '  }',
+      '</script>',
+      '<style>',
+      '  // old note',
+      '  b { color: red }',
+      '</style>',
+      '<b onclick="{() => pick()}">x</b>',
+      '',
+    ].join('\n');
+    fs.writeFileSync(path.join(dir, 'ui-old.fez'), source);
+
+    const result = await run(['refactor', dir]);
+
+    expect(result.exitCode).toBe(1);
+    for (const message of [
+      'ui-old.fez:3: Removed init alias',
+      'ui-old.fez:3: Removed onWindowResize',
+      'ui-old.fez:4: Removed class helper',
+      'ui-old.fez:4: Removed fezRefresh',
+      'ui-old.fez:4: Renamed Fez.log',
+      'ui-old.fez:4: Removed this.prop()',
+      'ui-old.fez:8: // comment in <style>',
+      'ui-old.fez:11: Quoted arrow handler is a no-op',
+    ]) {
+      expect(result.stdout).toContain(message);
+    }
+  });
+
   test('leaves files that bind their own Pjax alone', async () => {
     const dir = tempDir();
     fs.writeFileSync(

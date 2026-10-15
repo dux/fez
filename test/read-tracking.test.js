@@ -75,7 +75,7 @@ test("refresh() and a state write share one render tick", () => {
   const names = [];
   fez.fezNextTick = (fn, name) => names.push(name);
   render(() => fez.state.a);
-  fez.fezRefresh();
+  fez.refresh();
   fez.state.a = 1;
   expect(names).toEqual(["fezRender", "fezRender"]);
 });

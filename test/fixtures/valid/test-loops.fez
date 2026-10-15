@@ -1,5 +1,5 @@
 <script>
-  onInit() {
+  init() {
     this.state.items = ['apple', 'banana', 'cherry']
     this.state.showAll = true
   }

@@ -40,14 +40,15 @@
     init() {
       this.state.isVisible = false
 
-      this.onWindowScroll(() => {
-        const scrollY = window.scrollY
-        const shouldShow = scrollY > 120
+      this.on('scroll', this.toggleVisible, { throttle: 200 })
+      this.toggleVisible()
+    }
 
-        if (shouldShow !== this.state.isVisible) {
-          this.state.isVisible = shouldShow
-        }
-      })
+    toggleVisible() {
+      const shouldShow = window.scrollY > 120
+      if (shouldShow !== this.state.isVisible) {
+        this.state.isVisible = shouldShow
+      }
     }
 
     scrollToTop() {

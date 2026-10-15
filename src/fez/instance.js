@@ -498,8 +498,7 @@ export default class FezBase {
   fezInit() {
     this.noChangeStateTrigger(() => {
       this.fezSeedProps();
-      const init = this.onInit || this.init || this.created || this.connect;
-      init.call(this, this.props);
+      this.init(this.props);
     });
   }
 
@@ -592,22 +591,11 @@ export default class FezBase {
     return !!this.root?.isConnected;
   }
 
-  /**
-   * Get single node property
-   */
-  prop(name) {
-    let v = this.oldRoot[name] || this.props[name];
-    if (typeof v === 'function') {
-      v = v.bind(this.root);
-    }
-    return v;
-  }
-
   // ===========================================================================
   // LIFECYCLE HOOKS
   // ===========================================================================
 
-  connect() {}
+  init() {}
   onMount() {}
   beforeRender() {}
   afterRender() {}
@@ -660,6 +648,15 @@ export default class FezBase {
         this.fezError('destroy', `Error in cleanup callback: ${e.message}`, e);
       }
     });
+
+    for (const n of this._fezUseNodes || []) {
+      try {
+        n._fezUse.destroy?.();
+      } catch (e) {
+        this.fezError('destroy', `Error in fez:use destroy: ${e.message}`, e);
+      }
+    }
+    this._fezUseNodes = null;
 
     // Call user's onDestroy hook; a throw must not skip the release below
     try {
@@ -730,18 +727,11 @@ export default class FezBase {
   }
 
   /**
-   * Force a re-render on next frame. Same tick as state writes, so a refresh
-   * and a write in one frame still produce a single render.
-   */
-  fezRefresh() {
-    this.fezNextTick(this.fezRender, 'fezRender');
-  }
-
-  /**
-   * Alias for fezRefresh - can be overwritten
+   * Re-render on the next frame. Same tick as state writes, so a refresh and a
+   * write in one frame still produce a single render.
    */
   refresh() {
-    this.fezRefresh();
+    this.fezNextTick(this.fezRender, 'fezRender');
   }
 
   /**
@@ -781,6 +771,8 @@ export default class FezBase {
     // write to a key that is not in the set schedules nothing (fezReactiveStore)
     this._fezReads = new Set();
     this._fezReadsAll = false;
+    this._fezGlobalReads = new Set();
+    this._fezGlobalReadsAll = false;
 
     this.beforeRender();
 
@@ -821,6 +813,7 @@ export default class FezBase {
         const newHash = Fez.fnv1(parsedHtml);
         if (newHash === this._fezHash && !this.fezGlobals.valuesChanged) {
           this.fezGlobals.commitRender();
+          this.afterRender();
           return;
         }
         this._fezHash = newHash;
@@ -843,7 +836,7 @@ export default class FezBase {
     this._fezSilent = 0;
     this._isRendering = false;
     try {
-      Fez.morphdom(this.root, newNode);
+      Fez.nodeMorph(this.root, newNode);
     } finally {
       this._fezSilent = silent;
       this._isRendering = true;
@@ -922,6 +915,20 @@ export default class FezBase {
     }
   }
 
+  fezRunAction(value, n) {
+    if (value.includes('=>')) {
+      return Fez.getFunction(value)(n);
+    }
+    if (value.includes('.')) {
+      return Fez.getFunction(value).bind(n)();
+    }
+    const target = this[value];
+    if (typeof target === 'function') {
+      return target(n);
+    }
+    this.fezError('fez-use', `"${value}" is not a function`);
+  }
+
   /**
    * Post-render processing for fez-* attributes
    */
@@ -945,19 +952,25 @@ export default class FezBase {
       n._fezThisName = value;
     });
 
+    // fez-use="action": runs once per node (the differ re-syncs the attribute
+    // every render). The action may return a cleanup function or
+    // { update(node), destroy() }: update runs on later renders, destroy when
+    // the node leaves or the component is destroyed.
     fetchAttr('fez-use', (value, n) => {
-      if (value.includes('=>')) {
-        return Fez.getFunction(value)(n);
+      if (n._fezUse) {
+        n._fezUse.update?.(n);
+        return;
       }
-      if (value.includes('.')) {
-        return Fez.getFunction(value).bind(n)();
-      }
-      const target = this[value];
-      if (typeof target === 'function') {
-        return target(n);
-      }
-      this.fezError('fez-use', `"${value}" is not a function`);
+      const result = this.fezRunAction(value, n);
+      n._fezUse = typeof result === 'function' ? { destroy: result } : result || {};
+      (this._fezUseNodes ||= new Set()).add(n);
     });
+    for (const n of this._fezUseNodes || []) {
+      if (!this.root.contains(n)) {
+        this._fezUseNodes.delete(n);
+        n._fezUse.destroy?.();
+      }
+    }
 
     // fez-class="dialog animate" -> add class after init for animation
     fetchAttr('fez-class', (value, n) => {
@@ -1131,7 +1144,7 @@ export default class FezBase {
 
   /**
    * Bind all instance methods to this, walking the prototype chain
-   * so inherited FezBase methods (refresh, fezRefresh, ...) bind too
+   * so inherited FezBase methods (refresh, find, ...) bind too
    */
   fezRegisterBindMethods() {
     const methods = new Set();
@@ -1331,20 +1344,6 @@ export default class FezBase {
         ? this.root.querySelector(selector)
         : null
       : selector;
-  }
-
-  /**
-   * Add one or more classes (space-separated) to root or given node
-   */
-  addClass(names, node) {
-    (node || this.root).classList.add(...names.split(/\s+/).filter(Boolean));
-  }
-
-  /**
-   * Toggle a class on root or given node, with optional force boolean
-   */
-  toggleClass(name, force, node) {
-    (node || this.root).classList.toggle(name, force);
   }
 
   /**
@@ -1569,25 +1568,10 @@ export default class FezBase {
   }
 
   /**
-   * Window resize handler — calls fn once immediately, then on throttled resize.
+   * Call func(rect, el) now and whenever el resizes (ResizeObserver, throttled).
+   * Window resize and scroll go through this.on('resize' | 'scroll', fn, { throttle }).
    */
-  onWindowResize(func, throttle = 200) {
-    this.on('resize', func, { throttle });
-    func.call(this);
-  }
-
-  /**
-   * Window scroll handler — calls fn once immediately, then on throttled scroll.
-   */
-  onWindowScroll(func, throttle = 200) {
-    this.on('scroll', func, { throttle });
-    func.call(this);
-  }
-
-  /**
-   * Element resize handler using ResizeObserver
-   */
-  onElementResize(el, func, delay = 200) {
+  observeResize(el, func, delay = 200) {
     const throttledFunc = Fez.throttle(() => {
       if (this.isConnected) {
         func.call(this, el.getBoundingClientRect(), el);

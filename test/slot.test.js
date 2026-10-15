@@ -648,7 +648,7 @@ describe("slot behavior", () => {
   });
 
   describe("childNodes() behavior", () => {
-    test("before render (onInit) - returns _fezChildNodes", () => {
+    test("before render (init) - returns _fezChildNodes", () => {
       // Before first render, no slot exists. childNodes() returns captured children.
       const root = document.createElement("div");
       root.id = "cn-1";

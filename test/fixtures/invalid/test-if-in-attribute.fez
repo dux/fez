@@ -1,5 +1,5 @@
 <script>
-  onInit() {
+  init() {
     this.state.active = true
   }
 </script>

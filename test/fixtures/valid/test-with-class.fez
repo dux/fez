@@ -2,7 +2,7 @@
   const CONFIG = { maxItems: 10 }
 
   class {
-    onInit() {
+    init() {
       this.state.items = []
     }
 

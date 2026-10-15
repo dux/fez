@@ -2,7 +2,6 @@
  * Fez-specific wiring for the generic nodeMorph differ.
  *
  * Provides:
- *  - Fez.morphdom(target, newNode)        - internal: used by component re-render
  *  - Fez.nodeMorph(target, src, opts?)    - public: accepts string|Element|DocumentFragment
  */
 
@@ -168,7 +167,7 @@ function refreshPreservedComponent(oldNode, newNode) {
 }
 
 /**
- * Attach Fez.morphdom and Fez.nodeMorph to the Fez root.
+ * Attach Fez.nodeMorph to the Fez root.
  */
 export default function attachMorph(Fez) {
   /**
@@ -244,15 +243,6 @@ export default function attachMorph(Fez) {
         refreshPreservedComponent(oldNode, newNode);
       }
     },
-  };
-
-  /**
-   * Morph DOM node to new state.
-   * Child fez components are automatically preserved (matched by UID/class).
-   * Use fez-keep attribute for explicit element preservation.
-   */
-  Fez.morphdom = (target, newNode) => {
-    nodeMorph(target, newNode, fezMorphOpts);
   };
 
   /**

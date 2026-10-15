@@ -6,13 +6,27 @@ import path from 'path';
 import { globSync } from 'glob';
 
 const INFO =
-  'Report legacy Fez syntax, window.Pjax calls and JavaScript modernization candidates';
+  'Report legacy Fez syntax, removed APIs, window.Pjax calls and JavaScript modernization candidates';
 const DEFAULT_PATHS = ['pages_src/root/fez', 'src', 'test'];
 // Dependencies and build output are not the author's to refactor, and a bundled
 // copy of an old component reports every issue a second time.
 const IGNORED_DIRS = ['node_modules', 'dist', 'build', 'tmp', '.next', '.git', 'coverage', 'vendor'];
 // Pjax statics that moved to Fez itself; everything else lives on Fez.pjax
 const PJAX_SHORTCUTS = ['load', 'refresh', 'qs', 'hash', 'hpath', 'hqs'];
+// Removed component and Fez APIs: [pattern, message, suggestion]
+const REMOVED_APIS = [
+  [/\b(?:onInit|created)\s*\(\s*(?:props)?\s*\)\s*\{/, 'Removed init alias', 'Rename the hook to init(props).'],
+  [/\bthis\.onWindowResize\s*\(|^\s*onWindowResize\s*\(\s*\)\s*\{/, 'Removed onWindowResize', "this.on('resize', fn, { throttle: 200 }) - it is not called on its own."],
+  [/\bthis\.onWindowScroll\s*\(|^\s*onWindowScroll\s*\(\s*\)\s*\{/, 'Removed onWindowScroll', "this.on('scroll', fn, { throttle: 200 }) - call fn once yourself for the initial state."],
+  [/\bthis\.onElementResize\s*\(/, 'Renamed onElementResize', 'this.observeResize(el, fn, delay)'],
+  [/\bthis\.(?:addClass|toggleClass)\s*\(/, 'Removed class helper', 'Use this.root.classList.add / toggle (or the node\'s classList).'],
+  [/\bthis\.fezRefresh\s*\(/, 'Removed fezRefresh', 'this.refresh()'],
+  [/\bthis\.prop\s*\(/, 'Removed this.prop()', 'Read this.props.name (declare PROPS for typed values).'],
+  [/\bFez\.morphdom\s*\(/, 'Removed Fez.morphdom', 'Fez.nodeMorph(target, newNode)'],
+  [/\bFez\.log\s*\(/, 'Renamed Fez.log', 'Fez.dump(nodeOrValue)'],
+  [/\bFez\.state\.subscribe\s*\(\s*\(\s*key\b/, 'Fez.state.subscribe callback order changed', 'The all-keys callback is (value, oldValue, key), like the per-key one.'],
+  [/\bon[a-z]+="\{\s*\(?[\w\s,]*\)?\s*=>/, 'Quoted arrow handler is a no-op', 'Drop the quotes: onclick={() => save()}'],
+];
 
 let values, positionals;
 try {
@@ -120,8 +134,21 @@ function auditFile(file) {
   // the pjax lib and its tests bind their own Pjax - only globals are legacy
   const ownsPjax = /\b(?:class|let|const|var)\s+Pjax\b|function\s*\w*\s*\(\s*Pjax\s*\)/.test(content);
 
+  let inStyle = false;
   for (let index = 0; index < lines.length; index++) {
     const line = lines[index];
+    if (isFez && /^\s*<style\b/.test(line)) {
+      inStyle = true;
+    } else if (isFez && /<\/style>/.test(line)) {
+      inStyle = false;
+    } else if (inStyle && /^\s*\/\//.test(line)) {
+      report(index + 1, '// comment in <style>', 'CSS has no line comments - use /* ... */.');
+    }
+    for (const [pattern, message, suggestion] of REMOVED_APIS) {
+      if (pattern.test(line)) {
+        report(index + 1, message, suggestion);
+      }
+    }
     if (!ownsPjax && /\bPjax\./.test(stripLineComment(line))) {
       report(index + 1, 'Legacy window.Pjax call', pjaxSuggestion(line));
     }

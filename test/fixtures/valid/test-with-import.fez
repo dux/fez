@@ -2,7 +2,7 @@
   import lib from 'https://cdn.example.com/lib.js'
 
   class {
-    onInit() {
+    init() {
       this.state.data = null
     }
 

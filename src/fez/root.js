@@ -350,7 +350,7 @@ Fez.compile = compile;
 Fez.stripGeneratedNotice = stripGeneratedNotice;
 Fez.createTemplate = createTemplate;
 Fez.state = state;
-Fez.log = objectDump;
+Fez.dump = objectDump;
 Fez.highlightAll = highlightAll;
 
 Fez.onReady(() => Fez.consoleLog('Fez.LOG === true, logging enabled.'));

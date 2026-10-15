@@ -255,3 +255,41 @@ test('an array of strings renders escaped text, never HTML', async () => {
   );
   expect(result).toEqual({ img: false, pwned: false });
 });
+
+test('onMount may return a cleanup, run on destroy', async () => {
+  const { result } = await run(
+    () => {
+      Fez('mount-clean', class {
+        HTML = '<p>x</p>';
+        onMount() { return () => (window.cleaned = true); }
+      });
+      app.innerHTML = '<mount-clean></mount-clean>';
+      setTimeout(() => (app.innerHTML = ''), 30);
+    },
+    () => window.cleaned === true,
+  );
+  expect(result).toBe(true);
+});
+
+test('fez:use runs once per node, updates on re-render and destroys when the node leaves', async () => {
+  const { result } = await run(
+    () => {
+      window.log = [];
+      Fez('use-x', class {
+        HTML = '{#if state.show}<p fez:use="track">{state.n}</p>{/if}';
+        init() { this.state.show = true; this.state.n = 0; }
+        track(node) {
+          log.push('init');
+          return { update: () => log.push('update'), destroy: () => log.push('destroy') };
+        }
+      });
+      app.innerHTML = '<use-x></use-x>';
+      const f = Fez('use-x');
+      setTimeout(() => f.state.n++, 30);
+      setTimeout(() => (f.state.show = false), 80);
+    },
+    () => window.log,
+    200,
+  );
+  expect(result).toEqual(['init', 'update', 'destroy']);
+});

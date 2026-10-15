@@ -1,5 +1,5 @@
 <script>
-  onInit() {
+  init() {
     this.state.count = 0
     let x =   // syntax error - incomplete assignment
   }

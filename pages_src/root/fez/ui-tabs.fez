@@ -58,7 +58,7 @@
     this.activateNode(this.state.tabs[num])
   }
 
-  onInit() {
+  init() {
     this.state.tabs = this.childNodes()
   }
 

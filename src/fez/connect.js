@@ -304,7 +304,11 @@ function connectNode(name, node) {
   try {
     fez.fezInit();
     fez.fezRender();
-    fez.onMount(fez.props);
+    // onMount may return a cleanup, run on destroy
+    const cleanup = fez.onMount(fez.props);
+    if (typeof cleanup === 'function') {
+      fez.addOnDestroy(cleanup);
+    }
     if (fez.GLOBAL_STATE) {
       const entries = Object.entries(fez.GLOBAL_STATE);
       fez.addOnDestroy(() => {

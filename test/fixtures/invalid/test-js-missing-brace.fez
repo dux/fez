@@ -1,5 +1,5 @@
 <script>
-  onInit() {
+  init() {
     this.state.active = false
     if (true) {
       console.log('test')
