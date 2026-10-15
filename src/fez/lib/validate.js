@@ -234,3 +234,7 @@ export function assertStyleScope(tagName, rawStyle, isGlobal) {
     throw new Error(`<${tagName}> style error: ${error.message}`);
   }
 }
+
+// A whole static import statement, multi-line named imports included
+// (dynamic `import(...)` is an expression and stays)
+export const IMPORT_RE = /^[ \t]*import\b(?!\s*\()[\s\S]*?['"][^'"\n]+['"][ \t]*;?[ \t]*$/gm;

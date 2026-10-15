@@ -148,8 +148,9 @@ function publish(channel, ...args) {
 function componentSubscribe(component, channel, callback) {
   componentSubs[channel] ||= [];
 
-  // Clean up disconnected components
-  componentSubs[channel] = componentSubs[channel].filter(([comp]) => comp.isConnected);
+  // Drop destroyed components only: a detached one may be re-inserted (a move,
+  // a pjax region parked off-document) and keeps its subscriptions
+  componentSubs[channel] = componentSubs[channel].filter(([comp]) => !comp._destroyed);
 
   // Add subscription
   componentSubs[channel].push([component, callback]);

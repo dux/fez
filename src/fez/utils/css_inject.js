@@ -12,8 +12,13 @@
 
 const injected = new Set();
 const chunks = [];
+// @import and `@layer a, b;` are only valid before every rule of a sheet, so
+// they live in their own <style id="fez-css-head"> in front of the shared one
+const statements = [];
+const STATEMENT_LINE = /^@(import|layer)\b[^{]*;$/;
 
 let sheet = null;
+let headSheet = null;
 
 // FNV-ish rolling hash - collision odds are irrelevant here, we only need a
 // stable key per distinct stylesheet
@@ -47,6 +52,20 @@ const ensureStyleNode = () => {
   return { node: sheet, rebuilt: true };
 };
 
+const ensureHeadNode = (main) => {
+  if (!(headSheet && headSheet.isConnected)) {
+    headSheet = document.getElementById('fez-css-head');
+  }
+  if (!headSheet) {
+    headSheet = document.createElement('style');
+    headSheet.id = 'fez-css-head';
+  }
+  if (headSheet.nextSibling !== main) {
+    main.parentNode.insertBefore(headSheet, main);
+  }
+  headSheet.textContent = statements.join('\n');
+};
+
 /**
  * Append CSS to the shared stylesheet. Repeat calls with identical text are
  * no-ops, so registering a component twice cannot duplicate its rules.
@@ -59,6 +78,17 @@ export const injectCss = (text) => {
     return key;
   }
   injected.add(key);
+
+  // statement at-rules are flattened to the front, one per line; @charset is
+  // meaningless in an inline sheet and dropped
+  const lines = text.split('\n');
+  let rules = 0;
+  for (; rules < lines.length && /^@(import|layer|charset)\b[^{]*;$/.test(lines[rules]); rules++) {
+    if (STATEMENT_LINE.test(lines[rules]) && !statements.includes(lines[rules])) {
+      statements.push(lines[rules]);
+    }
+  }
+  text = lines.slice(rules).join('\n');
   chunks.push(text);
 
   // No DOM (unit tests) - the hash is still a useful return value
@@ -67,6 +97,9 @@ export const injectCss = (text) => {
     // A rebuilt node already replays every chunk, including this one.
     if (!rebuilt) {
       node.appendChild(document.createTextNode(`${text}\n`));
+    }
+    if (statements.length) {
+      ensureHeadNode(node);
     }
   } catch {}
 
@@ -77,6 +110,6 @@ export const injectCss = (text) => {
  * Everything injected so far, in injection order. Useful for SSR and tests.
  * @returns {string}
  */
-export const extractCss = () => chunks.join('\n');
+export const extractCss = () => [...statements, ...chunks].join('\n');
 
 export default injectCss;

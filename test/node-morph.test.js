@@ -144,7 +144,7 @@ describe("Fez.nodeMorph - sibling fez components", () => {
     // Three mounted siblings, each with unique UID + auto-injected key.
     for (let i = 0; i < 3; i++) {
       const el = document.createElement("test-img");
-      el.classList.add("fez", "fez-test-img");
+      el.classList.add("fez", "test-img-fez");
       el.setAttribute("key", `0-0-${i}`);
       el.setAttribute("src", `img-${i}.jpg`);
       el.fez = { UID: 1000 + i, _destroyed: false, props: {}, onRefresh: () => {}, fezApplyProps };
@@ -155,9 +155,9 @@ describe("Fez.nodeMorph - sibling fez components", () => {
     // New template renders the same three siblings (different src).
     Fez.nodeMorph(
       target,
-      '<test-img class="fez-test-img" key="0-0-0" src="new-0.jpg"></test-img>' +
-        '<test-img class="fez-test-img" key="0-0-1" src="new-1.jpg"></test-img>' +
-        '<test-img class="fez-test-img" key="0-0-2" src="new-2.jpg"></test-img>',
+      '<test-img class="test-img-fez" key="0-0-0" src="new-0.jpg"></test-img>' +
+        '<test-img class="test-img-fez" key="0-0-1" src="new-1.jpg"></test-img>' +
+        '<test-img class="test-img-fez" key="0-0-2" src="new-2.jpg"></test-img>',
     );
 
     expect(target.children.length).toBe(3);
@@ -178,7 +178,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
 
     const target = makeTarget("div", "");
     const old = document.createElement("test-card");
-    old.classList.add("fez", "fez-test-card");
+    old.classList.add("fez", "test-card-fez");
     old.setAttribute("ref", "old-ref");
     old._fezSignature = sourceSignature('<test-card ref="old-ref"></test-card>');
 
@@ -213,7 +213,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     const target = makeTarget("div", "");
     for (let i = 0; i < 3; i++) {
       const old = document.createElement("test-card-alias");
-      old.classList.add("fez", "fez-test-card-alias");
+      old.classList.add("fez", "test-card-alias-fez");
       old._fezSignature = sourceSignature("<test-card-alias></test-card-alias>");
       old.fez = { UID: 9100 + i, _destroyed: false, props: {}, onRefresh: () => {}, fezApplyProps };
       old._marker = `OLD-${i}`;
@@ -233,12 +233,31 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
     target.remove();
   });
 
+  test("preserves a mounted <name>-fez wrapper against a raw server tag", () => {
+    // Mounted roots are a plain wrapper (div) carrying `fez <name>-fez`; server
+    // HTML carries the raw custom tag. Only the name links the two.
+    Fez.index.ensure("test-wrap-card");
+
+    const target = makeTarget("div", "");
+    const old = document.createElement("div");
+    old.classList.add("fez", "test-wrap-card-fez");
+    old._fezSignature = sourceSignature('<test-wrap-card title="a"></test-wrap-card>');
+    old.fez = { UID: 9150, fezName: "test-wrap-card", _destroyed: false, props: {}, onRefresh: () => {}, fezApplyProps };
+    old._marker = "OLD";
+    target.appendChild(old);
+
+    Fez.nodeMorph(target, '<test-wrap-card title="a"></test-wrap-card>');
+
+    expect(target.children[0]._marker).toBe("OLD");
+    target.remove();
+  });
+
   test("does not preserve unkeyed component when slot content changes", () => {
     Fez.index.ensure("test-slot-card");
 
     const target = makeTarget("div", "");
     const old = document.createElement("test-slot-card");
-    old.classList.add("fez", "fez-test-slot-card");
+    old.classList.add("fez", "test-slot-card-fez");
     old._marker = "OLD";
 
     let destroyed = false;
@@ -272,7 +291,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
 
     const target = makeTarget("div", "");
     const old = document.createElement("test-slot-card-same");
-    old.classList.add("fez", "fez-test-slot-card-same");
+    old.classList.add("fez", "test-slot-card-same-fez");
     old._marker = "OLD";
     old.fez = {
       UID: 9301,
@@ -303,7 +322,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
 
     const target = makeTarget("div", "");
     const old = document.createElement("test-slot-card-keyed");
-    old.classList.add("fez", "fez-test-slot-card-keyed");
+    old.classList.add("fez", "test-slot-card-keyed-fez");
     old.setAttribute("key", "stable");
     old._marker = "OLD";
     let destroyed = false;
@@ -342,7 +361,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
 
     const target = makeTarget("div", "");
     const old = document.createElement("test-attr-card");
-    old.classList.add("fez", "fez-test-attr-card");
+    old.classList.add("fez", "test-attr-card-fez");
     old._marker = "OLD";
 
     let destroyed = false;
@@ -375,7 +394,7 @@ describe("Fez.nodeMorph - unkeyed sibling fez components", () => {
 
     const target = makeTarget("div", "");
     const old = document.createElement("test-fezkey-card");
-    old.classList.add("fez", "fez-test-fezkey-card");
+    old.classList.add("fez", "test-fezkey-card-fez");
     old.setAttribute("fez-key", "nav");
     old._marker = "OLD";
 
@@ -442,7 +461,7 @@ describe("Fez.morphdom - preserved component props", () => {
 
     const target = makeTarget("div", "");
     const old = document.createElement("test-preserved-child");
-    old.classList.add("fez", "fez-test-preserved-child");
+    old.classList.add("fez", "test-preserved-child-fez");
     old.setAttribute("key", "0");
 
     old.fez = {

@@ -142,6 +142,20 @@ export function parseFezSource(source, { dedentDocs = false } = {}) {
       break;
     }
 
+    // A block with template markup on both sides is part of the template (a
+    // <style> inside {#if}, a JSON-LD <script>), not a component block
+    const closeEnd = close.index + close[0].length;
+    if (
+      hasMarkup(result.html + source.slice(cursor, openStart)) &&
+      hasMarkup(withoutBlocks(source.slice(closeEnd)))
+    ) {
+      result.html += source.slice(openStart, closeEnd);
+      segments[segments.length - 1][1] = closeEnd;
+      cursor = closeEnd;
+      BLOCK_TAG_RE.lastIndex = cursor;
+      continue;
+    }
+
     const raw = source.slice(rawStart, close.index);
     let content = blockContent(raw);
     // Script/style/head keep their relative indentation - per-line trim would
@@ -205,6 +219,15 @@ export function parseFezSource(source, { dedentDocs = false } = {}) {
     }
   }
   return result;
+}
+
+function hasMarkup(text) {
+  return !!withoutComments(stripGeneratedNotice(text)).trim();
+}
+
+// text with every top-level block (<style>...</style> and friends) removed
+function withoutBlocks(text) {
+  return text.replace(/(^|\n)[ \t]*<(demo|info|script|head|style|slim)\b[^>]*>[\s\S]*?<\/\2\s*>/gi, '$1');
 }
 
 function withoutComments(html) {

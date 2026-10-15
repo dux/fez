@@ -275,8 +275,8 @@ export function buildLoopParams(binding, depth = 0, outerVars = []) {
  * Check if expression is an arrow function
  */
 export function isArrowFunction(expr) {
-  // Match: () => ..., (e) => ..., (e, foo) => ..., e => ...
-  return /^\s*(\([^)]*\)|[a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>/.test(expr);
+  // Match: () => ..., (e) => ..., (e, foo) => ..., e => ..., async () => ...
+  return /^\s*(?:async\s+)?(\([^)]*\)|[a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>/.test(expr);
 }
 
 /**
@@ -290,7 +290,10 @@ export function isArrowFunction(expr) {
  * Output for index-only: "fez.removeTask(${index})"
  * Output for item refs: "${'Fez(' + UID + ').fezGlobals.handler(' + fez.fezGlobals.setHandler((event) => fez.removeTask(item)) + ')(event)'}"
  */
-export function transformArrowToHandler(expr, loopVars = [], loopItemVars = []) {
+export function transformArrowToHandler(expr, loopVars = [], loopItemVars = [], maybeItemVars = []) {
+  // `async` is dropped: the handler attribute calls the body, a returned promise is ignored
+  expr = expr.replace(/^\s*async\s+/, '');
+
   // Extract the arrow function body
   const arrowMatch = expr.match(/^\s*(?:\([^)]*\)|[a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>\s*(.+)$/s);
   if (!arrowMatch) {
@@ -299,10 +302,10 @@ export function transformArrowToHandler(expr, loopVars = [], loopItemVars = []) 
 
   let body = arrowMatch[1].trim();
 
-  // Check if arrow has event param: (e) => or (event) => or e =>
+  // The first parameter is the DOM event, whatever it is called: (e) =>, (evt) =>, ev =>
   const paramMatch = expr.match(/^\s*\(?\s*([a-zA-Z_$][a-zA-Z0-9_$]*)?\s*(?:,\s*[^)]+)?\)?\s*=>/);
   const eventParam = paramMatch?.[1];
-  if (eventParam && eventParam !== 'event' && ['e', 'ev'].includes(eventParam)) {
+  if (eventParam && eventParam !== 'event') {
     body = mapIdentifiers(body, (name) => (name === eventParam ? 'event' : name));
   }
 
@@ -314,17 +317,24 @@ export function transformArrowToHandler(expr, loopVars = [], loopItemVars = []) 
   });
   const usedItemVars = loopItemVars.filter((name) => used.has(name));
 
+  body = prefixComponentNames(body, loopVars);
   // Item references: store the function in fezGlobals so the object is
   // captured at render time, and call it from the attribute. Handler slots are
   // positional per render; stale ones are dropped on commit.
+  const slot = `'Fez(' + UID + ').fezGlobals.handler(' + fez.fezGlobals.setHandler((event) => ${body}) + ')(event)'`;
   if (usedItemVars.length > 0) {
-    body = prefixComponentNames(body, loopVars);
-    return `\${'Fez(' + UID + ').fezGlobals.handler(' + fez.fezGlobals.setHandler((event) => ${body}) + ')(event)'}`;
+    return `\${${slot}}`;
   }
 
   // Index-only references are primitives - interpolate them at render time
-  body = prefixComponentNames(body, loopVars);
-  return mapIdentifiers(body, (name) => (loopVars.includes(name) ? `\${${name}}` : name));
+  const interpolated = mapIdentifiers(body, (name) => (loopVars.includes(name) ? `\${${name}}` : name));
+  const usedMaybe = maybeItemVars.filter((name) => used.has(name));
+  if (!usedMaybe.length) {
+    return interpolated;
+  }
+  // an index or an object, decided per row
+  const isObject = usedMaybe.map((name) => `(typeof ${name} === 'object' && ${name} !== null)`).join(' || ');
+  return `\${${isObject} ? ${slot} : \`${interpolated.replace(/`/g, '\\`')}\`}`;
 }
 
 /**

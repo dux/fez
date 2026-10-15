@@ -13,6 +13,7 @@
 import parseNode from './lib/n.js';
 import createTemplate from './lib/template.js';
 import RenderSlots from './lib/render-slots.js';
+import { BOOLEAN_ATTRS } from './lib/attrs.js';
 import { componentSubscribe, componentPublish } from './lib/pubsub.js';
 import {
   parseTransition,
@@ -21,6 +22,8 @@ import {
   playFlip,
   animateSize,
 } from './lib/transitions.js';
+
+const BOOLEAN_ATTR_SELECTOR = [...BOOLEAN_ATTRS].map((name) => `[${name}]`).join(',');
 
 /**
  * Event names that default to `window` in `this.on('event', handler)`.
@@ -171,11 +174,14 @@ export default class FezBase {
     }
     // Handle JSON template
     else if (attrs['data-json-template']) {
-      const data = newNode.previousSibling?.textContent;
+      // the element before the component (a <script type="application/json">), not
+      // the whitespace text node between them
+      const source = newNode.previousElementSibling;
+      const data = source?.textContent;
       if (data) {
         try {
           attrs = JSON.parse(data);
-          newNode.previousSibling.remove();
+          source.remove();
         } catch (e) {
           Fez.onError('props', `<${tagName}> Invalid JSON in template: ${e.message}`);
         }
@@ -565,8 +571,11 @@ export default class FezBase {
    */
   fezError(kind, message, context) {
     const name = this.fezName || this.root?.tagName?.toLowerCase() || 'unknown';
-    const enhancedContext = context ? { ...context, componentName: name } : { componentName: name };
-    return Fez.onError(kind, `<${name}> ${message}`, enhancedContext);
+    // an Error spread into the context would lose message and stack
+    if (context instanceof Error) {
+      context = { error: context };
+    }
+    return Fez.onError(kind, `<${name}> ${message}`, { ...context, componentName: name });
   }
 
   /**
@@ -648,12 +657,16 @@ export default class FezBase {
       try {
         callback();
       } catch (e) {
-        this.fezError('destroy', 'Error in cleanup callback', e);
+        this.fezError('destroy', `Error in cleanup callback: ${e.message}`, e);
       }
     });
 
-    // Call user's onDestroy hook
-    this.onDestroy();
+    // Call user's onDestroy hook; a throw must not skip the release below
+    try {
+      this.onDestroy();
+    } catch (e) {
+      this.fezError('destroy', `Error in onDestroy: ${e.message}`, e);
+    }
     this.onDestroy = () => {};
 
     // Drop parked :attr values and loop handlers
@@ -789,11 +802,16 @@ export default class FezBase {
       renderedTpl = template(this);
     }
 
+    // a template that threw (logged by the compiler) keeps the current DOM; no
+    // commitRender, so the loop handlers that DOM still points at are not pruned
+    if (renderedTpl === null) {
+      return;
+    }
+
     if (renderedTpl) {
       if (renderedTpl instanceof DocumentFragment || renderedTpl instanceof Node) {
         newNode.appendChild(renderedTpl);
       } else {
-        renderedTpl = renderedTpl.replace(/\s\w+="undefined"/g, '');
         const parsedHtml = this.fezParseHtml(renderedTpl);
 
         // Hash-skip: identical template output means nothing to morph, unless
@@ -873,8 +891,9 @@ export default class FezBase {
     const saved = new Map();
     for (const el of this.fezOwnInputs()) {
       // a file input keeps its files across the morph and cannot be assigned
+      // by id first: one fez:this name repeats on every row of a loop
       if (el._fezThisName && el.type !== 'file') {
-        saved.set(el._fezThisName, {
+        saved.set(el.id || el._fezThisName, {
           value: el.value,
           checked: el.checked,
           defaultValue: el.defaultValue,
@@ -890,7 +909,7 @@ export default class FezBase {
       return;
     }
     for (const el of this.fezOwnInputs()) {
-      const entry = el._fezThisName && saved.get(el._fezThisName);
+      const entry = el._fezThisName && saved.get(el.id || el._fezThisName);
       if (!entry) {
         continue;
       }
@@ -1030,8 +1049,9 @@ export default class FezBase {
       }
     });
 
-    this.root.querySelectorAll('*[checked], *[disabled], *[selected]').forEach((n) => {
-      for (const attr of ['checked', 'disabled', 'selected']) {
+    // A quoted value (disabled="{state.busy}") arrives as text: "false" turns the attribute off
+    this.root.querySelectorAll(BOOLEAN_ATTR_SELECTOR).forEach((n) => {
+      for (const attr of BOOLEAN_ATTRS) {
         if (!n.hasAttribute(attr)) {
           continue;
         }
@@ -1121,7 +1141,8 @@ export default class FezBase {
         if (name === 'constructor' || methods.has(name)) {
           continue;
         }
-        if (typeof this[name] === 'function') {
+        // read the descriptor, never this[name]: that would run getters before init
+        if (typeof Object.getOwnPropertyDescriptor(proto, name).value === 'function') {
           methods.add(name);
         }
       }

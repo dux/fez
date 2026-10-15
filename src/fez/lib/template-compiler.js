@@ -62,6 +62,7 @@ export default function createTemplateCompiler(text, opts = {}) {
     // Convert class:name={expr} conditional class directives
     // e.g. class:active={state.value === key} -> merges ternary into class attribute
     text = mapTags(text, rewriteClassDirectives);
+    mapTags(text, rejectForeignAttrs);
 
     // Error if fez-keep is placed on a fez component (custom element with dash in tag name)
     const keepOnComponent = text.match(/<([a-z]+-[a-z][a-z0-9-]*)\b[^>]*\bfez-keep=/);
@@ -85,13 +86,7 @@ export default function createTemplateCompiler(text, opts = {}) {
     // :file="el.file" -> :file={`Fez(${UID}).fezGlobals.value(${fez.fezGlobals.set(el.file)})`}
     // Supports variable access, method calls, ternaries, arrow funcs, etc.
     if (!staticMode) {
-      // A leading space keeps namespaced attributes (xlink:href, xml:lang) out
-      text = text.replace(/(\s):(\w+)="([^"{}]+)"/g, (match, space, attr, expr) => {
-        if (/^\d+$/.test(expr.trim())) {
-          return match;
-        }
-        return `${space}:${attr}={\`Fez(\${UID}).fezGlobals.value(\${fez.fezGlobals.set(${expr})})\`}`;
-      });
+      text = mapTags(text, rewriteColonProps);
 
       // Remove HTML comments
       text = text.replace(/<!--[\s\S]*?-->/g, '');
@@ -117,10 +112,13 @@ export default function createTemplateCompiler(text, opts = {}) {
     const ifStack = []; // Track if blocks have else
     const loopVarStack = []; // Track all loop variables for arrow function transformation
     const loopItemVarStack = []; // Track item vars (non-index) that could be objects
+    const loopMaybeItemStack = []; // Vars that are an index or an object, known at render time
     const loopStack = []; // Track loop info for :else support
     const blockStack = []; // Open blocks in nesting order: { kind, open }
     const awaitStack = []; // Track await blocks for :then/:catch
     let awaitCounter = 0; // Unique ID for each await block
+    let rawFrom = 0; // body range of the current <script>/<style>, copied verbatim
+    let rawUntil = -1;
 
     const openBlock = (kind, open) => blockStack.push({ kind, open });
     const closeBlock = (kind, close) => {
@@ -140,8 +138,33 @@ export default function createTemplateCompiler(text, opts = {}) {
     };
 
     while (i < text.length) {
-      // Skip JavaScript template literals (backtick strings)
-      // Content inside backticks should not be processed as Fez expressions
+      // <script> / <style> bodies are raw text: their braces are JS and CSS, not expressions
+      const rawOpen = text[i] === '<' && text.slice(i, i + 8).match(/^<(script|style)\b/i);
+      if (rawOpen) {
+        const close = text.slice(i).search(new RegExp(`</${rawOpen[1]}\\s*>`, 'i'));
+        const end = close < 0 ? text.length : i + close;
+        const openEnd = scanTagEnd(text, i + 1);
+        // the opening tag itself may hold {expressions}; only the body is raw
+        if (openEnd > 0 && openEnd < end) {
+          rawUntil = end;
+          rawFrom = openEnd + 1;
+        }
+      }
+      if (rawUntil > i && i >= rawFrom) {
+        result += text.slice(i, rawUntil).replace(/[\\`]|\$\{/g, (m) => '\\' + m);
+        i = rawUntil;
+        continue;
+      }
+
+      // A backtick in text content is a plain character (`code` in prose)
+      if (text[i] === '`' && !insideTag(text, i)) {
+        result += '\\`';
+        i++;
+        continue;
+      }
+
+      // Skip JavaScript template literals (backtick strings) in attribute code:
+      // onclick="go(`${x}`)" is JS, not a Fez expression
       if (text[i] === '`') {
         result += '\\`';
         i++;
@@ -213,7 +236,7 @@ export default function createTemplateCompiler(text, opts = {}) {
       // Expression or directive
       if (text[i] === '{') {
         const { expression, endIndex } = extractBracedExpression(text, i);
-        const expr = expression.trim();
+        let expr = expression.trim();
 
         // Check if this is a JavaScript object literal (e.g., {d: 'top'}, {foo: 1, bar: 2})
         // Object literals start with key: where key is identifier or quoted string
@@ -287,6 +310,10 @@ export default function createTemplateCompiler(text, opts = {}) {
           // Track loop variables for arrow function transformation
           loopVarStack.push(getLoopVarNames(binding, implicitIndex));
           loopItemVarStack.push(getLoopItemVars(binding, !isEach));
+          // {#each list as item, x}: x is the index of an array but the value of an
+          // object, so handlers decide at render time (see transformArrowToHandler)
+          const pairVars = getLoopItemVars(binding, true);
+          loopMaybeItemStack.push(isEach ? pairVars.filter((v) => !loopItemVarStack.at(-1).includes(v)) : []);
 
           // ((_arr) => _arr.length ? _arr.map(...).join('') : elseContent)(collection)
           loopStack.push({ collectionExpr, hasElse: false, depth });
@@ -297,6 +324,7 @@ export default function createTemplateCompiler(text, opts = {}) {
           closeBlock('loop', expr);
           loopVarStack.pop(); // Remove loop vars when exiting loop
           loopItemVarStack.pop(); // Remove item vars when exiting loop
+          loopMaybeItemStack.pop();
           const loopInfo = loopStack.pop();
           if (loopInfo.hasElse) {
             // Close the else branch
@@ -352,6 +380,7 @@ export default function createTemplateCompiler(text, opts = {}) {
             awaitInfo.awaitKey +
             ', ' +
             awaitInfo.promiseExpr +
+            (awaitInfo.hasCatch ? ', true' : '') +
             '))}';
         } else if (expr.startsWith('@html ')) {
           const content = expr.slice(6);
@@ -362,12 +391,21 @@ export default function createTemplateCompiler(text, opts = {}) {
             '${`<pre class="json">${Fez.htmlEscape(JSON.stringify(' +
             content +
             ', null, 2))}</pre>`}';
-        } else if (isArrowFunction(expr) && getAttributeContext(text, i)) {
+        } else if (/^[#@/]/.test(expr) || /^:[a-z]/.test(expr)) {
+          throw new Error(`Unknown template directive {${expr}}${directiveHint(expr)}`);
+        } else if (
+          (isArrowFunction(expr) && getAttributeContext(text, i)) ||
+          (/^[A-Za-z_$][\w$]*$/.test(expr) && getEventAttributeContext(text, i))
+        ) {
+          // onclick={save} is the method reference: call it with the event
+          if (!isArrowFunction(expr)) {
+            expr = `(event) => ${expr}(event)`;
+          }
           if (getEventAttributeContext(text, i)) {
             // Event attribute: compile to handler code, with interpolation for loop vars
             const allLoopVars = loopVarStack.flat();
             const allItemVars = loopItemVarStack.flat();
-            const handler = transformArrowToHandler(expr, allLoopVars, allItemVars);
+            const handler = transformArrowToHandler(expr, allLoopVars, allItemVars, loopMaybeItemStack.flat());
             result += '"' + handler.replace(/"/g, '&quot;') + '"';
           } else {
             // Any other attribute (fez:use) gets the function source as its value
@@ -375,7 +413,13 @@ export default function createTemplateCompiler(text, opts = {}) {
           }
         } else {
           const attrContext = getAttributeContext(text, i);
-          if (attrContext) {
+          const written = attrContext && result.match(/\s([^\s=]+)\s*=\s*$/);
+          if (written?.[1].toLowerCase() === attrContext) {
+            // name={expr}: the whole attribute comes from Fez.htmlAttr, so null
+            // and a false boolean attribute leave it out
+            result = result.slice(0, written.index);
+            result += '${Fez.htmlAttr(' + JSON.stringify(written[1]) + ', ' + expr + ')}';
+          } else if (attrContext) {
             // Inside attribute - wrap with quotes and escape
             result += '"${Fez.htmlEscape(' + expr + ')}"';
           } else if (/^on[a-z]+$/i.test(quotedAttrContext(text, i)?.name || '')) {
@@ -443,7 +487,8 @@ export default function createTemplateCompiler(text, opts = {}) {
           e.message,
         );
         console.error('Template source:', result.substring(0, 500));
-        return '';
+        // null, not '': the render keeps the last good DOM instead of morphing to empty
+        return null;
       }
     };
   } catch (e) {
@@ -456,6 +501,39 @@ export default function createTemplateCompiler(text, opts = {}) {
     console.error('Template:', text.substring(0, 200));
     return () => '';
   }
+}
+
+// Svelte spellings that have a Fez equivalent
+const DIRECTIVE_HINTS = {
+  '@debug': 'use {@json value} or console.log in beforeRender()',
+  '@render': 'pass markup as a child component or slot',
+  '#snippet': 'use a child component, or {@block name}...{/block} for static markup',
+};
+
+function directiveHint(expr) {
+  const hint = DIRECTIVE_HINTS[expr.match(/^[#@][a-z]+/)?.[0]];
+  return hint ? ` - ${hint}` : '';
+}
+
+/**
+ * Svelte attribute syntax that Fez spells differently fails loudly instead of
+ * rendering as a dead attribute.
+ */
+function rejectForeignAttrs(tag) {
+  for (const attr of scanAttributes(tag)) {
+    if (/^on:/.test(attr.name)) {
+      throw new Error(`${attr.name} is Svelte syntax - write on${attr.name.slice(3).split('|')[0]}={...}`);
+    }
+    if (/^bind:/.test(attr.name)) {
+      throw new Error(`${attr.name} is Svelte syntax - use fez:bind="state.key" on inputs`);
+    }
+  }
+  return tag;
+}
+
+// pos sits between `<tag` and its `>`
+function insideTag(text, pos) {
+  return text.lastIndexOf('<', pos) > text.lastIndexOf('>', pos);
 }
 
 // {:else if x}, {:elseif x}, {:elsif x} and the colonless forms
@@ -478,6 +556,30 @@ function escapeLiteralAttr(value) {
  * Merge class:name={expr} / class:name="expr" directives of one tag into its
  * class attribute (quoted or {expr}) as ternaries.
  */
+/**
+ * `:name="expr"`, `:name='expr'` and `:name={expr}` all hold one JS expression
+ * (an object literal too: `:cfg="{a: 1}"`). Each becomes a render slot lookup,
+ * so names may be hyphenated (`:data-x`) and values may use braces. Only an
+ * attribute starting with `:` counts, so `xlink:href` / `xml:lang` stay as is.
+ */
+function rewriteColonProps(tag) {
+  if (!/\s:[\w-]+=/.test(tag)) {
+    return tag;
+  }
+  let out = '';
+  let pos = 0;
+  for (const attr of scanAttributes(tag)) {
+    const expr = attr.value.trim();
+    if (attr.name.length < 2 || attr.name[0] !== ':' || !attr.quote || !expr) {
+      continue;
+    }
+    out += tag.slice(pos, attr.start);
+    out += ` ${attr.name}={\`Fez(\${UID}).fezGlobals.value(\${fez.fezGlobals.set((${expr}))})\`}`;
+    pos = attr.end;
+  }
+  return out + tag.slice(pos);
+}
+
 function rewriteClassDirectives(tag) {
   if (!/\sclass:[\w-]+=/.test(tag)) {
     return tag;
@@ -538,15 +640,17 @@ function autoInjectKeys(text) {
     const attrs = scanAttributes(tag);
     let extra = '';
 
+    const loops = scopeStack.filter((s) => s.type === 'loop' && !s.inElse);
+    const suffix = loops.map((loop) => `-{_fezI${loop.depth}}`).join('');
+
     if (!attrs.some((a) => a.name === 'key')) {
-      const loops = scopeStack.filter((s) => s.type === 'loop' && !s.inElse);
-      const suffix = loops.map((loop) => `-{_fezI${loop.depth}}`).join('');
       extra += ` fez-key="${keyCounter++}${suffix}"`;
     }
 
+    // inside a loop the index keeps the id unique per row
     const fezThis = attrs.find((a) => a.name === 'fez-this');
     if (fezThis?.quote === '"' && !fezThis.value.includes('{') && !attrs.some((a) => a.name === 'id')) {
-      extra += ` id="fez-{UID}-${fezThis.value.replace(/[^a-zA-Z0-9]/g, '-')}"`;
+      extra += ` id="fez-{UID}-${fezThis.value.replace(/[^a-zA-Z0-9]/g, '-')}${suffix}"`;
     }
 
     return tag.endsWith('/>') ? tag.slice(0, -2) + extra + '/>' : tag.slice(0, -1) + extra + '>';

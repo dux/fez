@@ -78,15 +78,20 @@ const Fez = (name, klass) => {
 
   // With second argument
   if (klass) {
+    // an arrow function has no prototype and can never be a component class;
+    // a plain function is one only when it uses this/new
+    const source = typeof klass === 'function' ? klass.toString() : '';
     const isPureFn =
       typeof klass === 'function' &&
-      !/^\s*class/.test(klass.toString()) &&
-      !/\b(this|new)\b/.test(klass.toString());
+      !/^\s*class/.test(source) &&
+      (!klass.prototype || !/\b(this|new)\b/.test(source));
 
-    // Fez('name', callback) - find all & execute
+    // Fez('name', callback) - run it for every live instance, return the instances
     if (isPureFn) {
-      const list = Array.from(document.querySelectorAll(`.fez.${name}-fez`)).filter((n) => n.fez);
-      list.forEach((el) => klass(el.fez));
+      const list = Array.from(document.querySelectorAll(`.fez.${name}-fez`))
+        .map((n) => n.fez)
+        .filter(Boolean);
+      list.forEach((fez) => klass(fez));
       return list;
     }
 
@@ -156,9 +161,15 @@ Fez.instances = new Map();
 Fez.find = (onode, name) => {
   let node = typeof onode === 'string' ? document.body.querySelector(onode) : onode;
 
-  // jQuery compatibility
-  if (typeof node.val === 'function') {
+  // a component instance searches from its root; a jQuery object from its first node
+  if (node?.root && node.UID) {
+    node = node.root;
+  } else if (node?.jquery) {
     node = node[0];
+  }
+
+  if (!node?.closest) {
+    return;
   }
 
   const selector = name ? `.fez.${name}-fez` : '.fez';
@@ -207,10 +218,7 @@ Fez.globalCss = (cssClass, opts = {}) => {
     cssClass = cssClass();
   }
 
-  let text = cssClass
-    .split('\n')
-    .filter((line) => !/^\s*\/\//.test(line))
-    .join('\n');
+  let text = cssClass;
 
   if (opts.wrap) {
     text = `:fez { ${text} }`;
@@ -319,9 +327,10 @@ Fez.onError = (kind, message, context) => {
     console.error(fullMessage);
   }
 
-  // Include stack trace for Error objects
-  if (message instanceof Error && message.stack && Fez.LOG) {
-    console.error(message.stack);
+  // The stack of a thrown error is always worth showing; the rest of the context only with LOG
+  const error = message instanceof Error ? message : context?.error;
+  if (error instanceof Error && error.stack) {
+    console.error(error.stack);
   }
 
   return fullMessage;

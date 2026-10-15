@@ -299,31 +299,41 @@ function connectNode(name, node) {
     fez._fezChildNodes = fez._fezSlotNodes.filter((n) => n.nodeType === 1);
   }
 
-  fez.fezInit();
-  fez.fezRender();
-  fez.onMount(fez.props);
-  if (fez.GLOBAL_STATE) {
-    const entries = Object.entries(fez.GLOBAL_STATE);
-    fez.addOnDestroy(() => {
-      for (const [key] of entries) {
-        Fez.state.delete(key);
+  // A throw anywhere in mount leaves no half-built instance behind: it is
+  // reported and destroyed, so timers and subscriptions made so far are released
+  try {
+    fez.fezInit();
+    fez.fezRender();
+    fez.onMount(fez.props);
+    if (fez.GLOBAL_STATE) {
+      const entries = Object.entries(fez.GLOBAL_STATE);
+      fez.addOnDestroy(() => {
+        for (const [key] of entries) {
+          Fez.state.delete(key);
+        }
+      });
+      for (const [key, value] of entries) {
+        Fez.state.set(key, typeof value === 'function' ? value.call(fez) : value);
       }
-    });
-    for (const [key, value] of entries) {
-      Fez.state.set(key, typeof value === 'function' ? value.call(fez) : value);
     }
+    // every prop counts as changed at mount, so a component can load from onRefresh alone
+    fez.onRefresh(fez.props, { ...fez._propsRaw });
+  } catch (error) {
+    fez.fezError('mount', `failed to mount: ${error.message}`, error);
+    fez.fezOnDestroy();
+    return;
   }
-  // every prop counts as changed at mount, so a component can load from onRefresh alone
-  fez.onRefresh(fez.props, { ...fez._propsRaw });
 
-  // Form submit handling
+  // Form submit handling: delegated, so a form rendered later (inside {#if})
+  // or replaced by the morph still submits here. A child component's own form
+  // is left to the child.
   if (fez.onSubmit) {
-    const form = fez.root.nodeName === 'FORM' ? fez.root : fez.find('form');
-    if (form) {
-      form.onsubmit = (e) => {
-        e.preventDefault();
-        fez.onSubmit(fez.formData());
-      };
-    }
+    fez.on(fez.root, 'submit', (e) => {
+      if (e.target.closest('.fez') !== fez.root) {
+        return;
+      }
+      e.preventDefault();
+      fez.onSubmit(fez.formData(e.target));
+    });
   }
 }

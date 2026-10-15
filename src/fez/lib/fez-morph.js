@@ -89,6 +89,18 @@ function explicitFezKey(node) {
   return node._fezKey ?? node.getAttribute?.('fez-key') ?? undefined;
 }
 
+// Component name from the `<name>-fez` wrapper class (connect.js)
+function wrapperName(node) {
+  for (const cls of node.classList || []) {
+    // component names always contain a dash, so `x-fez` alone is not one
+    const name = cls.endsWith('-fez') ? cls.slice(0, -4) : '';
+    if (name.includes('-')) {
+      return name;
+    }
+  }
+  return null;
+}
+
 function fezKeyAlias(internalKey, keyAttr, base, node) {
   if (internalKey !== undefined) {
     return 'key-' + internalKey;
@@ -120,7 +132,7 @@ function fezDescribeOld(node) {
   }
   // Compiler-injected internal keys disambiguate fez component siblings inside loops.
   // Without this alias, multiple <my-comp> siblings all collapse onto the first
-  // old child via the shared 'fez-class-fez-my-comp' alias.
+  // old child via the shared 'fez-class-my-comp' alias.
   const internalKey = explicitFezKey(node);
   if (internalKey !== undefined) {
     aliases.push('key-' + internalKey);
@@ -129,13 +141,9 @@ function fezDescribeOld(node) {
   if (keyAttr) {
     aliases.push('key-' + keyAttr);
   }
-  if (node.classList) {
-    for (const cls of node.classList) {
-      if (cls.startsWith('fez-') && cls !== 'fez') {
-        aliases.push(`fez-class-${cls}:sig-${signatureHash(node)}`);
-        break;
-      }
-    }
+  const name = node.fez.fezName || wrapperName(node);
+  if (name) {
+    aliases.push(`fez-class-${name}:sig-${signatureHash(node)}`);
   }
   return {
     key: 'fez-uid-' + node.fez.UID,
@@ -166,7 +174,7 @@ export default function attachMorph(Fez) {
   /**
    * Describe a template (new) fez component placeholder so it matches against
    * the live component's `fez-class-` alias. Recognizes three forms:
-   *   1. Inline-rendered: <div class="fez x-fez">   (already mounted-ish)
+   *   1. Inline-rendered: <div class="fez my-comp-fez"> (already mounted-ish)
    *   2. Raw custom tag:  <my-comp>                 (server-rendered placeholder)
    *   3. fez= attribute:  <div fez="my-comp">       (server-rendered placeholder)
    */
@@ -181,23 +189,20 @@ export default function attachMorph(Fez) {
     const internalKey = explicitFezKey(node);
     const keyAttr = node.getAttribute?.('key');
 
-    if (node.classList?.contains('fez')) {
-      for (const cls of node.classList) {
-        if (cls.startsWith('fez-') && cls !== 'fez') {
-          return fezKeyAlias(internalKey, keyAttr, 'fez-class-' + cls, node);
-        }
-      }
+    const name = node.classList?.contains('fez') && wrapperName(node);
+    if (name) {
+      return fezKeyAlias(internalKey, keyAttr, 'fez-class-' + name, node);
     }
 
     const tag = node.tagName?.toLowerCase();
     if (tag && Fez.index?.[tag]) {
-      return fezKeyAlias(internalKey, keyAttr, 'fez-class-fez-' + tag, node);
+      return fezKeyAlias(internalKey, keyAttr, 'fez-class-' + tag, node);
     }
 
     const fezAttr = node.getAttribute?.('fez');
     if (fezAttr && Fez.index?.[fezAttr]) {
       const attrKey = node.getAttribute?.('fez-key') ?? undefined;
-      return fezKeyAlias(attrKey, keyAttr, 'fez-class-fez-' + fezAttr, node);
+      return fezKeyAlias(attrKey, keyAttr, 'fez-class-' + fezAttr, node);
     }
 
     return null;

@@ -77,3 +77,18 @@ describe("Fez.globalCss", () => {
     expect(rewrite(css)).toBe("");
   });
 });
+
+describe("statement at-rules", () => {
+  test("@import from a scoped style leads extractCss instead of landing mid-sheet", () => {
+    const Fez = getFez();
+    Fez.globalCss(":fez { .a { x: 1; } @import url(late.css); }", { name: "ui-imp" });
+    const css = Fez.extractCss();
+    expect(css.startsWith("@import url(late.css);")).toBe(true);
+    expect(css).toContain(".fez.ui-imp-fez .a{x: 1;}");
+  });
+
+  test("a // line is CSS text, not a comment", () => {
+    const out = rewrite(".x { color: red; }\n// .y { color: blue; }", {});
+    expect(out).toContain("// .y");
+  });
+});

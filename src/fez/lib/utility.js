@@ -1,3 +1,28 @@
+import { htmlAttr } from './attrs.js';
+
+// Append <head> block HTML to document.head. Scripts are recreated so they run.
+function appendHeadHtml(html) {
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  for (const node of Array.from(container.children)) {
+    if (node.tagName !== 'SCRIPT') {
+      document.head.appendChild(node);
+      continue;
+    }
+    const script = document.createElement('script');
+    for (const attr of node.attributes) {
+      script.setAttribute(attr.name, attr.value);
+    }
+    script.type ||= 'text/javascript';
+    if (node.src) {
+      document.head.appendChild(script);
+    } else if (script.type.includes('javascript') || script.type === 'module') {
+      script.textContent = node.textContent;
+      document.head.appendChild(script);
+    }
+  }
+}
+
 // Utility functions that extend Fez
 export default (Fez) => {
   // Script from URL
@@ -19,6 +44,12 @@ export default (Fez) => {
   // Extract from nodes
   //   Fez.head(domNode)
   Fez.head = (config, callback) => {
+    // a component's <head> block: its HTML, appended to document.head
+    if (typeof config === 'string') {
+      appendHeadHtml(config);
+      return;
+    }
+
     if (config.nodeName) {
       if (config.nodeName === 'SCRIPT') {
         Fez.head({ script: config.innerText });
@@ -423,21 +454,23 @@ export default (Fez) => {
   };
 
   /**
-   * Escapes HTML special characters in a string
-   * Also strips font-family styles (common source of XSS via CSS)
+   * Escapes HTML special characters of any value as text; null and
+   * undefined render nothing
    */
   Fez.htmlEscape = (text) => {
-    if (typeof text === 'string') {
-      return text
-        .replace(/font-family\s*:\s*(?:&[^;]+;|[^;])*?;/gi, '') // Strip font-family (CSS safety)
-        .replaceAll('&', '&amp;')
-        .replaceAll("'", '&apos;')
-        .replaceAll('"', '&quot;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;');
+    if (text == null) {
+      return '';
     }
-    return text === undefined ? '' : text;
+    return String(text)
+      .replaceAll('&', '&amp;')
+      .replaceAll("'", '&apos;')
+      .replaceAll('"', '&quot;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
   };
+
+  // `name={expr}` in a template: the whole attribute, or '' to drop it
+  Fez.htmlAttr = (name, value) => htmlAttr(name, value, Fez.htmlEscape);
 
   // Escape a value for a quoted JS string inside handler code, so a quote in
   // the data cannot end the string: onclick="fez.rm('{id}')"

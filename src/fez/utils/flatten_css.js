@@ -19,12 +19,14 @@
 //     back around the resolved selector, so a nested @media hoists outward
 //   - @keyframes and friends cannot be nested at all and are emitted at the
 //     top level, with their inner blocks (from/to/50%) left untouched
-//   - statement at-rules (@import, @charset) are emitted first, as required
+//   - statement at-rules (@import, @charset, `@layer a, b;`) are emitted first,
+//     as required, wherever they were written
 
-const CONDITIONAL = /^@(media|supports|container|layer|scope|document)\b/i;
+const CONDITIONAL = /^@(media|supports|container|layer|scope|document|starting-style)\b/i;
 const VERBATIM =
-  /^@(-\w+-)?(keyframes|font-face|property|counter-style|page|namespace|font-feature-values|viewport)\b/i;
-const STATEMENT = /^@(import|charset)\b/i;
+  /^@(-\w+-)?(keyframes|font-face|property|counter-style|page|namespace|font-feature-values|viewport|position-try|view-transition)\b/i;
+// @import, @charset and the block-less `@layer a, b;` order statement
+const STATEMENT = /^@(import|charset|layer\s+[^{]*$)/i;
 
 // ---------------------------------------------------------------------------
 // parse
@@ -128,18 +130,26 @@ function parse(css) {
 // selector resolution
 // ---------------------------------------------------------------------------
 
-// split on commas that are not inside parens - `:is(a, b)` stays one part
+// split on commas that are not inside parens, brackets or quotes -
+// `:is(a, b)` and `[data-x="a,b"]` stay one part
 function splitSelectors(selector) {
   const parts = [];
   let depth = 0;
+  let quote = null;
   let buf = '';
   for (const ch of selector) {
-    if (ch === '(') {
+    if (quote) {
+      if (ch === quote) {
+        quote = null;
+      }
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === '(' || ch === '[') {
       depth++;
-    } else if (ch === ')') {
+    } else if (ch === ')' || ch === ']') {
       depth--;
     }
-    if (ch === ',' && !depth) {
+    if (ch === ',' && !depth && !quote) {
       parts.push(buf.trim());
       buf = '';
     } else {
@@ -152,22 +162,41 @@ function splitSelectors(selector) {
   return parts;
 }
 
+// end index (exclusive) of the :global( group that opens at start
+function globalEnd(sel, start) {
+  let depth = 1;
+  let j = start + 8;
+  while (j < sel.length && depth) {
+    if (sel[j] === '(') {
+      depth++;
+    } else if (sel[j] === ')') {
+      depth--;
+    }
+    j++;
+  }
+  return j;
+}
+
+// `.x :global(.a, .b)` -> ['.x :global(.a)', '.x :global(.b)']: a list inside
+// :global would otherwise split the selector it sits in
+function expandGlobalLists(sel) {
+  const start = sel.indexOf(':global(');
+  if (start < 0) {
+    return [sel];
+  }
+  const end = globalEnd(sel, start);
+  const items = splitSelectors(sel.slice(start + 8, end - 1));
+  const rest = expandGlobalLists(sel.slice(end));
+  return items.flatMap((item) => rest.map((tail) => `${sel.slice(0, start)}:global(${item})${tail}`));
+}
+
 // :global(x) -> x, with nested parens inside x (:global(:is(.a, .b) .c))
 function unwrapGlobal(sel) {
   let out = '';
   let pos = 0;
   let start;
   while ((start = sel.indexOf(':global(', pos)) >= 0) {
-    let depth = 1;
-    let j = start + 8;
-    while (j < sel.length && depth) {
-      if (sel[j] === '(') {
-        depth++;
-      } else if (sel[j] === ')') {
-        depth--;
-      }
-      j++;
-    }
+    const j = globalEnd(sel, start);
     out += sel.slice(pos, start) + sel.slice(start + 8, j - 1);
     pos = j;
   }
@@ -184,15 +213,27 @@ const hasAmp = (selector) => /&/.test(selector.replace(/"[^"]*"|'[^']*'/g, ''));
 
 /**
  * Resolve a nested selector against its parents, SCSS style.
- * A selector starting with :global(...) escapes scoping entirely.
+ *
+ * A :global(...) selector is never scoped itself, Svelte style:
+ *   :global(.x)          -> .x                (escapes the component)
+ *   :global(.dark) .btn  -> .dark <parent> .btn (the global part sits above the scope)
+ *   :global(.dark) & .b  -> .dark <parent> .b   (& places the scope explicitly)
  */
 function resolve(parents, selector) {
   const out = [];
 
-  for (const rawChild of splitSelectors(selector)) {
-    // :global(...) at the head means "not scoped" - drop the parents
-    if (/^:global\(/.test(rawChild)) {
-      out.push(unwrapGlobal(rawChild));
+  for (const rawChild of splitSelectors(selector).flatMap(expandGlobalLists)) {
+    if (/^:global\(/.test(rawChild) && !hasAmp(rawChild)) {
+      const end = globalEnd(rawChild, 0);
+      const head = rawChild.slice(8, end - 1).trim();
+      const rest = rawChild.slice(end).trim();
+      if (!rest || !parents.length) {
+        out.push(unwrapGlobal(rawChild));
+      } else {
+        for (const parent of parents) {
+          out.push(`${head} ${parent} ${unwrapGlobal(rest)}`);
+        }
+      }
       continue;
     }
     const child = unwrapGlobal(rawChild);
@@ -227,8 +268,9 @@ function serialize(node, parents, conditions, sink) {
     if (CONDITIONAL.test(prelude)) {
       const inner = [...conditions, prelude];
       // `.a { @media ... { color: red } }` - the declarations belong to .a
-      if (child.declarations.length && parents.length) {
-        sink.rules.push(wrap(inner, `${parents.join(',')}{${child.declarations.join(';')};}`));
+      const declarations = takeStatements(child, sink);
+      if (declarations.length && parents.length) {
+        sink.rules.push(wrap(inner, `${parents.join(',')}{${declarations.join(';')};}`));
       }
       serialize(child, parents, inner, sink);
       continue;
@@ -239,11 +281,24 @@ function serialize(node, parents, conditions, sink) {
     } // handled from declarations
 
     const resolved = resolve(parents, prelude);
-    if (child.declarations.length) {
-      sink.rules.push(wrap(conditions, `${resolved.join(',')}{${child.declarations.join(';')};}`));
+    const declarations = takeStatements(child, sink);
+    if (declarations.length) {
+      sink.rules.push(wrap(conditions, `${resolved.join(',')}{${declarations.join(';')};}`));
     }
     serialize(child, resolved, conditions, sink);
   }
+}
+
+// A statement at-rule (`@import x;`) parses as a declaration of the rule it
+// sits in - a scoped <style> wraps everything in one rule. Move it out.
+function takeStatements(node, sink) {
+  return node.declarations.filter((d) => {
+    if (STATEMENT.test(d)) {
+      sink.statements.push(d);
+      return false;
+    }
+    return true;
+  });
 }
 
 // a verbatim at-rule's body is emitted as written, nested blocks and all
@@ -267,15 +322,14 @@ export default function flattenCss(css) {
   }
 
   const root = parse(css);
-  const sink = { rules: [], verbatim: [] };
-
-  // top-level statement at-rules must come first in the sheet
-  const statements = root.declarations.filter((d) => STATEMENT.test(d));
+  // statement at-rules must come first in the sheet
+  const sink = { rules: [], verbatim: [], statements: [] };
+  takeStatements(root, sink);
 
   // bare declarations at the top level have no selector to belong to; the
   // caller wraps component CSS in :fez { } so this only happens in a global
   // block, where they are meaningless - drop them rather than emit broken CSS
   serialize(root, [], [], sink);
 
-  return [...statements.map((s) => s + ';'), ...sink.verbatim, ...sink.rules].join('\n');
+  return [...sink.statements.map((s) => s + ';'), ...sink.verbatim, ...sink.rules].join('\n');
 }

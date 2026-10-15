@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Window } from "happy-dom";
 import createTemplateCompiler from "../src/fez/lib/template-compiler.js";
+import { htmlAttr } from "../src/fez/lib/attrs.js";
 import { decodeExpressionEntities } from "../src/fez/lib/template-compiler-lib.js";
 import RenderSlots from "../src/fez/lib/render-slots.js";
 
@@ -9,6 +10,7 @@ let window, document;
 
 // Mock Fez for template tests
 const MockFez = {
+  htmlAttr: (name, value) => htmlAttr(name, value, MockFez.htmlEscape),
   jsEscape: (v) => (v == null ? "" : JSON.stringify(String(v)).slice(1, -1).replace(/['`$]/g, "\\$&")),
   htmlEscape: (str) => {
     if (str == null) return "";
@@ -636,37 +638,46 @@ describe("template compiler", () => {
   });
 
   describe("boolean attributes in templates", () => {
-    test('checked with false produces checked="false" in template output', () => {
+    test("checked={false} leaves the attribute out", () => {
       const html = render('<input type="checkbox" checked={state.on} />', {
         state: { on: false },
         props: {},
       });
-      // Template outputs the string value; fezRenderPostProcess normalizes it on the DOM
-      expect(html).toContain('checked="false"');
+      expect(html).not.toContain("checked");
     });
 
-    test('checked with true produces checked="true"', () => {
+    test('checked={true} renders checked=""', () => {
       const html = render('<input type="checkbox" checked={state.on} />', {
         state: { on: true },
-        props: {},
-      });
-      expect(html).toContain('checked="true"');
-    });
-
-    test('checked with null produces checked=""', () => {
-      const html = render('<input type="checkbox" checked={state.on} />', {
-        state: { on: null },
         props: {},
       });
       expect(html).toContain('checked=""');
     });
 
-    test('disabled with false produces disabled="false"', () => {
-      const html = render("<button disabled={state.off}>Click</button>", {
+    test("checked={null} leaves the attribute out", () => {
+      const html = render('<input type="checkbox" checked={state.on} />', {
+        state: { on: null },
+        props: {},
+      });
+      expect(html).not.toContain("checked");
+    });
+
+    test("hidden={false} leaves the attribute out, aria-expanded={false} says false", () => {
+      const html = render("<div hidden={state.off} aria-expanded={state.off}>x</div>", {
         state: { off: false },
         props: {},
       });
-      expect(html).toContain('disabled="false"');
+      expect(html).not.toContain("hidden");
+      expect(html).toContain('aria-expanded="false"');
+    });
+
+    test("undefined drops any attribute, a string with spaces stays quoted", () => {
+      const html = render("<a data-x={state.none} title={state.t}>x</a>", {
+        state: { t: "a b" },
+        props: {},
+      });
+      expect(html).not.toContain("data-x");
+      expect(html).toContain('title="a b"');
     });
   });
 

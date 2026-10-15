@@ -209,7 +209,7 @@ function compileToClass(html) {
 
   // Process head elements (scripts, links, etc.)
   if (result.head) {
-    processHeadElements(result.head);
+    Fez.head(result.head);
   }
 
   return result;
@@ -232,32 +232,6 @@ function indexFileDocs(name, source) {
   if (parts.demo?.trim()) {
     Fez.index.ensure(name).demo = parts.demo;
   }
-}
-
-/**
- * Process <head> elements from component
- */
-function processHeadElements(headHtml) {
-  const container = Fez.domRoot(headHtml);
-
-  Array.from(container.children).forEach((node) => {
-    if (node.tagName === 'SCRIPT') {
-      const script = document.createElement('script');
-      Array.from(node.attributes).forEach((attr) => {
-        script.setAttribute(attr.name, attr.value);
-      });
-      script.type ||= 'text/javascript';
-
-      if (node.src) {
-        document.head.appendChild(script);
-      } else if (script.type.includes('javascript') || script.type === 'module') {
-        script.textContent = node.textContent;
-        document.head.appendChild(script);
-      }
-    } else {
-      document.head.appendChild(node.cloneNode(true));
-    }
-  });
 }
 
 // =============================================================================

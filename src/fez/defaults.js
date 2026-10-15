@@ -21,25 +21,28 @@ const loadDefaults = () => {
         const node = this.root.firstElementChild;
         const child = node?.fez;
         if (child && !child._destroyed) {
-          child.fezApplyProps(child.class.castProps(this.childProps(props), props.name));
+          child.fezApplyProps(child.class.castProps(this.childProps(), props.name));
         } else if (node?.tagName.toLowerCase() === props.name) {
           // not connected yet - it reads node.props when it does
-          node.props = this.childProps(props);
+          node.props = this.childProps();
         }
       }
 
       show(props) {
         if (Fez.index[props.name]?.class) {
           const tag = document.createElement(props.name);
-          tag.props = this.childProps(props);
+          tag.props = this.childProps();
           this.root.replaceChildren(tag);
         } else {
           this.root.innerHTML = this.state.fallback;
         }
       }
 
-      childProps(props) {
-        return props.props || props['data-props'] || props;
+      // raw values, never this component's props proxy: a child write through
+      // it would re-render this wrapper. `name` is ours, not the child's.
+      childProps() {
+        const { name, ...rest } = this._propsRaw;
+        return rest.props || rest['data-props'] || rest;
       }
     },
   );
@@ -51,6 +54,10 @@ const loadDefaults = () => {
     class {
       init(props) {
         Fez.fetch(props.src, (data) => {
+          // the response can land after the include was removed
+          if (!this.root) {
+            return;
+          }
           const dom = Fez.domRoot(data);
           Fez.head(dom); // include scripts and load fez components
           this.root.innerHTML = dom.innerHTML;

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import createTemplateCompiler from './fez/lib/template-compiler.js';
+import { htmlAttr } from './fez/lib/attrs.js';
 
 const PAGE_EXTENSIONS = new Set(['.html', '.md']);
 const CONFIG_FILENAMES = [
@@ -30,6 +31,10 @@ const STATIC_FEZ = {
           "'": '&#39;',
         })[character],
     );
+  },
+
+  htmlAttr(name, value) {
+    return htmlAttr(name, value, STATIC_FEZ.htmlEscape);
   },
 
   isTruthy(value) {

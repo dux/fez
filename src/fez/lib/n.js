@@ -6,16 +6,7 @@
 // copyright @dux, 2024
 // Licence MIT
 
-const BOOLEAN_ATTRS = new Set([
-  'checked',
-  'disabled',
-  'selected',
-  'readonly',
-  'required',
-  'hidden',
-  'multiple',
-  'autofocus',
-]);
+import { BOOLEAN_ATTRS } from './attrs.js';
 
 export default function n(name, attrs = {}, data) {
   if (typeof attrs === 'string') {

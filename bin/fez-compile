@@ -11,7 +11,7 @@ import { captureConsoleErrors, debugTemplateFunction, firstLine } from './templa
 import { locateSlimError, slimToFez } from '../src/fez/lib/slim.js';
 import { stripNodeWhitespace } from '../src/fez/lib/template-compiler-lib.js';
 import { stripTypeScript } from '../src/fez/lib/strip-types.js';
-import { splitScript, styleScopeErrors } from '../src/fez/lib/validate.js';
+import { splitScript, styleScopeErrors, IMPORT_RE } from '../src/fez/lib/validate.js';
 import { buildClassSource } from '../src/fez/lib/class-source.js';
 
 const INFO = 'Compile Fez components and report errors';
@@ -265,7 +265,8 @@ function validateScript(script, filePath, sourceLine) {
     const classBody = `class {\n${body}`;
 
     if (preamble.trim()) {
-      const withoutImports = preamble.replace(/^\s*import\s+.*$/gm, '// import removed');
+      // keep the line count, so errors still point at the right line
+      const withoutImports = preamble.replace(IMPORT_RE, (statement) => statement.replace(/[^\n]/g, ''));
       if (withoutImports.trim()) {
         try {
           new Function(withoutImports);

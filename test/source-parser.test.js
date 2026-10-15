@@ -218,4 +218,15 @@ describe('Fez source parser', () => {
   test('HTML templates report lang html', () => {
     expect(parseFezSource('<p>a</p>').template).toEqual({ lang: 'html', map: null });
   });
+
+  test('a <style> or <script> between template markup stays in the template', () => {
+    const parts = parseFezSource(
+      '<style>\n  b { x: 1 }\n</style>\n<div>\n{#if state.x}\n<style>.a{ x: 1 }</style>\n{/if}\n<script type="application/ld+json">{"a":1}</script>\n</div>\n<style global>\n  .z {}\n</style>',
+    );
+    expect(parts.style).toBe('b { x: 1 }');
+    expect(parts.styleGlobal).toBe('.z {}');
+    expect(parts.script).toBe('');
+    expect(parts.html).toContain('<style>.a{ x: 1 }</style>');
+    expect(parts.html).toContain('<script type="application/ld+json">');
+  });
 });

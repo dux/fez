@@ -11,9 +11,10 @@
  * @param {FezBase} component - The component instance
  * @param {number} awaitId - Unique ID for this await block
  * @param {Promise|any} promiseOrValue - The promise or value to await
+ * @param {boolean} [hasCatch] - the block renders {:catch}; without it a rejection is reported
  * @returns {Object} { status, value, error }
  */
-export default function awaitHelper(component, awaitId, promiseOrValue) {
+export default function awaitHelper(component, awaitId, promiseOrValue, hasCatch = false) {
   // Initialize await states map on the component
   component._awaitStates ||= new Map();
 
@@ -35,11 +36,27 @@ export default function awaitHelper(component, awaitId, promiseOrValue) {
 
   // If we have existing state for this exact promise, return it
   if (existing && existing.promise === promiseOrValue) {
+    existing.justSettled = false;
+    return existing;
+  }
+
+  // A new promise in the very render its predecessor's settle scheduled, again
+  // and again: the template builds it ({#await fetchData()}), so every settle
+  // starts the next request. Keep the settled value and say so once.
+  const loops = existing?.justSettled ? existing.loops + 1 : 0;
+  if (loops >= 3) {
+    if (!existing.reported) {
+      existing.reported = true;
+      component.fezError?.(
+        'await',
+        '{#await} gets a new promise on every render - assign it to state once (this.state.data = fetchData()) and await state.data',
+      );
+    }
     return existing;
   }
 
   // New promise - set pending state and start tracking
-  const state = { status: 'pending', value: null, error: null, promise: promiseOrValue };
+  const state = { status: 'pending', value: null, error: null, promise: promiseOrValue, loops };
   component._awaitStates.set(awaitId, state);
 
   // Settle only if this is still the current promise for this await block and
@@ -52,6 +69,10 @@ export default function awaitHelper(component, awaitId, promiseOrValue) {
     }
     current.status = status;
     current[key] = result;
+    current.justSettled = true;
+    if (status === 'rejected' && !hasCatch) {
+      component.fezError?.('await', `{#await} rejected and has no {:catch}: ${result?.message || result}`, result instanceof Error ? result : undefined);
+    }
     component.fezNextTick?.(component.fezRender, 'fezRender');
   };
   promiseOrValue.then(

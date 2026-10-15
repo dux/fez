@@ -130,7 +130,7 @@ describe("slot behavior", () => {
     test("children from root are moved into .fez-slot container", () => {
       const root = document.createElement("div");
       root.id = "comp-1";
-      root.classList.add("fez", "fez-ui-tabs");
+      root.classList.add("fez", "ui-tabs-fez");
       root.innerHTML = "<div>Tab 1</div><div>Tab 2</div>";
       document.body.appendChild(root);
 
@@ -408,7 +408,7 @@ describe("slot behavior", () => {
       // that already rendered with its own .fez-slot inside it.
       const root = document.createElement("div");
       root.id = "outer-tabs";
-      root.classList.add("fez", "fez-ui-tabs");
+      root.classList.add("fez", "ui-tabs-fez");
       document.body.appendChild(root);
 
       // Build children as they look after nested components already initialized

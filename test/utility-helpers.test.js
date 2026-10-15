@@ -27,3 +27,20 @@ test('jsEscape keeps data inside a quoted JS string', () => {
   expect(new Function(`return \`${Fez.jsEscape(value)}\``)()).toBe(value);
   expect(Fez.jsEscape(null)).toBe('');
 });
+
+test('htmlEscape escapes every value as text and renders null/undefined as nothing', () => {
+  expect(Fez.htmlEscape(['<b>', 'x'])).toBe('&lt;b&gt;,x');
+  expect(Fez.htmlEscape(null)).toBe('');
+  expect(Fez.htmlEscape(undefined)).toBe('');
+  expect(Fez.htmlEscape(0)).toBe('0');
+  // CSS text is content like any other, nothing is stripped
+  expect(Fez.htmlEscape('font-family: Arial; color: red;')).toBe('font-family: Arial; color: red;');
+});
+
+test('htmlAttr drops null and false booleans, keeps false on other attributes', () => {
+  expect(Fez.htmlAttr('hidden', false)).toBe('');
+  expect(Fez.htmlAttr('hidden', true)).toBe(' hidden=""');
+  expect(Fez.htmlAttr('title', null)).toBe('');
+  expect(Fez.htmlAttr('aria-expanded', false)).toBe(' aria-expanded="false"');
+  expect(Fez.htmlAttr('title', 'a "b"')).toBe(' title="a &quot;b&quot;"');
+});

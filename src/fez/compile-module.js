@@ -12,7 +12,7 @@
 
 import path from 'node:path';
 import { extractFezDefinitions, formatSourceError, parseFezSource } from './lib/source-parser.js';
-import { assertStyleScope, splitScript } from './lib/validate.js';
+import { assertStyleScope, splitScript, IMPORT_RE } from './lib/validate.js';
 import { stripTypeScript } from './lib/strip-types.js';
 import createTemplate from './lib/template.js';
 import { locateSlimError } from './lib/slim.js';
@@ -30,7 +30,7 @@ function assertScriptSyntax(name, script) {
   if (!script.trim()) {
     return;
   }
-  const withoutImports = script.replace(/^\s*import\s.*$/gm, '');
+  const withoutImports = script.replace(IMPORT_RE, '');
   const { preamble, body, hasClass } = splitScript(withoutImports);
   try {
     if (hasClass) {
@@ -99,7 +99,12 @@ function compileUnit(name, source, { minify }) {
     metadata.push(`Fez.index.ensure('${name}').demo = ${JSON.stringify(parts.demo)};`);
   }
 
-  return { preamble: preamble.trim(), classBody: body, registration: metadata.join('\n') };
+  return {
+    preamble: preamble.trim(),
+    classBody: body,
+    head: parts.head?.trim() || '',
+    registration: metadata.join('\n'),
+  };
 }
 
 /**
@@ -114,12 +119,15 @@ function compileUnit(name, source, { minify }) {
 export function compileFileToModule(filePath, source, options = {}) {
   const minify = options.minify === true;
 
-  const { definitions } = extractFezDefinitions(source);
+  const { definitions, errors } = extractFezDefinitions(source);
+  if (errors.length) {
+    throw new Error(formatSourceError(errors[0]));
+  }
   const units = definitions.length
     ? definitions.map((definition) => ({ name: definition.name, source: definition.source }))
     : [{ name: path.basename(filePath, '.fez'), source }];
 
-  const preambles = [];
+  const imports = [];
   const classBlocks = [];
   const registrations = [];
   const varNames = [];
@@ -128,10 +136,18 @@ export function compileFileToModule(filePath, source, options = {}) {
     const compiled = compileUnit(unit.name, unit.source, { minify });
     const varName = `__fez_component_${index}`;
     varNames.push(varName);
-    if (compiled.preamble) {
-      preambles.push(`// --- ${unit.name} ---\n${compiled.preamble}`);
-    }
-    classBlocks.push(`const ${varName} = class {${compiled.classBody}`);
+    // imports go to the module top (deduped); the rest of each preamble gets a
+    // block of its own, so two components may both declare `const helper`
+    const preamble = compiled.preamble.replace(IMPORT_RE, (statement) => {
+      if (!imports.includes(statement.trim())) {
+        imports.push(statement.trim());
+      }
+      return '';
+    });
+    const head = compiled.head ? `Fez.head(${JSON.stringify(compiled.head)});\n` : '';
+    classBlocks.push(
+      `// --- ${unit.name} ---\nlet ${varName};\n{\n${head}${preamble.trim()}\n${varName} = class {${compiled.classBody};\n}`,
+    );
     registrations.push(`Fez('${unit.name}', ${varName});`);
     if (compiled.registration) {
       registrations.push(compiled.registration);
@@ -139,11 +155,11 @@ export function compileFileToModule(filePath, source, options = {}) {
   });
 
   const lines = [
+    ...imports,
+    imports.length ? '' : null,
     `const Fez = window.Fez;`,
     `if (!Fez) throw new Error('fez runtime not loaded: load fez (window.Fez) before component modules');`,
     '',
-    ...preambles,
-    preambles.length ? '' : null,
     ...classBlocks,
     '',
     ...registrations,

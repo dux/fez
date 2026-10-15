@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Window } from "happy-dom";
 import createTemplateCompiler from "../src/fez/lib/template-compiler.js";
+import { htmlAttr } from "../src/fez/lib/attrs.js";
 import closeCustomTags from "../src/fez/lib/close-custom-tags.js";
 import RenderSlots from "../src/fez/lib/render-slots.js";
 import { buildClassSource, trimTemplateLines } from "../src/fez/lib/class-source.js";
@@ -10,6 +11,7 @@ import flattenCss from "../src/fez/utils/flatten_css.js";
 // Regressions for the template compiler, class assembly and CSS flattening.
 
 const MockFez = {
+  htmlAttr: (name, value) => htmlAttr(name, value, MockFez.htmlEscape),
   htmlEscape: (v) =>
     v == null ? "" : String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]),
   jsEscape: (v) => (v == null ? "" : JSON.stringify(String(v)).slice(1, -1).replace(/['`$]/g, "\\$&")),
@@ -176,5 +178,121 @@ describe("flattenCss", () => {
 
   test("& inside an attribute string is not the parent", () => {
     expect(flattenCss('.p { a[title="x&y"] { x: 1; } }')).toContain('.p a[title="x&y"]{x: 1;}');
+  });
+});
+
+describe("flattenCss - selector lists, :global and at-rules", () => {
+  const P = ".fez.ui-x-fez";
+
+  test("a comma inside a quoted attribute value does not split the selector", () => {
+    expect(flattenCss(`${P}{ [data-x="a,b"] { x: 1 } }`)).toBe(`${P} [data-x="a,b"]{x: 1;}`);
+  });
+
+  test(":global(...) followed by more keeps the rest scoped", () => {
+    expect(flattenCss(`${P}{ :global(.dark) .btn { x: 1 } }`)).toBe(`.dark ${P} .btn{x: 1;}`);
+    expect(flattenCss(`${P}{ :global(html.dark) & .btn { x: 1 } }`)).toBe(`html.dark ${P} .btn{x: 1;}`);
+    expect(flattenCss(`${P}{ :global(.solo) { x: 1 } }`)).toBe(".solo{x: 1;}");
+  });
+
+  test("a list inside :global() expands instead of splitting the selector", () => {
+    expect(flattenCss(`${P}{ .x :global(.a,.b) { x: 1 } }`)).toBe(`${P} .x .a,${P} .x .b{x: 1;}`);
+    expect(flattenCss(`${P}{ :global(.a, .b) .c { x: 1 } }`)).toBe(`.a ${P} .c,.b ${P} .c{x: 1;}`);
+  });
+
+  test("statement at-rules leave a scoped block and lead the sheet", () => {
+    const css = flattenCss(`${P}{ .y { x: 1 } @import url(a.css); @layer base, ui; }`);
+    expect(css.split("\n")).toEqual(["@import url(a.css);", "@layer base, ui;", `${P} .y{x: 1;}`]);
+  });
+
+  test("@starting-style nests like @media, @position-try stays verbatim", () => {
+    expect(flattenCss(`${P}{ .y { @starting-style { opacity: 0 } } }`)).toBe(`@starting-style{${P} .y{opacity: 0;}}`);
+    expect(flattenCss("@position-try --x { top: 0 }")).toBe("@position-try --x{top: 0;}");
+  });
+});
+
+describe("template compiler - attribute and handler forms", () => {
+  test(":prop works braced, hyphenated and with an object literal", () => {
+    const fezGlobals = new RenderSlots();
+    fezGlobals.beginRender();
+    const html = compile('<x-c :a={state.t} :data-b="state.t" :c="{v: state.t}" />')({ state: { t: "a b" }, props: {}, UID: 7, fezGlobals });
+    expect(html).toBe('<x-c :a=Fez(7).fezGlobals.value(0) :data-b=Fez(7).fezGlobals.value(1) :c=Fez(7).fezGlobals.value(2) fez-key="0"></x-c>');
+    expect(fezGlobals.value(2)).toEqual({ v: "a b" });
+  });
+
+  test("onclick={method} calls the method with the event", () => {
+    expect(render("<b onclick={save}>x</b>")).toContain('onclick="fez.save(event)"');
+  });
+
+  test("async arrows and any event parameter name compile to a handler", () => {
+    expect(render("<b onclick={async () => save()}>x</b>")).toContain('onclick="fez.save()"');
+    expect(render("<b onclick={(evt) => go(evt.target)}>x</b>")).toContain('onclick="fez.go(event.target)"');
+  });
+
+  test("{#each obj as key, value}: an object value is captured, an array index interpolated", () => {
+    const objectRows = render("{#each state.o as k, v}<b onclick={() => pick(v)}>x</b>{/each}", { state: { o: { a: { n: 1 } } } });
+    expect(objectRows).toContain("fezGlobals.handler(0)(event)");
+    const arrayRows = render("{#each state.a as it, i}<b onclick={() => rm(i)}>x</b>{/each}", { state: { a: ["x"] } });
+    expect(arrayRows).toContain('onclick="fez.rm(0)"');
+  });
+
+  test("a backtick in text is a plain character", () => {
+    expect(render("<p>it`s {state.t}</p><i>{state.t}</i>", { state: { t: "T" } })).toBe('<p fez-key="0">it`s T</p><i fez-key="1">T</i>');
+  });
+
+  test("<script> and <style> bodies in a template are not evaluated", () => {
+    const html = render("<div><script>if (1) { y() }</script><style>.a{ --x: 1 }</style>{state.t}</div>", { state: { t: "T" } });
+    expect(html).toContain("<script fez-key=\"1\">if (1) { y() }</script>");
+    expect(html).toContain("<style fez-key=\"2\">.a{ --x: 1 }</style>T");
+  });
+
+  test("Svelte syntax fails with a hint instead of rendering garbage", () => {
+    const strict = (t) => () => createTemplateCompiler(t, { name: "x-y", strict: true });
+    expect(strict("{@debug x}")).toThrow("Unknown template directive {@debug x}");
+    expect(strict("<b on:click|preventDefault={go}>x</b>")).toThrow("write onclick={...}");
+    expect(strict('<input bind:value="x">')).toThrow("fez:bind");
+  });
+
+  test("static fez:this in a loop gets one id per row", () => {
+    expect(render('{#each state.r as x}<input fez-this="row">{/each}', { state: { r: [1, 2] } })).toContain('id="fez-7-row-1"');
+  });
+});
+
+describe("compileFileToModule - imports, scopes and errors", () => {
+  const two = `<xmp fez="ui-one">
+<script>
+  import {
+    a,
+  } from './dep.js'
+  const helper = 1
+  class { x = helper + a }
+</script>
+<p>1</p>
+</xmp>
+<xmp fez="ui-two">
+<script>
+  import {
+    a,
+  } from './dep.js'
+  const helper = 2
+  class { x = helper + a }
+</script>
+<p>2</p>
+</xmp>`;
+
+  test("multi-line imports are hoisted once and each component gets its own scope", () => {
+    const out = compileFileToModule("/x/two.fez", two);
+    expect(out.match(/from '\.\/dep\.js'/g).length).toBe(1);
+    expect(out.indexOf("import {")).toBe(0);
+    // two `const helper` declarations would be a SyntaxError in one scope
+    expect(() => new Function(out.replace(/^import[\s\S]*?;?\n\n/, "").replace("export default", "return"))).not.toThrow();
+  });
+
+  test("an unclosed definition is an error, not a silent component", () => {
+    expect(() => compileFileToModule("/x/bad.fez", '<xmp fez="ui-x"><p>x</p>')).toThrow("Unclosed");
+  });
+
+  test("a <head> block is emitted as a Fez.head call", () => {
+    const out = compileFileToModule("/x/ui-h.fez", '<head>\n  <link rel="stylesheet" href="/a.css">\n</head>\n<p>x</p>');
+    expect(out).toContain('Fez.head("<link rel=\\"stylesheet\\" href=\\"/a.css\\">");');
   });
 });
