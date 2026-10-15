@@ -40,6 +40,8 @@ test('htmlEscape escapes every value as text and renders null/undefined as nothi
 test('htmlAttr drops null and false booleans, keeps false on other attributes', () => {
   expect(Fez.htmlAttr('hidden', false)).toBe('');
   expect(Fez.htmlAttr('hidden', true)).toBe(' hidden=""');
+  expect(Fez.htmlAttr('disabled', '')).toBe('');
+  expect(Fez.htmlAttr('disabled', 'disabled')).toBe(' disabled=""');
   expect(Fez.htmlAttr('title', null)).toBe('');
   expect(Fez.htmlAttr('aria-expanded', false)).toBe(' aria-expanded="false"');
   expect(Fez.htmlAttr('title', 'a "b"')).toBe(' title="a &quot;b&quot;"');

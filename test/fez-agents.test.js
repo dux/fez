@@ -34,12 +34,36 @@ describe("fez agents", () => {
     expect(r.stdout).toContain("--init");
   });
 
-  test("default output skips the repo-local section", async () => {
+  test("default output starts at the shared-reference marker", async () => {
     const r = await run(BIN);
     expect(r.exitCode).toBe(0);
-    expect(r.stdout).toContain("# Fez JS lib Quick Reference for AI Assistants");
-    expect(r.stdout).not.toContain("Instructions for this local fez repo");
+    const body = r.stdout.split("\n").slice(2).join("\n");
+    expect(body.startsWith("# Fez JS lib Quick Reference for AI Assistants")).toBe(true);
+    expect(r.stdout).not.toContain("fez agents: shared reference starts here");
     expect(r.stdout).toContain("https://github.com/dux/fez");
+  });
+
+  test("default output skips repo-only text and keeps the pjax summary", async () => {
+    const r = await run(BIN);
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout).not.toContain("Instructions for this local fez repo");
+    expect(r.stdout).not.toContain("Publishing the docs site");
+    expect(r.stdout).not.toContain("bun run deploy");
+    expect(r.stdout).not.toContain("pages_src/root/fez/[name].fez");
+    expect(r.stdout).toContain("## Bundled Pjax navigation");
+  });
+
+  test("fails when the marker is missing", async () => {
+    const dir = tmpDir();
+    fs.mkdirSync(path.join(dir, "bin"));
+    fs.copyFileSync(BIN, path.join(dir, "bin", "fez-agents"));
+    fs.chmodSync(path.join(dir, "bin", "fez-agents"), 0o755);
+    fs.writeFileSync(path.join(dir, "AGENTS.md"), "# Repo notes\n\n# Reference\n");
+
+    const r = await run(path.join(dir, "bin", "fez-agents"));
+    expect(r.exitCode).toBe(1);
+    expect(r.stderr).toContain("marker");
+    expect(r.stdout).not.toContain("Repo notes");
   });
 
   test("--full prints the whole file", async () => {

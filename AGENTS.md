@@ -9,33 +9,45 @@
   It runs `bun run test` first and stops on failure (plain `bun test` also picks up the browser suites and fails).
   It stamps the version from the `main` commit count, builds dist and the site on this machine, commits the site on top of the `pages` branch with the same commit-tree path as `fez gh-pages` (no worktree, no force push), and pushes `main` and `pages` (see "Publishing the docs site").
 - GitHub Pages does not always start a build for the pushed `pages` commit. Check `gh api repos/dux/fez/pages/builds/latest` - if its commit is not the new `pages` head, trigger one with `gh api -X POST repos/dux/fez/pages/builds`, then confirm `https://dux.github.io/fez/dist/fez.min.js` starts with the new `// v:` banner.
+- If you are instructed to write a fez component for this repo, ALWAYS write it in `pages_src/root/fez/[name].fez`; the generated site is published to the `pages` branch and is never edited in place.
+- `fez agents` prints this file from the `fez agents: shared reference starts here` marker below; everything above it is repo-only and is not printed. Keep repo-only notes above the marker and the reference for other projects below it.
 
-## Bundled Pjax navigation (since 0.6.0)
+## Pjax source layout
 
-Fez ships the former `dux-pjax` package (ported to JS) in `src/fez/pjax/` and exposes it as `Fez.pjax`.
-`Fez.load`, `Fez.refresh`, `Fez.qs`, `Fez.hash`, `Fez.hpath` and `Fez.hqs` are set by `boot.js` and delegate to `Fez.pjax` at call time, so an override on `Fez.pjax` also drives the shortcut. There is no `window.Pjax`.
+The bundled pjax (see "Bundled Pjax navigation" in the shared reference) lives in `src/fez/pjax/`.
 
 - `pjax.js` - the Pjax class and request lifecycle (created per `createPjax()` call so tests get fresh static state); `url-state.js` - `qs` / `hash` / `hpath` / `hqs`, attached to the class as statics; `scripts.js` - `runScripts` / `runHeadScripts` for response scripts; `onclick.js` - link click delegate; `boot.js` - boot, called from `src/fez.js` behind the `fezPrimary` guard.
-- Boot gating: `Fez.pjax` is always set, but handlers (link hijack, popstate, `data-pjax` forms) bind only when the page has a `<pjax>` tag or `.pjax` class container; `Fez.pjax.start()` for late-injected containers.
-- `load` / `refresh` share `(what?, opts?)` and one path: `getOpts` validates and copies, the constructor resolves the region, href and form and fills defaults. They differ only in the internal `fresh` mode: `refresh` sends no-cache, skips the 2s debounce and does not scroll. `what` is a URL, or a `#selector` / element that becomes `target` for the current URL. Options are `target`, `source`, `form`, `history` (`'push' | 'replace' | false`), `scroll`; unknown keys are reported through `Pjax.error` and dropped. Requests go through `fetch` with an `AbortController` per request (a `'timeout'` abort reason tells a timeout from a superseded request). Request state (`region`, `fragment`, `method`, `body`, `startedAt`, `redirects`, `key`) lives on the instance, never on `opts` - `opts` is what `pjax:start` / `pjax:render` publish.
-- The promise never rejects: `run()` resolves the `pjax:render` detail (`emitDone`) or `null`. `load()` returns true only when a request went out; every other exit resolves `null`. Keep new exit paths on that contract.
-- Debounce (`Pjax._lastLoad`) and in-flight requests (`Pjax.requests`, a Map) are keyed per swap node: the target id, the `.ajax` region id, or `'full'`. A new request aborts only the same key; a `'full'` request aborts all.
-- `morphInto` hands `Fez.nodeMorph` a DocumentFragment - the parsed response node's children, moved (no string round trip), or a string via `createContextualFragment`. Never pass nodeMorph a raw string: its "unwrap single matching-tag root" heuristic would swallow a legitimate lone wrapper child. `runScripts` executes a response's inline scripts and removes them before the morph, so they are never carried into the page.
-- A URL fragment never goes to the server: `'/page#section'` loads `/page`, pushes `/page#section` and scrolls to the anchor; on the current path it only scrolls, like the browser. A no-href load or refresh keeps `location.hash`, so a hash route survives `Fez.refresh()`. Back/Forward restores full-swap pages from `historyData` without a fetch when cached (`Pjax.onPopState`): it aborts any in-flight full request and fires `pjax:render` like a load.
-- Layout id: with `<meta name="pjax-layout" content="ID">` a full swap sends `x-pjax-layout: ID` (`Pjax.layout()`); a response that does not echo the same header is loaded as a full page and resolves `error: 'layout'`.
-- A full-page swap only morphs the pjax container, so `runHeadScripts` also compiles the response head's own fez definitions (`script[fez]`, `template[fez]`, `xmp[fez]` outside the pjax region) before the morph - that is what loads the `page.components` a layout emits per page. Without it a pjax navigation lands on a page whose components never registered (unknown custom elements, empty widgets).
-- Components follow navigation via `this.on('pjax:render', () => this.refresh())`.
-- URL state: `Fez.qs()` (real query) and `Fez.hash()` (slashless fragment params) are history-only setters/getters. `Fez.hpath()`/`Fez.hqs()` address a hash route: a fragment whose path part contains a `/` is a route (`#/traffic?app=x`), the route name is the last path segment, and `hqs` reads/writes its query. A slashless fragment (`#foo`, `#tab=settings`) stays an anchor or `hash()` parameter list. Path setters canonicalize to `#/name` and clear on empty.
-- Tests: `test/pjax-core.test.js`, `test/pjax-onclick.test.js`, `test/pjax-events.test.js` (shared env and `installMockXHR` / `respond` in `test/pjax-env.js`), browser coverage in `test/browser/pjax-url-state.test.js`. `fez refactor` flags legacy `Pjax.` calls (`bin/fez-refactor`, tested in `test/fez-bin.test.js`). Types in `fez.d.ts` (`PjaxStatic`, `PjaxLoadOptions`, `PjaxHashPathOptions`).
+- Tests: `test/pjax-core.test.js`, `test/pjax-onclick.test.js`, `test/pjax-events.test.js` (shared env and `installMockFetch` / `fakeResponse` / `respond` in `test/pjax-env.js`), browser coverage in `test/browser/pjax-url-state.test.js`. `fez refactor` flags legacy `Pjax.` calls (`bin/fez-refactor`, tested in `test/fez-bin.test.js`). Types in `fez.d.ts` (`PjaxStatic`, `PjaxLoadOptions`, `PjaxHashPathOptions`).
 - The old `~/dev/libs/dux-pjax` repo is deprecated reference only - changes happen here.
 
+## Publishing the docs site (`pages` branch)
+
+This repo publishes its generated site from the `pages` branch, served by GitHub Pages at the branch root.
+`main` tracks source only; `dist/` and `tmp/` are build output and ignored (the old `docs/` output is gone).
+`fez-static.yaml` builds into `tmp/fez-pages`, which is exactly the deployable site root.
+`bun run dev` builds the library and site, watches source changes, and uses the existing static server with live reload at `http://localhost:8000/`.
+`bun run deploy` (`bin/deploy`) requires a clean `main` and runs `bun run test` before stamping, building, committing, or pushing.
+A test failure stops deployment.
+It stamps the version with `vstamp count --next` ([vstamp](https://github.com/dux/vstamp)): the main commit count including the release commit, rendered dotted (`357` -> `3.5.7`, `1123` -> `11.2.3`, `5` -> `0.0.5`), written to `.version` (YAML, `version: X.Y.Z`) and `package.json`.
+It then builds dist + site and commits both files on `main` as `chore: release <version>`.
+`fez version` prints the `version` from `.version`; `Fez.version` and the `// v:` dist banner read `package.json`. A checkout never stamped prints `dev`.
+It commits the built site on top of the `pages` branch with `commitPages` from `src/static/pages.js` (a throwaway index + `git commit-tree` + `update-ref`, the same path `fez gh-pages` uses), so the primary checkout is never switched and the worktree under `tmp/` is gone.
+It pushes both branches to `origin` atomically; both must fast-forward and `pages` is never force-pushed.
+`--dry-run` runs tests, builds the next version and restores `.version` and `package.json`, without creating commits or pushing.
+Build failures restore the manifest before any source commit; later failures keep local commits and Pages output for recovery.
+Deployment does not publish to the package registry.
+This repo's own `bin/deploy` drives its versioned release; a project using only the generic publisher runs `fez gh-pages`, which builds the site and commits it to the same `pages` branch without any version stamping (`--no-push` commits locally, `-s` serves the target afterwards).
+`pages_src/root/fez.txt` is generated from `pages_src/root/fez/*.fez`, excluding scratch files, by the shared indexer in `lib/site.js`.
+`bun run static`, `bun run dev`, and deployment all use that indexer; there is no separate `index` script.
+
 ---
+
+<!-- fez agents: shared reference starts here -->
 
 # Fez JS lib Quick Reference for AI Assistants (files ending in .fez or .html.fez)
 
 ## Writing New Components
 
-If you are instructed to write a fez component, ALWAYS write it in `pages_src/root/fez/[name].fez`; the generated site is published to the `pages` branch and is never edited in place.
 All documentation and demos go INSIDE the .fez file (no separate .html files) using `<info>` and `<demo>` blocks.
 
 ## CDN
@@ -64,7 +76,12 @@ import Button from './components/ui-button.fez'; // default export is the class
 ```
 
 - Component name comes from the filename (`ui-button.fez` -> `ui-button`); `<xmp fez="...">`
-  files compile every definition.
+  files compile every definition, and the default export is the first one.
+  An unclosed `<xmp fez="...">` is a build error.
+- Static imports (multi-line named imports included) are hoisted to the module top and deduped.
+  The rest of each component's module-level code gets its own block scope, so two components of one
+  file may both declare `const helper`.
+- A `<head>` block is emitted as `Fez.head("<html>")` before the component class is defined.
 - `minify` (default `false`; Vite defaults to `true` when `mode === 'production'`) drops
   `<info>` / `<demo>` metadata from the emitted module.
 - Emitted modules read the runtime from `window.Fez` and never import it: load fez once on the
@@ -103,7 +120,7 @@ fez template --debug path/to/component.fez
 fez compile -t path/to/component.fez
 fez compile --json path/to/component.fez
 
-# Report legacy syntax and modernization candidates (never changes files)
+# Report removed APIs, legacy syntax, // comments in <style> and old Pjax calls (never changes files)
 fez refactor [path-or-glob]
 
 # Index files as JSON, or open an interactive Playwright debugging REPL
@@ -124,7 +141,7 @@ fez gh-pages -s --port 4000     # publish, then serve the target with live reloa
 
 `.fez` files use Fez's own template compiler (`src/fez/lib/template-compiler.js`).
 
-`fez gh-pages` builds the configured `source_dir` with the static builder and commits the result on top of the `pages` branch (`git commit-tree` + `update-ref`, no checkout), then pushes it to `origin`. It refuses with a clear error outside a Git repo, without an `origin` remote, when `pages` is checked out in a worktree, or when local `pages` diverges from `origin/pages`. `-s` serves the target with the same watcher and live reload as `fez static dev`. This repo's own `bin/deploy` still drives its versioned release.
+`fez gh-pages` builds the configured `source_dir` with the static builder and commits the result on top of the `pages` branch (`git commit-tree` + `update-ref`, no checkout), then pushes it to `origin`. It refuses with a clear error outside a Git repo, without an `origin` remote, when `pages` is checked out in a worktree, or when local `pages` diverges from `origin/pages`. `-s` serves the target with the same watcher and live reload as `fez static dev`.
 
 ## Static Site Builder
 
@@ -180,39 +197,19 @@ Rules:
 * `fez static dev` injects a development-only client and reloads connected browsers after successful rebuilds.
 * The existing target remains unchanged when a build or doctor check fails.
 
-## Publishing the docs site (`pages` branch)
-
-This repo publishes its generated site from the `pages` branch, served by GitHub Pages at the branch root.
-`main` tracks source only; `dist/` and `tmp/` are build output and ignored (the old `docs/` output is gone).
-`fez-static.yaml` builds into `tmp/fez-pages`, which is exactly the deployable site root.
-`bun run dev` builds the library and site, watches source changes, and uses the existing static server with live reload at `http://localhost:8000/`.
-`bun run deploy` (`bin/deploy`) requires a clean `main` and runs `bun run test` before stamping, building, committing, or pushing.
-A test failure stops deployment.
-It stamps the version with `vstamp count --next` ([vstamp](https://github.com/dux/vstamp)): the main commit count including the release commit, rendered dotted (`357` -> `3.5.7`, `1123` -> `11.2.3`, `5` -> `0.0.5`), written to `.version` (YAML, `version: X.Y.Z`) and `package.json`.
-It then builds dist + site and commits both files on `main` as `chore: release <version>`.
-`fez version` prints the `version` from `.version`; `Fez.version` and the `// v:` dist banner read `package.json`. A checkout never stamped prints `dev`.
-It commits the built site on top of the `pages` branch with `commitPages` from `src/static/pages.js` (a throwaway index + `git commit-tree` + `update-ref`, the same path `fez gh-pages` uses), so the primary checkout is never switched and the worktree under `tmp/` is gone.
-It pushes both branches to `origin` atomically; both must fast-forward and `pages` is never force-pushed.
-`--dry-run` runs tests, builds the next version and restores `.version` and `package.json`, without creating commits or pushing.
-Build failures restore the manifest before any source commit; later failures keep local commits and Pages output for recovery.
-Deployment does not publish to the package registry.
-For a project using only the generic publisher, `fez gh-pages` builds the site and commits it to the same `pages` branch without any version stamping (`--no-push` commits locally, `-s` serves the target afterwards).
-`pages_src/root/fez.txt` is generated from `pages_src/root/fez/*.fez`, excluding scratch files, by the shared indexer in `lib/site.js`.
-`bun run static`, `bun run dev`, and deployment all use that indexer; there is no separate `index` script.
-
 ## Core Rules for LLM
 
 1. **ALWAYS** use Fez-specific Svelte-like syntax (NO React/Vue conventions)
 2. **ALWAYS** use 2-space indentation inside template blocks (`{#if}`, `{#each}`, `{#for}`, `{#await}`, etc.) - content inside blocks must be indented by 2 spaces relative to the block tag
 3. **NEVER** use hooks - `this.state` replaces useState/useEffect
-4. **Style scope is declared on the tag, never inferred from the CSS.** `<style>` is component-scoped - the compiler wraps the **whole block**, always, no exceptions. `<style global>` is emitted verbatim, document-wide. A file may contain both. Inside `<style>`, root-level declarations style the generated outer wrapper node (the one with the `fez` class), *not* the first template child - so if the first element is `<nav>` and it needs `display: flex`, write `nav { display: flex; }`. Address the wrapper itself with `&` (`&:hover`, `& > div`). For a one-off rule that must escape the component, wrap its selector in `:global(...)` and it is hoisted to the global channel. `:fez` and `:host` are **not** valid in source and are compile errors.
+4. **Style scope is declared on the tag, never inferred from the CSS.** `<style>` is component-scoped - the compiler wraps the **whole block**, always, no exceptions. `<style global>` is emitted verbatim, document-wide. A file may contain both. Inside `<style>`, root-level declarations style the generated outer wrapper node (the one with the `fez` class), *not* the first template child - so if the first element is `<nav>` and it needs `display: flex`, write `nav { display: flex; }`. Address the wrapper itself with `&` (`&:hover`, `& > div`). For a one-off rule that must escape the component, write the selector as `:global(.x)`; `:global(.dark) .btn` keeps `.btn` scoped under a global ancestor (see "Scoped CSS"). `:fez` and `:host` are **not** valid in source and are compile errors. Comments are `/* ... */` only - `//` line comments are not CSS.
 5. **ALWAYS** initialize state in `init()`, put reactive/derived state in `beforeRender()`
 6. **ALWAYS** use kebab-case component names (e.g., `user-profile`)
 7. **NEVER** use `{#if}` blocks inside HTML attributes - use ternary operators `{condition ? 'value' : ''}` instead
-8. **Attribute expressions** are automatically quoted - write `attr={value}` (quotes added automatically)
+8. **Attribute expressions** are automatically quoted - write `attr={value}` (quotes added automatically); `null` / `undefined` drop the attribute and a falsy value drops a boolean attribute (see "Attribute values")
 9. **ALWAYS** use lowercase with underscores for props (e.g., `fill_color`, `read_only`, `stroke_width`)
    * Declare a `PROPS` schema for any prop that is not a plain string (`PROPS = { count: { type: Number, default: 0 }, open: Boolean }`) - never `parseInt`/`=== 'true'` props by hand when a schema entry does it
-10. **PREFER `onclick="fez.func({value})"`** for event handlers with inline template values - use function pointers only when passing complex data (objects, arrays)
+10. **PREFER `onclick="fez.func('{value}')"`** for event handlers with inline template values - use unquoted arrow handlers (`onclick={() => edit(item)}`) only when passing complex data (objects, arrays)
 11. **`this.state` is the only per-instance store.** A write re-renders only if the last render read that top-level key, so editors, charts, timers, handlers and `fez:this` refs (`this.state.name`) all go in `state` and cost nothing until a template reads them. Never park data on bare `this`.
 
 ## App Rules for LLM
@@ -222,9 +219,10 @@ Rules for wiring components into an app; the component rules are above.
 1. Mount order is `init`, first render, `onMount`, then `onRefresh(props, changed)` with every prop in `changed`.
 2. A parent re-render hands a preserved child its new props: it re-renders when a value changed, then `onRefresh(props, changed)` fires with only the props whose value differs (`{}` when none did).
    There is no `onPropsChange`: load prop-driven data in `onRefresh` alone, `if ('container' in changed) this.load()`, never in `onMount` too and never by tracking the last value in state.
-3. Load data in `onMount` and set `state.loading = true` only in `init()`.
-   Reloads then keep the current DOM and morph to the new data instead of flashing a spinner.
-4. Renders are batched per animation frame; the DOM does not change synchronously after a state write.
+3. Data that depends on props loads in `onRefresh` (rule 2); everything else loads in `onMount`.
+   Set `state.loading = true` only in `init()`: reloads then keep the current DOM and morph to the new data instead of flashing a spinner.
+4. Renders are batched per animation frame (a timer while the tab is hidden); the DOM does not change synchronously after a state write.
+   `await this.tick()` resolves once the pending render reached the DOM.
 5. Pass anything that changes as a prop; slots are captured once.
    A child whose template does not read a prop skips the re-render when only that prop changes.
 6. Pages and other components chosen at runtime: `<fez-component name={state.page} :props="state.query">fallback</fez-component>`.
@@ -238,6 +236,9 @@ Rules for wiring components into an app; the component rules are above.
 
 Block order in a `.fez` file is fixed: `<info>`, `<demo>`, `<head>`, `<script>`, `<style>` / `<style global>`, and the template last (HTML or Slim, see Slim Templates).
 Never put a `<style>` block after the template. The same order applies inside every `<xmp fez="...">` of a multi-component file.
+`<script>`, `<head>`, `<info>`, `<demo>` and `<slim>` appear at most once per definition (a duplicate is an error); several `<style>` blocks are joined.
+A `<style>` or `<script>` with template markup on both sides is part of the template, not a component block: its body is copied verbatim (braces are not expressions), so a JSON-LD `<script>` or a `<style>` inside `{#if}` works.
+The `<head>` block holds plain HTML (`<link>`, `<script src>`, `<meta>`) that is appended to `document.head` when the component is defined; its scripts are re-created so they run.
 
 The `<script>` block has two zones:
 
@@ -281,22 +282,26 @@ The `<script>` block has two zones:
 
     // optional props schema: validated + coerced into this.props before init()
     PROPS = {
-      count: { type: Number, default: 0 },
+      count: { type: Number, default: 0, state: true },  // seeds this.state.count before init()
       title: { type: String, default: 'Default' },
       open: Boolean,   // <my-tag open> -> true, missing -> false
     }
 
     init(props) {
-      // runs BEFORE template render - props available, DOM refs are not
+      // the only init hook - runs BEFORE template render, props available, DOM refs are not
       // do not rewrite state, just add to it
-      this.state.count = props.count   // already a Number (PROPS)
+      this.state.items = []
     }
 
     beforeRender() {
-      // runs BEFORE every re-render - use for reactive computed state
+      // runs BEFORE every render - use for reactive computed state
       // (replacement for Svelte's $: reactive statements)
-      this.state.fullName = `${this.state.first} ${this.state.last}`
-      this.state.isValid = this.state.items.length > 0
+      this.state.isEmpty = this.state.items.length === 0
+    }
+
+    // a getter is a derived value too, recomputed on every render: {total} in the template
+    get total() {
+      return this.state.items.length + this.state.count
     }
 
     onMount(props) {
@@ -306,11 +311,17 @@ The `<script>` block has two zones:
         element: this.state.editorNode,
         extensions: [StarterKit],
       })
+
+      // window events go through this.on - auto-removed on destroy, not called on its own
+      this.on('resize', () => this.layout(), { throttle: 200 })
+      this.layout()
+
+      // a returned function runs on destroy
+      return () => this.state.editor.destroy()
     }
 
     onDestroy() {
-      // cleanup external resources
-      this.state.editor?.destroy()
+      // cleanup of anything not registered through this.on / this.setTimeout / onMount's return
     }
 
     onRefresh(props, changed) {
@@ -318,10 +329,11 @@ The `<script>` block has two zones:
       // reuses this child (changed = props whose value differs); the child already re-rendered for those
     }
 
-    onWindowResize() {} // on Window resize
-    onWindowScroll() {} // on window scroll
-
     // Custom methods
+    layout() {
+      this.state.width = this.root.offsetWidth  // a key the template never reads: no render
+    }
+
     increment() {
       this.state.count++  // Reactive assignment
     }
@@ -361,11 +373,15 @@ The `<script>` block has two zones:
     }
   }
 
-  /* single rule that must escape the component - hoisted to the global
-     channel with the wrapper stripped. Use <style global> for more than
-     a rule or two. */
+  /* single rule that must escape the component - :global() alone drops the
+     component scope. Use <style global> for more than a rule or two. */
   :global(.third-party-widget) {
     z-index: 10;
+  }
+
+  /* global ancestor, scoped rest: .dark .fez.<name>-fez .btn */
+  :global(.dark) .btn {
+    color: #eee;
   }
 
   /* @keyframes / @font-face / @property and friends cannot legally sit
@@ -394,8 +410,45 @@ The `<script>` block has two zones:
 </style>
 
 <!-- Template (Svelte-like syntax) -->
-<button onclick="fez.increment()" name="{state.buttonName}">Count: {state.count}</button>
+<div fez:this="editorNode"></div>
+<button onclick="fez.increment()" title={props.title}>Count: {state.count} (total {total})</button>
 ```
+
+### Lifecycle hooks
+
+Mount runs `init(props)`, the first render (`beforeRender`, template, `afterRender`), `onMount(props)`, `GLOBAL_STATE` publishing, then `onRefresh(props, changed)` with every prop in `changed`.
+
+* `init(props)` - the only init hook; set initial state. Runs before the first render with state triggers off.
+* `beforeRender()` - before every render; derive state here.
+* `afterRender()` - after every render, also when the hash-skip left the DOM untouched.
+* `onMount(props)` - once, after the first render; the DOM and `fez:this` refs exist. A returned function runs on destroy.
+* `onRefresh(props, changed)` - at mount (every prop in `changed`), and whenever a preserved instance is handed props again: a fez parent re-render, a pjax / `Fez.nodeMorph` swap that keeps it, or `<fez-component>` passing new props. `changed` holds only the props whose value differs. It never fires for the component's own re-render, and `Fez(el).setAttribute()` writes `this.props` without it.
+* `onDestroy()` - when the node leaves the DOM. A throw is reported and teardown still completes.
+* `onStateChange(key, value, oldValue)` - every write to `this.state` outside a silent scope (see State Management).
+* `onGlobalStateChange(key, value, oldValue)` - a `globalState` key this instance read changed.
+* `onSubmit(formData)` - a `<form>` inside the component was submitted: the default is prevented and `formData` is a plain `{ name: value }` object. The listener is delegated, so a form rendered later (inside `{#if}`) works; a child component's form is left to the child.
+* `onError(error, component)` - error boundary, see "Error boundaries".
+
+A throw in `init`, the first render or `onMount` is reported as `Fez mount: [<name>] <name> failed to mount: ...` (or handed to an `onError` boundary) and the instance is destroyed, so its timers and subscriptions are released.
+A template runtime error on a later render keeps the last rendered DOM.
+
+## Scoped CSS
+
+Every rule in `<style>` is nested under the component wrapper (`.fez.<name>-fez`) and flattened SCSS style, so nesting works in browsers without native CSS nesting.
+
+* `:global(...)` follows Svelte: the `:global` part is never scoped, the rest is.
+  * `:global(.x) { }` alone escapes the component: `.x { }`.
+  * `:global(.dark) .btn { }` puts the global part above the scope: `.dark .fez.<name>-fez .btn`.
+  * `:global(html.dark) & .btn { }` places the scope at `&`: `html.dark .fez.<name>-fez .btn`.
+  * A list inside `:global` expands: `.card :global(.a, .b)` -> `.card .a`, `.card .b`, both scoped.
+  * `:global(...)` inside `<style global>` is a compile error - those rules are already global.
+* At-rules:
+  * `@media`, `@supports`, `@container`, `@layer { }`, `@scope` and `@starting-style` nest inside rules and stay scoped.
+  * `@keyframes`, `@font-face`, `@property`, `@counter-style`, `@page`, `@position-try`, `@view-transition` and friends are hoisted to the top level with their bodies untouched.
+  * `@import` and `@layer a, b;` are hoisted to the front of the stylesheet even from a scoped `<style>` (they land in a separate `<style id="fez-css-head">` before the shared one); `@charset` is dropped.
+* Commas inside quoted attribute selectors (`[data-x="a,b"]`) do not split the selector.
+* Comments are `/* ... */`. A `//` line comment is not CSS: it swallows the declaration or selector that follows it; `fez refactor` reports them.
+* `body { }` in a scoped `<style>`, `:host` and `:fez` are compile errors.
 
 ## Style Macros (mixins)
 
@@ -491,7 +544,27 @@ Two caveats:
 
 <!-- JSON debug output -->
 {@json state.data}
+
+<!-- Local constant for the rest of the enclosing branch (destructuring allowed) -->
+{#each state.rows as row}
+  {@const total = row.qty * row.price}
+  {@const { name, sku } = row}
+  <p onclick="fez.pick({total})">{name} ({sku}): {total}</p>
+{/each}
+
+<!-- Reusable static markup within one template -->
+{@block avatar}
+  <img src={state.user.avatar} class="avatar" />
+{/block}
+{@block:avatar}
 ```
+
+* `{expr}` escapes any value as text; `null` / `undefined` render nothing and an array renders as `a,b` text. Use `{@html}` for markup.
+* `{@const name = expr}` lasts until the end of its branch: `{:else}`, `{:then}`, `{:catch}` or the closing tag ends it. Handlers capture it like a loop variable.
+* `{@block name}...{/block}` defines markup and `{@block:name}` pastes it; it is a compile-time copy, not a component.
+* A backtick in text is a plain character (`` <p>use `npm i`</p> ``). `\{` and `\}` write literal braces.
+* `<script>` and `<style>` bodies inside the template are copied verbatim, never evaluated.
+* Svelte-only syntax fails to compile with a hint: `{@debug}`, `{@render}`, `{#snippet}`, `on:click|preventDefault`, `bind:value`.
 
 ### Conditionals
 
@@ -560,6 +633,8 @@ class {
 - Template automatically shows pending/resolved/rejected content
 - Re-renders happen automatically when promise settles
 - Non-promise values show `:then` content immediately (no loading state)
+- **Never build the promise in the template** (`{#await load()}`): every render gets a new promise, and every settle starts the next request. Fez detects the loop after 3 cycles, reports it and keeps the settled value - assign the promise to state once instead
+- A rejection in a block without `{:catch}` is reported through `Fez.onError('await', ...)`
 
 **IMPORTANT: NEVER use `{#if}` inside attributes! Use ternary operator instead:**
 
@@ -569,7 +644,23 @@ class {
 
 <!-- CORRECT -->
 <div class={state.active ? 'active' : ''}>
-<button disabled={state.loading}>Submit</button> <!-- a boolean: disabled="" still disables -->
+<button disabled={state.loading}>Submit</button> <!-- false drops the attribute, true renders disabled="" -->
+```
+
+### Attribute values
+
+An unquoted `name={expr}` renders the whole attribute through `Fez.htmlAttr(name, value)`:
+
+* `null` / `undefined` leave the attribute out.
+* On a boolean attribute (`hidden`, `disabled`, `checked`, `selected`, `open`, `readonly`, `required`, `multiple`, `inert`, `autofocus`, ... - `BOOLEAN_ATTRS` in `src/fez/lib/attrs.js`) the value's truthiness decides: falsy (`false`, `''`, `0`) leaves it out, truthy renders `name=""` - so `disabled={busy ? 'disabled' : ''}` works too.
+* On any other attribute `false` / `true` render as text, so `aria-expanded={state.open}` says `"false"` or `"true"`.
+* Everything else is escaped text.
+
+A quoted `name="{expr}"` is always text; after the render, a boolean attribute whose text is `false`, `null` or `undefined` is removed.
+
+```html
+<details open={state.open} aria-expanded={state.open} title={state.tip}>...</details>
+<!-- state.open = false, state.tip = null  ->  <details aria-expanded="false"> -->
 ```
 
 ### Loops
@@ -611,6 +702,31 @@ class {
   - Objects: first param = key, second param = value
 - **Brackets optional** - `{#for key, val in obj}` same as `{#for [key, val] in obj}`
 
+### Keyed each
+
+`{#each list as item (key)}` keys every row, Svelte style: the key is written as `key={...}` on the first element of the body (unless it has a `key` already).
+A reorder then moves the nodes, and the child components inside them, with their item instead of morphing row content in place.
+
+```html
+<ul>
+  {#each state.todos as todo (todo.id)}
+    <li><todo-row :todo="todo" /></li>
+  {/each}
+</ul>
+<!-- same as <li key={todo.id}> -->
+```
+
+### Recreate on change: `{#key}`
+
+`{#key expr}...{/key}` recreates its body whenever `expr` changes, instead of morphing it - fresh nodes, fresh child components, and `fez:in` plays again.
+The value is compared as `String(expr)`, so key on a primitive (an id, an index), not an object.
+
+```html
+{#key state.slide.id}
+  <img src={state.slide.url} fez:in="fade" />
+{/key}
+```
+
 ### Event Handlers
 
 **PREFER `onclick="fez.method()"` with inline values from templates:**
@@ -627,21 +743,24 @@ class {
 {/each}
 ```
 
-**Use function pointers ONLY when passing complex data (objects, arrays):**
+**Use arrow handlers ONLY when passing complex data (objects, arrays):**
 
 ```html
-<!-- Function pointers - only when passing objects/arrays from loops -->
-<!-- Unquoted {..}: quoting it turns the arrow into a plain string attribute -->
+<!-- Arrow handlers - only when passing objects/arrays from loops -->
+<!-- Always unquoted: onclick="{() => x()}" is a plain string attribute and does nothing -->
 {#each state.tasks as task, index}
 <button onclick={() => editTask(task)}>Edit</button>
 {/each}
 ```
 
-Arrow functions are automatically transformed:
+Unquoted handler expressions are compiled:
 
+- `onclick={save}` (a bare method name) becomes `onclick="fez.save(event)"`
 - `onclick={() => foo()}` becomes `onclick="fez.foo()"`
-- `onclick={(e) => foo(e)}` becomes `onclick="fez.foo(event)"`
-- Loop variables like `index`, `item`, `i` are evaluated at render time
+- `onclick={(e) => foo(e)}` becomes `onclick="fez.foo(event)"` - the first parameter is the event whatever it is called (`(evt) => go(evt.target)`)
+- `onclick={async () => save()}` works; the returned promise is ignored
+- Loop variables and `{@const}` names (`index`, `item`, `i`, ...) are captured at render time: indexes are interpolated, objects are kept in a per-render slot
+- Inside a quoted handler, `{value}` is escaped for a JS string: `onclick="fez.rm('{item.id}')"` is safe when the id contains a quote
 
 ### Strict Event Handlers (`on<event>!=`)
 
@@ -736,12 +855,26 @@ Use `class:name={condition}` to conditionally toggle CSS classes (Svelte-style):
 
 At compile time, `class:name={expr}` is converted to a ternary expression merged into the `class` attribute. The class name is added when the expression is truthy, removed when falsy.
 
+## Style Directives
+
+`style:prop={expr}` sets one CSS property and `style:--name={expr}` a custom property (Svelte-style).
+Each directive is merged into the `style` attribute after its static part, and a `null`, `undefined` or `false` value leaves that property out.
+
+```html
+<div class="bar" style="height: 8px" style:width={state.pct + '%'} style:--accent={props.color}>
+  ...
+</div>
+<!-- props.color unset -> style="height: 8px;width: 40%;" -->
+```
+
+The runtime helper is `Fez.styleProp(name, value)` (`'width: 40%;'`, or `''` when unset).
+
 ## Special Attributes
 
 All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is converted to `fez-` at compile time).
 
 ```html
-<!-- Two-way binding -->
+<!-- Two-way binding: input writes state.username, a render writes the input -->
 <input fez:bind="state.username" />
 
 <!-- Element reference via this.state.myElement (auto-generates stable ID for DOM diffing) -->
@@ -750,8 +883,12 @@ All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is con
   <span fez:keep="child-{state.id}-{state.value}">
     <child-component />
   </span>
+
+  <!-- DOM hook (action), runs once per node -->
   <input fez:use="el => el.focus()" />
-  <!-- DOM hook -->
+
+  <!-- add classes after insert: "dialog" now, the last one ("open") 1ms later, for CSS transitions -->
+  <div fez:class="dialog open">...</div>
 
   <!-- IMPORTANT: Use colon prefix for evaluated attributes (functions, objects, etc.) -->
   <ui-emoji :onselect="handleEmojiSelect" />         <!-- function reference -->
@@ -763,6 +900,67 @@ All `fez:` attributes use namespace syntax. `fez-keep` also works (`fez:` is con
   <my-component title="Hello World" />
 </div>
 ```
+
+`fez:bind` reads the bound key during the render, so every keystroke re-renders the component.
+That is fine in a small form; in a big component prefer `fez:this` and read `.value` when needed (see State Management).
+
+### `:prop` - evaluated attributes
+
+`:name="expr"`, `:name='expr'` and `:name={expr}` all hold one JavaScript expression in template scope (state, props, loop variables, methods).
+Hyphenated names work (`:data-x="..."`) and an object literal needs no extra braces (`:cfg="{a: 1}"`).
+The value is parked in the parent's render slots (`fezGlobals`, see `src/fez/lib/render-slots.js`) and the HTML carries only a positional key, so objects, arrays and functions arrive as themselves.
+Slots are reset on every parent render, and a parent render whose HTML is unchanged is still morphed when a slot now holds a different object, so preserved children receive the new props and re-render.
+`xlink:href` and `xml:lang` are not props - only a leading `:` counts.
+
+Without the colon an attribute is a string: `data="{state.items}"` hands the child text (`a,b` for an array, `[object Object]` for an object), `:data="state.items"` hands it the array.
+
+### `fez:use` - actions
+
+The value is an arrow (`fez:use="el => el.focus()"` or unquoted `fez:use={(el) => el.focus()}`) or the name of a component method (`fez:use="setupChart"`, called as `this.setupChart(node)`).
+An arrow runs outside the component, so use a method name when the action needs `this`.
+It runs once per node, not on every render, and may return:
+
+* a function - called when the node leaves the DOM or the component is destroyed
+* `{ update(node), destroy() }` - `update` runs on later renders that keep the node, `destroy` when it leaves
+
+```javascript
+tooltip(node) {
+  const tip = createTooltip(node, node.title)
+  return {
+    update: (n) => tip.setContent(n.title),
+    destroy: () => tip.destroy(),
+  }
+}
+// template: <button title={state.hint} fez:use="tooltip">?</button>
+```
+
+### Server-rendered identity: `fez-key`
+
+In HTML that is morphed in from outside (pjax swaps, `Fez.nodeMorph`), an unkeyed component is preserved only while its source (tag, attributes and content) is byte-identical; anything else destroys it and mounts a fresh one.
+Give it a `fez-key` to keep the instance across changed attributes or content; its props are re-read and `onRefresh(props, changed)` fires:
+
+```html
+<top-menu fez-key="main-menu" active="users"></top-menu>
+```
+
+A raw `<top-menu>` tag in the new HTML is matched against the mounted wrapper by its `.top-menu-fez` class, so the server keeps sending plain tags.
+`fez-key` also works as a plain identity key on non-component elements in server HTML.
+
+### Passing props from HTML
+
+```html
+<!-- JSON props: the object becomes props (URL-encoded JSON works too) -->
+<foo-bar data-props='{"name": "John", "age": 30}'></foo-bar>
+
+<!-- JSON from the previous element sibling, which is removed after reading -->
+<script type="application/json">{"name": "John"}</script>
+<foo-bar data-json-template="true"></foo-bar>
+
+<!-- evaluated before mount -->
+<foo-bar :size="document.getElementById('range').value"></foo-bar>
+```
+
+Values from `data-props` and `:prop` that already have the declared type pass through `PROPS` coercion unchanged.
 
 ### Transitions: `fez:in` / `fez:out`
 
@@ -850,7 +1048,7 @@ Caveats:
 ### Props Handling
 
 - **IMPORTANT**: Props are passed as parameter to `init(props)` and `onMount(props)`
-- Use `props.name` to access props, NOT `this.prop('name')`
+- Use `props.name` in templates and `this.props.name` in methods
 - **Use `props` directly** - do NOT copy props to `this` or `state`:
 
   ```javascript
@@ -964,7 +1162,7 @@ Caveats:
 - **`this.state` is the only per-instance store, and a write re-renders only if the last render read that top-level key.** Library instances, `fez:this` refs (`this.state.name`), normalized handlers, timers, counters, measurements and parsed config all go in `state`; since no template reads them, writing them never renders. Fez records the keys each render reads (`{@json state}` / `Object.keys(state)` count as reading all), so the rule needs no help from the author. Class instances, DOM nodes, Date/Map/Set/Promise come back unwrapped; a plain-object library namespace (Leaflet's `L`) belongs in a module-level `let`, not in state. Never park data on bare `this` - it collides with the instance API.
   Two costs to know: plain objects and arrays come back proxied on every read, so `state.cfg !== state.cfg` (pull a big blob into a local before a hot loop, never use it as a Map key), and a write to a key the template did read still rebuilds and morphs the whole template even when the output is identical - read tracking prunes writes, it does not shrink renders.
 - **`init()` and every render (`beforeRender`, template, `afterRender`) run with state triggers off** - a state write inside them fires no `onStateChange` and schedules no render (derived state in `beforeRender` is exactly this). `onMount` is outside the scope on purpose: a write there to a rendered key paints. A write inside `onStateChange` does not re-enter the hook, but it still paints when the key is rendered. The same scope is available as `this.noChangeStateTrigger(() => { ... })` for bulk writes that must not paint; scopes nest and the function's return value comes back.
-- **NEVER bind form input values to a rendered state key** - the template reads the key, so every keystroke re-renders the whole component. Use `fez:this` instead:
+- **Do not bind form input values to a rendered state key in a big component** - the template reads the key, so every keystroke re-renders the whole component (`fez:bind` does the same). Use `fez:this` instead:
 
   ```html
   <!-- WRONG -->
@@ -996,7 +1194,7 @@ Caveats:
   }
   ```
 
-- **Design toggleable views so close and open render visibly different HTML.** `fezRender` skips the morph when the new HTML hashes to the same value as the previous render (`src/fez/instance.js`, hash-skip), and rAF-batched state writes can collapse a `close()` + `open(sameThing)` pair into a single render whose output matches the last one — morph skipped, DOM stale. Use a `state.open` boolean + a stable root with `class:hidden={!state.open}` and `{#if state.open}` gating the body, so the closed render is `<div class="… hidden"></div>` and the open render emits the full subtree. **Do NOT** poke private fields like `this._fezHash = null` to force a morph, and **do NOT** sprinkle `data-tick={state.counter}` to force unique hashes — both are workarounds for a state design that doesn't differ enough.
+- **Design toggleable views so close and open render visibly different HTML.** `fezRender` skips the morph when the new HTML hashes to the same value as the previous render (`src/fez/instance.js`, hash-skip), and rAF-batched state writes can collapse a `close()` + `open(sameThing)` pair into a single render whose output matches the last one - morph skipped, DOM stale. Use a `state.open` boolean + a stable root with `class:hidden={!state.open}` and `{#if state.open}` gating the body, so the closed render is `<div class="overlay hidden"></div>` and the open render emits the full subtree. **Do NOT** poke private fields like `this._fezHash = null` to force a morph, and **do NOT** sprinkle `data-tick={state.counter}` to force unique hashes - both are workarounds for a state design that doesn't differ enough.
 
   ```html
   <!-- CORRECT - close vs open differ in class AND inner content -->
@@ -1012,9 +1210,67 @@ Caveats:
   close()    { this.state.open = false }
   ```
 
+### Derived values: getters
+
+A class getter is a derived value: the template reads it like a field and it is recomputed on every render.
+Its reads of `this.state` count as template reads, so a write to a key it uses re-renders.
+
+```javascript
+get total() {
+  return this.state.items.reduce((sum, item) => sum + item.qty * item.price, 0)
+}
+// template: <b>{total}</b>
+```
+
+Use a getter for values that are cheap to compute; use `beforeRender()` when several derived keys share one expensive pass.
+
+### Waiting for the DOM: `tick()`
+
+`await this.tick()` resolves after the pending render reached the DOM, and right away when no render is pending.
+
+```javascript
+async edit() {
+  this.state.editing = true
+  await this.tick()
+  this.state.input.focus()   // the fez:this="input" node rendered by {#if state.editing}
+}
+```
+
+### Context
+
+`this.context(key, value)` provides a value to every descendant component; `this.context(key)` returns it from the nearest component up the DOM tree, this one included (`undefined` when none provides it).
+Provide it in `init()` (it is set before children mount) and read it in the child's `init()`.
+Context is not reactive: a child keeps what it read in `init()`, so use `globalState` for values that change.
+
+```javascript
+// <theme-root>
+init() { this.context('theme', { name: 'dark', color: '#222' }) }
+
+// any descendant
+init() { this.state.theme = this.context('theme') }
+```
+
+### Error boundaries: `onError`
+
+An `onError(error, component)` method on any ancestor catches a descendant's mount error, render throw or template runtime error; `component` is the instance that failed.
+A failed mount is destroyed either way; a failed render keeps its last DOM.
+Set state in `onError` to render a fallback; throw from it to pass the error to the next boundary up.
+Without a boundary a mount error goes to `Fez.onError('mount', ...)`, a template runtime error is logged to the console, and a render throw propagates.
+
+```javascript
+onError(error, component) {
+  this.state.failed = `${component.fezName}: ${error.message}`
+}
+// template: {#if state.failed}<p class="error">{state.failed}</p>{/if}<slot />
+```
+
+Demos: `pages_src/root/fez/demo-blocks.fez` (keyed each, `{@const}`, `{#key}`, `style:`, getters, `tick()`) and `pages_src/root/fez/demo-context.fez` (context, `onError`).
+
 ### Performance
 
 - Use throttled events: `this.on('scroll', callback, { throttle: 100 })`
+- Window resize and scroll: `this.on('resize', fn, { throttle: 200 })` / `this.on('scroll', fn, { throttle: 200 })`. `fn` is not called on its own - call it once yourself for the initial state
+- Element size: `this.observeResize(el, (rect, el) => ..., delay = 200)` calls the function once right away and then, throttled, whenever `el` resizes (`ResizeObserver`, disconnected on destroy)
 
 #### Fez does not own the page - the template render is opt-out, not mandatory
 
@@ -1130,12 +1386,17 @@ Fez.subscribe('event', callback)                  // always fires
 Fez.subscribe(node, 'event', callback)            // fires only if node.isConnected
 Fez.subscribe('#modal', 'event', callback)        // fires only if #modal exists at publish time
 
-// Global state subscriptions
-Fez.state.subscribe('key', (value, oldValue) => {}) // subscribe to specific key
-Fez.state.subscribe((key, value, oldValue) => {})   // subscribe to ALL changes
+// Global state subscriptions - both return an unsubscribe function
+Fez.state.subscribe('key', (value, oldValue, key) => {}) // subscribe to specific key
+Fez.state.subscribe((value, oldValue, key) => {})        // subscribe to ALL changes, same argument order
 ```
 
-Components that read `this.globalState.key` get `onGlobalStateChange(key, value, oldValue)` synchronously on change and re-render on the next frame, batched with local `this.state` changes (one render per frame).
+`this.subscribe` and `globalState` subscriptions survive a move in the DOM (detach and re-insert); only a destroyed component's subscriptions are dropped.
+
+Any read of `this.globalState.key` subscribes the component: on change it gets `onGlobalStateChange(key, value, oldValue)` synchronously.
+It re-renders only for keys its last render read - the same rule as `this.state` - batched with local `this.state` changes (one render per frame).
+A key read only outside the render (in a click handler) fires `onGlobalStateChange` but does not re-render.
+`Object.keys(this.globalState)`, `{...this.globalState}` and `{@json globalState}` read every key; `delete this.globalState.x` deletes the key and notifies its readers.
 A component's own write during `init` or render does not schedule an extra render.
 
 Declare `GLOBAL_STATE = { boardView: true, activeBoardId() { return this.state.boardId } }` inside the component class for state tied to DOM presence.
@@ -1154,10 +1415,10 @@ To render a component chosen at runtime (a router outlet), use `<fez-component n
 
 ### DOM / `addEventListener` listeners
 
-For events fired on `document`, `window`, or arbitrary DOM nodes (custom `pjax:render`, `keydown`, `resize`, third-party `CustomEvent`s, etc.), `this.subscribe` does not apply — those go through native `addEventListener`. Use **`this.on`** — it binds `this`, guards on `isConnected`, and auto-removes on destroy.
+For events fired on `document`, `window`, or arbitrary DOM nodes (custom `pjax:render`, `keydown`, `resize`, third-party `CustomEvent`s, etc.), `this.subscribe` does not apply - those go through native `addEventListener`. Use **`this.on`** - it binds `this`, guards on `isConnected`, and auto-removes on destroy.
 
 ```javascript
-// CORRECT — this.on binds this, auto-removes on destroy
+// CORRECT - this.on binds this, auto-removes on destroy
 onMount() {
   this.on('pjax:render', (e) => {
     this.state.active = matchLink(e.detail.to)
@@ -1171,6 +1432,7 @@ Signature:
 this.on(eventName, handler)                     // string-first form, see target rule below
 this.on(target, eventName, handler)             // any EventTarget (window, document, element, ...)
 this.on('scroll', handler, { throttle: 100 })   // optional throttle (ms)
+this.on(el, 'touchstart', handler, { passive: true })  // other keys go to addEventListener as options
 ```
 
 String-first target rule: events in `Fez.WINDOW_EVENTS` (`resize`, `scroll`, `beforeunload`, `hashchange`, `popstate`, `online`, `offline`, `message`, `storage`, `load`, `unload`, `pagehide`, `pageshow`, `orientationchange`, `error`) default to `window`. Everything else defaults to `document`. Pass `target` explicitly when in doubt; mutate `Fez.WINDOW_EVENTS` to customize.
@@ -1179,11 +1441,11 @@ String-first target rule: events in `Fez.WINDOW_EVENTS` (`resize`, `scroll`, `be
 - Listener is removed automatically on destroy (no `onDestroy` boilerplate)
 - Handler is skipped while `this.isConnected === false`
 - Returns a disposer function for early unregister
-- Each call adds its own listener — every component instance owns its own subscription
-- Just mutate state in the handler — no need to call `this.refresh()`; the state assignment re-renders
+- Each call adds its own listener - every component instance owns its own subscription
+- Just mutate state in the handler - no need to call `this.refresh()`; the state assignment re-renders
 
 ```javascript
-// WRONG — manual addEventListener leaks unless paired with removeEventListener,
+// WRONG - manual addEventListener leaks unless paired with removeEventListener,
 // and `this.handler` from the prototype isn't bound when the DOM invokes it
 onMount() {
   document.addEventListener('pjax:render', this.activateActiveNav)
@@ -1192,7 +1454,10 @@ onMount() {
 
 **Why not just declare the method as an arrow class property and use `addEventListener` directly?** That works but: (1) you still need a manual `removeEventListener` in `onDestroy`, (2) arrow properties live on `this` rather than the prototype so you lose prototype introspection, and (3) there's no `isConnected` guard. `this.on` covers all three.
 
-**`onRefresh` vs DOM listeners.** `onRefresh` only fires when a fez **parent** re-renders and preserves this child (see `src/fez/lib/fez-morph.js:onPreserve`). It does *not* fire when the component refreshes itself, and it does *not* fire from external DOM events. If your component lives outside any fez parent (mounted directly under plain HTML — a layout shell, a portal, a global menu), `onRefresh` will never fire after the initial mount. Hook the relevant DOM event with the pattern above instead.
+**`onRefresh` vs DOM listeners.** `onRefresh` fires at mount (every prop in `changed`) and whenever this instance is handed props again: a fez parent re-render that preserves it, a pjax / `Fez.nodeMorph` swap that keeps it (`refreshPreservedComponent` in `src/fez/lib/fez-morph.js`), or `<fez-component>` passing new props.
+It does *not* fire when the component refreshes itself, and it does *not* fire from external DOM events.
+A component outside any fez parent and outside a pjax region (a portal, a body-mounted menu) gets it only once, at mount.
+Hook the relevant DOM event with the pattern above instead.
 
 ### Component Isolation in Loops
 
@@ -1236,7 +1501,7 @@ Use `fez:keep` to preserve plain HTML elements across parent re-renders. The ele
 - Same `fez:keep` value -> Element preserved (all internal state intact)
 - Different `fez:keep` value -> Element recreated
 - No `fez:keep` -> Element may be recreated on parent re-render
-- `fez:keep` on a fez component will throw a compile error
+- `fez:keep` on a fez component logs a console error at compile time - wrap the component instead
 
 **Best practice:** Include ALL state that affects the element in `fez:keep`:
 
@@ -1264,6 +1529,8 @@ Elements with static `fez:this` attributes automatically get stable IDs (`id="fe
 ```
 
 This is automatic - no extra configuration needed.
+Inside a loop each row gets its own id (`fez-{UID}-{name}-{index}`, one index per loop level), so every row keeps its own typed value; `this.state.name` then holds the last row's node.
+A `fez:this` value with `{...}` in it gets no auto-ID.
 
 ## Singleton / Global Components
 
@@ -1280,7 +1547,7 @@ class {
 
 - Overlays, dialogs, toast hosts (`image-preview`, `ui-dialog`, `ui-toast`): both keys - mounted for you, callable from anywhere via `Dialog.open(...)`.
 - A service component the layout places itself (a viewport, a player): `GLOBAL = 'Viewport'` alone, then `Viewport.play('idle')` from any other component.
-- Nameless singleton (`fez-control`): `MOUNT = true` alone. `GLOBAL = true` is a compile error.
+- Nameless singleton (`fez-control`): `MOUNT = true` alone. `GLOBAL = true` is reported as a compile error and ignored.
 
 ## Component communication: pick the channel
 
@@ -1316,7 +1583,37 @@ if (detail?.error) { /* 'status' | 'network' | 'timeout' | 'abort' | 'apply' | '
 - `Fez.refresh('#id')` re-fetches server HTML. `this.refresh()` re-renders a component from its state. Do not mix them up.
 - URL state without fetching: `Fez.qs('page', 2)`, `Fez.hash('tab', 'x')`, hash routes with `Fez.hpath('logs')` / `Fez.hqs('app', 'y')`. Each takes `{ replace: true }` or `{ href: true }`.
 - Follow navigation in a component with `this.on('pjax:render', () => this.refresh())`.
-- Config and hooks: `Fez.pjax.config`, `Fez.pjax.before = (href, opts) => ...`, `Fez.pjax.confirm`, `Fez.pjax.error`. There is no `window.Pjax`; `fez refactor` lists legacy `Pjax.` calls.
+- Config and hooks: `Fez.pjax.config`, `Fez.pjax.before = (href, opts) => ...`, `Fez.pjax.after = (href) => ...`, `Fez.pjax.confirm = (message, node) => ...` (may return a Promise), `Fez.pjax.error = (msg) => ...`. There is no `window.Pjax`; `fez refactor` lists legacy `Pjax.` calls.
+- Layout id: with `<meta name="pjax-layout" content="ID">` in the page, full swaps send `x-pjax-layout: ID`; a response that does not echo the same header loads as a full page and resolves `error: 'layout'`. `Fez.pjax.layout()` returns the current id (or `null`).
+- Inline `<script>` tags in a response run after history is committed and before the morph; `<script pjax-delay>` runs after the swap.
+
+Link and form attributes:
+
+```html
+<a href="/users">                                <!-- hijacked automatically -->
+<a href="/users" class="no-pjax">                <!-- opt out, native navigation (also: direct, on the link or an ancestor) -->
+<a href="/users" pjax-target="#panel">           <!-- swap only #panel -->
+<button pjax-refresh="#panel">                   <!-- fresh copy of the current page into #panel -->
+<a href="/del" pjax-confirm="Are you sure?">     <!-- confirm before navigating -->
+<a href="/tab2" pjax-replace>                    <!-- replaceState instead of pushState -->
+<form data-pjax="true">                          <!-- submit via pjax, full swap -->
+<form data-pjax="#panel">                        <!-- submit via pjax into #panel -->
+```
+
+## Bundled Pjax navigation
+
+Fez ships the former `dux-pjax` package (ported to JS) and exposes it as `Fez.pjax`; the user-facing API is in "Page navigation (Fez.load / Fez.refresh)" above; these are the guarantees behind it.
+`Fez.load`, `Fez.refresh`, `Fez.qs`, `Fez.hash`, `Fez.hpath` and `Fez.hqs` delegate to `Fez.pjax` at call time, so an override on `Fez.pjax` also drives the shortcut. There is no `window.Pjax`.
+
+- Boot gating: `Fez.pjax` is always set, but handlers (link hijack, popstate, `data-pjax` forms) bind only when the page has a `<pjax>` tag or `.pjax` class container; `Fez.pjax.start()` for late-injected containers.
+- `load` / `refresh` share `(what?, opts?)` and one path: `getOpts` validates and copies, the constructor resolves the region, href and form and fills defaults. They differ only in the internal `fresh` mode: `refresh` sends no-cache, skips the 2s debounce and does not scroll. `what` is a URL, or a `#selector` / element that becomes `target` for the current URL. Options are `target`, `source`, `form`, `history` (`'push' | 'replace' | false`), `scroll`; unknown keys are reported through `Pjax.error` and dropped. Requests go through `fetch` with an `AbortController` per request (a `'timeout'` abort reason tells a timeout from a superseded request). Request state (`region`, `fragment`, `method`, `body`, `startedAt`, `redirects`, `key`) lives on the instance, never on `opts` - `opts` is what `pjax:start` / `pjax:render` publish.
+- The promise never rejects: `run()` resolves the `pjax:render` detail (`emitDone`) or `null`. `load()` returns true only when a request went out; every other exit resolves `null`. Keep new exit paths on that contract.
+- Debounce (`Pjax._lastLoad`) and in-flight requests (`Pjax.requests`, a Map) are keyed per swap node: the target id, the `.ajax` region id, or `'full'`. A new request aborts only the same key; a `'full'` request aborts all.
+- `morphInto` hands `Fez.nodeMorph` a DocumentFragment - the parsed response node's children, moved (no string round trip), or a string via `createContextualFragment`. Never pass nodeMorph a raw string: its "unwrap single matching-tag root" heuristic would swallow a legitimate lone wrapper child. `runScripts` executes a response's inline scripts and removes them before the morph, so they are never carried into the page.
+- A URL fragment never goes to the server: `'/page#section'` loads `/page`, pushes `/page#section` and scrolls to the anchor; on the current path it only scrolls, like the browser. A no-href load or refresh keeps `location.hash`, so a hash route survives `Fez.refresh()`. Back/Forward restores full-swap pages from `historyData` without a fetch when cached (`Pjax.onPopState`): it aborts any in-flight full request and fires `pjax:render` like a load.
+- A full-page swap only morphs the pjax container, so `runHeadScripts` also compiles the response head's own fez definitions (`script[fez]`, `template[fez]`, `xmp[fez]` outside the pjax region) before the morph - that is what loads the `page.components` a layout emits per page. Without it a pjax navigation lands on a page whose components never registered (unknown custom elements, empty widgets).
+- Components follow navigation via `this.on('pjax:render', () => this.refresh())`.
+- URL state: `Fez.qs()` (real query) and `Fez.hash()` (slashless fragment params) are history-only setters/getters. `Fez.hpath()`/`Fez.hqs()` address a hash route: a fragment whose path part contains a `/` is a route (`#/traffic?app=x`), the route name is the last path segment, and `hqs` reads/writes its query. A slashless fragment (`#foo`, `#tab=settings`) stays an anchor or `hash()` parameter list. Path setters canonicalize to `#/name` and clear on empty.
 
 ## Slot Unwrap
 
@@ -1332,6 +1629,16 @@ Use `<slot unwrap />` when children must be inserted without a wrapper div. By d
 <slot unwrap />
 ```
 
+A component has one default slot. Named slots (`<slot name="header">`) are not supported: pass that markup as a prop, read the children with `this.childNodes()` / `this.childObjects()` in `init()`, or split it into child components.
+Slot content is captured once at mount (see App Rules 5).
+
+## Built-in components
+
+* `<fez-component name={state.page} :props="state.query">fallback</fez-component>` - mounts the component named by `name` with `props` (or `data-props`, or its own other attributes); `name` itself is never passed on. The same name keeps the child and hands it new props (re-render on change + `onRefresh`), a new name swaps it, and the children show while `name` is not registered.
+* `<fez-inline>{globalState.count}</fez-inline>` - its children are compiled as a reactive template that reads `state`, `globalState` and `props`; `:state="{n: 0}"` seeds local state. Renders as a `<span>`.
+* `<fez-include src="/parts/menu.html"></fez-include>` - fetches HTML (through `Fez.fetch`), runs its scripts, compiles its fez definitions and inserts it.
+* `<fez-if if="window.user">...</fez-if>` - removes itself at mount when the expression is falsy.
+
 ## Common Mistakes to Avoid
 
 - **Putting `META` or other class properties outside `class {}`** - they MUST be inside the class body. Module-level code (imports, `Fez.head()`) goes before the class, everything else goes inside it.
@@ -1346,7 +1653,7 @@ Use `<slot unwrap />` when children must be inserted without a wrapper div. By d
     nav { display: flex; }
   </style>
   ```
-- **Reaching for `:fez`, `:host`, or `body { }` to control scope** - none of them work any more; all three are compile errors in a `<style>` block. Scope is the tag: `<style>` scopes, `<style global>` does not. Use `&` for the wrapper node:
+- **Reaching for `:fez`, `:host`, or `body { }` to control scope** - none of them work; all three are compile errors in a `<style>` block. Scope is the tag: `<style>` scopes, `<style global>` does not. Use `&` for the wrapper node:
   ```html
   <style>
     &:hover { background: #fafafa; }
@@ -1359,32 +1666,23 @@ Use `<slot unwrap />` when children must be inserted without a wrapper div. By d
   ```
   A `<style global>` block is injected verbatim and deduped, so it lands once no matter how many instances mount. `:root { }`, `html { }`, `@font-face` and `@keyframes` all work normally in one. Don't wrap its rules in `:global(...)` - they are already global, and doing so is a compile error.
 - **Putting computed/derived state in `init()` instead of `beforeRender()`** - derived values that depend on state should go in `beforeRender()` so they update on every re-render (like Svelte's `$:`)
-- Using string interpolation in onclick instead of arrow functions
+- **Quoting an arrow handler** - `onclick="{() => save()}"` is a plain string attribute that does nothing; write `onclick={() => save()}` or `onclick="fez.save()"`
+- **`//` comments in `<style>`** - CSS has only `/* ... */`; a `//` line swallows the declaration or selector after it
+- **Building a promise in the template** - `{#await load()}` starts a new request on every render; assign `this.state.data = load()` once and write `{#await state.data}`
+- **Expecting `this.on('resize' | 'scroll', fn)` to run at mount** - it only fires on the event; call `fn` once yourself. `observeResize` does call right away
+- **Using Svelte-only syntax** - `on:click`, `bind:value`, `{@debug}`, `{#snippet}`, `{@render}` fail to compile; use `onclick={...}`, `fez:bind`, `{@json}`, `{@block}` or a child component
+- **Named slots** - only one default `<slot />` exists
+- **Keying `{#key}` on an object** - it compares `String(expr)`; key on an id
+- **Passing objects as plain attributes** - `data="{state.items}"` hands the child text (`[object Object]`, `a,b`); use `:data="state.items"`
 - Direct DOM manipulation for simple reactive UI (use state instead) - BUT use direct DOM for external libraries (Three.js, charts, etc.) since DOM diffing doesn't handle them well
 - Missing `init()` for state initialization
 - **Putting per-instance data on bare `this` to dodge re-renders** - `this.state` only re-renders for keys the template read, so editor objects, callbacks, measurements and timers belong in `state` too. Keep module-level constants and library namespaces outside the component.
 - Using `{#if}` blocks inside attributes (use ternary operators instead)
 - Writing flat CSS instead of nested SCSS syntax
-- Using `this.prop('name')` instead of `props.name` in `init()` and `onMount()`
 - Forgetting to use `{index}` or arrow functions for loop variables in event handlers
 - **Calling handler props raw** - props like `onclick`, `ping`, `onselect` can be strings or functions; declare them `{ type: Function, state: true }` or normalize with `Fez.getFunction()`
 - **Keeping a plain-object library namespace in state** - `state.L = leaflet` gets proxied; use a module-level `let` for it. Class instances (a Three.js scene, a Tiptap editor) are fine in state
 - **Copying props to `this` or `state`** - use `props.style` directly in templates, not `this.style = props.style` which won't update
-- **Using `this.` in template expressions** - templates render in a deferred context where `this` is not bound. Use `fez.` prefix or curly brace syntax instead:
-
-  ```html
-  <!-- WRONG - this is not available in template context -->
-  <child-component :name="this.name" />
-
-  <!-- CORRECT - curly braces capture values at render time -->
-  <child-component name="{name}" data="{state.items}" />
-
-  <!-- CORRECT - fez. prefix works (fez is bound to this in templates) -->
-  <child-component :data="fez.state.items" />
-  ```
-
-  Note: `:attr="expr"` parks the value in the parent's render slots (`fezGlobals`, see `./src/fez/lib/render-slots.js`) and the HTML carries only a positional key.
-  Slots are reset on every parent render, and a parent render whose HTML is unchanged is still morphed when a slot now holds a different object, so preserved children receive the new props and re-render.
 
 ## External Libraries & Modules
 
@@ -1405,21 +1703,60 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 // Dynamic script/style loading
 Fez.head({ js: 'https://cdn.example.com/script.js' });
+Fez.head({ js: 'https://cdn.example.com/lib.js' }, () => { /* loaded */ });
+Fez.head({ js: 'https://cdn.example.com/mod.js', module: 'MyLib' }); // imports it as window.MyLib
 Fez.head({ css: 'https://cdn.example.com/styles.css' });
+Fez.head({ script: 'console.log("inline")' });
+Fez.head({ fez: '/fez/ui-card.fez' });            // load a component (a .txt lists one path per line)
+
+// HTML string: appended to document.head, scripts re-created so they run
+// (what a component's <head> block compiles to)
+Fez.head('<link rel="preconnect" href="https://cdn.example.com">');
 ```
+
+`js` / `css` loads are deduped by URL; a second call runs the callback right away.
 
 ## Utility Shortcuts
 
 ```javascript
-this.find('.selector'); // Scoped querySelector
+this.find('.selector'); // Scoped querySelector (null after destroy)
 this.setTimeout(fn, 1000); // Auto-cleaned timeout
-this.setInterval(fn, 1000); // Auto-cleaned interval
-Fez.fetch('/data'); // Built-in cached fetch
+this.setInterval(fn, 1000); // Auto-cleaned interval; setInterval(fn, ms, name) replaces a running one by name
+this.addOnDestroy(fn); // Run fn on destroy; returns a function that drops it
+this.observeResize(el, (rect, el) => {}); // Now + on every resize of el, throttled (200ms)
+await this.tick(); // After the pending render reached the DOM
+this.context('key', value); this.context('key'); // Provide / read context up the tree
 this.state.editor = editor; // never rendered, so never re-renders
-this.formData(); // Get form values
+this.formData(); // Get form values as { name: value } (closest or child form)
 this.childNodes(); // Get child elements as array
 this.childNodes(fn); // Get children mapped with function
-this.childObjects(); // Get children as objects: { html, ROOT, ...attrs }
+this.childObjects(); // Get children as objects: { html, ROOT, NODE_NAME, ...attrs }
+
+// Fetch: GET responses are cached for 5 minutes (max 100 entries) and concurrent
+// identical GETs share one request; POST is never cached. JSON responses are parsed.
+Fez.fetch('/data'); // Promise
+Fez.fetch('/data', { page: 2 }); // GET with query params
+Fez.fetch('/data', (data) => {}); // callback form
+Fez.fetch('POST', '/save', { name: 'x' }); // POST as FormData
+Fez.clearFetchCache();
+
+// Lookup
+Fez('ui-btn'); // first instance (by name, '#id' selector, DOM node or UID)
+Fez('ui-btn', (fez) => fez.refresh()); // run for every live instance, returns them (FezBase[])
+Fez.find(node, 'ui-btn'); // closest instance of a node or selector, undefined when none
+
+// Morph a node to new content (DOM node, fragment or HTML string) with the component-aware differ
+Fez.nodeMorph(target, newNodeOrHtml);
+
+// Template runtime helpers (what compiled templates call)
+Fez.htmlEscape(value); // any value as escaped text, '' for null/undefined
+Fez.htmlAttr('disabled', false); // ' name="value"' or '' (see "Attribute values")
+Fez.styleProp('width', '40%'); // 'width: 40%;' or ''
+
+Fez.tag('ui-card', { title: 'Hi' }, '<p>body</p>'); // HTML string with data-props
+Fez.untilTrue(() => window.ready, 200); // retry until the function returns true
+Fez.version; // library version (`fez version` on the CLI)
+Fez.WINDOW_EVENTS; // Set of event names this.on('name') binds on window
 
 // localStorage with JSON serialization (preserves types)
 Fez.localStorage.set('count', 42);
@@ -1427,14 +1764,14 @@ Fez.localStorage.get('count'); // 42 (number)
 Fez.localStorage.get('missing', 'default'); // fallback value
 
 // Resolve a function from a string or function reference
-Fez.getFunction(this.props.onclick);
-Fez.getFunction('alert("Hi")', window);
+Fez.getFunction(this.props.onclick); // function as is, no-op for empty values
+Fez.getFunction('alert("Hi")'); // a string is an arrow / function expression or a function body
 
 // to check if value is true, that comes from props
 Fez.isTrue(value);
 
 // Short type identifier
-Fez.typeof(data); // Returns: 'o' object, 'f' function, 's' string,
+Fez.typeof(data); // Returns: 'o' object, 'f' function, 's' string, 'b' boolean,
 //          'a' array, 'i' integer, 'n' float, 'u' undefined/null
 
 // Convert collection to pairs (used internally by loops)
@@ -1463,7 +1800,11 @@ Fez.index.info(); // Log all component names to console
 Fez.LOG = true; // Enable framework logs
 Fez('component').state; // Inspect component state
 Fez.state.get('key'); // Check global state
+Fez.dump(nodeOrValue); // Pretty-print a value or DOM node into an on-page log dialog
+Fez.onError = (kind, message, context) => {}; // Every reported error goes through it
 ```
+
+`fez compile` catches most template and script errors before the browser does; `fez compile -t` shows the final template.
 
 ## When Unsure
 

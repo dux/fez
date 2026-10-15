@@ -29,15 +29,16 @@ export const BOOLEAN_ATTRS = new Set([
 
 /**
  * One rendered attribute for `name={expr}`: ` name="value"`, or '' to leave it
- * out. null / undefined always leave it out, false only on a boolean attribute
- * (aria-expanded={false} must still say "false"), true on one renders name="".
+ * out. null / undefined always leave it out. A boolean attribute follows the
+ * value's truthiness (disabled={busy ? 'disabled' : ''} works), any other one
+ * keeps false as text (aria-expanded={false} must still say "false").
  */
 export function htmlAttr(name, value, escape) {
   if (value == null) {
     return '';
   }
   if (BOOLEAN_ATTRS.has(name.toLowerCase())) {
-    return value === false ? '' : ` ${name}=""`;
+    return value ? ` ${name}=""` : '';
   }
   return ` ${name}="${escape(value)}"`;
 }

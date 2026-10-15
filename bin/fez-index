@@ -33,8 +33,8 @@ if (values.help || positionals.length === 0) {
 ${INFO}
 
 Examples:
-  fez index docs/fez
-  fez index docs/fez/*.fez
+  fez index pages_src/root/fez
+  fez index pages_src/root/fez/*.fez
   fez index 'assets/**/*.{js,css}'`);
   process.exit(0);
 }

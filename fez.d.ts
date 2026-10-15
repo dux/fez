@@ -2,7 +2,8 @@
  * Fez - TypeScript Type Definitions
  *
  * This file provides type information for the Fez framework.
- * Import: `import { Fez, FezBase } from '@dinoreic/fez'`
+ * Import: `import Fez, { FezBase } from '@dinoreic/fez'` (`{ Fez, FezBase }` works too).
+ * The CDN build (<script src=".../fez.min.js">) sets window.Fez and window.FezBase instead.
  */
 
 // =============================================================================
@@ -91,8 +92,8 @@ type PropsOf<S extends PropsSchema> = {
 /** Called when fez element is connected to DOM, before first render */
 type InitHook = (props: ComponentProps & EvaluatedProps) => void;
 
-/** Execute after init and first render */
-type OnMountHook = (props: ComponentProps & EvaluatedProps) => void;
+/** Execute after init and first render; a returned function runs on destroy */
+type OnMountHook = (props: ComponentProps & EvaluatedProps) => void | (() => void) | Promise<void>;
 
 /** Execute before every render - use for reactive computed state */
 type BeforeRenderHook = () => void;
@@ -100,17 +101,32 @@ type BeforeRenderHook = () => void;
 /** Execute after every render */
 type AfterRenderHook = () => void;
 
-/** Monitor new or changed node attributes */
-type OnPropsChangeHook = (attrName: string, attrValue: string) => void;
+/** After mount (changed = every prop) and whenever new props arrive (changed = props whose value differs) */
+type OnRefreshHook = (props: ComponentProps & EvaluatedProps, changed: Record<string, any>) => void;
 
 /** Called when local component state changes */
 type OnStateChangeHook = (key: string, value: any, oldValue: any) => void;
 
 /** Called when global state changes */
-type OnGlobalStateChangeHook = (key: string, value: any) => void;
+type OnGlobalStateChangeHook = (key: string, value: any, oldValue: any) => void;
 
 /** Called when component is destroyed */
 type OnDestroyHook = () => void;
+
+/** Error boundary: catches a descendant's mount error, render throw or template runtime error. Throw to pass it further up. */
+type OnErrorHook = (error: any, component: FezBase) => void;
+
+/** What a `fez:use` action may return: a cleanup, or update (later renders) / destroy (node leaves or component is destroyed) hooks */
+type FezActionResult = void | (() => void) | {
+  update?(node: HTMLElement): void;
+  destroy?(): void;
+};
+
+/** `fez:use="el => ..."` or `fez:use="methodName"`: runs once per node */
+type FezAction = (node: HTMLElement) => FezActionResult;
+
+/** Options for this.on(): addEventListener options plus an optional throttle in ms */
+type FezOnOptions = AddEventListenerOptions & { throttle?: number };
 
 // =============================================================================
 // COMPONENT CONFIGURATION
@@ -163,20 +179,37 @@ declare abstract class FezBase {
   /** Called when fez element is connected to DOM, before first render */
   init?(props: ComponentProps & EvaluatedProps): void;
 
-  /** Execute after init and first render */
-  onMount?(props: ComponentProps & EvaluatedProps): void;
+  /** Execute after init and first render; a returned function runs on destroy */
+  onMount?(props: ComponentProps & EvaluatedProps): void | (() => void) | Promise<void>;
+
+  /**
+   * Runs after onMount (changed = every prop) and again whenever new props
+   * arrive from a parent re-render, a pjax / nodeMorph swap or fez-component
+   * (changed = props whose value differs, {} when none did).
+   */
+  onRefresh?(props: ComponentProps & EvaluatedProps, changed: Record<string, any>): void;
 
   /** Execute before every render - use for reactive computed state */
   beforeRender?(): void;
 
-  /** Execute after every render */
+  /** Execute after every render (also when an unchanged render skipped the morph) */
   afterRender?(): void;
 
   /** Called when local component state changes */
   onStateChange?(key: string, value: any, oldValue: any): void;
 
-  /** Called when global state changes */
-  onGlobalStateChange?(key: string, value: any): void;
+  /** Called when a global state key this component read changes */
+  onGlobalStateChange?(key: string, value: any, oldValue: any): void;
+
+  /** Delegated submit of a form inside this component (not a child component's form); default is prevented */
+  onSubmit?(data: Record<string, FormDataEntryValue>): void;
+
+  /**
+   * Error boundary: catches a descendant's mount error, render throw or
+   * template runtime error. Throwing from it passes the error further up;
+   * without a boundary the error goes to Fez.onError.
+   */
+  onError?(error: any, component: FezBase): void;
 
   /** Called when component is destroyed */
   onDestroy?(): void;
@@ -237,9 +270,12 @@ declare abstract class FezBase {
   /** Find element by selector within component */
   find<T extends HTMLElement = HTMLElement>(selector: string): T | null;
 
+  /** Component class this instance was created from */
+  class: typeof FezBase;
+
   /** Get or set root element attribute */
   attr(name: string): string | null;
-  attr(name: string, value: string): void;
+  attr(name: string, value: string): string;
 
   /** Set a root attribute through the PROPS schema into this.props (and a `state`-linked key); null removes it */
   setAttribute(name: string, value: any): any;
@@ -247,12 +283,6 @@ declare abstract class FezBase {
   /** Get or set node value (input/textarea/select or innerHTML) */
   val(selector: string | HTMLElement): any;
   val(selector: string | HTMLElement, value: any): void;
-
-  /** Add classes to root or given node */
-  addClass(names: string, node?: HTMLElement): void;
-
-  /** Toggle a class on root or given node */
-  toggleClass(name: string, force?: boolean, node?: HTMLElement): void;
 
   /** Set CSS properties on root */
   setStyle(key: string | Record<string, string>, value?: string): void;
@@ -263,12 +293,15 @@ declare abstract class FezBase {
   /** Get or set root ID */
   rootId(): string;
 
-  /** Get root element children as array */
+  /** Element children the tag had before mount (the slot content), as an array */
   childNodes(): HTMLElement[];
-  childNodes<T>(func: (node: HTMLElement) => T): T[];
-  childNodes(asObject: true): Array<{
+  childNodes<T>(func: (node: HTMLElement, index: number) => T): T[];
+
+  /** childNodes() as plain objects: inner HTML, the node, its tag name and every attribute */
+  childObjects(): Array<{
     html: string;
     ROOT: HTMLElement;
+    NODE_NAME: string;
     [attr: string]: any;
   }>;
 
@@ -276,23 +309,34 @@ declare abstract class FezBase {
   dissolve(inNode?: HTMLElement): HTMLElement[];
 
   /** Get form data from closest/child form */
-  formData(node?: HTMLElement): Record<string, string>;
+  formData(node?: HTMLElement): Record<string, FormDataEntryValue>;
+
+  /**
+   * Build a DOM node: n('span', { id }), n('.foo.bar', body), n('ul', [li, li]).
+   * Attrs and body may swap places; function attrs are bound to the component.
+   */
+  n(name: string | Node[], attrs?: Record<string, any> | string | Node | Node[], body?: string | Node | Node[]): HTMLElement;
 
   /** Check if component is attached to DOM */
   readonly isConnected: boolean;
-
-  /** Get single node property */
-  prop<T = any>(name: string): T;
 
   // ===================================================================
   // RENDERING
   // ===================================================================
 
-  /** Force a re-render on next frame */
-  fezRefresh(): void;
-
-  /** Alias for fezRefresh */
+  /** Re-render on the next frame (batched with state writes) */
   refresh(): void;
+
+  /** Resolves once the pending render reached the DOM, right away when none is pending */
+  tick(): Promise<void>;
+
+  /**
+   * context(key, value) provides a value to descendants (and this component);
+   * context(key) reads it from the nearest component up the tree.
+   * Read it in init(); it is not reactive.
+   */
+  context<T = any>(key: any): T | undefined;
+  context<T>(key: any, value: T): T;
 
   /**
    * Run func with state change triggers off: writes inside fire no
@@ -301,8 +345,8 @@ declare abstract class FezBase {
    */
   noChangeStateTrigger<T>(func: (this: this) => T): T;
 
-  /** Render the component template to DOM */
-  fezRender(template?: string | Function | Node[]): void;
+  /** Render the component template to DOM (defaults to the compiled template) */
+  fezRender(template?: string | Function | string[] | Node[]): void;
 
   /** Parse HTML and replace fez. references */
   fezParseHtml(text: string): string;
@@ -314,35 +358,37 @@ declare abstract class FezBase {
   // EVENT HANDLERS
   // ===================================================================
 
-  /** Add window event listener with auto-cleanup */
-  on(eventName: string, func: () => void, delay?: number): void;
+  /**
+   * Event listener with auto-cleanup, bound to the component and skipped while
+   * it is disconnected. String-first: events in Fez.WINDOW_EVENTS go to window,
+   * the rest to document. Returns a disposer for early unregister.
+   */
+  on(eventName: string, handler: (this: this, event: any) => void, opts?: FezOnOptions): () => void;
+  on(target: EventTarget, eventName: string, handler: (this: this, event: any) => void, opts?: FezOnOptions): () => void;
 
-  /** Window resize handler with auto-cleanup */
-  onWindowResize(func: () => void, delay?: number): void;
+  /** Call func(rect, el) now and whenever el resizes (ResizeObserver, throttled by delay, default 200ms) */
+  observeResize(el: Element, func: (this: this, rect: DOMRect, el: Element) => void, delay?: number): void;
 
-  /** Window scroll handler with auto-cleanup */
-  onWindowScroll(func: () => void, delay?: number): void;
-
-  /** Element resize handler using ResizeObserver */
-  onElementResize(el: HTMLElement, func: () => void, delay?: number): void;
+  /** Register a cleanup for destroy; returns a function that drops it again */
+  addOnDestroy(callback: () => void): () => void;
 
   /** Timeout with auto-cleanup */
   setTimeout(func: () => void, delay: number): number;
 
-  /** Interval with auto-cleanup */
+  /** Interval with auto-cleanup; a named interval replaces the running one with that name */
   setInterval(func: () => void, tick: number, name?: string): number;
 
   // ===================================================================
   // PUB/SUB
   // ===================================================================
 
-  /** 
+  /**
    * Publish to parent components (bubbles up through DOM)
    * @returns True if a parent handled the event
    */
   publish(channel: string, ...args: any[]): boolean;
 
-  /** 
+  /**
    * Subscribe to a channel (auto-cleanup on destroy)
    * @returns Unsubscribe function
    */
@@ -419,6 +465,23 @@ interface FezIndexMethods {
 
 type FezIndex = FezIndexMethods & { [name: string]: FezIndexEntry };
 
+/** Fez.head config: one of js / css / script / fez; other keys become attributes of the created tag */
+interface FezHeadConfig {
+  /** Script URL */
+  js?: string;
+  /** With js: import the module and set window[module] to its default export */
+  module?: string;
+  /** Stylesheet URL */
+  css?: string;
+  /** Inline script source; one containing `import ` runs as a module */
+  script?: string;
+  /** A .fez file, or a .txt list of .fez paths (one per line, # comments) */
+  fez?: string;
+  /** Bare specifier map; handled at compile time in a .fez <script>, before the class */
+  importmap?: Record<string, string>;
+  [attr: string]: any;
+}
+
 /** The FezBase class type, named outside `declare global` so the global const does not reference itself */
 type FezBaseClass = typeof FezBase;
 
@@ -427,17 +490,17 @@ interface FezStatic {
   // COMPONENT REGISTRATION & LOOKUP
   // ===================================================================
 
+  /** Run callback for every live instance of name and return them (an arrow is never taken for a class) */
+  (name: string, callback: (fez: FezBase) => void): FezBase[];
+
   /** Register a component */
-  (name: string, klass: typeof FezBase | Function): void;
+  (name: string, klass: typeof FezBase | (abstract new (...args: any[]) => any)): void;
 
   /** Find component by UID */
   (uid: number): FezBase | undefined;
 
   /** Find component by DOM node or selector */
   (name: string | Node): FezBase | undefined;
-
-  /** Find all components of name and execute callback */
-  (name: string, callback: (fez: FezBase) => void): FezBase[];
 
   /** Find with selector context */
   (name: string, selector: string | Node): FezBase | undefined;
@@ -453,14 +516,20 @@ interface FezStatic {
   // COMPONENT INSTANCES
   // ===================================================================
 
+  /** Library version (X.Y.Z from package.json at build time) */
+  version: string;
+
+  /** Event names this.on('event', fn) binds on window; the rest go to document. Mutate to customize. */
+  WINDOW_EVENTS: Set<string>;
+
   /** Counter for unique instance IDs */
   instanceCount: number;
 
   /** Active component instances by UID */
   instances: Map<number, FezBase>;
 
-  /** Find a component instance from a DOM node */
-  find(onode: Node | string, name?: string): FezBase | undefined;
+  /** Closest component instance of a node, selector or instance; undefined when nothing matches */
+  find(onode: Node | string | FezBase, name?: string): FezBase | undefined;
 
   // ===================================================================
   // CSS UTILITIES
@@ -485,32 +554,60 @@ interface FezStatic {
    * value as a selector / at-rule prelude, `:name;` inlines it as declarations.
    */
   cssMixin(name: string, value: string): void;
+  /** Expand every registered mixin in a CSS string */
+  cssMixin(css: string): string;
 
   // ===================================================================
   // DOM UTILITIES
   // ===================================================================
 
-  /** Get DOM node containing passed HTML */
-  domRoot(htmlData: string | HTMLElement): HTMLElement;
+  /** Get DOM node containing passed HTML (a node is returned as is) */
+  domRoot(htmlData: string | Node, tagName?: string): HTMLElement;
 
   /** Activate node by adding class and removing from siblings */
   activateNode(node: HTMLElement, className?: string): void;
 
-  /** Morph DOM node to new state */
-  morphdom(target: Element, newNode: Element, opts?: {
-    skipNode?: (oldNode: Element) => boolean;
-    beforeRemove?: (node: Element) => void;
-  }): void;
+  /**
+   * Morph target's children to src with the component-aware differ: live
+   * components are preserved and get onRefresh. Target's own attributes are
+   * left alone. A string or element whose root tag matches target is used as is.
+   */
+  nodeMorph(target: Element, src: string | Element | DocumentFragment): void;
 
   /** Create template render function */
   createTemplate(text: string, opts?: { name: string }): Function;
+
+  /**
+   * Load resources into document.head: { js }, { css }, { script }, { fez } (a
+   * .fez file or a .txt list of them), a DOM node (runs its scripts, compiles
+   * its fez definitions) or an HTML string (appended, scripts re-created so
+   * they run). Returns the created or existing <script> / <link> for js / css.
+   */
+  head(config: FezHeadConfig | Node | string, callback?: (error?: any) => void): HTMLElement | void;
+
+  /** `<tag data-props="...">html</tag>` with opts JSON-encoded as props */
+  tag(tag: string, opts?: Record<string, any>, html?: string): string;
 
   // ===================================================================
   // FETCH & DATA
   // ===================================================================
 
-  /** Built-in fetch with caching */
-  fetch(url: string, callback?: (data: any) => void): Promise<any>;
+  /**
+   * fetch with JSON / text handling. GET responses are cached for 5 minutes
+   * (max 100 entries) and concurrent GETs share one request; other methods
+   * always hit the network. data becomes the query string for GET and a
+   * FormData body for POST. A method must be uppercase ('POST'). With a
+   * callback nothing is returned and errors go to Fez.onError.
+   */
+  fetch<T = any>(url: string, callback: (data: T) => void): void;
+  fetch<T = any>(url: string, data: Record<string, any>, callback: (data: T) => void): void;
+  fetch<T = any>(url: string, data?: Record<string, any>): Promise<T>;
+  fetch<T = any>(method: string, url: string, callback: (data: T) => void): void;
+  fetch<T = any>(method: string, url: string, data: Record<string, any>, callback: (data: T) => void): void;
+  fetch<T = any>(method: string, url: string, data?: Record<string, any>): Promise<T>;
+
+  /** Drop cached and in-flight Fez.fetch requests */
+  clearFetchCache(): void;
 
   /** Local storage with JSON serialization */
   localStorage: {
@@ -547,10 +644,10 @@ interface FezStatic {
     delete(key: string): void;
 
     /** Subscribe to specific key changes */
-    subscribe(key: string, callback: (value: any, oldValue: any) => void): () => void;
+    subscribe(key: string, callback: (value: any, oldValue: any, key: string) => void): () => void;
 
-    /** Subscribe to ALL state changes */
-    subscribe(callback: (key: string, value: any, oldValue: any) => void): () => void;
+    /** Subscribe to ALL state changes (same argument order as the keyed form) */
+    subscribe(callback: (value: any, oldValue: any, key: string) => void): () => void;
 
     /** Iterate over components using a specific state key */
     forEach(key: string, callback: (fez: FezBase) => void): void;
@@ -566,31 +663,61 @@ interface FezStatic {
   /** Get unique ID for a string */
   fnv1(str: string): string;
 
-  /** Resolve a function from string or function reference */
-  getFunction(value: string | Function, context?: any): Function;
+  /** Short unique id: 'fez_uid_...' */
+  uid(): string;
 
-  /** Check if value is truthy (from props) */
+  /**
+   * Resolve a function from a function, an arrow / function source, a dotted
+   * path ("this.focus") or a function body; a no-op for empty values
+   */
+  getFunction(value: string | Function | null | undefined): Function;
+
+  /**
+   * Park a function on window for inline HTML and return its expression
+   * (`Fez.POINTER[n]`). One-time use unless opts.persist.
+   */
+  pointer(func: Function, opts?: { persist?: boolean }): string;
+
+  /** Check if value is truthy (from props): '1', 'true', 'on' */
   isTrue(value: any): boolean;
+
+  /** Template truthiness: empty arrays and empty objects are false */
+  isTruthy(value: any): boolean;
+
+  /** Escape any value as HTML text; null / undefined render '' */
+  htmlEscape(value: any): string;
+
+  /** Rendered ` name="value"` for an unquoted name={expr} attribute, or '' to drop it */
+  htmlAttr(name: string, value: any): string;
+
+  /** One `name: value;` declaration for style:name={expr}, or '' when null / undefined / false */
+  styleProp(name: string, value: any): string;
 
   /** Escape a value for a quoted JS string in handler code (templates use it for onclick="fez.rm('{id}')") */
   jsEscape(value: any): string;
 
+  /** Darken a #hex color by percent (default 20) */
+  darkenColor(color: string, percent?: number): string;
+
+  /** Lighten a #hex color by percent (default 20) */
+  lightenColor(color: string, percent?: number): string;
+
   /** Get type short identifier */
-  typeof(value: any): 'o' | 'f' | 's' | 'a' | 'i' | 'n' | 'u';
+  typeof(value: any): 'o' | 'f' | 's' | 'a' | 'i' | 'n' | 'b' | 'u';
 
   /** Convert collection to pairs */
   toPairs(obj: any[]): Array<[any, number]>;
   toPairs(obj: Record<string, any>): Array<[string, any]>;
   toPairs(obj: null | undefined): [];
 
-  /** Throttle function execution */
-  throttle(func: Function, delay: number): Function;
+  /** Throttle function execution (leading call, trailing call kept; delay default 200ms) */
+  throttle<F extends (...args: any[]) => any>(func: F, delay?: number): (...args: Parameters<F>) => void;
 
   /** Execute callback when DOM is ready */
-  onReady(callback: Function): void;
+  onReady(callback: () => void): void;
 
-  /** Add utilities to Fez object */
-  addUtilities(obj: Record<string, Function>): void;
+  /** Call func every pingRate ms (default 200) until it returns a truthy value */
+  untilTrue(func: () => any, pingRate?: number): void;
 
   // ===================================================================
   // COMPONENT COMPILATION
@@ -618,22 +745,11 @@ interface FezStatic {
   /** Error handler - can be overridden */
   onError(kind: string, message: string | Error, context?: Record<string, any>): string;
 
-  /** Log component information */
-  info(): void;
+  /** Show a value in the dump dialog (ESC closes, arrows page through earlier dumps) */
+  dump(value: any): void;
 
   /** Highlight all fez components */
   highlightAll(): void;
-
-  // ===================================================================
-  // ASYNC HELPERS
-  // ===================================================================
-
-  /** Async/await helper for promises in templates */
-  fezAwait(promise: Promise<any>, handlers: {
-    pending?: Function;
-    then?: Function;
-    catch?: Function;
-  }): any;
 
   // ===================================================================
   // ELEMENT TRANSITIONS (fez:in / fez:out)
@@ -766,7 +882,7 @@ interface PjaxConfig {
   no_ajax_class: string[];
   /** Selector for scoped ajax regions */
   ajax_selector: string;
-  /** XHR timeout in ms */
+  /** Request timeout in ms */
   timeout: number;
   /** Max cached pages for back-button restores */
   history_max: number;
@@ -799,6 +915,10 @@ interface PjaxStartDetail {
  */
 interface PjaxStatic {
   config: PjaxConfig;
+  /** Full-swap responses by path, restored on Back/Forward without a fetch (config.history_max entries) */
+  historyData: Record<string, { html: string; scrollY: number }>;
+  /** In-flight requests by swap key: 'full', or the target / .ajax region id */
+  requests: Map<string, AbortController>;
   /** Force console logging regardless of config.is_silent */
   DEV?: boolean;
   /** Wrap full swaps in document.startViewTransition when available */
@@ -880,6 +1000,9 @@ interface PjaxStatic {
 // GLOBAL DECLARATIONS
 // =============================================================================
 
+/** The Fez object, as exported by the ESM / CJS builds */
+declare const Fez: FezStatic;
+
 declare global {
   /** Global Fez object */
   const Fez: FezStatic;
@@ -902,6 +1025,10 @@ declare global {
 // EXPORTS
 // =============================================================================
 
-export { FezBase };
-export type { PropsSchema, PropSpec, PropType, PropsOf };
-export default FezStatic;
+export { Fez, FezBase };
+export type {
+  FezStatic, FezAction, FezActionResult, FezHeadConfig, FezOnOptions,
+  PropsSchema, PropSpec, PropType, PropsOf,
+  PjaxLoadOptions, PjaxRenderDetail, PjaxStartDetail,
+};
+export default Fez;

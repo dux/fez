@@ -4,7 +4,7 @@
 
 Check the Demo site https://dux.github.io/fez/ or try the live editor with recompile-as-you-type at https://dux.github.io/fez/playground.html
 
-FEZ is a small library (110KB minified, ~35KB gzipped) that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
+FEZ is a small library (about 140KB minified, about 48KB gzipped, Pjax navigation included) that allows writing of [Custom DOM elements](https://developer.mozilla.org/en-US/docs/Web/API/Web_Components/Using_custom_elements) in a clean and easy-to-understand way.
 
 It uses
 
@@ -56,6 +56,18 @@ fez compile --json my-component.fez
 ```
 
 `.fez` files are compiled with Fez's own template compiler (`src/fez/lib/template-compiler.js`).
+
+```bash
+# Report legacy syntax, removed APIs, window.Pjax calls and // comments in <style> (never changes files)
+fez refactor pages_src/root/fez
+
+# Index files as JSON, or open a URL in Playwright with an interactive debugging REPL
+fez index pages_src/root/fez
+fez debug http://localhost:8000
+
+# Print the installed version (X.Y.Z from .version); Fez.version holds the same value at runtime
+fez version
+```
 
 ## Repository development and deployment
 
@@ -258,7 +270,7 @@ This repository uses `pages_src/root/` as its publish root (`source_dir: pages_s
 | Concept           | React                    | Svelte 5        | Vue 3                  | **Fez**            |
 | ----------------- | ------------------------ | --------------- | ---------------------- | ------------------ |
 | State             | `useState`, `useReducer` | `$state` rune   | `ref`, `reactive`      | `this.state.x = y` |
-| Computed          | `useMemo`                | `$derived` rune | `computed`             | Just use a method  |
+| Computed          | `useMemo`                | `$derived` rune | `computed`             | A class getter     |
 | Side effects      | `useEffect`              | `$effect` rune  | `watch`, `watchEffect` | `afterRender()`    |
 | Global state      | Context, Redux, Zustand  | stores          | Pinia                  | `this.globalState` |
 | Re-render control | `memo`, `useMemo`, keys  | `{#key}`        | `v-memo`               | Automatic          |
@@ -276,7 +288,7 @@ class MyComponent extends FezBase {
   }
 
   get doubled() {
-    // computed value - just a getter
+    // computed value - just a getter, recomputed on every render ({doubled} in the template)
     return this.state.count * 2;
   }
 }
@@ -294,7 +306,7 @@ This is the part that separates Fez from React, Svelte and Vue, and it is worth 
 
 Fez is a **DOM node helper**. It is not a page owner and it has no internal representation of your UI that magically gets reflected somewhere. Every method Fez uses to touch the DOM is a thin helper around the native DOM interface. The live document is the source of truth, and it is always yours to write to directly.
 
-In React or Vue, reaching for `element.textContent = x` is an anti-pattern - you are lying to the framework about what it owns. In Fez it is just JavaScript. You can work on raw DOM, use the built-in [node builder](https://github.com/dux/fez/blob/main/src/lib/n.js) via `this.n(...)`, or use full template mapping with DOM morphing. Mix all three in the same component.
+In React or Vue, reaching for `element.textContent = x` is an anti-pattern - you are lying to the framework about what it owns. In Fez it is just JavaScript. You can work on raw DOM, use the built-in [node builder](https://github.com/dux/fez/blob/main/src/fez/lib/n.js) via `this.n(...)`, or use full template mapping with DOM morphing. Mix all three in the same component.
 
 It creates new HTML tags using native Autonomous Custom Elements, supported for years in [all major browsers](https://caniuse.com/custom-elementsv1). There is nothing to "fight", overload or monkey-patch.
 
@@ -369,13 +381,23 @@ Fez uses a custom real-DOM morph algorithm (not a virtual DOM). The live DOM is 
 When component state changes, the following happens:
 
 1. **State Proxy setter** detects the change
-2. **Debounced to next `requestAnimationFrame`** via `fezNextTick` - multiple state changes in the same tick are batched into one render
+2. **Debounced to next `requestAnimationFrame`** via `fezNextTick` - multiple state changes in the same tick are batched into one render (while `document.hidden`, a `setTimeout(0)` replaces the paused animation frame, so background writes still paint)
 3. **`beforeRender()`** runs - compute derived/reactive state
-4. **Template function** executes, producing an HTML string
-5. **FNV-1 hash check** - the rendered string is hashed and compared to the previous render. If identical, the entire morph is skipped (zero-cost no-op render)
+4. **Template function** executes, producing an HTML string. A runtime error in the template is logged and the last rendered DOM is kept
+5. **FNV-1 hash check** - the rendered string is hashed and compared to the previous render. If identical, the entire morph is skipped (zero-cost no-op render); `afterRender()` still runs
 6. **Parse to detached DOM** - the string is set as `innerHTML` on a fresh detached element
-7. **`fezMorph()`** runs - walks both trees and mutates the live DOM to match
-8. **Post-processing** - `fez-this`, `fez-bind`, `fez-use` attributes are resolved, input values restored
+7. **`Fez.nodeMorph()`** runs - walks both trees and mutates the live DOM to match
+8. **Post-processing** - `fez-this`, `fez-bind`, `fez-use` attributes are resolved, input values restored, then `afterRender()` runs
+
+`await this.tick()` resolves once the pending render has reached the DOM (right away when none is pending):
+
+```js
+async open() {
+  this.state.open = true
+  await this.tick()
+  this.find('input').focus()
+}
+```
 
 ### Element Matching
 
@@ -397,6 +419,11 @@ You can always use a manual `key` attribute for exact matching:
 {#each state.items as item}
 <div key="{item.id}">{item.name}</div>
 {/each}
+
+<!-- keyed each: the same key, written on the first element of the body for you -->
+{#each state.items as item (item.id)}
+<div>{item.name}</div>
+{/each}
 ```
 
 At compile time, `autoInjectKeys()` also adds internal `fez-key` markers to every element that doesn't already have one.
@@ -415,6 +442,7 @@ When the differ pairs a new placeholder with a live fez component, identity deci
   Byte-identical source means the instance is preserved untouched (only `onRefresh` fires).
   If anything differs, the old instance is destroyed and a fresh one is created through `init()`.
 
+A live component is matched by its `<name>-fez` wrapper class, so an unkeyed component is also preserved against the raw `<name>` tag of server HTML when the source is unchanged.
 This matters most for pjax-style page swaps where the server renders fresh HTML.
 Unchanged chrome (menus, headers) is preserved automatically, while any component whose source changed gets a clean rebuild instead of a silently stale preserve - no manual syncing in `onRefresh` required.
 When you deliberately want an instance to survive changed attributes or content, give it a `fez-key`:
@@ -471,6 +499,31 @@ Fez uses a Svelte-inspired template syntax with single braces `{ }` for expressi
 <!-- JSON debug output -->
 {@json state.data}
 ```
+
+Text expressions are HTML-escaped as text, whatever the value type (arrays and objects included); `null` and `undefined` render nothing.
+
+**Attribute values.** An unquoted `name={expr}` writes the whole attribute, so the value decides whether it exists:
+
+| value | ordinary attribute (`title`, `aria-expanded`, ...) | boolean attribute (`hidden`, `disabled`, `checked`, `open`, ...) |
+|---|---|---|
+| `null` / `undefined` | dropped | dropped |
+| `false` | `name="false"` | dropped |
+| `true` | `name="true"` | `name=""` |
+| anything else | `name="escaped value"` | truthy: `name=""`, falsy (`''`, `0`): dropped |
+
+```html
+<button disabled={state.busy} aria-expanded={state.open} title={state.tip}>Save</button>
+<!-- busy false, open false, tip null: <button aria-expanded="false">Save</button> -->
+```
+
+The boolean list is `BOOLEAN_ATTRS` in `src/fez/lib/attrs.js`; the same rule is available at runtime as `Fez.htmlAttr(name, value)`.
+A quoted `name="{expr}"` is always written as text, and a boolean attribute whose text is `false`, `null` or `undefined` is turned off after the render.
+
+**Raw text.** A backtick in text content is a plain character (`` `code` `` in prose is fine).
+The body of a `<script>` or `<style>` inside a template is copied verbatim, never evaluated, so its braces are JavaScript and CSS.
+A `<style>` or `<script>` with template markup on both sides stays part of the template (a JSON-LD script, a `<style>` inside `{#if}`) instead of becoming the component's script or style block.
+
+Svelte-only syntax fails to compile with a hint at the Fez spelling: `{@debug}` (use `{@json}`), `{@render}` and `{#snippet}` (use a child component or `{@block}`), `on:click|mod` (use `onclick={...}`) and `bind:value` (use `fez:bind`).
 
 ### Conditionals
 
@@ -554,7 +607,15 @@ Fez uses a Svelte-inspired template syntax with single braces `{ }` for expressi
 {#each state.users as user}
 <user-card :user="user" />
 {/each}
+
+<!-- Keyed each: (key) after the binding, Svelte style -->
+{#each state.users as user, index (user.id)}
+<user-card :user="user" />
+{/each}
 ```
+
+**Keyed each:** `{#each list as item (expr)}` writes `key={expr}` on the first element of the loop body (unless it already has a `key`).
+The differ matches rows by that key, so a reorder, insert or removal moves existing nodes and child components with their item instead of re-pairing them by position.
 
 **Loop behavior:**
 
@@ -565,9 +626,40 @@ Fez uses a Svelte-inspired template syntax with single braces `{ }` for expressi
 - **Brackets optional** - `{#for key, val in obj}` same as `{#for [key, val] in obj}`
 
 **Note on passing props:** Use `:prop="expr"` syntax to pass JavaScript objects, arrays, or functions as props. Regular `prop={expr}` will stringify the value.
+`:x="expr"`, `:x='expr'` and `:x={expr}` are the same, names may be hyphenated (`:data-x="..."`), and the value may be an object literal (`:cfg="{a: 1}"`).
+The expression runs in template scope (loop variables and `{@const}` names included) and the value reaches the child as is, through the parent's render slots.
 Declare a `PROPS` schema (see [Typed props](#typed-props-props)) and stringified numbers, booleans and JSON are coerced back for you.
 
 **Component Isolation:** Child components in loops are automatically preserved during parent re-renders. They only re-render when their props actually change (by identity: an object read from `this.state` is a fresh proxy each render, so it always counts as changed).
+
+### Local constants (`{@const}`)
+
+`{@const name = expr}` declares a local for the rest of the enclosing branch; destructuring works too:
+
+```html
+{#each state.items as item}
+  {@const total = item.price * item.qty}
+  <p>{item.name}: {total}</p>
+  <button onclick={() => pick(total)}>Pick</button>
+{/each}
+
+{@const { first, last } = state.user}
+<h3>{first} {last}</h3>
+```
+
+The name is visible until the end of its branch: `{:else}`, `{:then}`, `{:catch}` and the closing tag end it.
+Event handlers capture it at render time, like a loop variable.
+
+### Recreating a subtree (`{#key}`)
+
+`{#key expr}...{/key}` recreates its body whenever `expr` changes, instead of morphing it.
+New nodes play their `fez:in` again, and child components inside start over through `init()`:
+
+```html
+{#key state.slide}
+  <img src={state.slide.url} fez:in="fade" />
+{/key}
+```
 
 ### Preserving Elements with `fez:keep`
 
@@ -677,30 +769,44 @@ class {
 - Template automatically shows pending/resolved/rejected content
 - Re-renders happen automatically when promise settles
 - Non-promise values show `:then` content immediately (no loading state)
+- A promise built in the template itself (`{#await load()}`) is a new promise on every render, so every settle starts the next request; after 3 such cycles Fez reports it and keeps the settled value. Assign the promise to state once instead
+- A rejection in a block without `{:catch}` is reported through `Fez.onError`
 
 ### Arrow Function Event Handlers
 
-Use arrow functions for clean event handling with automatic loop variable interpolation:
+Use arrow functions for clean event handling with automatic loop variable interpolation.
+Write the handler unquoted: `onclick={() => ...}`.
+Do not wrap the braces in quotes - a quoted arrow is only a string attribute and does nothing.
 
 ```html
 <!-- Simple handler -->
-<button onclick="{() => handleClick()}">Click me</button>
+<button onclick={() => handleClick()}>Click me</button>
 
-<!-- With event parameter -->
-<button onclick="{(e) => handleClick(e)}">Click me</button>
+<!-- Method reference: called with the event -->
+<button onclick={save}>Save</button>
+
+<!-- With event parameter - any name works -->
+<button onclick={(e) => handleClick(e)}>Click me</button>
+<a onclick={(evt) => go(evt.target)}>Go</a>
+
+<!-- async arrows work; the returned promise is ignored -->
+<button onclick={async () => load()}>Load</button>
 
 <!-- Inside loops - index is automatically interpolated -->
 {#each state.tasks as task, index}
-<button onclick="{() => removeTask(index)}">Remove #{index}</button>
-<button onclick="{(e) => editTask(index, e)}">Edit</button>
+<button onclick={() => removeTask(index)}>Remove #{index}</button>
+<button onclick={(e) => editTask(task, e)}>Edit</button>
 {/each}
 ```
 
 Arrow functions in event attributes are automatically transformed:
 
 - `{() => foo()}` becomes `onclick="fez.foo()"`
-- `{(e) => foo(e)}` becomes `onclick="fez.foo(event)"`
-- Loop variables like `index` are evaluated at render time
+- `{save}` becomes `onclick="fez.save(event)"`
+- `{(e) => foo(e)}` becomes `onclick="fez.foo(event)"`; the first parameter is the DOM event whatever its name
+- Loop variables like `index` are evaluated at render time; a handler that uses a loop item or a `{@const}` object captures it in a render slot
+
+For scalar values, a plain string handler is just as good: `onclick="fez.remove('{item.id}')"`.
 
 ### Strict Event Handlers (`on<event>!=`)
 
@@ -751,6 +857,18 @@ Use `class:name={condition}` to conditionally toggle CSS classes (Svelte-style):
 ```
 
 At compile time, `class:name={expr}` is converted to a ternary expression merged into the `class` attribute. The class name is added when the expression is truthy, removed when falsy.
+
+### Style Directives
+
+Use `style:property={value}` to set one CSS property, custom properties included:
+
+```html
+<div style="padding: 4px" style:color={state.color} style:width={state.w + 'px'} style:--accent={props.accent}>...</div>
+<!-- color red, accent unset: style="padding: 4px;color: red;width: 120px;" -->
+```
+
+Directives are merged into the `style` attribute after its own declarations.
+A `null`, `undefined` or `false` value leaves that property out; the runtime helper is `Fez.styleProp(name, value)`.
 
 ### Whitespace between nodes
 
@@ -857,11 +975,11 @@ Here's a simple counter component that demonstrates Fez's core features:
   }
 </style>
 
-<button onclick="{() => state.count -= 1}" disabled="{state.count === 0}">-</button>
+<button onclick={() => state.count -= 1} disabled={state.count === 0}>-</button>
 
 <span> {state.count} </span>
 
-<button onclick="{() => more()}" disabled="{isMax()}">+</button>
+<button onclick={() => more()} disabled={isMax()}>+</button>
 {#if state.count > 0}
 <span>&mdash;</span>
 {#if isMax()} MAX {:else} {#if state.count % 2} odd {:else} even {/if} {/if} {/if}
@@ -907,8 +1025,8 @@ This example showcases:
 
 ### Advanced Templating & Styling
 
-- **Fez Template Compiler** - Single brace syntax (`{ }`), control flow (`{#if}`, `{#unless}`, `{#for}`, `{#each}`, `{#await}`), and block templates
-- **Conditional Class Directives** - Svelte-style `class:name={condition}` for toggling CSS classes without ternary operators
+- **Fez Template Compiler** - Single brace syntax (`{ }`), control flow (`{#if}`, `{#unless}`, `{#for}`, `{#each}`, `{#await}`, `{#key}`), keyed each (`{#each items as item (item.id)}`), `{@const}` locals, and block templates
+- **Conditional Class and Style Directives** - Svelte-style `class:name={condition}` and `style:prop={value}` without ternary operators or string building
 - **Arrow Function Handlers** - Clean event syntax with automatic loop variable interpolation
 - **Reactive State Management** - Built-in reactive `state` object automatically triggers re-renders on property changes
 - **Component-Aware DOM Diffing** - Custom differ that understands Fez component boundaries, preserves element state and CSS animations, with hash-based render skipping for zero-cost no-op renders
@@ -922,9 +1040,10 @@ This example showcases:
 
 ### Developer Experience
 
-- **Built-in Utilities** - Helpful methods like `formData()`, `setInterval()` (auto-cleanup), `onWindowResize()`, and `fezNextTick()`
+- **Built-in Utilities** - Helpful methods like `formData()`, `setInterval()` (auto-cleanup), `on()`, `observeResize()`, `tick()` and `fezNextTick()`
 - **Two-Way Data Binding** - Use `fez:bind` directive for automatic form synchronization
-- **Advanced Slot System** - Full `<slot />` support with event listener preservation. Use `<slot unwrap />` to dissolve the wrapper div, leaving children directly in the parent
+- **Slots** - One default `<slot />` with event listener preservation (named slots are not supported). Use `<slot unwrap />` to dissolve the wrapper div, leaving children directly in the parent
+- **Context and Error Boundaries** - `this.context(key, value)` hands values down the component tree; `onError(error, component)` on an ancestor catches a descendant's mount and render errors
 - **Publish/Subscribe** - Built-in pub/sub system for component communication
 - **Global State Management** - Automatic subscription-based global state with `this.globalState` proxy
 - **Dynamic Component Loading** - Load components from URLs with `<template fez="path/to/component.fez">`
@@ -938,14 +1057,14 @@ This example showcases:
 - **Priority-Based Element Matching** - Keyed matching (fez-keep > fez-key > key > id > source signature) with scored soft-match fallback preserves DOM identity across renders
 - **CSS Animation Preservation** - Class syncing uses `classList.add/remove`, not `setAttribute`, so transitions and animations survive re-renders
 - **Active Input Protection** - `value` and `checked` are not synced on the focused input, preventing disruption during typing
-- **Built-in Fetch with Caching** - `Fez.fetch()` includes automatic response caching and JSON/FormData handling
-- **Rich Lifecycle Hooks** - `init`, `onMount`, `beforeRender`, `afterRender`, `onDestroy`, `onRefresh(props, changed)`, `onStateChange`, `onGlobalStateChange`
+- **Built-in Fetch with Caching** - `Fez.fetch()` caches GET responses for 5 minutes and handles JSON/FormData
+- **Rich Lifecycle Hooks** - `init`, `onMount` (may return a cleanup), `beforeRender`, `afterRender`, `onDestroy`, `onRefresh(props, changed)`, `onStateChange`, `onGlobalStateChange`, `onError`
 - **Development Mode** - Enable detailed logging with `Fez.DEV = true`
 
 ### Why It's Great
 
 - **Zero Build Step** - Just include the script and start coding
-- **110KB Minified (~35KB gzipped)** - Tiny footprint with powerful features
+- **About 140KB Minified (about 48KB gzipped)** - Small footprint, page navigation included
 - **Framework Agnostic** - Use alongside React, Vue, or any other framework
 - **Progressive Enhancement** - Perfect for modernizing legacy applications one component at a time
 - **Native Performance** - Leverages browser's native Custom Elements API
@@ -958,7 +1077,8 @@ This example showcases:
 ```js
 Fez('#foo')                  // find fez node with id="foo"
 Fez('ui-tabs', this)         // find first parent node ui-tabs
-Fez('ui-tabs', (fez)=> ... ) // loop over all ui-tabs nodes
+Fez('ui-tabs', (fez)=> ... ) // call for every live ui-tabs instance, returns the instances (FezBase[])
+Fez.find(node, 'ui-tabs')    // closest ui-tabs instance of a node, undefined (and reported) when none
 
 // define custom DOM node name -> <foo-bar>...
 Fez('foo-bar', class {
@@ -971,8 +1091,7 @@ Fez('foo-bar', class {
   // set element style, set as property or method
   CSS = `scss string... `
 
-  // define static HTML. calling `this.fezRender()` (no arguments) will refresh current node.
-  // if you pair it with `fezReactiveStore()`, to auto update on props change, you will have Svelte or Vue style reactive behaviour.
+  // template source in Fez template syntax; this.state and this.props writes re-render it
   HTML = `...`
 
   // Expose the live instance as `window.Dialog` (works for tags you place yourself too)
@@ -988,25 +1107,35 @@ Fez('foo-bar', class {
     open: Boolean,
   }
 
-  // called when fez element is connected to dom, before first render
+  // called when fez element is connected to dom, before first render (the only init hook)
   // here you still have your slot available in this.root
   init(props) { ... }
 
-  // execute after init and first render
+  // execute after init and first render; a returned function runs on destroy
   onMount() { ... }
 
-  // execute before or after every render
+  // execute before or after every render (afterRender also when the hash-skip leaves the DOM alone)
   beforeRender() { ... }
   afterRender() { ... }
+
+  // after onMount (changed = every prop), then whenever a parent render, a pjax/nodeMorph swap
+  // or fez-component hands this preserved instance its props (changed = props whose value differs)
+  onRefresh(props, changed) { ... }
 
   // called when local component state changes
   onStateChange(key, value, oldValue) { ... }
 
-  // called when global state changes (only if component uses key in question that key)
-  onGlobalStateChange(key, value) { ... }
+  // called when a global state key this component has read changes
+  onGlobalStateChange(key, value, oldValue) { ... }
+
+  // error boundary: a descendant's mount error, render throw or template runtime error
+  onError(error, component) { ... }
 
   // called when component is destroyed
   onDestroy() { ... }
+
+  // derived value, recomputed on every render: {total} in the template
+  get total() { return this.state.items.length }
 
   /* used inside lifecycle methods (init(), onMount(), ... */
 
@@ -1029,11 +1158,8 @@ Fez('foo-bar', class {
   // mounted DOM node root wrapped in $, only if jQuery is available
   this.$root
 
-  // node attributes, converted to properties
+  // node attributes, converted to properties (typed by PROPS)
   this.props
-
-  // gets single node attribute or property
-  this.prop('onclick')
 
   // shortcut for this.root.querySelector(selector)
   this.find(selector)
@@ -1068,26 +1194,36 @@ Fez('foo-bar', class {
   // check if the this.root node is attached to dom
   this.isConnected
 
-  // this.state has fezReactiveStore() attached by default. any change will trigger this.fezRender()
+  // reactive store: a write to a key the last render read schedules one batched render
   this.state.foo = 123
 
   // listen on any EventTarget with auto-cleanup, this binding, isConnected guard,
-  // and optional throttle. Returns a disposer for early unregister.
+  // and optional throttle (other opts go to addEventListener). Returns a disposer for early unregister.
   // String-first form: target defaults to window for resize/scroll/beforeunload/...
   // (see Fez.WINDOW_EVENTS), document for everything else.
-  this.on('resize', () => this.recompute())                          // window
+  this.on('resize', () => this.recompute(), { throttle: 200 })       // window, throttled
+  this.on('scroll', this.markSection, { throttle: 100 })             // window
   this.on('pjax:render', e => this.refresh())                        // document
   this.on(window, 'keydown', e => ...)                               // explicit target
   this.on(this.find('.x'), 'click', e => ..., { throttle: 100 })     // throttled
+  // on() does not call the handler at bind time - call it yourself when you need an initial run
 
-  // window resize handler — runs once on bind, then on throttled resize (default 200ms)
-  this.onWindowResize(func, throttle)
+  // calls func(rect, el) once right away, then on throttled element resize (ResizeObserver, default 200ms)
+  this.observeResize(el, func, delay)
 
-  // window scroll handler — runs once on bind, then on throttled scroll (default 200ms)
-  this.onWindowScroll(func, throttle)
-
-  // requestAnimationFrame wrapper with deduplication
+  // requestAnimationFrame wrapper with deduplication (setTimeout while the tab is hidden)
   this.fezNextTick(func, name)
+
+  // resolves after the pending render reached the DOM, right away when none is pending
+  await this.tick()
+
+  // context: this.context(key, value) provides it, this.context(key) reads it from the
+  // nearest component up the tree (this one included). Read it in init(); it is not reactive.
+  this.context('theme', { color: 'teal' })
+  this.context('theme')
+
+  // register a cleanup for destroy; returns a function that unregisters it
+  this.addOnDestroy(func)
 
   // get unique ID for root node, set one if needed
   this.rootId()
@@ -1098,12 +1234,16 @@ Fez('foo-bar', class {
   // dissolves child nodes or given node into parent
   this.dissolve()
 
-  // automatic form submission handling if there is FORM as parent or child node
-  this.onSubmit(formData) { ... }
+  // form submission: a delegated submit listener on the root, so forms rendered later
+  // (inside {#if}) submit too; a child component's form is left to the child
+  onSubmit(formData) { ... }
 
-  // render template and attach result dom to root. uses component-aware DOM differ
+  // re-render on the next frame (same batch as state writes)
+  this.refresh()
+
+  // render now and morph into root with the component-aware DOM differ
   this.fezRender()
-  this.fezRender(this.find('.body'), someHtmlTemplate) // you can render to another root too
+  this.fezRender(templateStringOrFunction) // render a different template into root
 })
 
 /* Utility methods */
@@ -1160,26 +1300,36 @@ Fez.cssClass(text)
 // everything Fez has injected so far, in order (SSR, debugging)
 Fez.extractCss()
 
-// display information about registered components in console
-Fez.info()
-
-// inspect Fez element, dumps props/state/template info to console
-Fez.log(nodeOrSelector)
+// show any value in the dump dialog (objects as JSON, DOM nodes as HTML)
+Fez.dump(value)
 
 // Dev helper: press Cmd/Ctrl + E to toggle overlays highlighting each component on the page.
-// Click a label to call Fez.log for that element automatically.
+// Click a label to call Fez.dump for that element automatically.
 
-// low-level DOM morphing function
-Fez.morphdom(target, newNode, opts)
+// component-aware DOM morph; source is an HTML string, an Element or a DocumentFragment
+Fez.nodeMorph(target, newNodeOrHtml)
 
-// HTML escaping utility
-Fez.htmlEscape(text)
+// escape any value as text (null / undefined -> ''), and the runtime helpers behind
+// name={expr} and style:name={expr}
+Fez.htmlEscape(value)
+Fez.htmlAttr(name, value)
+Fez.styleProp(name, value)
 
 // create HTML tags with encoded props
 Fez.tag(tag, opts, html)
 
 // execute function until it returns true
 Fez.untilTrue(func, pingRate)
+
+// animate a plain node from its old to its new size whenever its content changes
+Fez.animateSize(node, 'height, duration=250')
+
+// short type code: 'o' object, 'f' function, 's' string, 'a' array,
+// 'i' integer, 'n' float, 'b' boolean, 'u' undefined/null
+Fez.typeof(value)
+
+// library version, from package.json at build time (the `fez version` CLI prints the same number)
+Fez.version
 
 // Component Index (unified registry for all component data)
 Fez.index['ui-btn'].class         // Component class
@@ -1194,11 +1344,12 @@ Fez.index.withDemo()              // Component names that have demos
 Fez.index.all()                   // All components as object
 Fez.index.info()                  // Log all component names to console
 
-// resolve and execute a function from string or function reference
-// useful for event handlers that can be either functions or strings
-// Fez.resolveFunction('alert("hi")', element) - creates function and calls with element as this
-// Fez.resolveFunction(myFunc, element) - calls myFunc with element as this
-Fez.resolveFunction(pointer, context)
+// resolve a function from a string or function reference (handler props that can be either)
+// Fez.getFunction(myFunc)            - myFunc
+// Fez.getFunction('(e) => go(e)')    - the arrow function
+// Fez.getFunction('alert("hi")')     - a function with that body
+// Fez.getFunction(null)              - a no-op, safe to call
+Fez.getFunction(pointer)
 
 // add scripts/styles to document head
 // Load JavaScript from URL: Fez.head({ js: 'path/to/script.js' })
@@ -1212,8 +1363,98 @@ Fez.resolveFunction(pointer, context)
 // Load multiple components from txt list: Fez.head({ fez: 'path/to/components.txt' })
 // Import map - rewrites bare specifiers to full URLs at compile time:
 // Fez.head({ importmap: { "three": "https://esm.sh/three@0.160.0", "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/" } })
+// Append HTML to document.head (scripts are re-created so they run) - what a component's <head> block does:
+// Fez.head('<link rel="stylesheet" href="/app.css"><script src="/app.js"></script>')
 Fez.head(config, callback)
 ```
+
+## Lifecycle, cleanup and errors
+
+Mount runs `init(props)`, the first render, `onMount(props)`, publishes `GLOBAL_STATE`, then calls `onRefresh(props, changed)` with every prop in `changed`.
+`init` is the only init hook.
+
+`onMount` may return a cleanup function; it runs on destroy, next to everything Fez already releases (`this.on`, `this.setTimeout`, `this.setInterval`, `this.subscribe`, `this.observeResize`, `addOnDestroy` callbacks):
+
+```js
+onMount() {
+  const chart = new Chart(this.state.canvas)
+  return () => chart.destroy()
+}
+```
+
+`fez:use="action"` runs once per node, when the node first appears, not on every render.
+The action may return a cleanup function, or `{ update(node), destroy() }`: `update` runs on later renders of the component, `destroy` when the node leaves the DOM or the component is destroyed.
+
+```js
+tooltip(node) {
+  const tip = new Tooltip(node)
+  return {
+    update: (node) => tip.setText(node.title),
+    destroy: () => tip.remove(),
+  }
+}
+```
+
+Errors never leave a half-built component behind:
+
+* A throw in `init`, the first render or `onMount` is reported through `Fez.onError('mount', ...)` and the instance is destroyed, so timers and subscriptions made so far are released.
+* A runtime error in the template is logged and the component keeps its last rendered DOM.
+* A throwing `onDestroy` is reported and teardown still completes.
+
+`onError(error, component)` on any ancestor is an error boundary: it receives a descendant's mount error, render throw or template runtime error, and `component` is the instance that failed.
+Set state to render a fallback; throw from `onError` to pass the error further up.
+Without a boundary, the global `Fez.onError` report happens as before.
+
+```html
+<script>
+  class {
+    init() {
+      this.state.error = null
+    }
+
+    onError(error, component) {
+      this.state.error = `<${component.fezName}> ${error.message}`
+    }
+  }
+</script>
+
+<risky-widget />
+{#if state.error}
+  <p class="error">{state.error}</p>
+{/if}
+```
+
+### Context
+
+`this.context(key, value)` provides a value to every descendant, `this.context(key)` reads it from the nearest component up the tree (the component itself included), like Svelte's `setContext` / `getContext` in one call.
+Read it in `init()`; context is not reactive, so provide an object, or use `globalState` for values that change.
+
+```js
+// provider
+init() { this.context('theme', { name: 'ocean', color: '#1f7a8c' }) }
+
+// any descendant
+init() { this.state.theme = this.context('theme') }
+```
+
+See `pages_src/root/fez/demo-context.fez` (context and an error boundary) and `pages_src/root/fez/demo-blocks.fez` (keyed each, `{@const}`, `{#key}`, `style:`, getters, `tick()`).
+
+## App rules
+
+Rules for wiring components into an app.
+
+1. Mount order is `init`, first render, `onMount`, then `onRefresh(props, changed)` with every prop in `changed`.
+2. A parent re-render hands a preserved child its new props: it re-renders when a value changed, then `onRefresh(props, changed)` fires with only the props whose value differs (`{}` when none did).
+   There is no `onPropsChange`: load prop-driven data in `onRefresh` alone (`if ('container' in changed) this.load()`), never in `onMount` too and never by tracking the last value in state.
+3. Load data that does not depend on props in `onMount`, and set `state.loading = true` only in `init()`.
+   Reloads then keep the current DOM and morph to the new data instead of flashing a spinner.
+4. Renders are batched per animation frame; the DOM does not change synchronously after a state write (`await this.tick()` when you need it).
+5. Pass anything that changes as a prop; slots are captured once.
+6. Pages and other components chosen at runtime: `<fez-component name={state.page} :props="state.query">fallback</fez-component>`.
+7. Style another component by its wrapper class `.<name>-fez`; its tag is replaced on mount.
+8. Scoped `<style>` rules reach into descendant components: in a component that renders others, never style bare tags or generic class names, and delete unused rules.
+9. Shared data goes in `globalState`, commands go to a `GLOBAL` component, and notifications use publish (see [Component communication](#component-communication-pick-the-channel)).
+10. Check the result in a browser: stale props, double fetches and leaked styles all pass `fez compile`.
 
 ## Singleton / Global Components
 
@@ -1316,9 +1557,9 @@ At compile time, Fez rewrites bare specifiers to full URLs (e.g. `from 'three'` 
 <!-- pass JSON props via data-props -->
 <foo-bar data-props='{"name": "John", "age": 30}'></foo-bar>
 
-<!-- pass JSON template via data-json-template -->
-<script type="text/template">
-  {...}
+<!-- pass JSON props via data-json-template: read from the element right before the tag, which is removed -->
+<script type="application/json">
+  {"name": "John", "roles": ["admin"]}
 </script>
 <foo-bar data-json-template="true"></foo-bar>
 ```
@@ -1354,6 +1595,12 @@ import Button from './components/ui-button.fez'; // or import the class
   compilation, so a broken component fails the build instead of the browser.
 - `minify` (default `false`; the Vite plugin defaults it to `true` in production) drops
   `<info>` / `<demo>` metadata from the emitted module.
+- Static imports (multi-line named imports included) are hoisted to the top of the module and
+  deduped across the components of one file.
+- Each component of a multi-component file gets its own block scope, so two components may both
+  declare `const helper`.
+- A `<head>` block is emitted as `Fez.head("<html>")`, which appends it to `document.head`.
+- An unclosed `<xmp fez="...">` is a build error.
 
 The emitted module reads the fez runtime from `window.Fez`; it never imports the runtime itself,
 so a page must load fez once before its component modules. A missing global fails the module with
@@ -1428,7 +1675,7 @@ All parts are optional
 
 ```html
 <!-- Head elements support (inline only in XML tags) -->
-<xmp tag="some-tag">
+<xmp fez="some-tag">
   <info>
     <!-- Documentation block - rendered in demo pages -->
     <ul>
@@ -1448,14 +1695,13 @@ All parts are optional
     <script>console.log('Added to document head, first script to execute.')</script>
   </head>
 
+  <!-- one <script> block per definition; a second one is a compile error -->
+  <!-- the class wrapper can be omitted: a bare method list is wrapped in class { } -->
   <script>
     class {
       init(props) { ... }     // when fez node is initialized, before template render
       onMount(props) { ... }  // called after first template render
     }
-  </script>
-  <script> // class can be omitted if only functions are passed
-    init(props) { ... }
   </script>
 
   <style>
@@ -1468,6 +1714,7 @@ All parts are optional
     :global(.third-party-widget) { z-index: 10; }
     /* @keyframes/@font-face are hoisted too (they cannot nest); @media stays scoped */
     @keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+    /* CSS comments are block comments only - a // line comment breaks the next rule */
   </style>
 
   <style global>
@@ -1493,6 +1740,15 @@ All parts are optional
     {#each state.list as name, index}...{/each}
     {#for name, index in state.list}...{/for}
 
+    <!-- Keyed each - key={row.id} lands on the first element of the body -->
+    {#each state.rows as row (row.id)}<li>{row.name}</li>{/each}
+
+    <!-- Local constant for the rest of the branch -->
+    {@const total = state.price * state.qty}
+
+    <!-- Body recreated when the value changes -->
+    {#key state.id}...{/key}
+
     <!-- Block definitions -->
     {@block image}
       <img src={props.src} />
@@ -1505,20 +1761,22 @@ All parts are optional
     <!-- fez:this will link DOM node to this.state (inspired by Svelte) -->
     <!-- links to -> this.state.listRoot, assigned silently on every render -->
     <!-- also auto-generates stable id="fez-{UID}-listRoot" for stable DOM diffing -->
+    <!-- inside a loop each row gets its own id (fez-{UID}-name-{index}) and keeps its typed value -->
     <ul fez:this="listRoot">
 
-    <!-- when node is added to dom fez:use will call object function by name, and pass current node -->
-    <!-- this.animate(node) -->
+    <!-- fez:use calls this.animate(node) once, when the node first appears -->
+    <!-- the action may return a cleanup function or { update(node), destroy() } -->
     <li fez:use="animate">
 
-    <!-- fez:bind for two-way data binding on form elements -->
+    <!-- fez:bind for two-way data binding on form elements (re-renders on every keystroke
+         when the template reads the key; prefer fez:this in large components) -->
     <input type="text" fez:bind="state.username" />
 
     <!--
-      fez:class for adding classes with optional delay.
-      class will be added to SPAN element, 100ms after dom mount (to trigger animations)
+      fez:class adds classes after render. The value is split on spaces: every class but the
+      last is added right away, the last one 1ms later, so a CSS transition can start
     -->
-    <span fez:class="active:100">Delayed class</span>
+    <span fez:class="fade visible">Delayed class</span>
 
     <!--
       fez:in / fez:out - Svelte-style enter/leave transitions (Web Animations API).
@@ -1555,18 +1813,41 @@ All parts are optional
       <ui-star fill={fill} />
     </span>
 
-    <!-- Slot: children wrapped in a .fez-slot div (default) -->
+    <!-- Slot: children wrapped in a .fez-slot div (default). One default slot only, -->
+    <!-- named slots are not supported - pass markup as a child component instead -->
     <slot />
 
     <!-- Slot unwrap: wrapper div dissolved, children directly in parent -->
     <!-- Components with <slot unwrap /> render once: only state keys the template never reads may change -->
     <slot unwrap />
 
-    <!-- :attribute for evaluated attributes (converts to JSON) -->
-    <div :data-config="state.config"></div>
+    <!-- :prop passes the evaluated value itself (object, array, function) to a child component -->
+    <user-card :user="state.user" :cfg="{dense: true}" :on_pick={pick} />
+
+    <!-- style:prop merges one CSS property into style, dropped when null/false -->
+    <div style:width={state.width + 'px'} style:--accent={state.color}></div>
   </div>
 </xmp>
 ```
+
+### Styles
+
+`<style>` is always scoped to the component and `<style global>` is always document-wide; the tag decides, never the CSS.
+Inside a scoped block, `:global(...)` works the Svelte way - the part inside it is never scoped:
+
+| written | emitted |
+|---|---|
+| `.btn { ... }` | `.fez.<name>-fez .btn` |
+| `:global(.x) { ... }` | `.x` - escapes the component |
+| `:global(.dark) .btn { ... }` | `.dark .fez.<name>-fez .btn` - the global part sits above the scope |
+| `:global(html.dark) & .btn { ... }` | `html.dark .fez.<name>-fez .btn` - `&` places the scope |
+| `.x :global(.a, .b) { ... }` | one selector per list item |
+
+* Commas inside quotes and brackets (`[data-x="a,b"]`) never split a selector list.
+* `@keyframes`, `@font-face`, `@property`, `@position-try`, `@view-transition` and friends are emitted at the top level, as written.
+* `@media`, `@supports`, `@container`, `@layer { }` and `@starting-style` nest and stay scoped.
+* `@import`, `@charset` and the `@layer a, b;` order statement are hoisted to the front of the sheet even from a scoped block; `@import` and `@layer` go to a separate `<style id="fez-css-head">` before the shared one, `@charset` is dropped.
+* Comments are `/* ... */` only; a `//` line comment becomes part of the next selector and breaks that rule (`fez refactor` reports them).
 
 ### state and props
 
@@ -1626,7 +1907,7 @@ HTML attributes are strings. Declare a `PROPS` schema on the class and Fez valid
 Props without a schema entry pass through untouched; components without `PROPS` behave exactly as before.
 
 ```html
-<xmp tag="ui-pager">
+<xmp fez="ui-pager">
   <script>
     class {
       PROPS = {
@@ -1704,7 +1985,7 @@ Primitives print their value (long strings are truncated); objects, arrays and f
 
 ### how to call custom FEZ node from the outside, anywhere in HTML
 
-Inside `init()`, you have pointer to `this`. Pass it anywhere you need, even store in window.
+Name the instance with `GLOBAL` and it is available as a window global while it is mounted (see [Singleton / Global Components](#singleton--global-components)), or look it up with `Fez(selector)`.
 
 Example: Dialog controller
 
@@ -1714,10 +1995,8 @@ Example: Dialog controller
 
 ```js
 Fez('ui-dialog', class {
-  init() {
-    // makes dialog globally available
-    window.Dialog = this
-  }
+  // makes dialog globally available as window.Dialog, cleared on destroy
+  GLOBAL = 'Dialog'
 
   close() {
     ...
@@ -1733,7 +2012,7 @@ Fez('#main-dialog').close()
 
 ## Fez.fetch API
 
-Fez includes a built-in fetch wrapper with automatic JSON parsing and session-based caching:
+Fez includes a built-in fetch wrapper with automatic JSON parsing and a short-lived GET cache:
 
 ### Basic Usage
 
@@ -1746,16 +2025,23 @@ Fez.fetch('https://api.example.com/data', (data) => {
   console.log(data);
 });
 
-// POST request
+// GET with query params (?q=fez), with or without a callback
+const found = await Fez.fetch('/api/search', { q: 'fez' });
+
+// POST request, data sent as FormData
 const result = await Fez.fetch('POST', 'https://api.example.com/data', {
   key: 'value',
 });
+
+// drop cached responses
+Fez.clearFetchCache();
 ```
 
 ### Features
 
-- **Automatic JSON parsing**: Response is automatically parsed if Content-Type is application/json
-- **Session caching**: All requests are cached in memory until page refresh
+- **Automatic JSON parsing**: Response is automatically parsed if Content-Type is application/json, otherwise it is text
+- **GET caching**: only GET responses are cached, in memory, for 5 minutes, at most 100 entries (oldest dropped first); concurrent identical GETs share one request. POST always hits the network
+- **Error status rejects**: a non-2xx response rejects the promise and is never cached
 - **Flexible parameter order**: Method can be omitted (defaults to GET), callback can be last parameter
 - **Error handling**: When using callbacks, errors are passed to `Fez.onError` with kind 'fetch'
 - **Logging**: Enable with `Fez.LOG = true` to see cache hits and live fetches
@@ -1965,7 +2251,7 @@ Fez includes several built-in components available when you include `defaults.js
 
 ### fez-component
 
-Mounts the component named by `name` with `props` (or `data-props`; without either, its own props):
+Mounts the component named by `name` with `props` (or `data-props`; without either, its own props minus `name`):
 
 ```html
 <fez-component name={state.page} :props="state.query">
@@ -2026,8 +2312,10 @@ Fez includes a built-in global state manager that automatically tracks component
 
 - Components access global state via `this.globalState` proxy
 - Reading a value by key automatically subscribes the component to changes to that key.
-- Setting a value notifies all subscribed components to that key: `onGlobalStateChange` fires right away, the re-render is batched into the next frame together with local state changes.
-- Components are automatically cleaned up when disconnected
+- Setting a value notifies all subscribed components to that key: `onGlobalStateChange(key, value, oldValue)` fires right away.
+- Only a key the last render read re-renders the component (the same rule as `this.state`); the render is batched into the next frame together with local state changes. A key read only outside render (in a click handler, in `init`) still fires `onGlobalStateChange`, but changing it does not re-render.
+- `Object.keys(this.globalState)`, `{...this.globalState}` and `{@json globalState}` read every key; `delete this.globalState.x` deletes the key and notifies its readers.
+- Components are automatically cleaned up when destroyed
 
 ### State tied to component presence
 
@@ -2059,20 +2347,18 @@ See `pages_src/root/fez/demo-global-state.fez` for a toggleable demo.
 
 ### Basic Usage
 
-```js
-class Counter extends FezBase {
-  increment() {
-    // Setting global state - all listeners will be notified
-    this.globalState.count = (this.globalState.count || 0) + 1;
+```html
+<script>
+  class {
+    increment() {
+      // Setting global state - all listeners will be notified
+      this.globalState.count = (this.globalState.count || 0) + 1
+    }
   }
+</script>
 
-  render() {
-    // Reading global state - automatically subscribes this component
-    return `<button onclick="fez.increment()">
-      Count: ${this.globalState.count || 0}
-    </button>`;
-  }
-}
+<!-- Reading global state in the template subscribes this component and re-renders it -->
+<button onclick="fez.increment()">Count: {globalState.count || 0}</button>
 ```
 
 ### External Access
@@ -2090,10 +2376,13 @@ const unsubscribe = Fez.state.subscribe('language', (value, oldValue, key) => {
 });
 unsubscribe(); // stop listening
 
-// Subscribe to ALL state changes
-Fez.state.subscribe((key, value, oldValue) => {
+// Subscribe to ALL state changes - same argument order as the per-key form
+Fez.state.subscribe((value, oldValue, key) => {
   console.log(`${key} changed to ${value}`);
 });
+
+// Delete a key; readers are notified with undefined
+Fez.state.delete('count');
 
 // Iterate over all components listening to a key
 Fez.state.forEach('count', (component) => {
@@ -2107,20 +2396,25 @@ Components can define an `onGlobalStateChange` method for custom handling:
 
 ```js
 class MyComponent extends FezBase {
-  onGlobalStateChange(key, value) {
-    console.log(`Global state "${key}" changed to:`, value);
-    // Custom logic instead of automatic render
+  init() {
+    // read outside render: subscribes, the hook fires, no re-render
+    this.applyTheme(this.globalState.theme);
+  }
+
+  onGlobalStateChange(key, value, oldValue) {
+    console.log(`Global state "${key}" changed from`, oldValue, 'to', value);
     if (key === 'theme') {
-      this.updateTheme(value);
+      this.applyTheme(value);
     }
   }
 
-  render() {
-    // Still subscribes by reading the value
-    return `<div class="${this.globalState.theme || 'light'}">...</div>`;
+  applyTheme(theme) {
+    this.root.classList.toggle('dark', theme === 'dark');
   }
 }
 ```
+
+A key the template reads (`{globalState.theme}`) also re-renders the component after the hook.
 
 ### Real Example: Language Switching
 
@@ -2130,7 +2424,7 @@ Control global state from outside Fez components:
 // From anywhere in your app (vanilla JS, other frameworks, etc.)
 Fez.state.set('language', 'en');
 
-// All components using this.globalState.language will automatically re-render
+// All components whose render reads this.globalState.language will automatically re-render
 document.getElementById('lang-select').addEventListener('change', (e) => {
   Fez.state.set('language', e.target.value);
 });
@@ -2152,36 +2446,44 @@ document.getElementById('lang-select').addEventListener('change', (e) => {
 
 ### Real Example: Shared Counter State
 
-```js
-// Multiple counter components sharing max count
-class Counter extends FezBase {
-  static PROPS = { start: { type: Number, default: 0 } }
+```html
+<!-- Multiple counter components sharing max count -->
+<script>
+  class {
+    PROPS = { start: { type: Number, default: 0, state: 'count' } }
 
-  init(props) {
-    this.state.count = props.start;
+    beforeRender() {
+      // All counters share and update the global max
+      this.globalState.maxCount ||= 0
+
+      // Find max across all counter instances
+      let max = 0
+      Fez.state.forEach('maxCount', (fez) => {
+        if (fez.state?.count > max) {
+          max = fez.state.count
+        }
+      })
+
+      this.globalState.maxCount = max
+    }
   }
+</script>
 
-  beforeRender() {
-    // All counters share and update the global max
-    this.globalState.maxCount ||= 0;
-
-    // Find max across all counter instances
-    let max = 0;
-    Fez.state.forEach('maxCount', (fez) => {
-      if (fez.state?.count > max) {
-        max = fez.state.count;
-      }
-    });
-
-    this.globalState.maxCount = max;
-  }
-
-  render() {
-    return `
-      <button onclick="fez.state.count++">+</button>
-      <span>Count: ${this.state.count}</span>
-      <span>(Global max: ${this.globalState.maxCount})</span>
-    `;
-  }
-}
+<button onclick="fez.state.count++">+</button>
+<span>Count: {state.count}</span>
+<span>(Global max: {globalState.maxCount})</span>
 ```
+
+## Component communication: pick the channel
+
+Three channels exist; pick by the kind of traffic, not by habit.
+
+| Traffic | Example | Use |
+|---|---|---|
+| Shared state many components render | selected animation, playback speed, theme | `this.globalState.anim = 'idle'` - readers auto-subscribe, late-mounted components see the current value |
+| Command to one known service component | play, seek, reset camera | direct call: `Viewport.play('idle')` (`GLOBAL = 'Viewport'`) or `Fez('#viewport').play('idle')` - you get a return value, `await`, and a TypeError on a typo |
+| Event whose consumers the sender must not know | `chain:finished`, `model:loaded` | `this.publish('chain:finished')` (nearest subscribing ancestor) or `Fez.publish(...)` (everyone) |
+
+Pub/sub is the wrong tool for commands (no return value, no error when nobody listens) and for shared state (a component mounted after the event misses it).
+Most panels in a tool-style UI are shared-state readers; usually only one component is a command target.
+A component's `this.subscribe` subscriptions survive a move (the node detached and re-inserted); only a destroyed component drops them.

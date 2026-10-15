@@ -54,12 +54,12 @@ Options:
       --json            Print errors as a JSON array (for editors)
 
 Examples:
-  fez compile docs/fez/ui-counter.fez
-  fez compile 'docs/fez/*.fez'
-  fez compile -o docs/fez/ui-counter.fez > compiled.js
-  fez compile --debug-template docs/fez/ui-counter.fez
-  fez compile -t docs/fez/ui-counter.fez
-  fez compile --json docs/fez/ui-counter.fez
+  fez compile pages_src/root/fez/ui-counter.fez
+  fez compile 'pages_src/root/fez/*.fez'
+  fez compile -o pages_src/root/fez/ui-counter.fez > compiled.js
+  fez compile --debug-template pages_src/root/fez/ui-counter.fez
+  fez compile -t pages_src/root/fez/ui-counter.fez
+  fez compile --json pages_src/root/fez/ui-counter.fez
 `);
   process.exit(0);
 }

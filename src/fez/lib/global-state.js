@@ -18,11 +18,7 @@
 //       console.log(`State ${key} changed to ${value}`)
 //     }
 //
-//     render() {
-//       return `<button onclick="fez.increment()">
-//         Count: ${this.globalState.count || 0}
-//       </button>`
-//     }
+//     HTML = '<button onclick="fez.increment()">Count: {globalState.count || 0}</button>'
 //   }
 //
 // External access:

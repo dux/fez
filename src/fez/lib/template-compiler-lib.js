@@ -611,8 +611,8 @@ export function getEventAttributeContext(text, pos) {
 
 // <pre>/<textarea> bodies keep their whitespace as written
 const PRESERVE_WHITESPACE_RE = /<(pre|textarea)\b[\s\S]*?<\/\1\s*>/gi;
-// a whitespace-only run after a tag or {#..} {:..} {/..} directive and before the next one
-const NODE_GAP_RE = /(>|\{[#:/][^{}]*\})\s+(?=<|\{[#:/])/g;
+// a whitespace-only run after a tag or {#..} {:..} {/..} {@const ..} directive and before the next one
+const NODE_GAP_RE = /(>|\{(?:[#:/]|@const\s)[^{}]*\})\s+(?=<|\{(?:[#:/]|@const\s))/g;
 
 /**
  * Drop whitespace-only runs between nodes (`</div>  <div>` -> `</div><div>`).

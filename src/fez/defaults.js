@@ -48,7 +48,7 @@ const loadDefaults = () => {
   );
 
   // include remote data from url
-  // <fez-include src="./docs/fez/ui-slider.html"></fez-include>
+  // <fez-include src="/parts/header.html"></fez-include>
   Fez(
     'fez-include',
     class {
@@ -118,7 +118,7 @@ const loadDefaults = () => {
     },
   );
 
-  // In-flow component picker for demo pages (see docs/fez/fez-demo-nav.fez)
+  // In-flow component picker for demo pages (see pages_src/root/fez/fez-demo-nav.fez)
   Fez(
     'fez-demo-nav',
     class {
@@ -614,7 +614,7 @@ const loadDefaults = () => {
       }
 
       HTML() {
-        return `<nav class="fez-demo-nav-box {globalState.demoSelected ? 'is-selected' : ''}" data-for="{fez.for}" aria-label="Demo components">
+        return `<nav class="fez-demo-nav-box {globalState.demoSelected ? 'is-selected' : ''}" data-for="{props.for}" aria-label="Demo components">
         <div class="fez-demo-nav-control">
           <button
             class="fez-demo-nav-toggle"
