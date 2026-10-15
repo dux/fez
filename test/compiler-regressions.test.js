@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Window } from "happy-dom";
 import createTemplateCompiler from "../src/fez/lib/template-compiler.js";
-import { htmlAttr } from "../src/fez/lib/attrs.js";
+import { htmlAttr, styleProp } from "../src/fez/lib/attrs.js";
 import closeCustomTags from "../src/fez/lib/close-custom-tags.js";
 import RenderSlots from "../src/fez/lib/render-slots.js";
 import { buildClassSource, trimTemplateLines } from "../src/fez/lib/class-source.js";
@@ -12,6 +12,8 @@ import flattenCss from "../src/fez/utils/flatten_css.js";
 
 const MockFez = {
   htmlAttr: (name, value) => htmlAttr(name, value, MockFez.htmlEscape),
+  styleProp,
+  fnv1: (t) => String(t),
   htmlEscape: (v) =>
     v == null ? "" : String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]),
   jsEscape: (v) => (v == null ? "" : JSON.stringify(String(v)).slice(1, -1).replace(/['`$]/g, "\\$&")),
@@ -294,5 +296,48 @@ describe("compileFileToModule - imports, scopes and errors", () => {
   test("a <head> block is emitted as a Fez.head call", () => {
     const out = compileFileToModule("/x/ui-h.fez", '<head>\n  <link rel="stylesheet" href="/a.css">\n</head>\n<p>x</p>');
     expect(out).toContain('Fez.head("<link rel=\\"stylesheet\\" href=\\"/a.css\\">");');
+  });
+});
+
+describe("template compiler - Svelte parity blocks", () => {
+  const items = [{ id: "a1", n: 1 }, { id: "b2", n: 2 }];
+
+  test("keyed each puts the key on the first element of the body", () => {
+    expect(render("{#each state.a as it (it.id)}<li>{it.n}</li>{/each}", { state: { a: items } })).toBe(
+      '<li key="a1">1</li><li key="b2">2</li>',
+    );
+    // an index binding and a key that is a call
+    expect(render("{#each state.a as it, i (String(it.id))}<li>{i}</li>{/each}", { state: { a: items } })).toBe(
+      '<li key="a1">0</li><li key="b2">1</li>',
+    );
+  });
+
+  test("{@const} is a local for the rest of its branch", () => {
+    expect(render("{#each state.a as it}{@const d = it.n * 2}<b>{d}</b>{:else}none{/each}", { state: { a: items } })).toBe(
+      '<b fez-key="0-0">2</b><b fez-key="0-1">4</b>',
+    );
+    expect(render("{#if state.a.length}{@const {n} = state.a[0]}<i>{n}</i>{:else}<u>{state.x}</u>{/if}", { state: { a: [], x: "e" } })).toBe(
+      '<u fez-key="1">e</u>',
+    );
+    expect(render("{@const total = state.a.length}<p>{total}</p>", { state: { a: items } })).toBe('<p fez-key="0">2</p>');
+  });
+
+  test("a {@const} name used in a handler is captured at render time", () => {
+    expect(render("{@const d = state.a[0]}<b onclick={() => pick(d)}>x</b>", { state: { a: items } })).toContain(
+      "fezGlobals.handler(0)(event)",
+    );
+  });
+
+  test("{#key} puts the value into the key of its body", () => {
+    const a = render("{#key state.k}<p>x</p>{/key}", { state: { k: 1 } });
+    const b = render("{#key state.k}<p>x</p>{/key}", { state: { k: 2 } });
+    expect(a).toBe('<p key="0-k1">x</p>');
+    expect(b).toBe('<p key="0-k2">x</p>');
+  });
+
+  test("style:prop merges into style and drops unset values", () => {
+    expect(render('<p style="margin: 0" style:color={state.c} style:--x={state.none} style:width={state.w + "px"}>x</p>', { state: { c: "red", w: 5 } })).toBe(
+      '<p style="margin: 0;color: red;width: 5px;" fez-key="0">x</p>',
+    );
   });
 });

@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { Window } from "happy-dom";
 import createTemplateCompiler from "../src/fez/lib/template-compiler.js";
-import { htmlAttr } from "../src/fez/lib/attrs.js";
+import { htmlAttr, styleProp } from "../src/fez/lib/attrs.js";
 import RenderSlots from "../src/fez/lib/render-slots.js";
 
 // Setup happy-dom for DOM APIs
@@ -13,6 +13,8 @@ globalThis.Node = window.Node;
 // Mock Fez
 globalThis.Fez = {
   htmlAttr: (name, value) => htmlAttr(name, value, globalThis.Fez.htmlEscape),
+  styleProp,
+  fnv1: (t) => String(t),
   jsEscape: (v) => (v == null ? "" : JSON.stringify(String(v)).slice(1, -1).replace(/['`$]/g, "\\$&")),
   htmlEscape: (s) =>
     String(s == null ? "" : s).replace(

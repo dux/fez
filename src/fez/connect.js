@@ -323,7 +323,10 @@ function connectNode(name, node) {
     // every prop counts as changed at mount, so a component can load from onRefresh alone
     fez.onRefresh(fez.props, { ...fez._propsRaw });
   } catch (error) {
-    fez.fezError('mount', `failed to mount: ${error.message}`, error);
+    // an ancestor onError(error, component) boundary takes it before the global report
+    if (!fez.fezBubbleError(error)) {
+      fez.fezError('mount', `failed to mount: ${error.message}`, error);
+    }
     fez.fezOnDestroy();
     return;
   }

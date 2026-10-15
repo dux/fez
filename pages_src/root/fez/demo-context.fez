@@ -1,0 +1,90 @@
+<info>
+  <p>Context and error boundaries between components.</p>
+  <ul>
+    <li><code>this.context('theme', value)</code> provides a value to every descendant; <code>this.context('theme')</code> reads it from the nearest component up the tree. Read it in <code>init()</code> - context is not reactive, so provide an object, or use <code>globalState</code> for values that change.</li>
+    <li><code>onError(error, component)</code> on any ancestor catches a descendant's mount or render error. Set state to render a fallback; throw to pass it further up.</li>
+  </ul>
+</info>
+
+<demo>
+  <demo-context></demo-context>
+</demo>
+
+<xmp fez="demo-context-swatch">
+  <script>
+    class {
+      init() {
+        this.state.theme = this.context('theme')
+      }
+    }
+  </script>
+
+  <style>
+    span {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      color: #fff;
+    }
+  </style>
+
+  <span style:background={state.theme.color}>{props.label} uses {state.theme.name}</span>
+</xmp>
+
+<xmp fez="demo-context-broken">
+  <script>
+    class {
+      init() {
+        throw new Error('this widget failed to start')
+      }
+    }
+  </script>
+
+  <p>never rendered</p>
+</xmp>
+
+<xmp fez="demo-context">
+  <script>
+    class {
+      init() {
+        this.context('theme', { name: 'ocean', color: '#1f7a8c' })
+        this.state.error = null
+        this.state.showBroken = false
+      }
+
+      onError(error, component) {
+        this.state.error = `<${component.fezName}> ${error.message}`
+        this.state.showBroken = false
+      }
+    }
+  </script>
+
+  <style>
+    display: block;
+
+    .row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .error {
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: #fdecea;
+      color: #8a1c13;
+    }
+  </style>
+
+  <div class="row">
+    <demo-context-swatch label="Header" />
+    <demo-context-swatch label="Footer" />
+  </div>
+  <button type="button" onclick="fez.state.showBroken = true">Mount a broken widget</button>
+  {#if state.showBroken}
+    <demo-context-broken />
+  {/if}
+  {#if state.error}
+    <p class="error">Caught by onError: {state.error}</p>
+  {/if}
+</xmp>

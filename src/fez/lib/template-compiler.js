@@ -59,9 +59,14 @@ export default function createTemplateCompiler(text, opts = {}) {
       );
     }
 
+    // {#each items as item (item.id)} -> key={item.id} on the first element of the body
+    text = injectEachKeys(text);
+
     // Convert class:name={expr} conditional class directives
     // e.g. class:active={state.value === key} -> merges ternary into class attribute
     text = mapTags(text, rewriteClassDirectives);
+    // style:color={expr} -> merged into the style attribute, dropped when null/false
+    text = mapTags(text, rewriteStyleDirectives);
     mapTags(text, rejectForeignAttrs);
 
     // Error if fez-keep is placed on a fez component (custom element with dash in tag name)
@@ -114,14 +119,28 @@ export default function createTemplateCompiler(text, opts = {}) {
     const loopItemVarStack = []; // Track item vars (non-index) that could be objects
     const loopMaybeItemStack = []; // Vars that are an index or an object, known at render time
     const loopStack = []; // Track loop info for :else support
-    const blockStack = []; // Open blocks in nesting order: { kind, open }
+    const blockStack = []; // Open blocks in nesting order: { kind, open, consts }
+    const rootFrame = { consts: [] }; // {@const} outside any block
     const awaitStack = []; // Track await blocks for :then/:catch
     let awaitCounter = 0; // Unique ID for each await block
     let rawFrom = 0; // body range of the current <script>/<style>, copied verbatim
     let rawUntil = -1;
 
-    const openBlock = (kind, open) => blockStack.push({ kind, open });
+    const openBlock = (kind, open) => blockStack.push({ kind, open, consts: [] });
+    // {@const} wraps the rest of its branch in an arrow call; a branch boundary
+    // ({:else}, {:then}, the closing tag) ends that wrap
+    const closeConsts = (frame) => {
+      while (frame.consts.length) {
+        const c = frame.consts.pop();
+        result += '`)(' + c.expr + ')}';
+        loopVarStack.pop();
+        loopItemVarStack.pop();
+        loopMaybeItemStack.pop();
+      }
+    };
+    const closeBranch = () => closeConsts(blockStack[blockStack.length - 1] || rootFrame);
     const closeBlock = (kind, close) => {
+      closeBranch();
       const top = blockStack.pop();
       if (top?.kind !== kind) {
         throw new Error(
@@ -260,6 +279,7 @@ export default function createTemplateCompiler(text, opts = {}) {
           ifStack.push(false); // No else yet
           openBlock('if', '#unless');
         } else if (expr === ':else' || expr === 'else') {
+          closeBranch();
           if (currentBlock() === 'loop') {
             // :else inside a loop - for empty array case
             loopStack[loopStack.length - 1].hasElse = true;
@@ -274,6 +294,7 @@ export default function createTemplateCompiler(text, opts = {}) {
           if (currentBlock() !== 'if') {
             throw new Error(`{${expr}} without matching {#if}`);
           }
+          closeBranch();
           result += '` : Fez.isTruthy(' + expr.slice(elseIf[0].length) + ') ? `';
           // Keep hasElse as false - still need final else
         } else if (expr === '/if' || expr === '/unless') {
@@ -334,6 +355,30 @@ export default function createTemplateCompiler(text, opts = {}) {
             result += '`).join("") : "")(' + loopInfo.collectionExpr + ')}';
           }
         }
+        // {#key expr}: the body's nodes carry the value in their fez-key (see
+        // autoInjectKeys), so a new value replaces them instead of morphing
+        else if (expr.startsWith('#key ')) {
+          openBlock('key', '#key');
+        } else if (expr === '/key') {
+          closeBlock('key', expr);
+        }
+        // {@const name = expr}: a local for the rest of the enclosing branch
+        else if (expr.startsWith('@const ')) {
+          const decl = expr.slice(7);
+          const eq = findAssignment(decl);
+          if (eq < 0) {
+            throw new Error(`{@const} needs a name and a value: {${expr}}`);
+          }
+          const target = decl.slice(0, eq).trim();
+          const value = decl.slice(eq + 1).trim();
+          (blockStack[blockStack.length - 1] || rootFrame).consts.push({ expr: value });
+          // its names behave like loop item vars in handlers: captured at render time
+          const names = target.match(/[A-Za-z_$][\w$]*/g) || [];
+          loopVarStack.push(names);
+          loopItemVarStack.push(names);
+          loopMaybeItemStack.push([]);
+          result += '${((' + target + ') => `';
+        }
         // {#await promise}...{:then value}...{:catch error}...{/await}
         else if (expr.startsWith('#await ')) {
           // Inside a loop every iteration is its own await block: the id carries
@@ -350,12 +395,14 @@ export default function createTemplateCompiler(text, opts = {}) {
           result += '${((_aw) => _aw.status === "pending" ? `';
         } else if (expr === ':then' || expr.startsWith(':then ')) {
           const awaitInfo = currentAwait(':then');
+          closeBranch();
           awaitInfo.hasThen = true;
           // optional value binding: {:then value} or just {:then}
           const thenVar = expr.slice(5).trim() || '_value';
           result += '` : _aw.status === "resolved" ? ((' + thenVar + ') => `';
         } else if (expr === ':catch' || expr.startsWith(':catch ')) {
           const awaitInfo = currentAwait(':catch');
+          closeBranch();
           awaitInfo.hasCatch = true;
           // optional error binding: {:catch error} or just {:catch}
           const catchVar = expr.slice(6).trim() || '_error';
@@ -450,6 +497,7 @@ export default function createTemplateCompiler(text, opts = {}) {
     if (blockStack.length) {
       throw new Error(`{${blockStack[blockStack.length - 1].open}} is never closed`);
     }
+    closeConsts(rootFrame);
 
     // Warn about dynamic fez-this values in dev mode (won't get auto-ID)
     if (typeof Fez !== 'undefined' && Fez.LOG) {
@@ -487,6 +535,8 @@ export default function createTemplateCompiler(text, opts = {}) {
           e.message,
         );
         console.error('Template source:', result.substring(0, 500));
+        // picked up by fezRender for an onError boundary
+        ctx._fezTemplateError = e;
         // null, not '': the render keeps the last good DOM instead of morphing to empty
         return null;
       }
@@ -506,8 +556,8 @@ export default function createTemplateCompiler(text, opts = {}) {
 // Svelte spellings that have a Fez equivalent
 const DIRECTIVE_HINTS = {
   '@debug': 'use {@json value} or console.log in beforeRender()',
-  '@render': 'pass markup as a child component or slot',
   '#snippet': 'use a child component, or {@block name}...{/block} for static markup',
+  '@render': 'pass markup as a child component or slot',
 };
 
 function directiveHint(expr) {
@@ -556,6 +606,126 @@ function escapeLiteralAttr(value) {
  * Merge class:name={expr} / class:name="expr" directives of one tag into its
  * class attribute (quoted or {expr}) as ternaries.
  */
+// index of the `=` that separates `{@const name = value}`, skipping == / => / <= / >=
+function findAssignment(decl) {
+  let depth = 0;
+  for (let i = 0; i < decl.length; i++) {
+    const ch = decl[i];
+    if ('([{'.includes(ch)) {
+      depth++;
+    } else if (')]}'.includes(ch)) {
+      depth--;
+    } else if (ch === '=' && !depth && !'=<>!'.includes(decl[i - 1]) && !'=>'.includes(decl[i + 1])) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * `{#each items as item (item.id)}` - Svelte's keyed each. The key expression
+ * is dropped from the directive and written as key={...} on the first element
+ * of the body (unless it has a key already), which is what the differ matches.
+ */
+function injectEachKeys(text) {
+  if (!/\{#each\s[^}]*\)\s*\}/.test(text)) {
+    return text;
+  }
+  let out = '';
+  let pos = 0;
+  let pendingKey = null;
+  while (pos < text.length) {
+    const ch = text[pos];
+    if (ch === '\\' && text[pos + 1] === '{') {
+      out += '\\{';
+      pos += 2;
+    } else if (ch === '{') {
+      let end;
+      try {
+        end = extractBracedExpression(text, pos).endIndex;
+      } catch {
+        end = pos;
+      }
+      let directive = text.slice(pos, end + 1);
+      const keyed = directive.match(/^\{(#each\s[\s\S]*\sas\s[\s\S]*?)\s*\(([\s\S]+)\)\s*\}$/);
+      if (keyed && balanced(keyed[2])) {
+        directive = `{${keyed[1]}}`;
+        pendingKey = keyed[2].trim();
+      }
+      out += directive;
+      pos = end + 1;
+    } else if (ch === '<' && /[a-zA-Z]/.test(text[pos + 1] || '')) {
+      const end = scanTagEnd(text, pos + 1);
+      if (end < 0) {
+        out += text.slice(pos);
+        break;
+      }
+      let tag = text.slice(pos, end + 1);
+      if (pendingKey !== null) {
+        if (!scanAttributes(tag).some((a) => a.name === 'key')) {
+          tag = tag.replace(/^(<[a-zA-Z][\w:-]*)/, `$1 key={${pendingKey}}`);
+        }
+        pendingKey = null;
+      }
+      out += tag;
+      pos = end + 1;
+    } else {
+      out += ch;
+      pos++;
+    }
+  }
+  return out;
+}
+
+// `a(b)` style group without a stray `)` - so `item (fn(a))` keys on fn(a)
+function balanced(expr) {
+  let depth = 0;
+  for (const ch of expr) {
+    depth += ch === '(' ? 1 : ch === ')' ? -1 : 0;
+    if (depth < 0) {
+      return false;
+    }
+  }
+  return depth === 0;
+}
+
+/**
+ * `style:color={expr}` (and `style:color="expr"`) set one CSS property: merged
+ * into the style attribute, left out when the value is null, undefined or false.
+ * `style:--accent={x}` sets a custom property.
+ */
+function rewriteStyleDirectives(tag) {
+  if (!/\sstyle:[\w-]+=/.test(tag)) {
+    return tag;
+  }
+  const attrs = scanAttributes(tag);
+  const directives = attrs.filter((a) => a.name.startsWith('style:'));
+  if (!directives.length) {
+    return tag;
+  }
+  const styleAttr = attrs.find((a) => a.name === 'style');
+  const dropped = new Set([...directives, styleAttr]);
+
+  let out = '';
+  let pos = 0;
+  for (const attr of attrs) {
+    if (dropped.has(attr)) {
+      out += tag.slice(pos, attr.start);
+      pos = attr.end;
+    }
+  }
+  out += tag.slice(pos);
+
+  let base = !styleAttr ? '' : styleAttr.quote === '{' ? `{${styleAttr.value}}` : styleAttr.value.trim();
+  if (base && !base.endsWith(';')) {
+    base += ';';
+  }
+  const props = directives
+    .map((d) => `{Fez.styleProp('${d.name.slice(6)}', (${d.value}))}`)
+    .join('');
+  return out.replace(/\s*(\/?>)$/, ` style="${base}${props}"$1`);
+}
+
 /**
  * `:name="expr"`, `:name='expr'` and `:name={expr}` all hold one JS expression
  * (an object literal too: `:cfg="{a: 1}"`). Each becomes a render slot lookup,
@@ -640,11 +810,20 @@ function autoInjectKeys(text) {
     const attrs = scanAttributes(tag);
     let extra = '';
 
-    const loops = scopeStack.filter((s) => s.type === 'loop' && !s.inElse);
-    const suffix = loops.map((loop) => `-{_fezI${loop.depth}}`).join('');
+    const suffix = scopeStack
+      .map((s) => {
+        if (s.type === 'loop' && !s.inElse) {
+          return `-{_fezI${s.depth}}`;
+        }
+        return s.type === 'key' ? `-k{Fez.fnv1(String(${s.expr}))}` : '';
+      })
+      .join('');
 
     if (!attrs.some((a) => a.name === 'key')) {
-      extra += ` fez-key="${keyCounter++}${suffix}"`;
+      // inside {#key} it is a user key: the differ never soft-matches two
+      // different user keys, so a new value always means new nodes
+      const name = scopeStack.some((s) => s.type === 'key') ? 'key' : 'fez-key';
+      extra += ` ${name}="${keyCounter++}${suffix}"`;
     }
 
     // inside a loop the index keeps the id unique per row
@@ -669,12 +848,14 @@ function autoInjectKeys(text) {
         end = pos;
       }
       const directive = text.slice(pos + 1, end).trim();
-      if (/^#(if|unless|await) /.test(directive)) {
+      if (/^#key /.test(directive)) {
+        scopeStack.push({ type: 'key', expr: directive.slice(5).trim() });
+      } else if (/^#(if|unless|await) /.test(directive)) {
         scopeStack.push({ type: 'block' });
       } else if (/^#(each|for) /.test(directive)) {
         const depth = scopeStack.filter((s) => s.type === 'loop').length;
         scopeStack.push({ type: 'loop', depth, inElse: false });
-      } else if (/^\/(if|unless|await|each|for)$/.test(directive)) {
+      } else if (/^\/(if|unless|await|each|for|key)$/.test(directive)) {
         scopeStack.pop();
       } else if (directive === ':else' || directive === 'else' || ELSE_IF_RE.test(directive)) {
         const top = scopeStack[scopeStack.length - 1];

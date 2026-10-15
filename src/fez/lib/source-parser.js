@@ -1,7 +1,7 @@
 import { slimToFez } from './slim.js';
 
-const BLOCK_TAG_RE = /(^|\n)[ \t]*<(demo|info|script|head|style|slim)\b([^>]*)>/gi;
-const DEFINITION_TAG_RE = /<(xmp|template)\b([^>]*)>/gi;
+const BLOCK_TAG_RE = /(^|\n)[ \t]*<(demo|info|script|head|style|slim)(?=[\s/>])([^>]*)>/gi;
+const DEFINITION_TAG_RE = /<(xmp|template)(?=[\s/>])([^>]*)>/gi;
 const GLOBAL_ATTR = /(?:^|\s)global(?:\s*=\s*(?:""|''|"global"|'global'|global))?(?=\s|$)/i;
 const FEZ_ATTR = /(?:^|\s)fez\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/i;
 // `fez static` prepends this to every built file (HTML comment, or `//` for JS)
@@ -227,7 +227,7 @@ function hasMarkup(text) {
 
 // text with every top-level block (<style>...</style> and friends) removed
 function withoutBlocks(text) {
-  return text.replace(/(^|\n)[ \t]*<(demo|info|script|head|style|slim)\b[^>]*>[\s\S]*?<\/\2\s*>/gi, '$1');
+  return text.replace(/(^|\n)[ \t]*<(demo|info|script|head|style|slim)(?=[\s/>])[^>]*>[\s\S]*?<\/\2\s*>/gi, '$1');
 }
 
 function withoutComments(html) {
@@ -278,7 +278,7 @@ function applySlim(result, block) {
 
 function protectedRanges(source) {
   const ranges = [];
-  const open = /(^|\n)[ \t]*<(demo|info)\b[^>]*>/gi;
+  const open = /(^|\n)[ \t]*<(demo|info)(?=[\s/>])[^>]*>/gi;
   let match;
 
   while ((match = open.exec(source))) {

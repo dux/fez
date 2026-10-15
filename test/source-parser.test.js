@@ -229,4 +229,12 @@ describe('Fez source parser', () => {
     expect(parts.html).toContain('<style>.a{ x: 1 }</style>');
     expect(parts.html).toContain('<script type="application/ld+json">');
   });
+
+  test('a component tag that starts with a block name is markup, not a block', () => {
+    const parts = parseFezSource('<script>\n  class {}\n</script>\n<demo-card label="a" />\n<info-box></info-box>');
+    expect(parts.errors).toEqual([]);
+    expect(parts.html).toContain('<demo-card label="a" />');
+    expect(parts.html).toContain('<info-box></info-box>');
+    expect(parts.demo).toBe('');
+  });
 });

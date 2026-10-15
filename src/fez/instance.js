@@ -713,17 +713,81 @@ export default class FezBase {
    * Schedule work on next animation frame (debounced by name)
    */
   fezNextTick(func, name) {
+    // a hidden tab pauses requestAnimationFrame: render on a timer instead, so
+    // state written in the background is painted and tick() still resolves
+    const schedule = document.hidden ? (fn) => setTimeout(fn, 0) : window.requestAnimationFrame;
     if (name) {
       this._nextTicks ||= {};
       // cleared before the call: a throwing render must not block every later
       // one, and a refresh requested while it runs gets a frame of its own
-      this._nextTicks[name] ||= window.requestAnimationFrame(() => {
+      this._nextTicks[name] ||= schedule(() => {
         this._nextTicks[name] = null;
-        func.call(this);
+        try {
+          func.call(this);
+        } finally {
+          if (name === 'fezRender') {
+            this.fezFlushTicks();
+          }
+        }
       });
     } else {
-      window.requestAnimationFrame(func.bind(this));
+      schedule(func.bind(this));
     }
+  }
+
+  /**
+   * Resolves once the pending render has reached the DOM (right away when
+   * nothing is pending): `this.state.open = true; await this.tick(); focus()`.
+   */
+  tick() {
+    if (!this._nextTicks?.fezRender) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => (this._fezTickWaiters ||= []).push(resolve));
+  }
+
+  fezFlushTicks() {
+    const waiters = this._fezTickWaiters;
+    this._fezTickWaiters = null;
+    waiters?.forEach((resolve) => resolve());
+  }
+
+  /**
+   * Context for descendants, Svelte's setContext / getContext in one call:
+   * this.context('theme', value) provides it here, this.context('theme') reads
+   * it from the nearest component up the tree (this one included). Read it in
+   * init(); it is not reactive - provide an object, or use globalState.
+   */
+  context(key, ...value) {
+    if (value.length) {
+      (this._fezContext ||= new Map()).set(key, value[0]);
+      return value[0];
+    }
+    for (let node = this.root; node; node = node.parentElement) {
+      if (node.fez?._fezContext?.has(key)) {
+        return node.fez._fezContext.get(key);
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Hand an error to the nearest ancestor component that defines onError(error,
+   * component) - an error boundary. Returns true when one took it.
+   */
+  fezBubbleError(error) {
+    for (let node = this.root?.parentElement; node; node = node.parentElement) {
+      const boundary = node.fez;
+      if (boundary && !boundary._destroyed && typeof boundary.onError === 'function') {
+        try {
+          boundary.onError(error, this);
+          return true;
+        } catch (e) {
+          error = e; // a boundary that throws passes the error further up
+        }
+      }
+    }
+    return false;
   }
 
   /**
@@ -761,6 +825,10 @@ export default class FezBase {
     this._isRendering = true;
     try {
       this.noChangeStateTrigger(() => this.fezRenderPass(template));
+    } catch (error) {
+      if (!this.fezBubbleError(error)) {
+        throw error;
+      }
     } finally {
       this._isRendering = false;
     }
@@ -797,6 +865,9 @@ export default class FezBase {
     // a template that threw (logged by the compiler) keeps the current DOM; no
     // commitRender, so the loop handlers that DOM still points at are not pruned
     if (renderedTpl === null) {
+      const error = this._fezTemplateError;
+      this._fezTemplateError = null;
+      this.fezBubbleError(error);
       return;
     }
 

@@ -41,3 +41,8 @@ export function htmlAttr(name, value, escape) {
   }
   return ` ${name}="${escape(value)}"`;
 }
+
+// `style:name={value}`: one declaration, or '' when the value is unset
+export function styleProp(name, value) {
+  return value == null || value === false ? '' : `${name}: ${value};`;
+}

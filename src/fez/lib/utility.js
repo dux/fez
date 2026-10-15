@@ -1,4 +1,4 @@
-import { htmlAttr } from './attrs.js';
+import { htmlAttr, styleProp } from './attrs.js';
 
 // Append <head> block HTML to document.head. Scripts are recreated so they run.
 function appendHeadHtml(html) {
@@ -471,6 +471,7 @@ export default (Fez) => {
 
   // `name={expr}` in a template: the whole attribute, or '' to drop it
   Fez.htmlAttr = (name, value) => htmlAttr(name, value, Fez.htmlEscape);
+  Fez.styleProp = styleProp;
 
   // Escape a value for a quoted JS string inside handler code, so a quote in
   // the data cannot end the string: onclick="fez.rm('{id}')"

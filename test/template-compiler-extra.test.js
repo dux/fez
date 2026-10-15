@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Window } from "happy-dom";
 import createTemplateCompiler from "../src/fez/lib/template-compiler.js";
-import { htmlAttr } from "../src/fez/lib/attrs.js";
+import { htmlAttr, styleProp } from "../src/fez/lib/attrs.js";
 import { decodeExpressionEntities } from "../src/fez/lib/template-compiler-lib.js";
 import RenderSlots from "../src/fez/lib/render-slots.js";
 
@@ -11,6 +11,8 @@ let window, document;
 // Mock Fez for template tests
 const MockFez = {
   htmlAttr: (name, value) => htmlAttr(name, value, MockFez.htmlEscape),
+  styleProp,
+  fnv1: (t) => String(t),
   jsEscape: (v) => (v == null ? "" : JSON.stringify(String(v)).slice(1, -1).replace(/['`$]/g, "\\$&")),
   htmlEscape: (str) => {
     if (str == null) return "";
