@@ -2,7 +2,7 @@
 <info>
   <ul>
     <li>One small app that uses most Fez features together - a task board, a form, live stats and a page outlet</li>
-    <li>Props: typed <code>PROPS</code> (Array transform, Number, Boolean, enum, required Object, Function into state)</li>
+    <li>Props: typed <code>PROPS</code> (Array transform, Number, Boolean, enum, required Object, Function into state, Object/Array shorthand)</li>
     <li>Lifecycle: <code>init</code>, <code>beforeRender</code>, <code>onMount</code>, <code>onRefresh(props, changed)</code>, <code>onGlobalStateChange</code></li>
     <li>Template: Slim, <code>{#if}</code> / <code>{#unless}</code>, <code>{#each}</code> with <code>:else</code>, object <code>{#for k, v}</code>, <code>{#await}</code>, <code>{@html}</code>, <code>{@json}</code>, <code>class:</code>, strict <code>onclick!</code>, arrow handlers with loop objects</li>
     <li>DOM: <code>fez:this</code>, <code>fez:bind</code> (text, select, checkbox, radio, textarea), <code>fez:use</code>, <code>fez:keep</code>, keyed <code>fez:in</code> / <code>fez:out</code> / <code>fez:animate</code></li>
@@ -153,6 +153,7 @@
     class {
       PROPS = {
         columns: { type: Array, default: (raw) => (raw || 'todo, doing, done').split(/\s*,\s*/) },
+        headings: Object,   // a declared Object with no default reads as {} when missing
       }
 
       init() {
@@ -274,7 +275,7 @@
     .cols
       - each props.columns as col
         section.col data-col={col}
-          h4 = col
+          h4 = props.headings[col] || col
           - each state.byCol[col] as task
             .task key={task.id} fez:in="fade, duration=150" fez:out="fade, duration=150" fez:animate="flip, duration=200"
               kitchen-card :task="task" :onselect="fez.select" priority={task.tags.includes('core') ? 'high' : 'mid'}

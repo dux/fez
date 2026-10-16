@@ -1,4 +1,4 @@
-// v: 3.9.4 | AGENTS: https://raw.githubusercontent.com/dux/fez/refs/heads/main/AGENTS.md
+// v: 3.9.7 | AGENTS: https://raw.githubusercontent.com/dux/fez/refs/heads/main/AGENTS.md
 (() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -3029,8 +3029,10 @@ ${demo}
       if (!spec) {
         return value;
       }
+      let failed = false;
       const fail = (msg) => {
         Fez.onError("props", `<${tagName || "fez"}> prop "${name}": ${msg}`);
+        failed = true;
         return void 0;
       };
       const show = (v2) => typeof v2 === "string" ? JSON.stringify(v2) : String(v2);
@@ -3100,6 +3102,13 @@ ${demo}
       }
       if (v === void 0 && type === Boolean) {
         v = false;
+      }
+      if (v === void 0 && !spec.required && !failed) {
+        if (type === Object) {
+          v = {};
+        } else if (type === Array) {
+          v = [];
+        }
       }
       return v;
     }
@@ -7174,7 +7183,7 @@ ${after})`;
   var lib_default = index;
 
   // package.json
-  var version = "3.9.4";
+  var version = "3.9.7";
 
   // src/fez/lib/utility.js
   function appendHeadHtml(html) {
