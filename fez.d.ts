@@ -64,7 +64,11 @@ interface PropSpec<T = any> {
   enum?: readonly T[];
 }
 
-/** `PROPS = { name: String, count: { type: Number, default: 0 } }` */
+/**
+ * `PROPS = { name: String, count: { type: Number, default: 0 }, site: Object }`.
+ * A declared `Object` / `Array` with no explicit default reads as `{}` / `[]`
+ * when missing, so `site: Object` is the terse `{ type: Object, default: {} }`.
+ */
 type PropsSchema = Record<string, PropType | PropSpec>;
 
 type PropTypeOf<T> =

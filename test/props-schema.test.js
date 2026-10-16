@@ -192,6 +192,35 @@ describe("FezBase.castProps - default / required / enum", () => {
     expect(a.config).not.toBe(b.config);
   });
 
+  test("declared Object / Array with no default read as empty, copied per cast", () => {
+    const K = klass({ site: Object, items: Array });
+    const a = K.castProps({});
+    const b = K.castProps({});
+    expect(a.site).toEqual({});
+    expect(a.site).not.toBe(b.site);
+    expect(a.items).toEqual([]);
+    expect(a.items).not.toBe(b.items);
+    // JSON strings still parse, a given value wins over the empty default
+    expect(K.castProps({ items: "[1,2]" }).items).toEqual([1, 2]);
+    expect(K.castProps({ site: '{"a":1}' }).site).toEqual({ a: 1 });
+  });
+
+  test("required Object / Array with no value stay absent", () => {
+    const K = klass({
+      site: { type: Object, required: true },
+      items: { type: Array, required: true },
+    });
+    const out = K.castProps({}, "x-foo");
+    expect("site" in out).toBe(false);
+    expect("items" in out).toBe(false);
+    expect(errors.length).toBe(2);
+  });
+
+  test("explicit default: null on an Object is kept", () => {
+    const K = klass({ site: { type: Object, default: null } });
+    expect(K.castProps({}).site).toBe(null);
+  });
+
   test("default is not applied when value given", () => {
     const K = klass({ size: { type: String, default: "md" } });
     expect(K.castProps({ size: "lg" }).size).toBe("lg");

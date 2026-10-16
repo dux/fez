@@ -1089,6 +1089,7 @@ Caveats:
     size:    { type: String, default: 'md', enum: ['sm', 'md', 'lg'] },
     items:   { type: Array, default: [] },               // JSON string parsed, or pass :items="..."; literal default copied per instance
     user:    { type: Object, required: true },          // missing -> Fez.onError('props', ...)
+    site:    Object,                                    // == { type: Object, default: {} }; Array reads as []
     on_pick: { type: Function, state: true },           // :on_pick="fn" or on_pick="doIt()" -> this.state.on_pick
     since:   { type: Date },
     tags:    { type: Array, state: true,                // seeds this.state.tags before init()
@@ -1099,6 +1100,7 @@ Caveats:
   - Types: `String`, `Number`, `Boolean`, `Array`, `Object`, `Function`, `Date`, or a custom `(raw, name) => value` function
   - Fields: `type`, `default` (value or fn), `state`, `required`, `enum`; order: transform -> coerce -> required -> enum -> default
   - A literal `default: []` / `default: {}` is shallow-copied per instance, so instances never share one object - no need for `() => []`
+  - A declared `Object` / `Array` with no explicit `default` reads as an empty `{}` / `[]` when missing, the way a Boolean reads as `false` (`required` missing stays absent, an explicit `default: null` is kept) - so `site: Object` / `items: Array` is the terse form of `{ type: Object, default: {} }` / `{ type: Array, default: [] }`
   - `Function` accepts a real function (`:on_pick="..."`) or a string handler (`on_pick="doIt()"`, resolved with `Fez.getFunction`); its `default` is always the handler itself, never a transform
   - **`default` as a transform**: a `default` function that *declares a parameter* receives the raw attribute value
     (`undefined` when the attribute is missing) and its result is what gets type checked - the way to accept

@@ -1917,6 +1917,7 @@ Props without a schema entry pass through untouched; components without `PROPS` 
         size:    { type: String, default: 'md', enum: ['sm', 'md', 'lg'] },
         items:   { type: Array, default: [] },                // JSON string is parsed; literal default is copied per instance
         user:    { type: Object, required: true },
+        site:    Object,                                     // a declared Object/Array with no default reads as {} / []
         on_pick: { type: Function, state: true },            // :on_pick="fn" or on_pick="doIt()" -> this.state.on_pick
         since:   { type: Date },
         tags:    (raw) => String(raw).split(','),             // any other function = custom caster
@@ -1951,7 +1952,7 @@ Coercion rules (idempotent - values that already have the right type pass throug
 - `String` - `String(v)`
 - `Number` - `Number(v)`; `NaN` is an error
 - `Boolean` - attribute present with no value (`<x open>`) and `open="open"` are `true`; `"false"`, `"0"`, `"off"`, `"no"`, `"null"` are `false`; a declared Boolean with no attribute is `false`
-- `Array` / `Object` - strings are `JSON.parse`d; wrong shape is an error
+- `Array` / `Object` - strings are `JSON.parse`d; wrong shape is an error. A declared `Object` / `Array` with no explicit `default` reads as `{}` / `[]` when missing (an explicit `default: null` is kept, a missing `required` stays absent), so `site: Object` / `items: Array` is the terse `{ type: Object, default: {} }` / `{ type: Array, default: [] }`
 - `Function` - a function passes through (`:on_pick="..."`, `Fez.pointer()`); a string is resolved with `Fez.getFunction` like an inline `onclick`; anything else is an error
 - `Date` - ISO string or epoch number -> `Date`; invalid is an error
 - Order per key: transform, coerce, `required`, `enum`, then `default`

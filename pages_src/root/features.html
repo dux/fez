@@ -343,7 +343,7 @@ rename(name) {
 
             <article class="site-feature-row" id="prop-rules">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">default · required · enum · transform · state</p>
+                <p class="site-feature-kicker">default · required · enum · transform · state · shorthand</p>
                 <h3>Validation and state seeding</h3>
                 <p>Defaults recover missing or invalid values, <code>required</code> reports omissions, <code>enum</code> limits choices, a one-argument default transforms raw input, and <code>state</code> seeds component-owned reactive data once.</p>
               </div>
@@ -360,6 +360,7 @@ rename(name) {
     default: raw =&gt; (raw || '').split(','),
   },
   user: { type: Object, required: true },
+  site: Object,
 }</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">size = md</span><span class="result-chip">state.tags = [...]</span><span>errors route through Fez.onError</span></div>
                 <div class="out-label">state seeding copies arrays and plain objects shallowly</div>

@@ -288,8 +288,10 @@ export default class FezBase {
       return value;
     }
 
+    let failed = false;
     const fail = (msg) => {
       Fez.onError('props', `<${tagName || 'fez'}> prop "${name}": ${msg}`);
+      failed = true;
       return undefined;
     };
     const show = (v) => (typeof v === 'string' ? JSON.stringify(v) : String(v));
@@ -389,6 +391,18 @@ export default class FezBase {
     // declared Boolean with no attribute and no default reads as false
     if (v === undefined && type === Boolean) {
       v = false;
+    }
+
+    // declared Object / Array with no value and no default reads as an empty
+    // container, the way a Boolean reads as false. A coercion error is still
+    // reported and dropped, a missing `required` stays absent, and an explicit
+    // default wins (it already set v above).
+    if (v === undefined && !spec.required && !failed) {
+      if (type === Object) {
+        v = {};
+      } else if (type === Array) {
+        v = [];
+      }
     }
 
     return v;
