@@ -1,6 +1,6 @@
 {
   "name": "@dinoreic/fez",
-  "version": "3.9.4",
+  "version": "3.9.7",
   "description": "Runtime custom DOM elements lib",
   "main": "dist/fez.cjs",
   "module": "dist/fez.esm.js",
