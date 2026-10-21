@@ -83,7 +83,8 @@ import Button from './components/ui-button.fez'; // default export is the class
   file may both declare `const helper`.
 - A `<head>` block is emitted as `Fez.head("<html>")` before the component class is defined.
 - `minify` (default `false`; Vite defaults to `true` when `mode === 'production'`) drops
-  `<info>` / `<demo>` metadata from the emitted module.
+  `<info>` / `<demo>` metadata from the emitted module and minifies `<style>` blocks
+  (`lib/minify-css.js`: comments and whitespace only, nesting and style macros kept for the runtime).
 - Emitted modules read the runtime from `window.Fez` and never import it: load fez once on the
   page before the component modules, or the module throws `fez runtime not loaded`.
 - One plugin for both bundlers: Vite-only hooks (`enforce`, `configResolved`) are ignored by

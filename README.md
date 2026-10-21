@@ -1594,7 +1594,8 @@ import Button from './components/ui-button.fez'; // or import the class
 - Build-time checks run for the component name, script syntax, style scope and template
   compilation, so a broken component fails the build instead of the browser.
 - `minify` (default `false`; the Vite plugin defaults it to `true` in production) drops
-  `<info>` / `<demo>` metadata from the emitted module.
+  `<info>` / `<demo>` metadata from the emitted module and strips comments and whitespace from
+  `<style>` blocks (the nesting and style macros stay for the runtime).
 - Static imports (multi-line named imports included) are hoisted to the top of the module and
   deduped across the components of one file.
 - Each component of a multi-component file gets its own block scope, so two components may both

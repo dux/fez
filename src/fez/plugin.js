@@ -9,9 +9,9 @@ import { compileFileToModule } from './compile-module.js';
  * Both import it as `@dinoreic/fez/plugin`.
  *
  * @param {Object} [options]
- * @param {boolean} [options.minify] - drop <info>/<demo> metadata. Vite defaults
- *   to `true` when `config.mode === 'production'`; Rollup has no mode, so it
- *   defaults to false. Pass true/false to override both.
+ * @param {boolean} [options.minify] - drop <info>/<demo> metadata and minify
+ *   component CSS. Vite defaults to `true` when `config.mode === 'production'`;
+ *   Rollup has no mode, so it defaults to false. Pass true/false to override both.
  *
  * @example
  * // vite.config.js

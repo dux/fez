@@ -17,6 +17,7 @@ import { stripTypeScript } from './lib/strip-types.js';
 import createTemplate from './lib/template.js';
 import { locateSlimError } from './lib/slim.js';
 import { buildClassSource, trimTemplateLines } from './lib/class-source.js';
+import minifyCss from './lib/minify-css.js';
 
 function assertName(name) {
   if (!name.includes('-')) {
@@ -88,6 +89,10 @@ function compileUnit(name, source, { minify }) {
   parts.html = trimTemplateLines(parts.html);
   assertTemplate(name, parts.html, parts.template);
 
+  if (minify) {
+    parts.style = minifyCss(parts.style);
+    parts.styleGlobal = minifyCss(parts.styleGlobal);
+  }
   klass = buildClassSource({ ...parts, script: klass });
 
   const { preamble, body } = splitScript(klass);
@@ -113,7 +118,7 @@ function compileUnit(name, source, { minify }) {
  * @param {string} filePath - Absolute path, used for the default component name
  * @param {string} source - .fez source
  * @param {Object} [options]
- * @param {boolean} [options.minify=false] - drop <info>/<demo> metadata
+ * @param {boolean} [options.minify=false] - drop <info>/<demo> metadata and minify component CSS
  * @returns {string}
  */
 export function compileFileToModule(filePath, source, options = {}) {
