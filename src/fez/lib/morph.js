@@ -38,12 +38,6 @@ export function nodeMorph(target, newNode, opts = {}) {
   // Callers may set root attributes (e.g. component wrappers); diffing them
   // would surprise the caller.
   diffChildren(target, newNode, opts);
-
-  // Clean up trailing whitespace text node (matches old behavior)
-  const next = target.nextSibling;
-  if (next?.nodeType === 3 && !next.textContent.trim()) {
-    next.remove();
-  }
 }
 
 // ---------------------------------------------------------------------------

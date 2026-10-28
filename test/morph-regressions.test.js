@@ -90,3 +90,26 @@ test("a template that moves a single select's selection wins in one step", () =>
   morphTo(c, `<select>${options(2)}</select>`);
   expect(c.querySelector("select").value).toBe("c");
 });
+
+// A component that renders on connect runs its own nodeMorph in the middle of
+// the parent's diff; it must not touch the parent's children (pjax full swap
+// threw "insertBefore ... not a child of this node").
+test("a child that renders on connect leaves its siblings to the parent diff", () => {
+  const win = document.defaultView;
+  win.customElements.define("x-renders-on-connect", class extends win.HTMLElement {
+    connectedCallback() {
+      const next = document.createElement("div");
+      next.innerHTML = "<span>rendered</span>";
+      nodeMorph(this, next);
+    }
+  });
+  const rendered = "<x-renders-on-connect><span>rendered</span></x-renders-on-connect>";
+
+  const c = mount("<p>a</p>\n<i>y</i>");
+  morphTo(c, "<p>a</p><x-renders-on-connect></x-renders-on-connect><i>y</i>\n");
+  expect(c.innerHTML).toBe(`<p>a</p>${rendered}<i>y</i>\n`);
+
+  const d = mount("<p>a</p>\n<i>y</i>");
+  morphTo(d, "<p>a</p>\n<x-renders-on-connect></x-renders-on-connect>\n<i>y</i>");
+  expect(d.innerHTML).toBe(`<p>a</p>\n${rendered}\n<i>y</i>`);
+});
