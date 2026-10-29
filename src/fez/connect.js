@@ -12,7 +12,8 @@
  * 3. connectNode() - creates instance, renders, calls lifecycle
  */
 
-import createTemplate from './lib/template.js';
+import createTemplate, { slotTemplate } from './lib/template.js';
+import { wrapRender } from './lib/template-compiler.js';
 import closeCustomTags from './lib/close-custom-tags.js';
 import FezBase from './instance.js';
 
@@ -45,25 +46,28 @@ export default function connect(name, klass) {
   // Transform to FezBase subclass
   klass = ensureFezBase(Fez, name, klass);
 
-  // Process HTML template
-  if (klass.html) {
-    if (/<slot\s[^>]*unwrap[\s>\/]/.test(klass.html)) {
-      klass.fezSlotUnwrap = true;
-    }
-
-    // The wrapper div is the morph anchor for slot content, not legacy cruft.
-    // Slotted children are external light DOM injected once - they never appear
-    // in the template output. fez-keep lets the differ match the empty .fez-slot
-    // placeholder on each re-render and preserve the captured children in place.
-    // Drop the wrapper (unwrap) and there is nothing for the differ to match, so
-    // the content gets removed on the next render - which is why unwrap disables
-    // this.state. unwrap exists for layout transparency (flex/grid/ul/table), at
-    // the cost of reactivity; the two modes are a trade, not redundancy.
-    klass.html = klass.html
-      .replace(/<slot(\s[^>]*)?>/, '<div class="fez-slot" fez-keep="default-slot"$1>')
-      .replace('</slot>', '</div>');
-
-    klass.fezHtmlFunc = createTemplate(klass.html, { name });
+  // Process HTML template. The wrapper div is the morph anchor for slot
+  // content, not legacy cruft. Slotted children are external light DOM
+  // injected once - they never appear in the template output. fez-keep lets the
+  // differ match the empty .fez-slot placeholder on each re-render and
+  // preserve the captured children in place. Drop the wrapper (unwrap) and
+  // there is nothing for the differ to match, so the content gets removed on
+  // the next render - which is why unwrap disables this.state. unwrap exists
+  // for layout transparency (flex/grid/ul/table), at the cost of reactivity;
+  // the two modes are a trade, not redundancy.
+  const precompiled = klass.FEZ_TEMPLATE;
+  if (precompiled) {
+    // the bundler plugin compiled the template into the module (no eval)
+    klass.fezSlotUnwrap = precompiled.slotUnwrap;
+    klass.fezHtmlFunc = wrapRender((ctx) => precompiled.render.call(ctx), { name });
+  } else if (klass.html) {
+    const slot = slotTemplate(klass.html);
+    klass.fezSlotUnwrap = slot.slotUnwrap;
+    klass.html = slot.html;
+    // compiled on first render: a component that never mounts never evaluates
+    // code (the CSP build cannot, see lib/evaluate.js)
+    let render;
+    klass.fezHtmlFunc = (ctx) => (render ||= createTemplate(klass.html, { name }))(ctx);
   }
 
   // Register CSS. Scoped block gets the component name so :fez resolves;
@@ -173,6 +177,10 @@ function ensureFezBase(Fez, name, klass) {
       typeof instance.CSS_GLOBAL === 'function' ? instance.CSS_GLOBAL() : instance.CSS_GLOBAL;
   }
 
+  if (klass.FEZ_TEMPLATE) {
+    newKlass.FEZ_TEMPLATE = klass.FEZ_TEMPLATE;
+  }
+
   // Handle HTML (can be string or function)
   if (instance.HTML) {
     const html = typeof instance.HTML === 'function' ? instance.HTML() : instance.HTML;
@@ -278,8 +286,8 @@ function connectNode(name, node) {
   // user, `fez-key` as the explicit opt-in for server-rendered HTML (a matched
   // component is preserved and gets a props refresh instead of destroy +
   // recreate, even when attrs or content changed), `fez-keep` for plain
-  // preservation.
-  for (const attr of ['key', 'fez-key', 'fez-keep']) {
+  // preservation. `fez-on` are the parent's precompiled handlers on this tag.
+  for (const attr of ['key', 'fez-key', 'fez-keep', 'fez-on']) {
     const value = node.getAttribute(attr);
     if (value) {
       newNode.setAttribute(attr, value);

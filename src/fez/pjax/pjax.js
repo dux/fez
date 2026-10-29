@@ -12,7 +12,7 @@
 import Fez from '../root.js';
 import createOnClick from './onclick.js';
 import attachUrlState from './url-state.js';
-import { runScripts, runHeadScripts } from './scripts.js';
+import { runScripts, runHeadScripts, responseNonce } from './scripts.js';
 
 export default function createPjax() {
   class Pjax {
@@ -82,7 +82,7 @@ export default function createPjax() {
           Pjax._abort('full');
           const root = document.createElement('div');
           root.innerHTML = entry.html;
-          Promise.resolve(Pjax.setPageBody(root, path)).then((applied) => {
+          Promise.resolve(Pjax.setPageBody(root, path, entry.nonce)).then((applied) => {
             if (!applied) {
               return;
             }
@@ -362,7 +362,8 @@ export default function createPjax() {
 
     // --- page rendering ---
 
-    static setPageBody(root, href) {
+    // `nonce` is the CSP nonce of the response the root came from (see scripts.js)
+    static setPageBody(root, href, nonce) {
       const title = root.querySelector('title')?.innerHTML;
       document.title = title || 'no page title (pjax)';
       Pjax.scrollLock();
@@ -376,8 +377,8 @@ export default function createPjax() {
       }
 
       const finish = () => {
-        runHeadScripts(root, newBody, Pjax.error);
-        Pjax.morphInto(pjaxNode, runScripts(newBody));
+        runHeadScripts(root, newBody, Pjax.error, nonce);
+        Pjax.morphInto(pjaxNode, runScripts(newBody, nonce));
         Pjax.after(href);
       };
 
@@ -417,13 +418,13 @@ export default function createPjax() {
 
     // --- history management ---
 
-    static _addHistoryEntry(href, html) {
+    static _addHistoryEntry(href, html, nonce) {
       const keys = Object.keys(Pjax.historyData);
       const max = Pjax.config.history_max || 20;
       if (keys.length >= max) {
         delete Pjax.historyData[keys[0]];
       }
-      Pjax.historyData[href] = { html, scrollY: 0 };
+      Pjax.historyData[href] = { html, nonce, scrollY: 0 };
     }
 
     // --- internal ---
@@ -733,6 +734,7 @@ export default function createPjax() {
 
     handleResponse(res, html) {
       this.response = html;
+      this.nonce = responseNonce(res.headers.get('content-security-policy'));
 
       const note = this.opts.history === false ? ' (no history)' : '';
       Pjax.console(
@@ -833,7 +835,7 @@ export default function createPjax() {
       }
 
       Pjax.scrollLock();
-      Pjax.morphInto(this.target, runScripts(source));
+      Pjax.morphInto(this.target, runScripts(source, this.nonce));
       return true;
     }
 
@@ -847,13 +849,13 @@ export default function createPjax() {
       }
       // a response without the region's id is the region content itself
       const source = Pjax.findById(this.responseRoot, region.id) || this.responseRoot;
-      Pjax.morphInto(region, runScripts(source));
+      Pjax.morphInto(region, runScripts(source, this.nonce));
       return true;
     }
 
     applyFullSwap() {
-      Pjax._addHistoryEntry(this.href, this.response);
-      return Pjax.setPageBody(this.responseRoot, this.href);
+      Pjax._addHistoryEntry(this.href, this.response, this.nonce);
+      return Pjax.setPageBody(this.responseRoot, this.href, this.nonce);
     }
 
     historyAddCurrent(href) {

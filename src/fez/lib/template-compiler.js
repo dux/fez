@@ -31,6 +31,7 @@ import {
   scanTagEnd,
 } from './template-compiler-lib.js';
 import closeCustomTags from './close-custom-tags.js';
+import evaluate from './evaluate.js';
 
 /**
  * Compile template to a function that returns HTML string
@@ -42,515 +43,675 @@ import closeCustomTags from './close-custom-tags.js';
  * @param {boolean} opts.static - Skip browser-runtime template transforms
  */
 export default function createTemplateCompiler(text, opts = {}) {
-  const componentName = opts.name || 'unknown';
-  const staticMode = opts.static === true;
-
   try {
-    if (!staticMode) {
-      // Allow Fez namespace syntax as alias for fez-attr
-      text = text.replace(/\bfez:([a-z][a-z0-9-]*)=/gi, 'fez-$1=');
-
-      // Strict event handlers: `on<event>!="body"` runs the body only when the
-      // element itself is the target (no child captured the event) and swallows
-      // it (stopPropagation + preventDefault). Body must be a single expression.
-      text = text.replace(
-        /\bon([a-z]+)!=(["'])([\s\S]*?)\2/gi,
-        (_, ev, q, body) => `on${ev}=${q}fez.fezBang(event) && (${body})${q}`,
-      );
+    const source = compileTemplateLiteral(text, opts);
+    const tplFunc = evaluate(
+      'a template',
+      `const fez = this;\nwith (this) {\nreturn \`${source}\`\n}`,
+    );
+    return wrapRender((ctx) => tplFunc.call(ctx), opts, source);
+  } catch (e) {
+    if (opts.strict) {
+      throw new Error(`FEZ template compile error in <${opts.name || 'unknown'}>: ${e.message}`, {
+        cause: e,
+      });
     }
+    console.error(`FEZ template compile error in <${opts.name || 'unknown'}>:`, e.message);
+    console.error('Template:', text.substring(0, 200));
+    return () => '';
+  }
+}
 
-    // {#each items as item (item.id)} -> key={item.id} on the first element of the body
-    text = injectEachKeys(text);
-
-    // Convert class:name={expr} conditional class directives
-    // e.g. class:active={state.value === key} -> merges ternary into class attribute
-    text = mapTags(text, rewriteClassDirectives);
-    // style:color={expr} -> merged into the style attribute, dropped when null/false
-    text = mapTags(text, rewriteStyleDirectives);
-    mapTags(text, rejectForeignAttrs);
-
-    // Error if fez-keep is placed on a fez component (custom element with dash in tag name)
-    const keepOnComponent = text.match(/<([a-z]+-[a-z][a-z0-9-]*)\b[^>]*\bfez-keep=/);
-    if (keepOnComponent) {
-      console.error(
-        `FEZ: fez:keep must be on plain HTML elements, not on fez components. Found on <${keepOnComponent[1]}> in <${componentName}>`,
-      );
-    }
-
-    // Process block definitions and references before parsing
-    const blocks = {};
-    text = text.replace(/\{@block\s+(\w+)\}([\s\S]*?)\{\/block\}/g, (_, name, content) => {
-      blocks[name] = content;
-      return '';
-    });
-    text = text.replace(/\{@block:(\w+)\}/g, (_, name) => blocks[name] || '');
-
-    // Convert :attr="expr" to a render slot lookup (see lib/render-slots.js).
-    // The value is parked on the parent at render time and the HTML carries
-    // only the slot key, so loop variables and objects can be passed as props.
-    // :file="el.file" -> :file={`Fez(${UID}).fezGlobals.value(${fez.fezGlobals.set(el.file)})`}
-    // Supports variable access, method calls, ternaries, arrow funcs, etc.
-    if (!staticMode) {
-      text = mapTags(text, rewriteColonProps);
-
-      // Remove HTML comments
-      text = text.replace(/<!--[\s\S]*?-->/g, '');
-
-      text = stripNodeWhitespace(text).trim();
-    }
-
-    // Convert self-closing tags to paired tags (shared with connect/compile)
-    text = closeCustomTags(text);
-
-    // Convert self-closing <slot /> to <slot></slot>
-    text = text.replace(/<slot\s*\/>/gi, '<slot></slot>');
-
-    // Auto-generate internal fez-key markers for stable morph diffing, and ids
-    // for static fez-this elements (see autoInjectKeys).
-    if (!staticMode) {
-      text = autoInjectKeys(text);
-    }
-
-    // Parse and build template literal
-    let result = '';
-    let i = 0;
-    const ifStack = []; // Track if blocks have else
-    const loopVarStack = []; // Track all loop variables for arrow function transformation
-    const loopItemVarStack = []; // Track item vars (non-index) that could be objects
-    const loopMaybeItemStack = []; // Vars that are an index or an object, known at render time
-    const loopStack = []; // Track loop info for :else support
-    const blockStack = []; // Open blocks in nesting order: { kind, open, consts }
-    const rootFrame = { consts: [] }; // {@const} outside any block
-    const awaitStack = []; // Track await blocks for :then/:catch
-    let awaitCounter = 0; // Unique ID for each await block
-    let rawFrom = 0; // body range of the current <script>/<style>, copied verbatim
-    let rawUntil = -1;
-
-    const openBlock = (kind, open) => blockStack.push({ kind, open, consts: [] });
-    // {@const} wraps the rest of its branch in an arrow call; a branch boundary
-    // ({:else}, {:then}, the closing tag) ends that wrap
-    const closeConsts = (frame) => {
-      while (frame.consts.length) {
-        const c = frame.consts.pop();
-        result += '`)(' + c.expr + ')}';
-        loopVarStack.pop();
-        loopItemVarStack.pop();
-        loopMaybeItemStack.pop();
-      }
-    };
-    const closeBranch = () => closeConsts(blockStack[blockStack.length - 1] || rootFrame);
-    const closeBlock = (kind, close) => {
-      closeBranch();
-      const top = blockStack.pop();
-      if (top?.kind !== kind) {
+/**
+ * Render function around compiled template code: a throw is reported (or
+ * rethrown with opts.strict) and the render keeps the last good DOM.
+ *
+ * @param {Function} render - (ctx) => HTML string
+ * @param {Object} opts - { name, strict }
+ * @param {string} [source] - template code, logged on a runtime error
+ */
+export function wrapRender(render, opts = {}, source = '') {
+  const componentName = opts.name || 'unknown';
+  return (ctx) => {
+    try {
+      return render(ctx);
+    } catch (e) {
+      if (opts.strict) {
         throw new Error(
-          top ? `{${close}} closes {${top.open}}` : `{${close}} without an open block`,
+          `FEZ template runtime error in <${ctx.fezName || componentName}>: ${e.message}`,
+          { cause: e },
         );
       }
-    };
-    const currentBlock = () => blockStack[blockStack.length - 1]?.kind;
-    const currentAwait = (tag) => {
-      if (currentBlock() !== 'await') {
-        throw new Error(`{${tag}} without matching {#await}`);
+      console.error(`FEZ template runtime error in <${ctx.fezName || componentName}>:`, e.message);
+      if (source) {
+        console.error('Template source:', source.substring(0, 500));
       }
-      return awaitStack[awaitStack.length - 1];
-    };
+      // picked up by fezRender for an onError boundary
+      ctx._fezTemplateError = e;
+      // null, not '': the render keeps the last good DOM instead of morphing to empty
+      return null;
+    }
+  };
+}
 
-    while (i < text.length) {
-      // <script> / <style> bodies are raw text: their braces are JS and CSS, not expressions
-      const rawOpen = text[i] === '<' && text.slice(i, i + 8).match(/^<(script|style)\b/i);
-      if (rawOpen) {
-        const close = text.slice(i).search(new RegExp(`</${rawOpen[1]}\\s*>`, 'i'));
-        const end = close < 0 ? text.length : i + close;
-        const openEnd = scanTagEnd(text, i + 1);
-        // the opening tag itself may hold {expressions}; only the body is raw
-        if (openEnd > 0 && openEnd < end) {
-          rawUntil = end;
-          rawFrom = openEnd + 1;
-        }
-      }
-      if (rawUntil > i && i >= rawFrom) {
-        result += text.slice(i, rawUntil).replace(/[\\`]|\$\{/g, (m) => '\\' + m);
-        i = rawUntil;
-        continue;
-      }
+/**
+ * Compile a template to the body of a JS template literal; throws on errors.
+ * The runtime evaluates it inside `with (this)` (createTemplateCompiler), the
+ * bundler plugin turns it into module code (template-precompile.js).
+ *
+ * @param {string} text - Template source
+ * @param {Object} opts - createTemplateCompiler options, plus
+ * @param {boolean} opts.precompile - Handlers become closures instead of
+ *   attribute code (see rewritePrecompiledHandlers)
+ */
+export function compileTemplateLiteral(text, opts = {}) {
+  const componentName = opts.name || 'unknown';
+  const staticMode = opts.static === true;
+  const handlers = opts.precompile ? [] : null;
 
-      // A backtick in text content is a plain character (`code` in prose)
-      if (text[i] === '`' && !insideTag(text, i)) {
-        result += '\\`';
-        i++;
-        continue;
-      }
+  if (!staticMode) {
+    // Allow Fez namespace syntax as alias for fez-attr
+    text = text.replace(/\bfez:([a-z][a-z0-9-]*)=/gi, 'fez-$1=');
 
-      // Skip JavaScript template literals (backtick strings) in attribute code:
-      // onclick="go(`${x}`)" is JS, not a Fez expression
-      if (text[i] === '`') {
-        result += '\\`';
-        i++;
-        // Copy everything until closing backtick
-        while (i < text.length && text[i] !== '`') {
-          if (text[i] === '\\') {
-            // Handle escaped characters
-            result += '\\\\';
-            i++;
-            if (i < text.length) {
-              if (text[i] === '`') {
-                result += '\\`';
-              } else if (text[i] === '$') {
-                result += '\\$';
-              } else {
-                result += text[i];
-              }
-              i++;
-            }
-          } else if (text[i] === '$' && text[i + 1] === '{') {
-            // Keep JS template literal interpolation as-is (escape $ for outer template)
-            result += '\\${';
-            i += 2;
-            // Copy until matching }
-            let depth = 1;
-            while (i < text.length && depth > 0) {
-              if (text[i] === '{') {
-                depth++;
-              } else if (text[i] === '}') {
-                depth--;
-              }
-              if (depth > 0 || text[i] !== '}') {
-                if (text[i] === '`') {
-                  result += '\\`';
-                } else if (text[i] === '\\') {
-                  result += '\\\\';
-                } else {
-                  result += text[i];
-                }
-              } else {
-                result += '}';
-              }
-              i++;
-            }
-          } else {
-            // Regular character inside backticks - escape special chars for outer template
-            if (text[i] === '$') {
+    // Strict event handlers: `on<event>!="body"` runs the body only when the
+    // element itself is the target (no child captured the event) and swallows
+    // it (stopPropagation + preventDefault). Body must be a single expression.
+    text = text.replace(
+      /\bon([a-z]+)!=(["'])([\s\S]*?)\2/gi,
+      (_, ev, q, body) => `on${ev}=${q}fez.fezBang(event) && (${body})${q}`,
+    );
+
+    if (handlers) {
+      text = mapTags(text, (tag) => rewritePrecompiledHandlers(tag, handlers));
+    }
+  }
+
+  // {#each items as item (item.id)} -> key={item.id} on the first element of the body
+  text = injectEachKeys(text);
+
+  // Convert class:name={expr} conditional class directives
+  // e.g. class:active={state.value === key} -> merges ternary into class attribute
+  text = mapTags(text, rewriteClassDirectives);
+  // style:color={expr} -> merged into the style attribute, dropped when null/false
+  text = mapTags(text, rewriteStyleDirectives);
+  mapTags(text, rejectForeignAttrs);
+
+  // Error if fez-keep is placed on a fez component (custom element with dash in tag name)
+  const keepOnComponent = text.match(/<([a-z]+-[a-z][a-z0-9-]*)\b[^>]*\bfez-keep=/);
+  if (keepOnComponent) {
+    console.error(
+      `FEZ: fez:keep must be on plain HTML elements, not on fez components. Found on <${keepOnComponent[1]}> in <${componentName}>`,
+    );
+  }
+
+  // Process block definitions and references before parsing
+  const blocks = {};
+  text = text.replace(/\{@block\s+(\w+)\}([\s\S]*?)\{\/block\}/g, (_, name, content) => {
+    blocks[name] = content;
+    return '';
+  });
+  text = text.replace(/\{@block:(\w+)\}/g, (_, name) => blocks[name] || '');
+
+  // Convert :attr="expr" to a render slot lookup (see lib/render-slots.js).
+  // The value is parked on the parent at render time and the HTML carries
+  // only the slot key, so loop variables and objects can be passed as props.
+  // :file="el.file" -> :file={`Fez(${UID}).fezGlobals.value(${fez.fezGlobals.set(el.file)})`}
+  // Supports variable access, method calls, ternaries, arrow funcs, etc.
+  if (!staticMode) {
+    text = mapTags(text, rewriteColonProps);
+
+    // Remove HTML comments
+    text = text.replace(/<!--[\s\S]*?-->/g, '');
+
+    text = stripNodeWhitespace(text).trim();
+  }
+
+  // Convert self-closing tags to paired tags (shared with connect/compile)
+  text = closeCustomTags(text);
+
+  // Convert self-closing <slot /> to <slot></slot>
+  text = text.replace(/<slot\s*\/>/gi, '<slot></slot>');
+
+  // Auto-generate internal fez-key markers for stable morph diffing, and ids
+  // for static fez-this elements (see autoInjectKeys).
+  if (!staticMode) {
+    text = autoInjectKeys(text);
+  }
+
+  // Parse and build template literal
+  let result = '';
+  let i = 0;
+  const ifStack = []; // Track if blocks have else
+  const loopVarStack = []; // Track all loop variables for arrow function transformation
+  const loopItemVarStack = []; // Track item vars (non-index) that could be objects
+  const loopMaybeItemStack = []; // Vars that are an index or an object, known at render time
+  const loopStack = []; // Track loop info for :else support
+  const blockStack = []; // Open blocks in nesting order: { kind, open, consts }
+  const rootFrame = { consts: [] }; // {@const} outside any block
+  const awaitStack = []; // Track await blocks for :then/:catch
+  let awaitCounter = 0; // Unique ID for each await block
+  let rawFrom = 0; // body range of the current <script>/<style>, copied verbatim
+  let rawUntil = -1;
+
+  const openBlock = (kind, open) => blockStack.push({ kind, open, consts: [] });
+  // {@const} wraps the rest of its branch in an arrow call; a branch boundary
+  // ({:else}, {:then}, the closing tag) ends that wrap
+  const closeConsts = (frame) => {
+    while (frame.consts.length) {
+      const c = frame.consts.pop();
+      result += '`)(' + c.expr + ')}';
+      loopVarStack.pop();
+      loopItemVarStack.pop();
+      loopMaybeItemStack.pop();
+    }
+  };
+  const closeBranch = () => closeConsts(blockStack[blockStack.length - 1] || rootFrame);
+  const closeBlock = (kind, close) => {
+    closeBranch();
+    const top = blockStack.pop();
+    if (top?.kind !== kind) {
+      throw new Error(top ? `{${close}} closes {${top.open}}` : `{${close}} without an open block`);
+    }
+  };
+  const currentBlock = () => blockStack[blockStack.length - 1]?.kind;
+  const currentAwait = (tag) => {
+    if (currentBlock() !== 'await') {
+      throw new Error(`{${tag}} without matching {#await}`);
+    }
+    return awaitStack[awaitStack.length - 1];
+  };
+
+  while (i < text.length) {
+    // <script> / <style> bodies are raw text: their braces are JS and CSS, not expressions
+    const rawOpen = text[i] === '<' && text.slice(i, i + 8).match(/^<(script|style)\b/i);
+    if (rawOpen) {
+      const close = text.slice(i).search(new RegExp(`</${rawOpen[1]}\\s*>`, 'i'));
+      const end = close < 0 ? text.length : i + close;
+      const openEnd = scanTagEnd(text, i + 1);
+      // the opening tag itself may hold {expressions}; only the body is raw
+      if (openEnd > 0 && openEnd < end) {
+        rawUntil = end;
+        rawFrom = openEnd + 1;
+      }
+    }
+    if (rawUntil > i && i >= rawFrom) {
+      result += text.slice(i, rawUntil).replace(/[\\`]|\$\{/g, (m) => '\\' + m);
+      i = rawUntil;
+      continue;
+    }
+
+    // A backtick in text content is a plain character (`code` in prose)
+    if (text[i] === '`' && !insideTag(text, i)) {
+      result += '\\`';
+      i++;
+      continue;
+    }
+
+    // Skip JavaScript template literals (backtick strings) in attribute code:
+    // onclick="go(`${x}`)" is JS, not a Fez expression
+    if (text[i] === '`') {
+      result += '\\`';
+      i++;
+      // Copy everything until closing backtick
+      while (i < text.length && text[i] !== '`') {
+        if (text[i] === '\\') {
+          // Handle escaped characters
+          result += '\\\\';
+          i++;
+          if (i < text.length) {
+            if (text[i] === '`') {
+              result += '\\`';
+            } else if (text[i] === '$') {
               result += '\\$';
             } else {
               result += text[i];
             }
             i++;
           }
-        }
-        if (i < text.length) {
-          result += '\\`';
-          i++;
-        }
-        continue;
-      }
-
-      // Escaped brace: \{ and \} are literal braces
-      if (text[i] === '\\' && (text[i + 1] === '{' || text[i + 1] === '}')) {
-        result += text[i + 1];
-        i += 2;
-        continue;
-      }
-
-      // Expression or directive
-      if (text[i] === '{') {
-        const { expression, endIndex } = extractBracedExpression(text, i);
-        let expr = expression.trim();
-
-        // Check if this is a JavaScript object literal (e.g., {d: 'top'}, {foo: 1, bar: 2})
-        // Object literals start with key: where key is identifier or quoted string
-        if (/^(\w+|"\w+"|'\w+')\s*:/.test(expr)) {
-          // Keep object literal as-is in the output
-          result += '{' + expression + '}';
-          i = endIndex + 1;
-          continue;
-        }
-
-        // Block directives
-        const elseIf = expr.match(ELSE_IF_RE);
-        if (expr.startsWith('#if ')) {
-          const cond = expr.slice(4);
-          result += '${Fez.isTruthy(' + cond + ') ? `';
-          ifStack.push(false); // No else yet
-          openBlock('if', '#if');
-        } else if (expr.startsWith('#unless ')) {
-          const cond = expr.slice(8);
-          result += '${!Fez.isTruthy(' + cond + ') ? `';
-          ifStack.push(false); // No else yet
-          openBlock('if', '#unless');
-        } else if (expr === ':else' || expr === 'else') {
-          closeBranch();
-          if (currentBlock() === 'loop') {
-            // :else inside a loop - for empty array case
-            loopStack[loopStack.length - 1].hasElse = true;
-            result += '`).join("") : `';
-          } else if (currentBlock() === 'if') {
-            result += '` : `';
-            ifStack[ifStack.length - 1] = true; // Has else
-          } else {
-            throw new Error('{:else} without matching {#if}, {#unless}, {#each}, or {#for}');
-          }
-        } else if (elseIf) {
-          if (currentBlock() !== 'if') {
-            throw new Error(`{${expr}} without matching {#if}`);
-          }
-          closeBranch();
-          result += '` : Fez.isTruthy(' + expr.slice(elseIf[0].length) + ') ? `';
-          // Keep hasElse as false - still need final else
-        } else if (expr === '/if' || expr === '/unless') {
-          closeBlock('if', expr);
-          const hasElse = ifStack.pop();
-          result += hasElse ? '`}' : '` : ``}';
-        } else if (expr.startsWith('#each ') || expr.startsWith('#for ')) {
-          const isEach = expr.startsWith('#each ');
-          let collection, binding;
-
-          if (isEach) {
-            const rest = expr.slice(6);
-            // last " as ": the collection expression may contain one
-            const asIdx = rest.lastIndexOf(' as ');
-            if (asIdx < 0) {
-              throw new Error(`{#each} is missing " as ": {${expr}}`);
+        } else if (text[i] === '$' && text[i + 1] === '{') {
+          // Keep JS template literal interpolation as-is (escape $ for outer template)
+          result += '\\${';
+          i += 2;
+          // Copy until matching }
+          let depth = 1;
+          while (i < text.length && depth > 0) {
+            if (text[i] === '{') {
+              depth++;
+            } else if (text[i] === '}') {
+              depth--;
             }
-            collection = rest.slice(0, asIdx).trim();
-            binding = rest.slice(asIdx + 4).trim();
-          } else {
-            const rest = expr.slice(5);
-            const inIdx = rest.indexOf(' in ');
-            if (inIdx < 0) {
-              throw new Error(`{#for} is missing " in ": {${expr}}`);
+            if (depth > 0 || text[i] !== '}') {
+              if (text[i] === '`') {
+                result += '\\`';
+              } else if (text[i] === '\\') {
+                result += '\\\\';
+              } else {
+                result += text[i];
+              }
+            } else {
+              result += '}';
             }
-            binding = rest.slice(0, inIdx).trim();
-            collection = rest.slice(inIdx + 4).trim();
-          }
-
-          const depth = loopStack.length;
-          const collectionExpr = buildCollectionExpr(collection, binding);
-          const { params, implicitIndex } = buildLoopParams(binding, depth, loopVarStack.flat());
-
-          // Track loop variables for arrow function transformation
-          loopVarStack.push(getLoopVarNames(binding, implicitIndex));
-          loopItemVarStack.push(getLoopItemVars(binding, !isEach));
-          // {#each list as item, x}: x is the index of an array but the value of an
-          // object, so handlers decide at render time (see transformArrowToHandler)
-          const pairVars = getLoopItemVars(binding, true);
-          loopMaybeItemStack.push(isEach ? pairVars.filter((v) => !loopItemVarStack.at(-1).includes(v)) : []);
-
-          // ((_arr) => _arr.length ? _arr.map(...).join('') : elseContent)(collection)
-          loopStack.push({ collectionExpr, hasElse: false, depth });
-          openBlock('loop', isEach ? '#each' : '#for');
-
-          result += '${((_arr) => _arr.length ? _arr.map((' + params + ') => `';
-        } else if (expr === '/each' || expr === '/for') {
-          closeBlock('loop', expr);
-          loopVarStack.pop(); // Remove loop vars when exiting loop
-          loopItemVarStack.pop(); // Remove item vars when exiting loop
-          loopMaybeItemStack.pop();
-          const loopInfo = loopStack.pop();
-          if (loopInfo.hasElse) {
-            // Close the else branch
-            result += '`)(' + loopInfo.collectionExpr + ')}';
-          } else {
-            // No else - just close the ternary with empty string
-            result += '`).join("") : "")(' + loopInfo.collectionExpr + ')}';
-          }
-        }
-        // {#key expr}: the body's nodes carry the value in their fez-key (see
-        // autoInjectKeys), so a new value replaces them instead of morphing
-        else if (expr.startsWith('#key ')) {
-          openBlock('key', '#key');
-        } else if (expr === '/key') {
-          closeBlock('key', expr);
-        }
-        // {@const name = expr}: a local for the rest of the enclosing branch
-        else if (expr.startsWith('@const ')) {
-          const decl = expr.slice(7);
-          const eq = findAssignment(decl);
-          if (eq < 0) {
-            throw new Error(`{@const} needs a name and a value: {${expr}}`);
-          }
-          const target = decl.slice(0, eq).trim();
-          const value = decl.slice(eq + 1).trim();
-          (blockStack[blockStack.length - 1] || rootFrame).consts.push({ expr: value });
-          // its names behave like loop item vars in handlers: captured at render time
-          const names = target.match(/[A-Za-z_$][\w$]*/g) || [];
-          loopVarStack.push(names);
-          loopItemVarStack.push(names);
-          loopMaybeItemStack.push([]);
-          result += '${((' + target + ') => `';
-        }
-        // {#await promise}...{:then value}...{:catch error}...{/await}
-        else if (expr.startsWith('#await ')) {
-          // Inside a loop every iteration is its own await block: the id carries
-          // the hidden index of each loop whose body (not :else) encloses it
-          const loopKeys = loopStack.filter((l) => !l.hasElse).map((l) => ` + "-" + _fezI${l.depth}`);
-          awaitStack.push({
-            awaitKey: `"${awaitCounter++}"${loopKeys.join('')}`,
-            promiseExpr: expr.slice(7).trim(),
-            hasThen: false,
-            hasCatch: false,
-          });
-          openBlock('await', '#await');
-          // Start with pending block - Fez.await returns { status, value, error }
-          result += '${((_aw) => _aw.status === "pending" ? `';
-        } else if (expr === ':then' || expr.startsWith(':then ')) {
-          const awaitInfo = currentAwait(':then');
-          closeBranch();
-          awaitInfo.hasThen = true;
-          // optional value binding: {:then value} or just {:then}
-          const thenVar = expr.slice(5).trim() || '_value';
-          result += '` : _aw.status === "resolved" ? ((' + thenVar + ') => `';
-        } else if (expr === ':catch' || expr.startsWith(':catch ')) {
-          const awaitInfo = currentAwait(':catch');
-          closeBranch();
-          awaitInfo.hasCatch = true;
-          // optional error binding: {:catch error} or just {:catch}
-          const catchVar = expr.slice(6).trim() || '_error';
-          // close the :then block first, if any
-          result +=
-            (awaitInfo.hasThen ? '`)(_aw.value)' : '`') +
-            ' : _aw.status === "rejected" ? ((' +
-            catchVar +
-            ') => `';
-        } else if (expr === '/await') {
-          closeBlock('await', expr);
-          const awaitInfo = awaitStack.pop();
-          // pending ? ... : resolved ? ...then... : rejected ? ...catch... : ``
-          const tail = awaitInfo.hasCatch
-            ? '`)(_aw.error)'
-            : awaitInfo.hasThen
-              ? '`)(_aw.value)'
-              : '`';
-          result +=
-            tail +
-            ' : ``)(Fez.fezAwait(fez, ' +
-            awaitInfo.awaitKey +
-            ', ' +
-            awaitInfo.promiseExpr +
-            (awaitInfo.hasCatch ? ', true' : '') +
-            '))}';
-        } else if (expr.startsWith('@html ')) {
-          const content = expr.slice(6);
-          result += '${' + content + '}';
-        } else if (expr.startsWith('@json ')) {
-          const content = expr.slice(6);
-          result +=
-            '${`<pre class="json">${Fez.htmlEscape(JSON.stringify(' +
-            content +
-            ', null, 2))}</pre>`}';
-        } else if (/^[#@/]/.test(expr) || /^:[a-z]/.test(expr)) {
-          throw new Error(`Unknown template directive {${expr}}${directiveHint(expr)}`);
-        } else if (
-          (isArrowFunction(expr) && getAttributeContext(text, i)) ||
-          (/^[A-Za-z_$][\w$]*$/.test(expr) && getEventAttributeContext(text, i))
-        ) {
-          // onclick={save} is the method reference: call it with the event
-          if (!isArrowFunction(expr)) {
-            expr = `(event) => ${expr}(event)`;
-          }
-          if (getEventAttributeContext(text, i)) {
-            // Event attribute: compile to handler code, with interpolation for loop vars
-            const allLoopVars = loopVarStack.flat();
-            const allItemVars = loopItemVarStack.flat();
-            const handler = transformArrowToHandler(expr, allLoopVars, allItemVars, loopMaybeItemStack.flat());
-            result += '"' + handler.replace(/"/g, '&quot;') + '"';
-          } else {
-            // Any other attribute (fez:use) gets the function source as its value
-            result += '"' + escapeLiteralAttr(expr) + '"';
+            i++;
           }
         } else {
-          const attrContext = getAttributeContext(text, i);
-          const written = attrContext && result.match(/\s([^\s=]+)\s*=\s*$/);
-          if (written?.[1].toLowerCase() === attrContext) {
-            // name={expr}: the whole attribute comes from Fez.htmlAttr, so null
-            // and a false boolean attribute leave it out
-            result = result.slice(0, written.index);
-            result += '${Fez.htmlAttr(' + JSON.stringify(written[1]) + ', ' + expr + ')}';
-          } else if (attrContext) {
-            // Inside attribute - wrap with quotes and escape
-            result += '"${Fez.htmlEscape(' + expr + ')}"';
-          } else if (/^on[a-z]+$/i.test(quotedAttrContext(text, i)?.name || '')) {
-            // Inside quoted handler code (onclick="fez.rm('{id}')"): the value
-            // lands in a JS string, so it is escaped for JS and then for HTML
-            result += '${Fez.htmlEscape(Fez.jsEscape(' + expr + '))}';
+          // Regular character inside backticks - escape special chars for outer template
+          if (text[i] === '$') {
+            result += '\\$';
           } else {
-            // Regular content - just escape HTML
-            result += '${Fez.htmlEscape(' + expr + ')}';
+            result += text[i];
           }
+          i++;
         }
+      }
+      if (i < text.length) {
+        result += '\\`';
+        i++;
+      }
+      continue;
+    }
 
+    // Escaped brace: \{ and \} are literal braces
+    if (text[i] === '\\' && (text[i + 1] === '{' || text[i + 1] === '}')) {
+      result += text[i + 1];
+      i += 2;
+      continue;
+    }
+
+    // Expression or directive
+    if (text[i] === '{') {
+      const { expression, endIndex } = extractBracedExpression(text, i);
+      let expr = expression.trim();
+
+      // Check if this is a JavaScript object literal (e.g., {d: 'top'}, {foo: 1, bar: 2})
+      // Object literals start with key: where key is identifier or quoted string
+      if (/^(\w+|"\w+"|'\w+')\s*:/.test(expr)) {
+        // Keep object literal as-is in the output
+        result += '{' + expression + '}';
         i = endIndex + 1;
         continue;
       }
 
-      // Escape special characters for template literal
-      if (text[i] === '$' && text[i + 1] === '{') {
-        result += '\\$';
-      } else if (text[i] === '\\') {
-        result += '\\\\';
-      } else {
-        result += text[i];
+      // Block directives
+      const elseIf = expr.match(ELSE_IF_RE);
+      if (expr.startsWith('#if ')) {
+        const cond = expr.slice(4);
+        result += '${Fez.isTruthy(' + cond + ') ? `';
+        ifStack.push(false); // No else yet
+        openBlock('if', '#if');
+      } else if (expr.startsWith('#unless ')) {
+        const cond = expr.slice(8);
+        result += '${!Fez.isTruthy(' + cond + ') ? `';
+        ifStack.push(false); // No else yet
+        openBlock('if', '#unless');
+      } else if (expr === ':else' || expr === 'else') {
+        closeBranch();
+        if (currentBlock() === 'loop') {
+          // :else inside a loop - for empty array case
+          loopStack[loopStack.length - 1].hasElse = true;
+          result += '`).join("") : `';
+        } else if (currentBlock() === 'if') {
+          result += '` : `';
+          ifStack[ifStack.length - 1] = true; // Has else
+        } else {
+          throw new Error('{:else} without matching {#if}, {#unless}, {#each}, or {#for}');
+        }
+      } else if (elseIf) {
+        if (currentBlock() !== 'if') {
+          throw new Error(`{${expr}} without matching {#if}`);
+        }
+        closeBranch();
+        result += '` : Fez.isTruthy(' + expr.slice(elseIf[0].length) + ') ? `';
+        // Keep hasElse as false - still need final else
+      } else if (expr === '/if' || expr === '/unless') {
+        closeBlock('if', expr);
+        const hasElse = ifStack.pop();
+        result += hasElse ? '`}' : '` : ``}';
+      } else if (expr.startsWith('#each ') || expr.startsWith('#for ')) {
+        const isEach = expr.startsWith('#each ');
+        let collection, binding;
+
+        if (isEach) {
+          const rest = expr.slice(6);
+          // last " as ": the collection expression may contain one
+          const asIdx = rest.lastIndexOf(' as ');
+          if (asIdx < 0) {
+            throw new Error(`{#each} is missing " as ": {${expr}}`);
+          }
+          collection = rest.slice(0, asIdx).trim();
+          binding = rest.slice(asIdx + 4).trim();
+        } else {
+          const rest = expr.slice(5);
+          const inIdx = rest.indexOf(' in ');
+          if (inIdx < 0) {
+            throw new Error(`{#for} is missing " in ": {${expr}}`);
+          }
+          binding = rest.slice(0, inIdx).trim();
+          collection = rest.slice(inIdx + 4).trim();
+        }
+
+        const depth = loopStack.length;
+        const collectionExpr = buildCollectionExpr(collection, binding);
+        const { params, implicitIndex } = buildLoopParams(binding, depth, loopVarStack.flat());
+
+        // Track loop variables for arrow function transformation
+        loopVarStack.push(getLoopVarNames(binding, implicitIndex));
+        loopItemVarStack.push(getLoopItemVars(binding, !isEach));
+        // {#each list as item, x}: x is the index of an array but the value of an
+        // object, so handlers decide at render time (see transformArrowToHandler)
+        const pairVars = getLoopItemVars(binding, true);
+        loopMaybeItemStack.push(
+          isEach ? pairVars.filter((v) => !loopItemVarStack.at(-1).includes(v)) : [],
+        );
+
+        // ((_arr) => _arr.length ? _arr.map(...).join('') : elseContent)(collection)
+        loopStack.push({ collectionExpr, hasElse: false, depth });
+        openBlock('loop', isEach ? '#each' : '#for');
+
+        result += '${((_arr) => _arr.length ? _arr.map((' + params + ') => `';
+      } else if (expr === '/each' || expr === '/for') {
+        closeBlock('loop', expr);
+        loopVarStack.pop(); // Remove loop vars when exiting loop
+        loopItemVarStack.pop(); // Remove item vars when exiting loop
+        loopMaybeItemStack.pop();
+        const loopInfo = loopStack.pop();
+        if (loopInfo.hasElse) {
+          // Close the else branch
+          result += '`)(' + loopInfo.collectionExpr + ')}';
+        } else {
+          // No else - just close the ternary with empty string
+          result += '`).join("") : "")(' + loopInfo.collectionExpr + ')}';
+        }
       }
+      // {#key expr}: the body's nodes carry the value in their fez-key (see
+      // autoInjectKeys), so a new value replaces them instead of morphing
+      else if (expr.startsWith('#key ')) {
+        openBlock('key', '#key');
+      } else if (expr === '/key') {
+        closeBlock('key', expr);
+      }
+      // {@const name = expr}: a local for the rest of the enclosing branch
+      else if (expr.startsWith('@const ')) {
+        const decl = expr.slice(7);
+        const eq = findAssignment(decl);
+        if (eq < 0) {
+          throw new Error(`{@const} needs a name and a value: {${expr}}`);
+        }
+        const target = decl.slice(0, eq).trim();
+        const value = decl.slice(eq + 1).trim();
+        (blockStack[blockStack.length - 1] || rootFrame).consts.push({ expr: value });
+        // its names behave like loop item vars in handlers: captured at render time
+        const names = target.match(/[A-Za-z_$][\w$]*/g) || [];
+        loopVarStack.push(names);
+        loopItemVarStack.push(names);
+        loopMaybeItemStack.push([]);
+        result += '${((' + target + ') => `';
+      }
+      // {#await promise}...{:then value}...{:catch error}...{/await}
+      else if (expr.startsWith('#await ')) {
+        // Inside a loop every iteration is its own await block: the id carries
+        // the hidden index of each loop whose body (not :else) encloses it
+        const loopKeys = loopStack.filter((l) => !l.hasElse).map((l) => ` + "-" + _fezI${l.depth}`);
+        awaitStack.push({
+          awaitKey: `"${awaitCounter++}"${loopKeys.join('')}`,
+          promiseExpr: expr.slice(7).trim(),
+          hasThen: false,
+          hasCatch: false,
+        });
+        openBlock('await', '#await');
+        // Start with pending block - Fez.await returns { status, value, error }
+        result += '${((_aw) => _aw.status === "pending" ? `';
+      } else if (expr === ':then' || expr.startsWith(':then ')) {
+        const awaitInfo = currentAwait(':then');
+        closeBranch();
+        awaitInfo.hasThen = true;
+        // optional value binding: {:then value} or just {:then}
+        const thenVar = expr.slice(5).trim() || '_value';
+        result += '` : _aw.status === "resolved" ? ((' + thenVar + ') => `';
+      } else if (expr === ':catch' || expr.startsWith(':catch ')) {
+        const awaitInfo = currentAwait(':catch');
+        closeBranch();
+        awaitInfo.hasCatch = true;
+        // optional error binding: {:catch error} or just {:catch}
+        const catchVar = expr.slice(6).trim() || '_error';
+        // close the :then block first, if any
+        result +=
+          (awaitInfo.hasThen ? '`)(_aw.value)' : '`') +
+          ' : _aw.status === "rejected" ? ((' +
+          catchVar +
+          ') => `';
+      } else if (expr === '/await') {
+        closeBlock('await', expr);
+        const awaitInfo = awaitStack.pop();
+        // pending ? ... : resolved ? ...then... : rejected ? ...catch... : ``
+        const tail = awaitInfo.hasCatch
+          ? '`)(_aw.error)'
+          : awaitInfo.hasThen
+            ? '`)(_aw.value)'
+            : '`';
+        result +=
+          tail +
+          ' : ``)(Fez.fezAwait(fez, ' +
+          awaitInfo.awaitKey +
+          ', ' +
+          awaitInfo.promiseExpr +
+          (awaitInfo.hasCatch ? ', true' : '') +
+          '))}';
+      } else if (expr.startsWith('@html ')) {
+        const content = expr.slice(6);
+        result += '${' + content + '}';
+      } else if (expr.startsWith('@json ')) {
+        const content = expr.slice(6);
+        result +=
+          '${`<pre class="json">${Fez.htmlEscape(JSON.stringify(' +
+          content +
+          ', null, 2))}</pre>`}';
+      } else if (/^[#@/]/.test(expr) || /^:[a-z]/.test(expr)) {
+        throw new Error(`Unknown template directive {${expr}}${directiveHint(expr)}`);
+      } else if (
+        (isArrowFunction(expr) && getAttributeContext(text, i)) ||
+        (/^[A-Za-z_$][\w$]*$/.test(expr) && getEventAttributeContext(text, i))
+      ) {
+        // onclick={save} is the method reference: call it with the event
+        if (!isArrowFunction(expr)) {
+          expr = `(event) => ${expr}(event)`;
+        }
+        if (getEventAttributeContext(text, i)) {
+          // Event attribute: compile to handler code, with interpolation for loop vars
+          const allLoopVars = loopVarStack.flat();
+          const allItemVars = loopItemVarStack.flat();
+          const handler = transformArrowToHandler(
+            expr,
+            allLoopVars,
+            allItemVars,
+            loopMaybeItemStack.flat(),
+          );
+          result += '"' + handler.replace(/"/g, '&quot;') + '"';
+        } else {
+          // Any other attribute (fez:use) gets the function source as its value
+          result += '"' + escapeLiteralAttr(expr) + '"';
+        }
+      } else {
+        const attrContext = getAttributeContext(text, i);
+        const written = attrContext && result.match(/\s([^\s=]+)\s*=\s*$/);
+        if (written?.[1].toLowerCase() === attrContext) {
+          // name={expr}: the whole attribute comes from Fez.htmlAttr, so null
+          // and a false boolean attribute leave it out
+          result = result.slice(0, written.index);
+          result += '${Fez.htmlAttr(' + JSON.stringify(written[1]) + ', ' + expr + ')}';
+        } else if (attrContext) {
+          // Inside attribute - wrap with quotes and escape
+          result += '"${Fez.htmlEscape(' + expr + ')}"';
+        } else if (/^on[a-z]+$/i.test(quotedAttrContext(text, i)?.name || '')) {
+          // Inside quoted handler code (onclick="fez.rm('{id}')"): the value
+          // lands in a JS string, so it is escaped for JS and then for HTML
+          result += '${Fez.htmlEscape(Fez.jsEscape(' + expr + '))}';
+        } else {
+          // Regular content - just escape HTML
+          result += '${Fez.htmlEscape(' + expr + ')}';
+        }
+      }
+
+      i = endIndex + 1;
+      continue;
+    }
+
+    // Escape special characters for template literal
+    if (text[i] === '$' && text[i + 1] === '{') {
+      result += '\\$';
+    } else if (text[i] === '\\') {
+      result += '\\\\';
+    } else {
+      result += text[i];
+    }
+    i++;
+  }
+
+  if (blockStack.length) {
+    throw new Error(`{${blockStack[blockStack.length - 1].open}} is never closed`);
+  }
+  closeConsts(rootFrame);
+
+  // Warn about dynamic fez-this values in dev mode (won't get auto-ID)
+  if (typeof Fez !== 'undefined' && Fez.LOG) {
+    const dynamicFezThis = result.match(/fez-this="[^"]*\{[^}]+\}[^"]*"/g);
+    if (dynamicFezThis) {
+      console.warn(
+        `Fez <${componentName}>: Dynamic fez-this values won't get auto-ID for DOM differ matching:`,
+        dynamicFezThis,
+      );
+    }
+  }
+
+  if (handlers) {
+    result = result.replace(
+      /\u0001(\d+)\u0001/g,
+      (_, index) => '${fez.fezGlobals.setHandler(' + handlers[index] + ')}',
+    );
+  }
+
+  return result;
+}
+
+const HANDLER_ENTITIES = {
+  '&lt;': '<',
+  '&gt;': '>',
+  '&amp;': '&',
+  '&quot;': '"',
+  '&#39;': "'",
+  '&apos;': "'",
+};
+
+/**
+ * Precompiled templates carry no handler source in the HTML (a CSP without
+ * 'unsafe-inline' never runs attribute code). Every on<event> attribute
+ * becomes a closure parked in a render slot, listed in one
+ * fez-on="{UID} click:<slot> input:<slot>" attribute that the runtime binds
+ * after the render (FezBase#fezBindEvents). A fez:use={fn} action is parked the
+ * same way as fez-use="@{UID}:<slot>". The closure source sits in the text as
+ * a \u0001<n>\u0001 marker until the template literal is built, so it lands
+ * inside the enclosing loops and closes over their variables.
+ */
+function rewritePrecompiledHandlers(tag, handlers) {
+  const attrs = scanAttributes(tag);
+  const events = attrs.filter((a) => /^on[a-z]+$/i.test(a.name) && a.value.trim());
+  const use = attrs.find((a) => a.name === 'fez-use' && a.quote === '{');
+  if (!events.length && !use) {
+    return tag;
+  }
+  const park = (source) => `\u0001${handlers.push(source) - 1}\u0001`;
+
+  let out = '';
+  let pos = 0;
+  for (const attr of attrs) {
+    if (attr === use || events.includes(attr)) {
+      out += tag.slice(pos, attr.start);
+      pos = attr.end;
+    }
+  }
+  out += tag.slice(pos);
+
+  let extra = '';
+  if (use) {
+    extra += ` fez-use="@{UID}:${park(`(${use.value.trim()})`)}"`;
+  }
+  if (events.length) {
+    const list = events.map((a) => `${a.name.slice(2).toLowerCase()}:${park(handlerFunction(a))}`);
+    extra += ` fez-on="{UID} ${list.join(' ')}"`;
+  }
+  return out.replace(/\s*(\/?>)$/, `${extra}$1`);
+}
+
+/**
+ * Handler attribute as a function source, called with the element as `this`
+ * and the event as `event`. A quoted value is a function body like inline
+ * attribute code (`return false` prevents the default); {expr} inside it is
+ * the value, as text inside a JS string literal.
+ */
+function handlerFunction(attr) {
+  const value = attr.value.trim();
+  if (attr.quote !== '{') {
+    return `function (event) {\n${handlerBody(value)}\n}`;
+  }
+  if (isArrowFunction(value)) {
+    // no return: an arrow's value never cancels the event, as in the runtime
+    return `function (event) {\n(${value}).call(this, event);\n}`;
+  }
+  if (/^[A-Za-z_$][\w$]*$/.test(value)) {
+    return `function (event) {\n${value}(event);\n}`;
+  }
+  return `function (event) {\nconst _fezHandler = (${value});\nif (typeof _fezHandler === 'function') _fezHandler.call(this, event);\n}`;
+}
+
+function handlerBody(code) {
+  code = code.replace(/&(?:lt|gt|amp|quot|#39|apos);/g, (e) => HANDLER_ENTITIES[e]);
+  let out = '';
+  let i = 0;
+  while (i < code.length) {
+    const ch = code[i];
+    if (ch === '\\' && (code[i + 1] === '{' || code[i + 1] === '}')) {
+      out += code[i + 1];
+      i += 2;
+    } else if (ch === "'" || ch === '"') {
+      // a string literal with {expr} inside becomes a template literal
+      let j = i + 1;
+      let literal = '';
+      let interpolated = false;
+      while (j < code.length && code[j] !== ch) {
+        if (code[j] === '\\') {
+          literal += code.slice(j, j + 2);
+          j += 2;
+        } else if (code[j] === '{') {
+          const { expression, endIndex } = extractBracedExpression(code, j);
+          literal += '${' + expression.trim() + '}';
+          interpolated = true;
+          j = endIndex + 1;
+        } else {
+          literal +=
+            code[j] === '`' ? '\\`' : code[j] === '$' && code[j + 1] === '{' ? '\\$' : code[j];
+          j++;
+        }
+      }
+      out += interpolated ? '`' + literal + '`' : code.slice(i, j + 1);
+      i = j + 1;
+    } else if (ch === '`') {
+      let j = i + 1;
+      while (j < code.length && code[j] !== '`') {
+        j += code[j] === '\\' ? 2 : 1;
+      }
+      out += code.slice(i, j + 1);
+      i = j + 1;
+    } else if (ch === '{') {
+      const { expression, endIndex } = extractBracedExpression(code, i);
+      const expr = expression.trim();
+      // an object literal stays one, like in the runtime compiler
+      out += /^(\w+|"\w+"|'\w+')\s*:/.test(expr) ? `{${expression}}` : `(${expr})`;
+      i = endIndex + 1;
+    } else {
+      out += ch;
       i++;
     }
-
-    if (blockStack.length) {
-      throw new Error(`{${blockStack[blockStack.length - 1].open}} is never closed`);
-    }
-    closeConsts(rootFrame);
-
-    // Warn about dynamic fez-this values in dev mode (won't get auto-ID)
-    if (typeof Fez !== 'undefined' && Fez.LOG) {
-      const dynamicFezThis = result.match(/fez-this="[^"]*\{[^}]+\}[^"]*"/g);
-      if (dynamicFezThis) {
-        console.warn(
-          `Fez <${componentName}>: Dynamic fez-this values won't get auto-ID for DOM differ matching:`,
-          dynamicFezThis,
-        );
-      }
-    }
-
-    // Build the function
-    const funcBody = `
-      const fez = this;
-      with (this) {
-        return \`${result}\`
-      }
-    `;
-
-    const tplFunc = new Function(funcBody);
-
-    return (ctx) => {
-      try {
-        return tplFunc.bind(ctx)();
-      } catch (e) {
-        if (opts.strict) {
-          throw new Error(
-            `FEZ template runtime error in <${ctx.fezName || componentName}>: ${e.message}`,
-            { cause: e },
-          );
-        }
-        console.error(
-          `FEZ template runtime error in <${ctx.fezName || componentName}>:`,
-          e.message,
-        );
-        console.error('Template source:', result.substring(0, 500));
-        // picked up by fezRender for an onError boundary
-        ctx._fezTemplateError = e;
-        // null, not '': the render keeps the last good DOM instead of morphing to empty
-        return null;
-      }
-    };
-  } catch (e) {
-    if (opts.strict) {
-      throw new Error(`FEZ template compile error in <${componentName}>: ${e.message}`, {
-        cause: e,
-      });
-    }
-    console.error(`FEZ template compile error in <${componentName}>:`, e.message);
-    console.error('Template:', text.substring(0, 200));
-    return () => '';
   }
+  return out;
 }
 
 // Svelte spellings that have a Fez equivalent
@@ -572,7 +733,9 @@ function directiveHint(expr) {
 function rejectForeignAttrs(tag) {
   for (const attr of scanAttributes(tag)) {
     if (/^on:/.test(attr.name)) {
-      throw new Error(`${attr.name} is Svelte syntax - write on${attr.name.slice(3).split('|')[0]}={...}`);
+      throw new Error(
+        `${attr.name} is Svelte syntax - write on${attr.name.slice(3).split('|')[0]}={...}`,
+      );
     }
     if (/^bind:/.test(attr.name)) {
       throw new Error(`${attr.name} is Svelte syntax - use fez:bind="state.key" on inputs`);
@@ -615,7 +778,12 @@ function findAssignment(decl) {
       depth++;
     } else if (')]}'.includes(ch)) {
       depth--;
-    } else if (ch === '=' && !depth && !'=<>!'.includes(decl[i - 1]) && !'=>'.includes(decl[i + 1])) {
+    } else if (
+      ch === '=' &&
+      !depth &&
+      !'=<>!'.includes(decl[i - 1]) &&
+      !'=>'.includes(decl[i + 1])
+    ) {
       return i;
     }
   }
@@ -716,7 +884,11 @@ function rewriteStyleDirectives(tag) {
   }
   out += tag.slice(pos);
 
-  let base = !styleAttr ? '' : styleAttr.quote === '{' ? `{${styleAttr.value}}` : styleAttr.value.trim();
+  let base = !styleAttr
+    ? ''
+    : styleAttr.quote === '{'
+      ? `{${styleAttr.value}}`
+      : styleAttr.value.trim();
   if (base && !base.endsWith(';')) {
     base += ';';
   }
@@ -772,11 +944,7 @@ function rewriteClassDirectives(tag) {
   }
   out += tag.slice(pos);
 
-  const base = !classAttr
-    ? ''
-    : classAttr.quote === '{'
-      ? `{${classAttr.value}}`
-      : classAttr.value;
+  const base = !classAttr ? '' : classAttr.quote === '{' ? `{${classAttr.value}}` : classAttr.value;
   const ternaries = directives.map((d) => ` {(${d.value}) ? '${d.name.slice(6)}' : ''}`).join('');
   return out.replace(/\s*(\/?>)$/, ` class="${(base + ternaries).trim()}"$1`);
 }
@@ -828,7 +996,11 @@ function autoInjectKeys(text) {
 
     // inside a loop the index keeps the id unique per row
     const fezThis = attrs.find((a) => a.name === 'fez-this');
-    if (fezThis?.quote === '"' && !fezThis.value.includes('{') && !attrs.some((a) => a.name === 'id')) {
+    if (
+      fezThis?.quote === '"' &&
+      !fezThis.value.includes('{') &&
+      !attrs.some((a) => a.name === 'id')
+    ) {
       extra += ` id="fez-{UID}-${fezThis.value.replace(/[^a-zA-Z0-9]/g, '-')}${suffix}"`;
     }
 

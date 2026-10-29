@@ -14,6 +14,8 @@
 //
 // Nodes are joined without whitespace, `#{expr}` becomes `{expr}`.
 
+import evaluate from './evaluate.js';
+
 const VOID_TAGS = new Set([
   'area',
   'base',
@@ -117,7 +119,7 @@ function directiveExpression(body) {
 
 function isExpression(expr) {
   try {
-    new Function(`return (${expr});`);
+    evaluate('a <slim> expression check', `return (${expr});`);
     return true;
   } catch {
     return false;

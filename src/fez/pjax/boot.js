@@ -9,6 +9,7 @@
 
 import Fez from '../root.js';
 import createPjax from './pjax.js';
+import { runScripts, responseNonce } from './scripts.js';
 
 export default function bootPjax() {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -24,6 +25,11 @@ export default function bootPjax() {
   Fez.hash = (...args) => Fez.pjax.hash(...args);
   Fez.hpath = (...args) => Fez.pjax.hpath(...args);
   Fez.hqs = (...args) => Fez.pjax.hqs(...args);
+
+  // Inline scripts of HTML fetched outside pjax (an ajax region, a dialog) run by the rules of
+  // a pjax response (see scripts.js); `csp` is that response's Content-Security-Policy header.
+  // Returns the node, without the scripts it ran.
+  Fez.runScripts = (node, csp) => runScripts(node, responseNonce(csp));
 
   const boot = () => {
     const container =

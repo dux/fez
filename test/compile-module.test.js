@@ -3,6 +3,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { compileFileToModule } from '../src/fez/compile-module.js';
+import { precompileTemplate } from '../src/fez/lib/template-precompile.js';
+import RenderSlots from '../src/fez/lib/render-slots.js';
+import Fez from '../src/fez/root.js';
 import { createFezPlugin } from '../src/fez/plugin.js';
 
 const compile = (source, options = {}) => compileFileToModule('ui-test.fez', source, options);
@@ -142,7 +145,9 @@ describe('fez plugin', () => {
 
   test('compiles a <slim> template', () => {
     const code = compile('<script>\nclass {}\n</script>\n<slim>\n  div.p-0.5\n    p= state.name\n</slim>');
-    expect(code).toContain('<div class="p-0.5"><p>{state.name}</p></div>');
+    expect(code).toContain(
+      '<div class="p-0.5" fez-key="0"><p fez-key="1">${Fez.htmlEscape(fez.state.name)}</p></div>',
+    );
   });
 
   test('slim errors carry the line', () => {
@@ -151,6 +156,98 @@ describe('fez plugin', () => {
 
   test('slim template compiler errors carry the line', () => {
     expect(() => compile('<slim>\n  div\n    p= foo(\n</slim>')).toThrow(/^<slim> line 3: /);
+  });
+});
+
+// The emitted render function, run against a plain component-like object
+const render = (html, ctx) => {
+  const { code } = precompileTemplate(html, { name: 'ui-test' });
+  const fn = Function('Fez', `return (${code})`)(Fez);
+  ctx.UID ??= 7;
+  ctx.state ??= {};
+  ctx.props ??= {};
+  ctx.fezGlobals ??= new RenderSlots();
+  ctx.fezGlobals.beginRender();
+  return fn.call(ctx);
+};
+
+describe('precompiled templates', () => {
+  test('the module carries the render function, not the template source', () => {
+    const code = compile(valid);
+    expect(code).toContain('const __fez_template_0 = function () {');
+    expect(code).toContain('__fez_component_0.FEZ_TEMPLATE = { render: __fez_template_0, slotUnwrap: false };');
+    expect(code).not.toContain('HTML = ');
+    expect(code).not.toMatch(/\bwith \(|new Function/);
+  });
+
+  test('the template does not see the script module names', () => {
+    const code = compile(valid.replace('{state.name}', '{GREETING}'));
+    expect(code.indexOf('const __fez_template_0')).toBeLessThan(code.indexOf("const GREETING = 'hi'"));
+    expect(code).toContain('("GREETING" in fez ? fez.GREETING : GREETING)');
+  });
+
+  test('names resolve like `with (component)`: own property first, then global', () => {
+    globalThis.__fezGlobalName = 'global';
+    try {
+      const html = '<p>{__fezGlobalName} {label()} {typeof nowhere} {Math.max(1, 2)}</p>';
+      const ctx = { state: { name: 'x' }, label() { return this.state.name + '!'; } };
+      expect(render(html, ctx)).toBe('<p fez-key="0">global x! undefined 2</p>');
+      expect(render(html, { ...ctx, __fezGlobalName: 'own' })).toContain('own x!');
+    } finally {
+      delete globalThis.__fezGlobalName;
+    }
+  });
+
+  test('loop variables, {@const} and arrow params stay local', () => {
+    const html =
+      '{#each state.items as item, n}{@const label = item.toUpperCase()}<i>{n}{label}{[1].map((n) => n + 1)}</i>{/each}';
+    expect(render(html, { state: { items: ['a'] } })).toContain('>0A2</i>');
+  });
+
+  test('handlers become render-slot closures listed in fez-on, never attribute code', () => {
+    const picked = [];
+    const ctx = {
+      state: { items: [{ id: 'a' }, { id: 'b' }], q: '' },
+      pick(id, i) {
+        picked.push([id, i, this === ctx]);
+      },
+    };
+    const html =
+      '{#each state.items as item}<button onclick="fez.pick(\'{item.id}\', {i})">x</button>{/each}' +
+      '<input oninput={(e) => state.q = e.target.value} onkeydown="return false" />';
+    const out = render(html, ctx);
+    expect(out).not.toMatch(/\son[a-z]+=/);
+    expect(out).toContain('fez-on="7 click:0"');
+    expect(out).toContain('fez-on="7 click:1"');
+    expect(out).toContain('fez-on="7 input:2 keydown:3"');
+
+    const el = { value: 'typed' };
+    ctx.fezGlobals.handler(1).call(el, {});
+    expect(picked).toEqual([['b', 1, true]]);
+    expect(ctx.fezGlobals.handler(2).call(el, { target: el })).toBeUndefined();
+    expect(ctx.state.q).toBe('typed');
+    expect(ctx.fezGlobals.handler(3).call(el, {})).toBe(false);
+  });
+
+  test('a handler body sees the element as this and the event', () => {
+    const html = '<a onclick="this.seen = event.type">x</a><b onclick={save}>y</b>';
+    const saved = [];
+    const ctx = { save: (e) => saved.push(e.type) };
+    render(html, ctx);
+    const el = {};
+    ctx.fezGlobals.handler(0).call(el, { type: 'click' });
+    ctx.fezGlobals.handler(1).call(el, { type: 'click' });
+    expect(el.seen).toBe('click');
+    expect(saved).toEqual(['click']);
+  });
+
+  test('fez:use={fn} is parked like a handler', () => {
+    const ctx = {};
+    const out = render('<div fez:use={(node) => node.used = true}></div>', ctx);
+    expect(out).toContain('fez-use="@7:0"');
+    const node = {};
+    ctx.fezGlobals.handler(0)(node);
+    expect(node.used).toBe(true);
   });
 });
 

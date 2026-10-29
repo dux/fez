@@ -12,6 +12,7 @@
 
 import parseNode from './lib/n.js';
 import createTemplate from './lib/template.js';
+import evaluate from './lib/evaluate.js';
 import RenderSlots from './lib/render-slots.js';
 import { BOOLEAN_ATTRS } from './lib/attrs.js';
 import { componentSubscribe, componentPublish } from './lib/pubsub.js';
@@ -24,6 +25,54 @@ import {
 } from './lib/transitions.js';
 
 const BOOLEAN_ATTR_SELECTOR = [...BOOLEAN_ATTRS].map((name) => `[${name}]`).join(',');
+
+// `Fez(<uid>).fezGlobals.value(<key>)`, what the compiler writes for :attr
+const SLOT_VALUE_RE = /^\s*Fez\((\d+)\)\.fezGlobals\.value\((\d+)\)\s*$/;
+// `Fez.POINTER[<uid>]`, what Fez.pointer(fn) hands out
+const POINTER_RE = /^\s*Fez\.POINTER\[(\d+)\]\s*$/;
+
+// fez-this / fez-bind paths: `name`, `state.form.email`, `refs[2]`
+const pathKeys = (path) => path.match(/[^.[\]'"\s]+/g) || [];
+
+function getPath(obj, path) {
+  for (const key of pathKeys(path)) {
+    obj = obj?.[key];
+  }
+  return obj;
+}
+
+function setPath(obj, path, value) {
+  const keys = pathKeys(path);
+  const last = keys.pop();
+  for (const key of keys) {
+    obj = obj[key];
+  }
+  obj[last] = value;
+}
+
+// One listener per node and event type for fez-on handlers (fezRenderPostProcess)
+function bindFezOn(node) {
+  node._fezOn ||= new Set();
+  for (const entry of node.getAttribute('fez-on').split(' ').slice(1)) {
+    const type = entry.slice(0, entry.indexOf(':'));
+    if (type && !node._fezOn.has(type)) {
+      node._fezOn.add(type);
+      node.addEventListener(type, dispatchFezOn);
+    }
+  }
+}
+
+// Runs like an inline handler: `this` is the node, `return false` cancels
+function dispatchFezOn(event) {
+  const [uid, ...entries] = (this.getAttribute('fez-on') || '').split(' ');
+  const prefix = `${event.type}:`;
+  const entry = entries.find((e) => e.startsWith(prefix));
+  const handler =
+    entry && Fez.instances.get(Number(uid))?.fezGlobals.handler(Number(entry.slice(prefix.length)));
+  if (handler && handler.call(this, event) === false) {
+    event.preventDefault();
+  }
+}
 
 /**
  * Event names that default to `window` in `this.on('event', handler)`.
@@ -143,12 +192,20 @@ export default class FezBase {
       attrs[attr.name] = attr.value;
     }
 
-    // Evaluate :attr expressions
+    // Evaluate :attr expressions. A template's :attr is a render slot reference
+    // (see lib/render-slots.js) and a Fez.pointer() is a `Fez.POINTER[<uid>]`
+    // reference: both are read without evaluating code.
     for (const [key, val] of Object.entries(attrs)) {
       if ([':'].includes(key[0])) {
         delete attrs[key];
+        const slot = val.match(SLOT_VALUE_RE);
+        const pointer = val.match(POINTER_RE);
         try {
-          const newVal = new Function(`return (${val})`).bind(newNode)();
+          const newVal = slot
+            ? Fez.instances.get(Number(slot[1]))?.fezGlobals.value(Number(slot[2]))
+            : pointer
+              ? Fez.POINTER[pointer[1]]
+              : evaluate(`${key}="${val}"`, `return (${val})`).bind(newNode)();
           attrs[key.replace(/^:/, '')] = newVal;
         } catch (e) {
           Fez.onError('attr', `<${tagName}> Error evaluating ${key}="${val}": ${e.message}`);
@@ -1001,6 +1058,11 @@ export default class FezBase {
   }
 
   fezRunAction(value, n) {
+    // fez:use={fn} in a precompiled template: @<uid>:<handler slot>
+    const slot = value.match(/^@(\d+):(\d+)$/);
+    if (slot) {
+      return Fez.instances.get(Number(slot[1]))?.fezGlobals.handler(Number(slot[2]))?.(n);
+    }
     if (value.includes('=>')) {
       return Fez.getFunction(value)(n);
     }
@@ -1028,11 +1090,17 @@ export default class FezBase {
       });
     };
 
+    // fez-on="<uid> click:<slot> ...": handlers of a precompiled template (see
+    // rewritePrecompiledHandlers in lib/template-compiler.js). The attribute
+    // stays, the differ keeps it current, and one listener per node and event
+    // looks the handler up when the event fires.
+    this.root.querySelectorAll('[fez-on]').forEach(bindFezOn);
+
     // fez-this="button" -> this.state.button = node. Written to the raw object:
     // a ref is re-assigned on every render and must not fire onStateChange or
     // schedule anything. Read it as this.state.button (nodes are never proxied).
     fetchAttr('fez-this', (value, n) => {
-      new Function('n', `this._stateRaw.${value} = n`).bind(this)(n);
+      setPath(this._stateRaw, value, n);
       // Mark element for value preservation on re-render
       n._fezThisName = value;
     });
@@ -1124,17 +1192,18 @@ export default class FezBase {
     // fez-bind="state.inputNode" -> two-way binding
     fetchAttr('fez-bind', (text, n) => {
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(n.nodeName)) {
-        const value = new Function(`return this.${text}`).bind(this)();
+        const value = getPath(this, text);
         const type = n.type.toLowerCase();
         const isCb = type === 'checkbox';
         const isRadio = type === 'radio';
-        // "input" covers typing, paste, autofill and slider drags alike;
-        // select, checkbox and radio have no meaningful intermediate state
-        const eventName = n.nodeName === 'SELECT' || isCb || isRadio ? 'onchange' : 'oninput';
-        n.setAttribute(
-          eventName,
-          `${this.fezHtmlRoot}${text} = this.${isCb ? 'checked' : 'value'}`,
-        );
+        // one listener per node; it writes to the path of the latest render
+        if (n._fezBind === undefined) {
+          // "input" covers typing, paste, autofill and slider drags alike;
+          // select, checkbox and radio have no meaningful intermediate state
+          const eventName = n.nodeName === 'SELECT' || isCb || isRadio ? 'change' : 'input';
+          n.addEventListener(eventName, () => setPath(this, n._fezBind, isCb ? n.checked : n.value));
+        }
+        n._fezBind = text;
         this.val(n, value);
         // Mark element for value preservation on re-render; radios of one
         // group share the binding, so each keeps its own entry

@@ -10,7 +10,7 @@ import {
   settle,
 } from './pjax-env.js';
 import createPjax from '../src/fez/pjax/pjax.js';
-import { runScripts, runHeadScripts } from '../src/fez/pjax/scripts.js';
+import { runScripts, runHeadScripts, responseNonce } from '../src/fez/pjax/scripts.js';
 import Fez from '../src/fez/root.js';
 
 let Pjax;
@@ -59,6 +59,59 @@ describe('Pjax module', () => {
     window.__pjaxTestCounter = 0;
     runScripts(nodeFrom('<div><script>window.__pjaxTestCounter += 1</script></div>'));
     expect(window.__pjaxTestCounter).toBe(1);
+  });
+
+  test('reads the script nonce of a Content-Security-Policy header', () => {
+    expect(responseNonce("default-src 'self'; script-src 'self' 'nonce-ab+/9=' https://x.io")).toBe('ab+/9=');
+    expect(responseNonce("style-src 'nonce-css'; script-src 'self'")).toBe('');
+    expect(responseNonce(null)).toBe('');
+  });
+
+  describe('on a page with a CSP nonce', () => {
+    let inserted;
+    let append;
+    beforeEach(() => {
+      Fez._nonce = 'page-nonce';
+      inserted = [];
+      append = document.head.appendChild;
+      document.head.appendChild = function (node) {
+        inserted.push(node.nonce);
+        return append.call(this, node);
+      };
+    });
+    afterEach(() => {
+      Fez._nonce = undefined;
+      document.head.appendChild = append;
+    });
+
+    test('runs a script carrying the response nonce, as a script with the page nonce', () => {
+      window.__nonceRan = 0;
+      runScripts(nodeFrom('<div><script nonce="resp">window.__nonceRan += 1</script></div>'), 'resp');
+      expect(window.__nonceRan).toBe(1);
+      expect(inserted).toEqual(['page-nonce']);
+    });
+
+    test('skips a script without the response nonce', () => {
+      window.__nonceRan = 0;
+      const warn = console.warn;
+      console.warn = () => {};
+      try {
+        runScripts(nodeFrom('<div><script>window.__nonceRan += 1</script></div>'), 'resp');
+        runScripts(nodeFrom('<div><script nonce="other">window.__nonceRan += 1</script></div>'), 'resp');
+        runScripts(nodeFrom('<div><script nonce="resp">window.__nonceRan += 1</script></div>'), '');
+      } finally {
+        console.warn = warn;
+      }
+      expect(window.__nonceRan).toBe(0);
+      expect(inserted).toEqual([]);
+    });
+
+    test('keeps top-level names of a script local, like the eval it replaces', () => {
+      runScripts(nodeFrom('<div><script nonce="r">const once = 1; window.__local = typeof once</script></div>'), 'r');
+      runScripts(nodeFrom('<div><script nonce="r">const once = 2</script></div>'), 'r');
+      expect(window.__local).toBe('number');
+      expect(window.once).toBeUndefined();
+    });
   });
 
   test('compiles fez loaders from a fetched head, outside the pjax region', () => {

@@ -1,6 +1,8 @@
 // Document-level click handler for pjax navigation, ported from dux-pjax.
 // Created per Pjax class (see createPjax) so the handler always talks to the
 // class whose statics the app may have overridden (before/confirm/load...).
+// It never runs code from markup: a `javascript:` href is refused (a
+// Content-Security-Policy without 'unsafe-inline' would block it anyway).
 
 export default function createOnClick(Pjax) {
   const PjaxOnClick = {
@@ -10,7 +12,7 @@ export default function createOnClick(Pjax) {
         return;
       }
       const node = event.target.closest(
-        '*[click]:not([click=""]), *[href]:not([href=""]), *[pjax-refresh]:not([pjax-refresh=""])',
+        '*[href]:not([href=""]), *[pjax-refresh]:not([pjax-refresh=""])',
       );
       if (!node) {
         return;
@@ -20,7 +22,6 @@ export default function createOnClick(Pjax) {
       if (
         node.tagName === 'A' &&
         href?.startsWith('#') &&
-        !node.hasAttribute('click') &&
         !node.hasAttribute('pjax-target') &&
         !node.hasAttribute('pjax-refresh') &&
         !node.hasAttribute('pjax-confirm')
@@ -32,7 +33,7 @@ export default function createOnClick(Pjax) {
       // A real link does that natively; for other [href] nodes we open it.
       const newTab =
         event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button > 0;
-      if (newTab && node.tagName === 'A' && href && !node.hasAttribute('click')) {
+      if (newTab && node.tagName === 'A' && href) {
         return;
       }
 
@@ -70,12 +71,11 @@ export default function createOnClick(Pjax) {
     execute(ctx) {
       const node = ctx.node;
 
-      const click = node.getAttribute('click');
-      if (click) {
-        return new Function(click).bind(node)();
-      }
-
       const href = node.getAttribute('href');
+      if (/^\s*javascript:/i.test(href || '')) {
+        console.warn(`fez pjax: javascript: links are not run (${href.slice(0, 40)})`);
+        return;
+      }
       const history = node.hasAttribute('pjax-replace') ? 'replace' : undefined;
       const target = node.getAttribute('target');
 
@@ -122,10 +122,6 @@ export default function createOnClick(Pjax) {
       const noPjaxSel = Pjax.config.no_pjax_class.map((cls) => `.${cls}`).join(', ');
       if (noPjaxSel && node.closest(noPjaxSel)) {
         return PjaxOnClick.leave(href, target);
-      }
-
-      if (/^javascript:/.test(href)) {
-        return new Function(href.replace(/^javascript:/, ''))();
       }
 
       // Scheme links (mailto:, tel:, external http, vscode:), protocol-relative

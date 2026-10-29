@@ -1,4 +1,5 @@
 import { decodeExpressionEntities } from './lib/template-compiler-lib.js';
+import evaluate from './lib/evaluate.js';
 
 // Wrap defaults in a function to avoid immediate execution
 const loadDefaults = () => {
@@ -72,7 +73,7 @@ const loadDefaults = () => {
     'fez-if',
     class {
       init(props) {
-        const test = new Function(`return (${props.if || props.test})`);
+        const test = evaluate('<fez-if>', `return (${props.if || props.test})`);
         if (!test()) {
           this.root.remove();
         }

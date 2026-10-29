@@ -16,6 +16,8 @@
  *   Fez.index.all()             - Get all components as object
  */
 
+import evaluate from './evaluate.js';
+
 function createDomNode(html) {
   const node = document.createElement('div');
   node.innerHTML = html;
@@ -92,7 +94,7 @@ const index = {
       const content = script.textContent;
       if (content.trim()) {
         try {
-          new Function(content)();
+          evaluate('a demo script', content)();
         } catch (e) {
           console.error(`Fez.index.apply("${name}") script error:`, e.message);
         }

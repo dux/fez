@@ -1,5 +1,11 @@
 // Script handling for a pjax response. The response is parsed with innerHTML,
-// which never runs scripts, so inline ones are executed here by hand.
+// which never runs scripts, so inline ones are run here by hand: as <script>
+// elements carrying the page's CSP nonce (Fez.runScript), never through eval.
+//
+// On a page with a CSP nonce a response script runs only when it carries the
+// nonce of its own response (named in that response's Content-Security-Policy
+// header): markup injected into a response cannot run code the server did not
+// emit, exactly as on a full page load. A page without a nonce runs them all.
 
 import Fez from '../root.js';
 
@@ -10,17 +16,30 @@ const isInlineJs = (script) => {
   return (script.getAttribute('type') || 'javascript').includes('javascript');
 };
 
-const execute = (script) => {
-  const func = new Function(script.textContent);
+// The nonce a Content-Security-Policy header gives to scripts, '' without one
+export function responseNonce(header) {
+  return header?.match(/script-src[^;]*'nonce-([^']+)'/)?.[1] || '';
+}
+
+const allowed = (script, nonce) =>
+  !Fez.nonce() || (!!nonce && (script.nonce || script.getAttribute('nonce')) === nonce);
+
+const execute = (script, nonce) => {
+  if (!allowed(script, nonce)) {
+    console.warn('fez pjax: skipped an inline script without the response CSP nonce');
+    return;
+  }
+  const code = script.textContent;
   if (script.hasAttribute('pjax-delay')) {
-    requestAnimationFrame(func);
+    requestAnimationFrame(() => Fez.runScript(code));
   } else {
-    func();
+    Fez.runScript(code);
   }
 };
 
 // Runs the inline scripts of the part about to be swapped in, and removes them
 // from it so the morph never carries (or re-runs) them. Returns the node.
+// `nonce` is the response's CSP nonce (responseNonce).
 //
 // Scripts run AFTER history has been committed, but BEFORE the new HTML is
 // morphed into the live document. Inline scripts in a response typically set
@@ -31,10 +50,10 @@ const execute = (script) => {
 // response (they aren't in `document` yet) - do per-DOM wiring in a
 // `pjax:render` listener, or tag the script `pjax-delay` to defer it to the
 // next animation frame (after the morph completes).
-export function runScripts(node) {
+export function runScripts(node, nonce) {
   for (const script of Array.from(node.getElementsByTagName('script'))) {
     if (isInlineJs(script)) {
-      execute(script);
+      execute(script, nonce);
       script.remove();
     }
   }
@@ -53,7 +72,7 @@ export function runScripts(node) {
 // components to compile, and the morph only reaches the pjax region - so
 // compile them here, or a pjax navigation lands on a page whose components
 // never registered (unknown custom elements, empty widgets).
-export function runHeadScripts(root, pjaxBody, onError) {
+export function runHeadScripts(root, pjaxBody, onError, nonce) {
   const outside = (node) => !pjaxBody?.contains(node);
 
   for (const node of Array.from(root.querySelectorAll('template[fez], xmp[fez], script[fez]'))) {
@@ -71,7 +90,7 @@ export function runHeadScripts(root, pjaxBody, onError) {
 
   for (const script of Array.from(root.getElementsByTagName('script'))) {
     if (outside(script) && isInlineJs(script)) {
-      execute(script);
+      execute(script, nonce);
     }
   }
 }

@@ -29,6 +29,8 @@ const fezPrimary = hasDOM && !window.Fez;
 if (fezPrimary) {
   window.FezBase = FezBase;
   window.Fez = Fez;
+  // the CSP nonce of the script running fez, for the scripts fez inserts (Fez.nonce)
+  Fez._nonce = document.currentScript?.nonce || undefined;
 
   // Load default components
   import('./fez/defaults.js');

@@ -331,6 +331,27 @@ describe("FezBase.getProps - cast applied on every path", () => {
     expect(out.count).toBe(2);
   });
 
+  test(":attr slot and Fez.pointer references are read without evaluating code", () => {
+    // no schema: castProp compares types with the global Function patched below
+    const K = klass();
+    const fn = () => "called";
+    const slots = { value: (key) => (key === 3 ? [1, 2] : undefined) };
+    globalThis.Fez.instances = new Map([[9, { fezGlobals: slots }]]);
+    globalThis.Fez.POINTER = { 4: fn };
+    const realFunction = globalThis.Function;
+    globalThis.Function = () => {
+      throw new Error("evaluated");
+    };
+    try {
+      const out = K.getProps(node({ ":list": "Fez(9).fezGlobals.value(3)", ":cb": "Fez.POINTER[4]" }), {});
+      expect(out.list).toEqual([1, 2]);
+      expect(out.cb).toBe(fn);
+    } finally {
+      globalThis.Function = realFunction;
+    }
+    expect(errors).toEqual([]);
+  });
+
   test("data-props JSON", () => {
     const K = klass({ count: Number, open: Boolean });
     const out = K.getProps(node({ "data-props": '{"count":"5","name":"n"}' }), {});

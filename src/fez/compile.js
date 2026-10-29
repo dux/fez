@@ -16,6 +16,7 @@
 // Note: Uses Fez.index directly (set up in root.js)
 
 import closeCustomTags from './lib/close-custom-tags.js';
+import evaluate from './lib/evaluate.js';
 import {
   formatSourceError,
   hasFezDefinitions,
@@ -285,7 +286,7 @@ function executeClassCode(tagName, code) {
     let match;
     while ((match = importmapRe.exec(code)) !== null) {
       try {
-        const imports = new Function(`return ${match[1]}`)();
+        const imports = evaluate('a runtime .fez importmap', `return ${match[1]}`)();
         Object.assign(collectedImports, imports);
         // Sort by length descending so "three/addons/" matches before "three"
         const sorted = Object.entries(imports).sort((a, b) => b[0].length - a[0].length);
@@ -323,7 +324,7 @@ function executeClassCode(tagName, code) {
     });
   } else {
     try {
-      new Function(code)();
+      evaluate('a runtime .fez compile', code)();
     } catch (e) {
       Fez.consoleError(`Template "${tagName}" compile error: ${e.message}`);
       console.log(code);

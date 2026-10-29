@@ -5,6 +5,8 @@
  * by the host page), defines the component class, registers it with
  * `Fez(name, Klass)` and default-exports the class. All checks run at build time:
  * component name, script syntax, style scope and template compilation (strict).
+ * The template itself is compiled into the module (`Klass.FEZ_TEMPLATE`), so the
+ * browser evaluates no code from strings (see lib/template-precompile.js).
  *
  * The runtime `<script fez="...">` / `Fez.compile` path is unchanged; this is
  * the bundler entry used by the Vite and Rollup plugins.
@@ -14,7 +16,7 @@ import path from 'node:path';
 import { extractFezDefinitions, formatSourceError, parseFezSource } from './lib/source-parser.js';
 import { assertStyleScope, splitScript, IMPORT_RE } from './lib/validate.js';
 import { stripTypeScript } from './lib/strip-types.js';
-import createTemplate from './lib/template.js';
+import { precompileTemplate } from './lib/template-precompile.js';
 import { locateSlimError } from './lib/slim.js';
 import { buildClassSource, trimTemplateLines } from './lib/class-source.js';
 import minifyCss from './lib/minify-css.js';
@@ -47,15 +49,17 @@ function assertScriptSyntax(name, script) {
   }
 }
 
-function assertTemplate(name, html, template) {
-  if (!html.trim()) {
-    return;
+// The template as module code (see lib/template-precompile.js), or null
+function compileTemplate(name, html, template) {
+  if (!/\w/.test(html)) {
+    return null;
   }
   try {
-    createTemplate(html, { name, strict: true });
+    return precompileTemplate(html, { name });
   } catch (error) {
     const line = template.lang === 'slim' ? locateSlimError(html, template.map) : null;
-    throw new Error(line ? `<slim> line ${line}: ${error.message}` : error.message);
+    const message = `FEZ template compile error in <${name}>: ${error.message}`;
+    throw new Error(line ? `<slim> line ${line}: ${message}` : message);
   }
 }
 
@@ -87,13 +91,13 @@ function compileUnit(name, source, { minify }) {
   assertStyleScope(name, parts.style, false);
   assertStyleScope(name, parts.styleGlobal, true);
   parts.html = trimTemplateLines(parts.html);
-  assertTemplate(name, parts.html, parts.template);
+  const template = compileTemplate(name, parts.html, parts.template);
 
   if (minify) {
     parts.style = minifyCss(parts.style);
     parts.styleGlobal = minifyCss(parts.styleGlobal);
   }
-  klass = buildClassSource({ ...parts, script: klass });
+  klass = buildClassSource({ ...parts, script: klass, html: '' });
 
   const { preamble, body } = splitScript(klass);
   const metadata = [];
@@ -108,6 +112,7 @@ function compileUnit(name, source, { minify }) {
     preamble: preamble.trim(),
     classBody: body,
     head: parts.head?.trim() || '',
+    template,
     registration: metadata.join('\n'),
   };
 }
@@ -150,8 +155,14 @@ export function compileFileToModule(filePath, source, options = {}) {
       return '';
     });
     const head = compiled.head ? `Fez.head(${JSON.stringify(compiled.head)});\n` : '';
+    // the template sits outside the preamble block: like a runtime template it
+    // sees the component and globals, not the script's module-level names
+    const template = compiled.template
+      ? `${varName}.FEZ_TEMPLATE = { render: __fez_template_${index}, slotUnwrap: ${compiled.template.slotUnwrap} };\n`
+      : '';
+    const render = compiled.template ? `const __fez_template_${index} = ${compiled.template.code};\n` : '';
     classBlocks.push(
-      `// --- ${unit.name} ---\nlet ${varName};\n{\n${head}${preamble.trim()}\n${varName} = class {${compiled.classBody};\n}`,
+      `// --- ${unit.name} ---\nlet ${varName};\n${render}{\n${head}${preamble.trim()}\n${varName} = class {${compiled.classBody};\n}\n${template}`,
     );
     registrations.push(`Fez('${unit.name}', ${varName});`);
     if (compiled.registration) {

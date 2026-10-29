@@ -1,4 +1,5 @@
 import { htmlAttr, styleProp } from './attrs.js';
+import evaluate from './evaluate.js';
 
 // Append <head> block HTML to document.head. Scripts are recreated so they run.
 function appendHeadHtml(html) {
@@ -17,6 +18,11 @@ function appendHeadHtml(html) {
     if (node.src) {
       document.head.appendChild(script);
     } else if (script.type.includes('javascript') || script.type === 'module') {
+      // inline code of the component's own <head> block: allowed by the page nonce
+      const nonce = globalThis.Fez?.nonce();
+      if (nonce) {
+        script.nonce = nonce;
+      }
       script.textContent = node.textContent;
       document.head.appendChild(script);
     }
@@ -25,6 +31,31 @@ function appendHeadHtml(html) {
 
 // Utility functions that extend Fez
 export default (Fez) => {
+  // Nonce of the page's Content-Security-Policy ('' without one), for the
+  // scripts fez inserts. Browsers hide the nonce attribute once the page is
+  // loaded, the nonce property keeps it: src/fez.js reads it from the script
+  // that loaded fez, else any nonced script on the page.
+  Fez.nonce = () => {
+    if (Fez._nonce === undefined && typeof document !== 'undefined') {
+      Fez._nonce = document.querySelector('script[nonce]')?.nonce || undefined;
+    }
+    return Fez._nonce || '';
+  };
+
+  // Run inline JS without eval: a <script> carrying the page nonce, so a
+  // Content-Security-Policy without 'unsafe-inline' / 'unsafe-eval' allows it.
+  // The code runs in a function scope, like the new Function it replaces:
+  // top-level declarations stay local and `return` works.
+  Fez.runScript = (code) => {
+    const script = document.createElement('script');
+    if (Fez.nonce()) {
+      script.nonce = Fez.nonce();
+    }
+    script.textContent = `(function () {\n${code}\n})();`;
+    document.head.appendChild(script);
+    script.remove();
+  };
+
   // Script from URL
   //   Fez.head({ js: 'https://example.com/script.js' });
   // Script with attributes
@@ -164,14 +195,9 @@ export default (Fez) => {
             }
           });
       } else {
-        try {
-          new Function(config.script)();
-          if (callback) {
-            callback();
-          }
-        } catch (error) {
-          Fez.consoleError('Error executing script:', error);
-          console.log(config.script);
+        Fez.runScript(config.script);
+        if (callback) {
+          callback();
         }
       }
       return;
@@ -570,13 +596,13 @@ export default (Fez) => {
       const functionPattern = /^\s*function\s*\(/;
 
       if (arrowFuncPattern.test(pointer) || functionPattern.test(pointer)) {
-        return new Function('return ' + pointer)();
+        return evaluate('Fez.getFunction(string)', 'return ' + pointer)();
       } else if (pointer.includes('.') && !pointer.includes('(')) {
         // It's a property access like "this.focus" - return a function that calls it
-        return new Function(`return function() { return ${pointer}(); }`);
+        return evaluate('Fez.getFunction(string)', `return function() { return ${pointer}(); }`);
       } else {
         // It's a function body
-        return new Function(pointer);
+        return evaluate('Fez.getFunction(string)', pointer);
       }
     }
     // Truthy but not a function or string (object/array): nothing callable

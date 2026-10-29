@@ -249,14 +249,13 @@ describe('Pjax lifecycle events', () => {
     }
   });
 
-  test('reports apply error when inline script throws before morph', () => {
+  test('an inline script that throws runs as its own script and does not abort the swap', () => {
     let captured = null;
-    let pushed = false;
     let redirected = false;
     const handler = (e) => (captured = e.detail);
     document.addEventListener('pjax:render', handler);
     const originalPush = window.history.pushState;
-    window.history.pushState = () => (pushed = true);
+    window.history.pushState = () => {};
 
     const originalError = console.error;
     console.error = () => {};
@@ -264,13 +263,13 @@ describe('Pjax lifecycle events', () => {
     try {
       const pjax = new Pjax('/bad-script');
       const res = fakeResponse(200, {});
-      const html = '<main class="pjax" id="pjax"><script>throw new Error("boom")</script></main>';
+      const html =
+        '<main class="pjax" id="pjax"><script>throw new Error("boom")</script><p id="after">ok</p></main>';
       pjax.redirect = () => (redirected = true);
       pjax.handleResponse(res, html);
-      expect(captured.error).toBe('apply');
-      expect(captured.status).toBe(200);
-      expect(pushed).toBe(true);
-      expect(redirected).toBe(true);
+      expect(captured.error).toBeFalsy();
+      expect(redirected).toBe(false);
+      expect(document.getElementById('after')?.textContent).toBe('ok');
     } finally {
       window.history.pushState = originalPush;
       console.error = originalError;

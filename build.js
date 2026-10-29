@@ -7,6 +7,7 @@
 
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import * as esbuild from 'esbuild'
 
 const { version } = JSON.parse(readFileSync('./package.json', 'utf8'))
@@ -16,7 +17,14 @@ const cliRun = (command) => {
   console.log(execSync(command).toString())
 }
 
-//
+const cspEvaluate = {
+  name: 'fez-csp-evaluate',
+  setup(build) {
+    build.onResolve({ filter: /[\\/]evaluate\.js$/ }, (args) => ({
+      path: join(args.resolveDir, args.path.replace(/evaluate\.js$/, 'evaluate-csp.js')),
+    }))
+  },
+}
 
 const kind = process.argv[2]
 
@@ -67,6 +75,22 @@ else if (kind === 'b') {
     ...opts,
     format: 'cjs',
     outExtension: { '.js': '.cjs' }
+  })
+  // Content-Security-Policy build (import 'fez/csp'): lib/evaluate.js swapped
+  // for evaluate-csp.js, so it holds no new Function; components must come
+  // precompiled from the bundler plugin
+  await esbuild.build({
+    ...opts,
+    format: 'esm',
+    entryNames: '[name].csp.esm',
+    plugins: [cspEvaluate]
+  })
+  await esbuild.build({
+    ...opts,
+    format: 'esm',
+    entryNames: '[name].csp.esm.min',
+    minify: true,
+    plugins: [cspEvaluate]
   })
 }
 else {

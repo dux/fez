@@ -16,6 +16,10 @@
       "require": "./dist/fez.cjs",
       "default": "./dist/fez.esm.js"
     },
+    "./csp": {
+      "types": "./fez.d.ts",
+      "default": "./dist/fez.csp.esm.js"
+    },
     "./plugin": "./src/fez/plugin.js",
     "./package.json": "./package.json"
   },
@@ -76,6 +80,7 @@
     "vscode:install": "bun run vscode:package && code --install-extension vscode/fez-vscode-tools.vsix"
   },
   "dependencies": {
+    "acorn": "^8.17.0",
     "glob": "^13.0.0",
     "playwright": "^1.57.0",
     "prettier": "^3.8.1"

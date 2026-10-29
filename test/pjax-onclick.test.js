@@ -40,12 +40,13 @@ const createClickEvent = (overrides = {}) => {
 const sleep = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe('PjaxOnClick', () => {
-  test('dispatches click attribute as inline JS bound to the element', () => {
+  test('never runs a click attribute as code', () => {
     document.body.innerHTML = '<div click="this.dataset.ran = \'yes\'" id="clicker">Click me</div>';
     const node = document.getElementById('clicker');
     const e = createClickEvent({ target: node });
     PjaxOnClick.main(e);
-    expect(node.dataset.ran).toBe('yes');
+    expect(node.dataset.ran).toBeUndefined();
+    expect(e.defaultPrevented).toBe(false);
   });
 
   test('calls load with source for regular href clicks', () => {
@@ -263,14 +264,23 @@ describe('PjaxOnClick', () => {
     }
   });
 
-  test('executes javascript: href as inline function', () => {
+  test('refuses javascript: hrefs', () => {
     window.__jsHrefTest = 0;
     document.body.innerHTML = '<a href="javascript:window.__jsHrefTest=99" id="js-link">Run</a>';
-
-    const link = document.getElementById('js-link');
-    const e = createClickEvent({ target: link });
-    PjaxOnClick.main(e);
-    expect(window.__jsHrefTest).toBe(99);
+    let left = false;
+    PjaxOnClick.leave = () => (left = true);
+    const warn = console.warn;
+    console.warn = () => {};
+    try {
+      const link = document.getElementById('js-link');
+      const e = createClickEvent({ target: link });
+      PjaxOnClick.main(e);
+      expect(window.__jsHrefTest).toBe(0);
+      expect(left).toBe(false);
+      expect(e.defaultPrevented).toBe(true);
+    } finally {
+      console.warn = warn;
+    }
   });
 
   test('ignores elements without click or href attributes', () => {
