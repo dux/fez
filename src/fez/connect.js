@@ -59,15 +59,23 @@ export default function connect(name, klass) {
   if (precompiled) {
     // the bundler plugin compiled the template into the module (no eval)
     klass.fezSlotUnwrap = precompiled.slotUnwrap;
+    klass.fezSlotLive = precompiled.slotLive;
     klass.fezHtmlFunc = wrapRender((ctx) => precompiled.render.call(ctx), { name });
   } else if (klass.html) {
     const slot = slotTemplate(klass.html);
     klass.fezSlotUnwrap = slot.slotUnwrap;
+    klass.fezSlotLive = slot.slotLive;
     klass.html = slot.html;
     // compiled on first render: a component that never mounts never evaluates
     // code (the CSP build cannot, see lib/evaluate.js)
     let render;
     klass.fezHtmlFunc = (ctx) => (render ||= createTemplate(klass.html, { name }))(ctx);
+  }
+  // <slot live />: a parent render morphs its new children into the kept slot
+  // (lib/fez-morph.js). An unwrapped slot has no wrapper to morph into.
+  if (klass.fezSlotLive && klass.fezSlotUnwrap) {
+    Fez.onError('slot', `<${name}>: <slot live unwrap /> cannot combine; live is ignored`);
+    klass.fezSlotLive = false;
   }
 
   // Register CSS. Scoped block gets the component name so :fez resolves;

@@ -158,7 +158,7 @@ export function compileFileToModule(filePath, source, options = {}) {
     // the template sits outside the preamble block: like a runtime template it
     // sees the component and globals, not the script's module-level names
     const template = compiled.template
-      ? `${varName}.FEZ_TEMPLATE = { render: __fez_template_${index}, slotUnwrap: ${compiled.template.slotUnwrap} };\n`
+      ? `${varName}.FEZ_TEMPLATE = { render: __fez_template_${index}, slotUnwrap: ${compiled.template.slotUnwrap}, slotLive: ${compiled.template.slotLive} };\n`
       : '';
     const render = compiled.template ? `const __fez_template_${index} = ${compiled.template.code};\n` : '';
     classBlocks.push(

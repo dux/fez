@@ -33,14 +33,27 @@ function hashText(text) {
   return (hash >>> 0).toString(36);
 }
 
-function signatureHash(node) {
+function signatureHash(node, live = false) {
   if (node._fezSigHash) {
     return node._fezSigHash;
   }
-  const text = String(node?._fezSignature ?? node?.outerHTML ?? '').trim();
-  const result = hashText(text);
+  const text = live ? openTagSource(node) : String(node?._fezSignature ?? node?.outerHTML ?? '');
+  const result = hashText(text.trim());
   node._fezSigHash = result;
   return result;
+}
+
+/**
+ * The source tag without its children. A <slot live /> component stays the same
+ * one whatever its slot holds: the differ morphs the new children into its slot.
+ */
+function openTagSource(node) {
+  if (node._fezSignature == null) {
+    return node.cloneNode(false).outerHTML;
+  }
+  const parsed = document.createElement('template');
+  parsed.innerHTML = node._fezSignature;
+  return parsed.content.firstElementChild?.cloneNode(false).outerHTML ?? node._fezSignature;
 }
 
 /**
@@ -68,6 +81,10 @@ function innerFromOuterHtml(html) {
  */
 function shouldPreserveFezComponent(oldNode, newNode) {
   if (!oldNode?.fez || oldNode.fez._destroyed) {
+    return true;
+  }
+  // <slot live /> takes changed children in place (morphLiveSlot)
+  if (oldNode.fez.class?.fezSlotLive) {
     return true;
   }
   if (oldNode._fezSignature == null) {
@@ -100,14 +117,14 @@ function wrapperName(node) {
   return null;
 }
 
-function fezKeyAlias(internalKey, keyAttr, base, node) {
+function fezKeyAlias(internalKey, keyAttr, base, node, live) {
   if (internalKey !== undefined) {
     return 'key-' + internalKey;
   }
   if (keyAttr) {
     return 'key-' + keyAttr;
   }
-  return `${base}:sig-${signatureHash(node)}`;
+  return `${base}:sig-${signatureHash(node, live)}`;
 }
 
 /**
@@ -142,7 +159,7 @@ function fezDescribeOld(node) {
   }
   const name = node.fez.fezName || wrapperName(node);
   if (name) {
-    aliases.push(`fez-class-${name}:sig-${signatureHash(node)}`);
+    aliases.push(`fez-class-${name}:sig-${signatureHash(node, node.fez.class?.fezSlotLive)}`);
   }
   return {
     key: 'fez-uid-' + node.fez.UID,
@@ -188,23 +205,46 @@ export default function attachMorph(Fez) {
     const internalKey = explicitFezKey(node);
     const keyAttr = node.getAttribute?.('key');
 
+    const live = (component) => Fez.index?.[component]?.class?.fezSlotLive;
+
     const name = node.classList?.contains('fez') && wrapperName(node);
     if (name) {
-      return fezKeyAlias(internalKey, keyAttr, 'fez-class-' + name, node);
+      return fezKeyAlias(internalKey, keyAttr, 'fez-class-' + name, node, live(name));
     }
 
     const tag = node.tagName?.toLowerCase();
     if (tag && Fez.index?.[tag]) {
-      return fezKeyAlias(internalKey, keyAttr, 'fez-class-' + tag, node);
+      return fezKeyAlias(internalKey, keyAttr, 'fez-class-' + tag, node, live(tag));
     }
 
     const fezAttr = node.getAttribute?.('fez');
     if (fezAttr && Fez.index?.[fezAttr]) {
       const attrKey = node.getAttribute?.('fez-key') ?? undefined;
-      return fezKeyAlias(attrKey, keyAttr, 'fez-class-' + fezAttr, node);
+      return fezKeyAlias(attrKey, keyAttr, 'fez-class-' + fezAttr, node, live(fezAttr));
     }
 
     return null;
+  }
+
+  /**
+   * <slot live />: the parent's new children for a kept component are morphed
+   * into its own .fez-slot, the way the parent morphs its own template, so the
+   * component, the components in its slot, typed values and focus all stay.
+   */
+  function morphLiveSlot(oldNode, newNode) {
+    const slot = [...oldNode.querySelectorAll('.fez-slot')].find(
+      (el) => el.parentElement?.closest('.fez') === oldNode,
+    );
+    if (!slot || newNode?.nodeType !== 1) {
+      return;
+    }
+    oldNode._fezSignature = newNode.outerHTML;
+    oldNode._fezSigHash = undefined;
+    const children = document.createElement('div');
+    while (newNode.firstChild) {
+      children.appendChild(newNode.firstChild);
+    }
+    nodeMorph(slot, children, fezMorphOpts);
   }
 
   const fezMorphOpts = {
@@ -240,6 +280,9 @@ export default function attachMorph(Fez) {
     // Notify preserved fez children that their parent re-rendered
     onPreserve: (oldNode, newNode) => {
       if (oldNode.classList?.contains('fez') && oldNode.fez && !oldNode.fez._destroyed) {
+        if (oldNode.fez.class?.fezSlotLive) {
+          morphLiveSlot(oldNode, newNode);
+        }
         refreshPreservedComponent(oldNode, newNode);
       }
     },

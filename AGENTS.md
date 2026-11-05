@@ -224,7 +224,7 @@ Rules for wiring components into an app; the component rules are above.
    Set `state.loading = true` only in `init()`: reloads then keep the current DOM and morph to the new data instead of flashing a spinner.
 4. Renders are batched per animation frame (a timer while the tab is hidden); the DOM does not change synchronously after a state write.
    `await this.tick()` resolves once the pending render reached the DOM.
-5. Pass anything that changes as a prop; slots are captured once.
+5. Pass anything that changes as a prop. Changed slot content rebuilds a `<slot />` component (fresh `init()`); a component whose template has `<slot live />` stays and takes the new children in place.
    A child whose template does not read a prop skips the re-render when only that prop changes.
 6. Pages and other components chosen at runtime: `<fez-component name={state.page} :props="state.query">fallback</fez-component>`.
    The same name keeps the child and hands it new props, a new name inserts the new tag, and an unregistered name shows the children.
@@ -1618,11 +1618,17 @@ Fez ships the former `dux-pjax` package (ported to JS) and exposes it as `Fez.pj
 - Components follow navigation via `this.on('pjax:render', () => this.refresh())`.
 - URL state: `Fez.qs()` (real query) and `Fez.hash()` (slashless fragment params) are history-only setters/getters. `Fez.hpath()`/`Fez.hqs()` address a hash route: a fragment whose path part contains a `/` is a route (`#/traffic?app=x`), the route name is the last path segment, and `hqs` reads/writes its query. A slashless fragment (`#foo`, `#tab=settings`) stays an anchor or `hash()` parameter list. Path setters canonicalize to `#/name` and clear on empty.
 
-## Slot Unwrap
+## Slot Unwrap and Slot Live
 
 Use `<slot unwrap />` when children must be inserted without a wrapper div. By default, `<slot />` wraps children in a `<div class="fez-slot">`. With `unwrap`, the wrapper div is dissolved after filling, leaving children directly in the parent element.
 
 **Important:** Components using `<slot unwrap />` render once - a re-render would lose the unwrapped slot content. `this.state` works normally for keys the template never reads; a write to a key the render did read logs a console error and is not rendered.
+
+When a parent re-renders with different slot content for a child, a plain `<slot />` child is destroyed and mounted again with the new children (a fresh `init()`, typed values and focus inside are lost), whether it is keyed or not.
+That is right for components that read their children once (`this.childNodes()` / `this.childObjects()` in `init()`).
+A component whose template has `<slot live />` stays instead: the parent's new children are morphed into its `.fez-slot` like the parent's own template, so the component, the components in its slot, typed values and focus are kept, conditional children come and go, and the parent's handlers in the slot keep working.
+Use it for wrappers whose children are the parent's markup (a form, a card around fields); its attributes still refresh its props as usual.
+`live` and `unwrap` cannot combine (there is no wrapper to morph into): fez logs an error and keeps `unwrap`.
 
 ```html
 <!-- Default slot: children wrapped in <div class="fez-slot"> -->
@@ -1630,10 +1636,12 @@ Use `<slot unwrap />` when children must be inserted without a wrapper div. By d
 
 <!-- Unwrap slot: wrapper dissolved after fill, children in parent -->
 <slot unwrap />
+
+<!-- Live slot: the parent's changed children are morphed into the kept wrapper -->
+<slot live />
 ```
 
 A component has one default slot. Named slots (`<slot name="header">`) are not supported: pass that markup as a prop, read the children with `this.childNodes()` / `this.childObjects()` in `init()`, or split it into child components.
-Slot content is captured once at mount (see App Rules 5).
 
 ## Built-in components
 

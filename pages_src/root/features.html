@@ -928,9 +928,9 @@ tooltip(node) {
 
             <article class="site-feature-row" id="slots">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">slot · slot unwrap · fezSlot</p>
+                <p class="site-feature-kicker">slot · slot unwrap · slot live · fezSlot</p>
                 <h3>Slots that preserve listeners</h3>
-                <p>A normal slot keeps children in a <code>.fez-slot</code> wrapper. <code>unwrap</code> dissolves that wrapper into the parent. Fez moves the real nodes, so existing listeners survive. There is one default slot; named slots are not supported, so pass extra markup as a child component.</p>
+                <p>A normal slot keeps children in a <code>.fez-slot</code> wrapper. <code>unwrap</code> dissolves that wrapper into the parent. Fez moves the real nodes, so existing listeners survive. When the parent re-renders different children, a normal slot component is mounted again; <code>live</code> keeps it and morphs the new children into its slot, so typed values and focus stay. There is one default slot; named slots are not supported, so pass extra markup as a child component.</p>
               </div>
               <site-live title="panel.fez" right-title="native children">
                 <div class="src"><pre><code>&lt;section class="panel"&gt;
@@ -940,10 +940,13 @@ tooltip(node) {
 // or direct children, no wrapper
 &lt;nav&gt;&lt;slot unwrap /&gt;&lt;/nav&gt;
 
+// or follow the parent's re-renders in place
+&lt;form&gt;&lt;slot live /&gt;&lt;/form&gt;
+
 // low-level equivalent
 this.fezSlot(source, target)</code></pre></div>
-                <div class="out feature-result"><span class="result-chip">default wrapper</span><span>or</span><span class="result-chip">direct children</span></div>
-                <div class="out-label">slot unwrap components render once and cannot use reactive state</div>
+                <div class="out feature-result"><span class="result-chip">default wrapper</span><span>or</span><span class="result-chip">direct children</span><span>or</span><span class="result-chip">live children</span></div>
+                <div class="out-label">slot unwrap components render once and cannot use reactive state; slot live cannot combine with unwrap</div>
               </site-live>
             </article>
 

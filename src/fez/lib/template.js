@@ -53,11 +53,12 @@ export function clearTemplateCache() {
 /**
  * A component's default <slot> as the template renders it: a wrapper div the
  * differ keeps (fez-keep), which is the morph anchor for the slot content.
- * `slotUnwrap` reports <slot unwrap />, see connect.js.
+ * `slotUnwrap` reports <slot unwrap />, `slotLive` reports <slot live />, see connect.js.
  */
 export function slotTemplate(html) {
   return {
     slotUnwrap: /<slot\s[^>]*unwrap[\s>\/]/.test(html),
+    slotLive: /<slot\s[^>]*\blive[\s>\/=]/.test(html),
     html: html
       .replace(/<slot(\s[^>]*)?>/, '<div class="fez-slot" fez-keep="default-slot"$1>')
       .replace('</slot>', '</div>'),

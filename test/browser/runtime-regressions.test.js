@@ -1,6 +1,6 @@
 /**
  * Browser regressions for the component runtime: render scheduling, the state
- * store, class fields, cleanup, slot unwrap, global state, fez-inline and
+ * store, class fields, cleanup, slot unwrap, slot live, global state, fez-inline and
  * fez:bind radios.
  *
  * Run: bun test test/browser/runtime-regressions.test.js
@@ -27,8 +27,8 @@ afterAll(async () => {
   await browser?.close();
 });
 
-// Runs `setup` in a fresh page, waits, then returns `check()` plus page errors
-async function run(setup, check, wait = 150) {
+// Runs `setup(arg)` in a fresh page, waits, then returns `check()` plus page errors
+async function run(setup, check, wait = 150, arg) {
   const context = await browser.newContext();
   const page = await context.newPage();
   const errors = [];
@@ -39,7 +39,7 @@ async function run(setup, check, wait = 150) {
       `<!DOCTYPE html><html><head><script>${fezCode}</script></head><body><div id="app"></div></body></html>`,
     );
     await page.waitForFunction(() => window.Fez && document.readyState === 'complete');
-    await page.evaluate(setup);
+    await page.evaluate(setup, arg);
     await page.waitForTimeout(wait);
     return { result: await page.evaluate(check), errors };
   } finally {
@@ -114,6 +114,113 @@ test('slot unwrap components keep their children across props, globalState and a
     () => document.querySelectorAll('.kid').length,
   );
   expect(result).toBe(1);
+});
+
+// A host whose box holds an input, a child component and a part shown by host state;
+// runs in the page, so it takes its options as the evaluate argument.
+function liveHost({ slot, drop }) {
+  Fez('live-field', class { HTML = '<em class="lf">{props.label}</em>'; });
+  Fez('live-box', class { HTML = `<div class="box"><b class="title">{props.title}</b>${slot}</div>`; });
+  Fez('live-host', class {
+    HTML = `<live-box title={state.title}>
+      <input class="typed" name="a">
+      {#if state.more}<button class="extra" onclick="fez.state.clicks++">{state.more}</button>{/if}
+      <live-field label={state.label}></live-field>
+    </live-box>`;
+    init() { Object.assign(this.state, { title: 't1', more: '', label: 'l1', clicks: 0 }); }
+  });
+  app.innerHTML = '<live-host></live-host>';
+  setTimeout(() => {
+    window.firstBox = Fez('live-box').UID;
+    window.firstField = Fez('live-field').UID;
+    const typed = document.querySelector('.typed');
+    typed.value = 'hello';
+    typed.focus();
+    Object.assign(Fez('live-host').state, { title: 't2', more: 'shown', label: 'l2' });
+  }, 30);
+  setTimeout(() => document.querySelector('.extra')?.click(), 90);
+  if (drop) setTimeout(() => { Fez('live-host').state.more = ''; }, 150);
+}
+
+function liveState() {
+  const typed = document.querySelector('.typed');
+  return {
+    sameBox: Fez('live-box').UID === window.firstBox,
+    sameField: Fez('live-field').UID === window.firstField,
+    typed: typed.value,
+    focused: document.activeElement === typed,
+    extra: document.querySelector('.extra')?.textContent,
+    title: document.querySelector('.title').textContent,
+    label: document.querySelector('.lf').textContent,
+    clicks: Fez('live-host').state.clicks,
+    boxes: document.querySelectorAll('.box').length,
+  };
+}
+
+test('slot live keeps the component and morphs changed children into its slot', async () => {
+  const { result, errors } = await run(liveHost, liveState, 250, { slot: '<slot live />' });
+  expect(errors).toEqual([]);
+  expect(result).toEqual({
+    sameBox: true,
+    sameField: true,
+    typed: 'hello',
+    focused: true,
+    extra: 'shown',
+    title: 't2',
+    label: 'l2',
+    clicks: 1,
+    boxes: 1,
+  });
+});
+
+test("a fez:this ref inside a live slot is the parent's, before and after a re-render", async () => {
+  const { result } = await run(
+    () => {
+      Fez('ref-box', class { HTML = '<div class="rb"><slot live /></div>'; });
+      Fez('ref-host', class {
+        HTML = '<ref-box><input class="ri" fez:this="field">{#if state.n}<i>{state.n}</i>{/if}</ref-box>';
+        init() { this.state.n = 0; }
+        onMount() { window.atMount = this.state.field === document.querySelector('.ri'); }
+      });
+      app.innerHTML = '<ref-host></ref-host>';
+      setTimeout(() => { Fez('ref-host').state.n = 1; }, 30);
+    },
+    () => ({
+      atMount: window.atMount,
+      after: Fez('ref-host').state.field === document.querySelector('.ri'),
+      box: Fez('ref-box').state.field,
+    }),
+  );
+  expect(result).toEqual({ atMount: true, after: true, box: undefined });
+});
+
+test('slot live drops children the parent no longer renders', async () => {
+  const { result } = await run(
+    liveHost,
+    () => ({ extra: document.querySelectorAll('.extra').length, sameBox: Fez('live-box').UID === window.firstBox }),
+    300,
+    { slot: '<slot live />', drop: true },
+  );
+  expect(result).toEqual({ extra: 0, sameBox: true });
+});
+
+test('a plain slot still rebuilds its component when the children change', async () => {
+  const { result } = await run(liveHost, liveState, 250, { slot: '<slot />' });
+  expect(result.sameBox).toBe(false);
+  expect(result.typed).toBe('');
+  expect(result.extra).toBe('shown');
+});
+
+test('slot live and unwrap cannot combine', async () => {
+  const { result, errors } = await run(
+    () => {
+      Fez('live-unwrap', class { HTML = '<ul><slot live unwrap /></ul>'; });
+      app.innerHTML = '<live-unwrap><li class="kid">kid</li></live-unwrap>';
+    },
+    () => ({ live: Fez.index['live-unwrap'].class.fezSlotLive, kids: document.querySelectorAll('.kid').length }),
+  );
+  expect(result).toEqual({ live: false, kids: 1 });
+  expect(errors.some((e) => e.includes('cannot combine'))).toBe(true);
 });
 
 test('class fields are initialized per instance', async () => {

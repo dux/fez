@@ -42,14 +42,14 @@ const GLOBALS = new Set([
  * expression source. Called with the component as `this`, it returns the
  * HTML string. Throws on template errors.
  *
- * @returns {{ code: string, slotUnwrap: boolean }}
+ * @returns {{ code: string, slotUnwrap: boolean, slotLive: boolean }}
  */
 export function precompileTemplate(html, { name } = {}) {
   const slot = slotTemplate(closeCustomTags(html.trim()));
   const text = normalizeTemplateText(slot.html, { name });
   const literal = compileTemplateLiteral(text, { name, strict: true, precompile: true });
   const code = rewriteFreeNames(`function () {\nconst fez = this;\nreturn \`${literal}\`;\n}`);
-  return { code, slotUnwrap: slot.slotUnwrap };
+  return { code, slotUnwrap: slot.slotUnwrap, slotLive: slot.slotLive };
 }
 
 /**

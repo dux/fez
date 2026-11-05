@@ -1080,8 +1080,16 @@ export default class FezBase {
    * Post-render processing for fez-* attributes
    */
   fezRenderPostProcess() {
+    // A live slot holds the parent's markup: its fez:this refs, actions and
+    // classes are the parent's, which takes them in its own post-process.
+    const liveSlot = this.class.fezSlotLive
+      ? [...this.root.querySelectorAll('.fez-slot')].find((el) => el.parentElement?.closest('.fez') === this.root)
+      : null;
     const fetchAttr = (name, func) => {
       this.root.querySelectorAll(`*[${name}]`).forEach((n) => {
+        if (liveSlot?.contains(n)) {
+          return;
+        }
         const value = n.getAttribute(name);
         n.removeAttribute(name);
         if (value) {

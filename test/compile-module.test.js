@@ -175,7 +175,7 @@ describe('precompiled templates', () => {
   test('the module carries the render function, not the template source', () => {
     const code = compile(valid);
     expect(code).toContain('const __fez_template_0 = function () {');
-    expect(code).toContain('__fez_component_0.FEZ_TEMPLATE = { render: __fez_template_0, slotUnwrap: false };');
+    expect(code).toContain('__fez_component_0.FEZ_TEMPLATE = { render: __fez_template_0, slotUnwrap: false, slotLive: false };');
     expect(code).not.toContain('HTML = ');
     expect(code).not.toMatch(/\bwith \(|new Function/);
   });
