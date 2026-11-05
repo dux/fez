@@ -82,16 +82,32 @@ if (process.env.DEPLOY_TEST_RACE) {
   git(root, 'add', '.');
   git(root, 'commit', '-m', 'Initial source');
   git(root, 'push', 'origin', 'main');
+  // The bun that bin/deploy runs for npm (DEPLOY_NPM_BUN): it logs each call and fails
+  // whoami or publish on request, so no fixture ever reaches the registry.
+  const npmBun = path.join(directory, 'npm-bun');
+  fs.writeFileSync(
+    npmBun,
+    `#!/bin/sh
+printf '%s\\n' "$*" >> "$(dirname "$0")/npm.log"
+case "$1:$DEPLOY_TEST_FAIL" in pm:whoami|publish:publish) exit 1;; esac
+`,
+  );
+  fs.chmodSync(npmBun, 0o755);
   return { root, remote };
 }
 
 function deploy(root, args = [], env = {}) {
   return Bun.spawnSync([process.execPath, deployScript, ...args], {
     cwd: root,
-    env: { ...process.env, ...env },
+    env: { ...process.env, DEPLOY_NPM_BUN: path.join(root, '../npm-bun'), ...env },
     stdout: 'pipe',
     stderr: 'pipe',
   });
+}
+
+function npmCalls(root) {
+  const log = path.join(root, '../npm.log');
+  return fs.existsSync(log) ? fs.readFileSync(log, 'utf8').trim().split('\n') : [];
 }
 
 function version(root) {
@@ -131,7 +147,32 @@ test('deploy versions by main commit count, commits main, appends pages, and pus
     expect(git(remote, 'rev-parse', `v${expected}`)).toBe(git(root, 'rev-parse', 'main'));
     expect(git(root, 'status', '--porcelain')).toBe('');
     expect(fs.existsSync(path.join(root, 'tmp/pages-wt'))).toBe(false);
+    expect(npmCalls(root).slice(-2)).toEqual(['pm whoami', 'publish --access public --ignore-scripts']);
+    expect(result.stdout.toString()).toContain(`deploy: published deploy-test@${expected} to npm.`);
   }
+});
+
+test('a missing npm login stops before tests, commits or pushes', () => {
+  const { root, remote } = fixture();
+  const before = git(root, 'rev-parse', 'HEAD');
+  const result = deploy(root, [], { DEPLOY_TEST_FAIL: 'whoami' });
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain('Not logged in to the npm registry');
+  expect(result.stdout.toString()).not.toContain('tests:');
+  expect(npmCalls(root)).toEqual(['pm whoami']);
+  expect(git(root, 'rev-parse', 'HEAD')).toBe(before);
+  expect(git(remote, 'show-ref')).toBe(git(root, 'show-ref', '--heads'));
+  expect(git(root, 'status', '--porcelain')).toBe('');
+});
+
+test('a failed publish keeps the pushed release and says how to retry', () => {
+  const { root, remote } = fixture();
+  const result = deploy(root, [], { DEPLOY_TEST_FAIL: 'publish' });
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr.toString()).toContain('v0.0.2 is pushed but npm publish failed');
+  expect(result.stderr.toString()).toContain('bun publish --access public --ignore-scripts');
+  expect(git(remote, 'rev-parse', 'v0.0.2')).toBe(git(root, 'rev-parse', 'main'));
+  expect(git(remote, 'log', '-1', '--format=%s', 'main')).toBe('chore: release 0.0.2');
 });
 
 test('an existing release tag aborts before building or committing', () => {
@@ -168,6 +209,7 @@ test('dry-run previews the new version but preserves source and all Git refs', (
   const result = deploy(root, ['--dry-run']);
   expect(result.exitCode).toBe(0);
   expect(result.stdout.toString()).toContain('tests: 0.7.9\ndeploy:');
+  expect(npmCalls(root)).toEqual(['publish --access public --ignore-scripts --dry-run']);
   expect(fs.readFileSync(path.join(root, 'tmp/fez-pages/index.html'), 'utf8')).toBe('0.0.2');
   expect(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).toBe(manifest);
   expect(stamp(root)).toBe(null);

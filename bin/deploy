@@ -25,6 +25,9 @@ Options:
 
 // tests and build already ran, so prepublishOnly is skipped
 const PUBLISH = ['publish', '--access', 'public', '--ignore-scripts'];
+// The bun that talks to npm (whoami, publish); test/deploy.test.js points it at a stub
+// so fixture deploys never reach the registry.
+const NPM_BUN = process.env.DEPLOY_NPM_BUN || process.execPath;
 
 function run(command, args, options = {}) {
   try {
@@ -100,7 +103,7 @@ async function deploy(args) {
     }
     assertPagesNotCheckedOut(root);
     try {
-      run(process.execPath, ['pm', 'whoami']);
+      run(NPM_BUN, ['pm', 'whoami']);
     } catch {
       throw new Error('Not logged in to the npm registry; run `npm login` or add a token to ~/.npmrc.');
     }
@@ -131,7 +134,7 @@ async function deploy(args) {
       throw new Error('Static build did not produce index.html.');
     }
     if (dryRun) {
-      run(process.execPath, [...PUBLISH, '--dry-run'], { stdio: 'inherit' });
+      run(NPM_BUN, [...PUBLISH, '--dry-run'], { stdio: 'inherit' });
       process.stdout.write('deploy: dry run built successfully; no commits, pushes or publish.\n');
       return;
     }
@@ -175,7 +178,7 @@ async function deploy(args) {
       process.stdout.write(`deploy: ${pages}\n`);
     }
     try {
-      run(process.execPath, PUBLISH, { stdio: 'inherit' });
+      run(NPM_BUN, PUBLISH, { stdio: 'inherit' });
     } catch {
       throw new Error(`${tag} is pushed but npm publish failed; retry with \`bun ${PUBLISH.join(' ')}\` before changing the checkout.`);
     }
