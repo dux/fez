@@ -15,20 +15,20 @@ bun run static       # Generate the component index and documentation site
 
 ### Deploy to GitHub
 
-`bun run deploy` requires a clean working tree on `main`.
-It increments the minor version (`0.7.0` -> `0.8.0`) before building the library and documentation site, commits the version on `main`, and amends or creates the rolling `pages` commit with the new version and source hash.
-It then pushes both branches to `origin` atomically: `main` must fast-forward and `pages` uses an explicit force-with-lease.
-It does not publish to the package registry.
+`bun run deploy` requires a clean working tree on `main` and a valid npm login (`bun pm whoami`).
+It runs the tests, stamps the version with `vstamp count --next`, builds the library and documentation site, commits the version on `main` and commits the built site on top of the `pages` branch.
+It then pushes both branches and the release tag to `origin` atomically (both must fast-forward), and publishes the package to npm.
 
 ```bash
 bun run deploy --help
-bun run deploy --dry-run  # Build the next version, restore package.json, do not commit or push
+bun run deploy --dry-run  # Build the next version and dry-run the publish, restore the manifest, do not commit, push or publish
 bun run deploy
 ```
 
-Build failures restore `package.json` before any source commit is made.
-If a commit or push fails after the source commit, local commits and the Pages worktree remain available for inspection and recovery.
-The dry run leaves preview output in `dist/` and `tmp/fez-pages` but does not create or amend commits.
+Build failures restore `.version` and `package.json` before any source commit is made.
+If a commit or push fails after the source commit, local commits and the Pages output remain available for inspection and recovery.
+If only the npm publish fails, rerun the `bun publish` command the deploy prints, from the same checkout.
+The dry run leaves preview output in `dist/` and `tmp/fez-pages` but does not create commits.
 
 ### 3. Code Quality
 

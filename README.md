@@ -86,11 +86,11 @@ It runs `bun run test` first and stops on failure before stamping a version, bui
 It stamps the version with `vstamp count --next` ([vstamp](https://github.com/dux/vstamp)): the main commit count including the release commit, rendered dotted (`357` -> `3.5.7`, `1123` -> `11.2.3`), written to `.version` (YAML, `version: X.Y.Z`) and `package.json`.
 It then builds the library and pages, commits both files on `main`, and commits the built site on top of the `pages` branch with the same commit-tree path as `fez gh-pages`.
 It then pushes both branches to GitHub (`origin`) atomically: both must fast-forward and `pages` is never force-pushed.
+After the push it publishes the package to npm with `bun publish --access public`; it checks `bun pm whoami` before running tests, so an expired npm login fails before anything is committed.
 The generated site is served from the root of the `pages` branch.
-`--dry-run` also runs tests, builds the next version, restores `.version` and `package.json`, and leaves preview output without committing or pushing.
+`--dry-run` also runs tests, builds the next version, runs `bun publish --dry-run`, restores `.version` and `package.json`, and leaves preview output without committing, pushing or publishing.
 Build failures restore the manifest before any source commit; later failures retain local commits and the Pages output for recovery.
 For a site that only needs the generic publisher, `fez gh-pages` builds `source_dir` and commits it to the same `pages` branch with no version stamping.
-`bun run release` is separate: it publishes the library package to the public package registry.
 
 ## Static Site Builder
 

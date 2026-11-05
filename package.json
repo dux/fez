@@ -73,7 +73,6 @@
     "test": "bun test test/*.test.js && bun test/browser/run.js",
     "test:browser": "bun test/browser/run.js",
     "prepublishOnly": "bun run build && bun run test",
-    "release": "bun publish --access public",
     "static": "bun lib/site.js",
     "vscode:lint": "node --check vscode/src/extension.js",
     "vscode:package": "cd vscode && bunx @vscode/vsce package --allow-missing-repository --no-dependencies --out fez-vscode-tools.vsix",

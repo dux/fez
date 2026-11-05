@@ -225,10 +225,9 @@ describe('published CLI wiring', () => {
     expect(pkg.scripts.deploy).toBe('bun bin/deploy');
     expect(pkg.scripts.static).toBe('bun lib/site.js');
     expect(pkg.scripts.dev).toBe('bun lib/dev.js');
-    for (const removed of ['refactor', 'index', 'server', 'lint:fix', 'build:pages']) {
+    for (const removed of ['refactor', 'index', 'server', 'lint:fix', 'build:pages', 'release']) {
       expect(pkg.scripts[removed]).toBeUndefined();
     }
-    expect(pkg.scripts.release).toStartWith('bun publish');
     expect(Object.values(pkg.scripts).join('\n')).not.toMatch(/\b(?:npm|npx)\b/);
   });
 

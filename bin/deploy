@@ -11,15 +11,20 @@ Run tests, then stamp .version and package.json via \`vstamp count --next\` (X.Y
 main commit count, counting the release commit), build the library and pages,
 commit the version on main, tag it v<version>,
 commit the built site on top of the pages branch,
-then push both branches and the tag to GitHub.
-Refuses to start when the tag v<version> already exists locally.
+then push both branches and the tag to GitHub, then publish the package to npm.
+Refuses to start when the tag v<version> already exists locally
+or when \`bun pm whoami\` is not logged in to the npm registry.
 The push is atomic: main and pages must fast-forward; pages is never force-pushed.
+npm publishes only after the push succeeds; it may prompt for a 2FA code.
 Requires a clean main checkout and an origin remote.
 
 Options:
-  --dry-run   run tests and build the next version, restore .version and package.json, do not commit or push
+  --dry-run   run tests, build the next version and \`bun publish --dry-run\`, restore .version and package.json, do not commit, push or publish
   -h, --help  show this description
 `;
+
+// tests and build already ran, so prepublishOnly is skipped
+const PUBLISH = ['publish', '--access', 'public', '--ignore-scripts'];
 
 function run(command, args, options = {}) {
   try {
@@ -94,6 +99,11 @@ async function deploy(args) {
       throw new Error('Local pages differs from origin/pages; resolve it before deploying.');
     }
     assertPagesNotCheckedOut(root);
+    try {
+      run(process.execPath, ['pm', 'whoami']);
+    } catch {
+      throw new Error('Not logged in to the npm registry; run `npm login` or add a token to ~/.npmrc.');
+    }
   }
 
   let committed = false;
@@ -121,7 +131,8 @@ async function deploy(args) {
       throw new Error('Static build did not produce index.html.');
     }
     if (dryRun) {
-      process.stdout.write('deploy: dry run built successfully; no commits or pushes.\n');
+      run(process.execPath, [...PUBLISH, '--dry-run'], { stdio: 'inherit' });
+      process.stdout.write('deploy: dry run built successfully; no commits, pushes or publish.\n');
       return;
     }
 
@@ -163,6 +174,12 @@ async function deploy(args) {
     if (pages) {
       process.stdout.write(`deploy: ${pages}\n`);
     }
+    try {
+      run(process.execPath, PUBLISH, { stdio: 'inherit' });
+    } catch {
+      throw new Error(`${tag} is pushed but npm publish failed; retry with \`bun ${PUBLISH.join(' ')}\` before changing the checkout.`);
+    }
+    process.stdout.write(`deploy: published ${manifest.name}@${version} to npm.\n`);
   } finally {
     if (!committed) {
       if (staged) {

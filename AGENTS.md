@@ -7,7 +7,7 @@
 - ./dist and ./tmp are generated output: never edit them and skip them when searching for code. Source is in ./src, site source in ./pages_src. Read ./dist or ./tmp only to debug build output.
 - Deploy locally with `bun run deploy` - there is no CI.
   It runs `bun run test` first and stops on failure (plain `bun test` also picks up the browser suites and fails).
-  It stamps the version from the `main` commit count, builds dist and the site on this machine, commits the site on top of the `pages` branch with the same commit-tree path as `fez gh-pages` (no worktree, no force push), and pushes `main` and `pages` (see "Publishing the docs site").
+  It stamps the version from the `main` commit count, builds dist and the site on this machine, commits the site on top of the `pages` branch with the same commit-tree path as `fez gh-pages` (no worktree, no force push), pushes `main` and `pages`, then publishes `@dinoreic/fez` to npm (see "Publishing the docs site").
 - GitHub Pages does not always start a build for the pushed `pages` commit. Check `gh api repos/dux/fez/pages/builds/latest` - if its commit is not the new `pages` head, trigger one with `gh api -X POST repos/dux/fez/pages/builds`, then confirm `https://dux.github.io/fez/dist/fez.min.js` starts with the new `// v:` banner.
 - If you are instructed to write a fez component for this repo, ALWAYS write it in `pages_src/root/fez/[name].fez`; the generated site is published to the `pages` branch and is never edited in place.
 - `fez agents` prints this file from the `fez agents: shared reference starts here` marker below; everything above it is repo-only and is not printed. Keep repo-only notes above the marker and the reference for other projects below it.
@@ -33,9 +33,10 @@ It then builds dist + site and commits both files on `main` as `chore: release <
 `fez version` prints the `version` from `.version`; `Fez.version` and the `// v:` dist banner read `package.json`. A checkout never stamped prints `dev`.
 It commits the built site on top of the `pages` branch with `commitPages` from `src/static/pages.js` (a throwaway index + `git commit-tree` + `update-ref`, the same path `fez gh-pages` uses), so the primary checkout is never switched and the worktree under `tmp/` is gone.
 It pushes both branches to `origin` atomically; both must fast-forward and `pages` is never force-pushed.
-`--dry-run` runs tests, builds the next version and restores `.version` and `package.json`, without creating commits or pushing.
+`--dry-run` runs tests, builds the next version, runs `bun publish --dry-run` and restores `.version` and `package.json`, without creating commits, pushing or publishing.
 Build failures restore the manifest before any source commit; later failures keep local commits and Pages output for recovery.
-Deployment does not publish to the package registry.
+After the push, deployment publishes the package to npm with `bun publish --access public --ignore-scripts` (tests and build already ran); `bun pm whoami` is checked before tests, so a missing npm login stops the deploy before any commit.
+If the publish fails, the tag is already pushed: rerun the printed `bun publish` command from the same checkout.
 This repo's own `bin/deploy` drives its versioned release; a project using only the generic publisher runs `fez gh-pages`, which builds the site and commits it to the same `pages` branch without any version stamping (`--no-push` commits locally, `-s` serves the target afterwards).
 `pages_src/root/fez.txt` is generated from `pages_src/root/fez/*.fez`, excluding scratch files, by the shared indexer in `lib/site.js`.
 `bun run static`, `bun run dev`, and deployment all use that indexer; there is no separate `index` script.
