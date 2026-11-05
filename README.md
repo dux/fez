@@ -86,11 +86,11 @@ It runs `bun run test` first and stops on failure before stamping a version, bui
 It stamps the version with `vstamp count --next` ([vstamp](https://github.com/dux/vstamp)): the main commit count including the release commit, rendered dotted (`357` -> `3.5.7`, `1123` -> `11.2.3`), written to `.version` (YAML, `version: X.Y.Z`) and `package.json`.
 It then builds the library and pages, commits both files on `main`, and commits the built site on top of the `pages` branch with the same commit-tree path as `fez gh-pages`.
 It then pushes both branches to GitHub (`origin`) atomically: both must fast-forward and `pages` is never force-pushed.
+After the push it publishes the package to npm with `bun publish --access public`; it checks `bun pm whoami` before running tests, so an expired npm login fails before anything is committed.
 The generated site is served from the root of the `pages` branch.
-`--dry-run` also runs tests, builds the next version, restores `.version` and `package.json`, and leaves preview output without committing or pushing.
+`--dry-run` also runs tests, builds the next version, runs `bun publish --dry-run`, restores `.version` and `package.json`, and leaves preview output without committing, pushing or publishing.
 Build failures restore the manifest before any source commit; later failures retain local commits and the Pages output for recovery.
 For a site that only needs the generic publisher, `fez gh-pages` builds `source_dir` and commits it to the same `pages` branch with no version stamping.
-`bun run release` is separate: it publishes the library package to the public package registry.
 
 ## Static Site Builder
 
@@ -1042,7 +1042,7 @@ This example showcases:
 
 - **Built-in Utilities** - Helpful methods like `formData()`, `setInterval()` (auto-cleanup), `on()`, `observeResize()`, `tick()` and `fezNextTick()`
 - **Two-Way Data Binding** - Use `fez:bind` directive for automatic form synchronization
-- **Slots** - One default `<slot />` with event listener preservation (named slots are not supported). Use `<slot unwrap />` to dissolve the wrapper div, leaving children directly in the parent
+- **Slots** - One default `<slot />` with event listener preservation (named slots are not supported). Use `<slot unwrap />` to dissolve the wrapper div, leaving children directly in the parent, or `<slot live />` to keep the component when the parent re-renders different children: they are morphed into its slot, so typed values, focus and the components inside stay (a plain `<slot />` component is mounted again)
 - **Context and Error Boundaries** - `this.context(key, value)` hands values down the component tree; `onError(error, component)` on an ancestor catches a descendant's mount and render errors
 - **Publish/Subscribe** - Built-in pub/sub system for component communication
 - **Global State Management** - Automatic subscription-based global state with `this.globalState` proxy
@@ -1449,7 +1449,7 @@ Rules for wiring components into an app.
 3. Load data that does not depend on props in `onMount`, and set `state.loading = true` only in `init()`.
    Reloads then keep the current DOM and morph to the new data instead of flashing a spinner.
 4. Renders are batched per animation frame; the DOM does not change synchronously after a state write (`await this.tick()` when you need it).
-5. Pass anything that changes as a prop; slots are captured once.
+5. Pass anything that changes as a prop. Changed slot content mounts a `<slot />` component again; one with `<slot live />` stays and takes the new children in place.
 6. Pages and other components chosen at runtime: `<fez-component name={state.page} :props="state.query">fallback</fez-component>`.
 7. Style another component by its wrapper class `.<name>-fez`; its tag is replaced on mount.
 8. Scoped `<style>` rules reach into descendant components: in a component that renders others, never style bare tags or generic class names, and delete unused rules.
@@ -1594,7 +1594,8 @@ import Button from './components/ui-button.fez'; // or import the class
 - Build-time checks run for the component name, script syntax, style scope and template
   compilation, so a broken component fails the build instead of the browser.
 - `minify` (default `false`; the Vite plugin defaults it to `true` in production) drops
-  `<info>` / `<demo>` metadata from the emitted module.
+  `<info>` / `<demo>` metadata from the emitted module and strips comments and whitespace from
+  `<style>` blocks (the nesting and style macros stay for the runtime).
 - Static imports (multi-line named imports included) are hoisted to the top of the module and
   deduped across the components of one file.
 - Each component of a multi-component file gets its own block scope, so two components may both
