@@ -180,6 +180,14 @@ describe('precompiled templates', () => {
     expect(code).not.toMatch(/\bwith \(|new Function/);
   });
 
+  test('the module marks live and unwrap slots, and an aria-live slot is neither', () => {
+    const flags = (slot) => compile(`<div>${slot}</div>`).match(/slotUnwrap: (\w+), slotLive: (\w+)/).slice(1);
+    expect(flags('<slot live />')).toEqual(['false', 'true']);
+    expect(flags('<slot unwrap />')).toEqual(['true', 'false']);
+    expect(flags('<slot aria-live="polite" />')).toEqual(['false', 'false']);
+    expect(flags('<slot />')).toEqual(['false', 'false']);
+  });
+
   test('the template does not see the script module names', () => {
     const code = compile(valid.replace('{state.name}', '{GREETING}'));
     expect(code.indexOf('const __fez_template_0')).toBeLessThan(code.indexOf("const GREETING = 'hi'"));

@@ -1630,6 +1630,7 @@ That is right for components that read their children once (`this.childNodes()` 
 A component whose template has `<slot live />` stays instead: the parent's new children are morphed into its `.fez-slot` like the parent's own template, so the component, the components in its slot, typed values and focus are kept, conditional children come and go, and the parent's handlers in the slot keep working.
 Use it for wrappers whose children are the parent's markup (a form, a card around fields); its attributes still refresh its props as usual.
 `live` and `unwrap` cannot combine (there is no wrapper to morph into): fez logs an error and keeps `unwrap`.
+The live slot must sit in the component's own markup: one inside a child component (`<ui-card><slot live /></ui-card>`) is that child's content, and the component is rebuilt like a plain `<slot />` one; the same holds while an `{#if}` leaves the slot out.
 
 ```html
 <!-- Default slot: children wrapped in <div class="fez-slot"> -->

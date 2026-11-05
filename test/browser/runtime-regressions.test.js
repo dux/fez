@@ -211,6 +211,69 @@ test('a plain slot still rebuilds its component when the children change', async
   expect(result.extra).toBe('shown');
 });
 
+test('live slot components in a loop each keep their instance and typed value', async () => {
+  const { result, errors } = await run(
+    () => {
+      Fez('loop-box', class { HTML = '<div class="lb"><slot live /></div>'; });
+      Fez('loop-host', class {
+        HTML = `{#each state.rows as row}<loop-box><input class="li"><b class="lt">{row}{state.mark}</b></loop-box>{/each}`;
+        init() { this.state.rows = ['a', 'b']; this.state.mark = ''; }
+      });
+      app.innerHTML = '<loop-host></loop-host>';
+      setTimeout(() => {
+        window.loopUids = [...document.querySelectorAll('.loop-box-fez')].map((n) => n.fez.UID).join();
+        document.querySelectorAll('.li').forEach((input, i) => { input.value = `typed${i}`; });
+        Fez('loop-host').state.mark = '!';
+      }, 30);
+    },
+    () => ({
+      same: [...document.querySelectorAll('.loop-box-fez')].map((n) => n.fez.UID).join() === window.loopUids,
+      typed: [...document.querySelectorAll('.li')].map((n) => n.value),
+      text: [...document.querySelectorAll('.lt')].map((n) => n.textContent),
+    }),
+  );
+  expect(errors).toEqual([]);
+  expect(result).toEqual({ same: true, typed: ['typed0', 'typed1'], text: ['a!', 'b!'] });
+});
+
+test('an unkeyed live slot component (server HTML) keeps its instance when its children change', async () => {
+  const { result } = await run(
+    () => {
+      Fez('server-box', class { HTML = '<div class="sb"><slot live /></div>'; });
+      app.innerHTML = '<server-box title="a"><input class="si"></server-box>';
+      setTimeout(() => {
+        window.serverUid = Fez('server-box').UID;
+        document.querySelector('.si').value = 'kept';
+        Fez.nodeMorph(app, '<server-box title="a"><input class="si"><span class="sn">new</span></server-box>');
+      }, 30);
+    },
+    () => ({
+      same: Fez('server-box').UID === window.serverUid,
+      typed: document.querySelector('.si').value,
+      added: document.querySelector('.sn')?.textContent,
+    }),
+  );
+  expect(result).toEqual({ same: true, typed: 'kept', added: 'new' });
+});
+
+test("a live slot inside a child component's slot is rebuilt like a plain one, showing the new children", async () => {
+  const { result, errors } = await run(
+    () => {
+      Fez('outer-card', class { HTML = '<section class="oc"><slot /></section>'; });
+      Fez('nested-live', class { HTML = '<outer-card><slot live /></outer-card>'; });
+      Fez('nested-host', class {
+        HTML = '<nested-live><p class="np">{state.text}</p></nested-live>';
+        init() { this.state.text = 'one'; }
+      });
+      app.innerHTML = '<nested-host></nested-host>';
+      setTimeout(() => { Fez('nested-host').state.text = 'two'; }, 30);
+    },
+    () => [...document.querySelectorAll('.np')].map((n) => n.textContent),
+  );
+  expect(errors).toEqual([]);
+  expect(result).toEqual(['two']);
+});
+
 test('slot live and unwrap cannot combine', async () => {
   const { result, errors } = await run(
     () => {

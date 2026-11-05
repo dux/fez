@@ -83,8 +83,10 @@ function shouldPreserveFezComponent(oldNode, newNode) {
   if (!oldNode?.fez || oldNode.fez._destroyed) {
     return true;
   }
-  // <slot live /> takes changed children in place (morphLiveSlot)
-  if (oldNode.fez.class?.fezSlotLive) {
+  // <slot live /> takes changed children in place (morphLiveSlot). Without a slot
+  // of its own in the DOM (one inside a child component, or not rendered) it is
+  // compared and rebuilt like any other component.
+  if (oldNode.fez.class?.fezSlotLive && oldNode.fez.fezOwnSlot?.()) {
     return true;
   }
   if (oldNode._fezSignature == null) {
@@ -232,9 +234,7 @@ export default function attachMorph(Fez) {
    * component, the components in its slot, typed values and focus all stay.
    */
   function morphLiveSlot(oldNode, newNode) {
-    const slot = [...oldNode.querySelectorAll('.fez-slot')].find(
-      (el) => el.parentElement?.closest('.fez') === oldNode,
-    );
+    const slot = oldNode.fez.fezOwnSlot();
     if (!slot || newNode?.nodeType !== 1) {
       return;
     }

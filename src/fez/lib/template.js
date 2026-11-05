@@ -57,8 +57,8 @@ export function clearTemplateCache() {
  */
 export function slotTemplate(html) {
   return {
-    slotUnwrap: /<slot\s[^>]*unwrap[\s>\/]/.test(html),
-    slotLive: /<slot\s[^>]*\blive[\s>\/=]/.test(html),
+    slotUnwrap: /<slot\s(?:[^>]*\s)?unwrap(?=[\s>\/=])/.test(html),
+    slotLive: /<slot\s(?:[^>]*\s)?live(?=[\s>\/=])/.test(html),
     html: html
       .replace(/<slot(\s[^>]*)?>/, '<div class="fez-slot" fez-keep="default-slot"$1>')
       .replace('</slot>', '</div>'),

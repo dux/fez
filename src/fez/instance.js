@@ -1082,9 +1082,7 @@ export default class FezBase {
   fezRenderPostProcess() {
     // A live slot holds the parent's markup: its fez:this refs, actions and
     // classes are the parent's, which takes them in its own post-process.
-    const liveSlot = this.class.fezSlotLive
-      ? [...this.root.querySelectorAll('.fez-slot')].find((el) => el.parentElement?.closest('.fez') === this.root)
-      : null;
+    const liveSlot = this.class.fezSlotLive ? this.fezOwnSlot() : null;
     const fetchAttr = (name, func) => {
       this.root.querySelectorAll(`*[${name}]`).forEach((n) => {
         if (liveSlot?.contains(n)) {
@@ -1279,6 +1277,19 @@ export default class FezBase {
         newSlot.remove();
       }
     }
+  }
+
+  /**
+   * The .fez-slot this component's template rendered itself, not one of a
+   * child component. A slot placed inside another component's slot is that
+   * component's content, so it is not found here (see <slot live />).
+   */
+  fezOwnSlot() {
+    return (
+      [...(this.root?.querySelectorAll('.fez-slot') || [])].find(
+        (el) => el.parentElement?.closest('.fez') === this.root,
+      ) || null
+    );
   }
 
   // ===========================================================================
