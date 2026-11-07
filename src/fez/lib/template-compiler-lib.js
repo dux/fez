@@ -133,7 +133,10 @@ function prefixComponentNames(body, keep = []) {
     if (keep.includes(name)) {
       return name;
     }
-    if (COMPONENT_NAMES.has(name) || (next === '(' && !JS_GLOBALS.has(name) && !JS_KEYWORDS.has(name))) {
+    if (
+      COMPONENT_NAMES.has(name) ||
+      (next === '(' && !JS_GLOBALS.has(name) && !JS_KEYWORDS.has(name))
+    ) {
       return `fez.${name}`;
     }
     return name;
@@ -178,7 +181,11 @@ export function getLoopVarNames(binding, implicitIndex = true) {
   if (parsed.indexParam) {
     names.push(parsed.indexParam);
   }
-  if (implicitIndex && !names.includes('i') && (parsed.params.length === 1 || parsed.isDestructured)) {
+  if (
+    implicitIndex &&
+    !names.includes('i') &&
+    (parsed.params.length === 1 || parsed.isDestructured)
+  ) {
     names.push('i');
   }
   return names;
@@ -253,8 +260,7 @@ export function buildLoopParams(binding, depth = 0, outerVars = []) {
   if (parsed.isDestructured) {
     head = '[' + parsed.params.join(', ') + ']';
     index =
-      parsed.indexParam ||
-      (parsed.params.includes('i') || outerVars.includes('i') ? null : 'i');
+      parsed.indexParam || (parsed.params.includes('i') || outerVars.includes('i') ? null : 'i');
   } else if (parsed.params.length >= 3) {
     const params = [...parsed.params];
     index = params.pop();
@@ -290,7 +296,12 @@ export function isArrowFunction(expr) {
  * Output for index-only: "fez.removeTask(${index})"
  * Output for item refs: "${'Fez(' + UID + ').fezGlobals.handler(' + fez.fezGlobals.setHandler((event) => fez.removeTask(item)) + ')(event)'}"
  */
-export function transformArrowToHandler(expr, loopVars = [], loopItemVars = [], maybeItemVars = []) {
+export function transformArrowToHandler(
+  expr,
+  loopVars = [],
+  loopItemVars = [],
+  maybeItemVars = [],
+) {
   // `async` is dropped: the handler attribute calls the body, a returned promise is ignored
   expr = expr.replace(/^\s*async\s+/, '');
 
@@ -327,13 +338,17 @@ export function transformArrowToHandler(expr, loopVars = [], loopItemVars = [], 
   }
 
   // Index-only references are primitives - interpolate them at render time
-  const interpolated = mapIdentifiers(body, (name) => (loopVars.includes(name) ? `\${${name}}` : name));
+  const interpolated = mapIdentifiers(body, (name) =>
+    loopVars.includes(name) ? `\${${name}}` : name,
+  );
   const usedMaybe = maybeItemVars.filter((name) => used.has(name));
   if (!usedMaybe.length) {
     return interpolated;
   }
   // an index or an object, decided per row
-  const isObject = usedMaybe.map((name) => `(typeof ${name} === 'object' && ${name} !== null)`).join(' || ');
+  const isObject = usedMaybe
+    .map((name) => `(typeof ${name} === 'object' && ${name} !== null)`)
+    .join(' || ');
   return `\${${isObject} ? ${slot} : \`${interpolated.replace(/`/g, '\\`')}\`}`;
 }
 

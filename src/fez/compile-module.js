@@ -160,7 +160,9 @@ export function compileFileToModule(filePath, source, options = {}) {
     const template = compiled.template
       ? `${varName}.FEZ_TEMPLATE = { render: __fez_template_${index}, slotUnwrap: ${compiled.template.slotUnwrap}, slotLive: ${compiled.template.slotLive} };\n`
       : '';
-    const render = compiled.template ? `const __fez_template_${index} = ${compiled.template.code};\n` : '';
+    const render = compiled.template
+      ? `const __fez_template_${index} = ${compiled.template.code};\n`
+      : '';
     classBlocks.push(
       `// --- ${unit.name} ---\nlet ${varName};\n${render}{\n${head}${preamble.trim()}\n${varName} = class {${compiled.classBody};\n}\n${template}`,
     );

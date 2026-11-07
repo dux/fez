@@ -63,7 +63,8 @@ export function rewriteFreeNames(code) {
 
   const free = (name) => !GLOBALS.has(name) && !scopes.some((scope) => scope.has(name));
   const has = (name) => `${JSON.stringify(name)} in fez`;
-  const lookup = (name) => (OWN.has(name) ? `fez.${name}` : `(${has(name)} ? fez.${name} : ${name})`);
+  const lookup = (name) =>
+    OWN.has(name) ? `fez.${name}` : `(${has(name)} ? fez.${name} : ${name})`;
   const replace = (node, text) => edits.push({ start: node.start, end: node.end, text });
 
   const reference = (id) => {
@@ -91,7 +92,10 @@ export function rewriteFreeNames(code) {
           }
           if (prop.shorthand && prop.value.type === 'Identifier') {
             if (free(prop.value.name)) {
-              replace(prop, `${prop.key.name}: (${has(prop.key.name)} ? fez : globalThis).${prop.key.name}`);
+              replace(
+                prop,
+                `${prop.key.name}: (${has(prop.key.name)} ? fez : globalThis).${prop.key.name}`,
+              );
             }
           } else {
             target(prop.value);
@@ -188,7 +192,11 @@ export function rewriteFreeNames(code) {
         }
         break;
       case 'UnaryExpression':
-        if (node.operator === 'typeof' && node.argument.type === 'Identifier' && free(node.argument.name)) {
+        if (
+          node.operator === 'typeof' &&
+          node.argument.type === 'Identifier' &&
+          free(node.argument.name)
+        ) {
           const name = node.argument.name;
           return replace(node, `(${has(name)} ? typeof fez.${name} : typeof ${name})`);
         }
@@ -239,7 +247,11 @@ export function rewriteFreeNames(code) {
       replace(node.callee, `(${has(name)} ? fez.${name} : ${name}).call`);
       const paren = code.indexOf('(', node.callee.end);
       const thisArg = `${has(name)} ? fez : void 0`;
-      edits.push({ start: paren + 1, end: paren + 1, text: node.arguments.length ? `${thisArg}, ` : thisArg });
+      edits.push({
+        start: paren + 1,
+        end: paren + 1,
+        text: node.arguments.length ? `${thisArg}, ` : thisArg,
+      });
     }
     node.arguments.forEach(visit);
   };

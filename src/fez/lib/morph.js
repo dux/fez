@@ -470,7 +470,9 @@ function readFormDefaults(node) {
 
 // which options the template marks selected, as a comparable string
 function templateSelection(select) {
-  return Array.from(select.options, (option) => (booleanAttrEnabled(option, 'selected') ? 1 : 0)).join('');
+  return Array.from(select.options, (option) =>
+    booleanAttrEnabled(option, 'selected') ? 1 : 0,
+  ).join('');
 }
 
 /**
@@ -498,7 +500,10 @@ function syncDomProperties(oldNode, newNode, before) {
       // '' when the template dropped the value attribute
       oldNode.value = newNode.value;
     }
-    if ((type === 'checkbox' || type === 'radio') && newNode.getAttribute('checked') !== before.checked) {
+    if (
+      (type === 'checkbox' || type === 'radio') &&
+      newNode.getAttribute('checked') !== before.checked
+    ) {
       syncBooleanProperty(oldNode, newNode, 'checked');
     }
   } else if (tag === 'TEXTAREA') {

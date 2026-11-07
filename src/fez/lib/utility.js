@@ -505,9 +505,7 @@ export default (Fez) => {
     if (value == null) {
       return '';
     }
-    return JSON.stringify(String(value))
-      .slice(1, -1)
-      .replace(/['`$]/g, '\\$&');
+    return JSON.stringify(String(value)).slice(1, -1).replace(/['`$]/g, '\\$&');
   };
 
   // create dom root and return it

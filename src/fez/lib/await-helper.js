@@ -71,7 +71,11 @@ export default function awaitHelper(component, awaitId, promiseOrValue, hasCatch
     current[key] = result;
     current.justSettled = true;
     if (status === 'rejected' && !hasCatch) {
-      component.fezError?.('await', `{#await} rejected and has no {:catch}: ${result?.message || result}`, result instanceof Error ? result : undefined);
+      component.fezError?.(
+        'await',
+        `{#await} rejected and has no {:catch}: ${result?.message || result}`,
+        result instanceof Error ? result : undefined,
+      );
     }
     component.fezNextTick?.(component.fezRender, 'fezRender');
   };

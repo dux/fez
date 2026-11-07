@@ -227,7 +227,10 @@ function hasMarkup(text) {
 
 // text with every top-level block (<style>...</style> and friends) removed
 function withoutBlocks(text) {
-  return text.replace(/(^|\n)[ \t]*<(demo|info|script|head|style|slim)(?=[\s/>])[^>]*>[\s\S]*?<\/\2\s*>/gi, '$1');
+  return text.replace(
+    /(^|\n)[ \t]*<(demo|info|script|head|style|slim)(?=[\s/>])[^>]*>[\s\S]*?<\/\2\s*>/gi,
+    '$1',
+  );
 }
 
 function withoutComments(html) {

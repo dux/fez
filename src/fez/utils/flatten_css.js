@@ -187,7 +187,9 @@ function expandGlobalLists(sel) {
   const end = globalEnd(sel, start);
   const items = splitSelectors(sel.slice(start + 8, end - 1));
   const rest = expandGlobalLists(sel.slice(end));
-  return items.flatMap((item) => rest.map((tail) => `${sel.slice(0, start)}:global(${item})${tail}`));
+  return items.flatMap((item) =>
+    rest.map((tail) => `${sel.slice(0, start)}:global(${item})${tail}`),
+  );
 }
 
 // :global(x) -> x, with nested parens inside x (:global(:is(.a, .b) .c))
