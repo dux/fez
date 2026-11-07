@@ -21,6 +21,7 @@
       "default": "./dist/fez.csp.esm.js"
     },
     "./plugin": "./src/fez/plugin.js",
+    "./dist/*": "./dist/*",
     "./package.json": "./package.json"
   },
   "bin": {
