@@ -47,3 +47,25 @@ test('htmlAttr drops null and false booleans, keeps false on other attributes', 
   expect(Fez.htmlAttr('aria-expanded', false)).toBe(' aria-expanded="false"');
   expect(Fez.htmlAttr('title', 'a "b"')).toBe(' title="a &quot;b&quot;"');
 });
+
+test('component list entries get .fez whether relative or absolute', async () => {
+  const { fetch, compile } = Fez;
+  const fetched = [];
+  Fez.fetch = async (url) => {
+    fetched.push(url);
+    return url.endsWith('.txt') ? '# comment\nui-a\nforms/ui-b.fez\n/shared/ui-c\n' : '<p>x</p>';
+  };
+  Fez.compile = () => {};
+  try {
+    await new Promise((resolve) => Fez.head({ fez: '/lists/components.txt' }, resolve));
+  } finally {
+    Fez.fetch = fetch;
+    Fez.compile = compile;
+  }
+  expect(fetched).toEqual([
+    '/lists/components.txt',
+    '/lists/ui-a.fez',
+    '/lists/forms/ui-b.fez',
+    '/shared/ui-c.fez',
+  ]);
+});

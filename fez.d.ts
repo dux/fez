@@ -140,11 +140,6 @@ interface FezComponentConfig {
   /** Set element node name (defaults to 'div') */
   NAME?: string | ((node: HTMLElement) => string);
 
-  /** Static alternative - use static nodeName = 'span' */
-  static?: {
-    nodeName?: string;
-  };
-
   /** Component-scoped CSS styles (SCSS syntax), from <style> */
   CSS?: string | (() => string);
 
@@ -243,8 +238,11 @@ declare abstract class FezBase {
    */
   props: ComponentProps & EvaluatedProps;
 
-  /** Runtime props schema (instance-field form; `static PROPS` also works) */
+  /** Runtime props schema; on a FezBase subclass only `static PROPS` is read */
   PROPS?: PropsSchema;
+
+  /** Wrapper tag name (default 'div'), or a function of the source node */
+  static nodeName: string | ((node: HTMLElement) => string);
 
   /** Normalized PROPS schema for this class */
   static propsSchema(): Record<string, PropSpec> | null;
@@ -266,6 +264,18 @@ declare abstract class FezBase {
 
   /** Root DOM element */
   root: HTMLElement;
+
+  /** The original source node the component replaced */
+  oldRoot: HTMLElement;
+
+  /** jQuery-wrapped root, set only when window.$ exists at mount */
+  $root?: unknown;
+
+  /** String selector for inline HTML handlers: `Fez(<UID>).` */
+  readonly fezHtmlRoot: string;
+
+  /** Report an error through Fez.onError with the component name included */
+  fezError(kind: string, message: string, context?: Record<string, unknown> | Error): string;
 
   // ===================================================================
   // DOM HELPERS
@@ -381,6 +391,7 @@ declare abstract class FezBase {
 
   /** Interval with auto-cleanup; a named interval replaces the running one with that name */
   setInterval(func: () => void, tick: number, name?: string): number;
+  setInterval(tick: number, func: () => void, name?: string): number;
 
   // ===================================================================
   // PUB/SUB
@@ -448,8 +459,8 @@ interface FezIndexMethods {
   /** Get component data object */
   get(name: string): FezIndexEntry & { demo?: HTMLElement; info?: HTMLElement };
 
-  /** Render demo into element and execute scripts */
-  apply(name: string, el: HTMLElement): void;
+  /** Render demo into element and execute scripts; false when no demo exists */
+  apply(name: string, el: HTMLElement): boolean;
 
   /** Get all component names */
   names(): string[];
@@ -547,8 +558,8 @@ interface FezStatic {
 
   /**
    * Inject a stylesheet, deduped on its text. Without opts it goes in verbatim.
-   * opts.name scopes it to that component; opts.wrap wraps the whole sheet in
-   * the component root first. (Compiled components use this internally - in
+   * opts.name rewrites every :fez to .fez.<name>-fez; opts.wrap wraps the whole
+   * sheet in :fez { } first. Without :fez (or wrap) nothing is scoped. (Compiled components use this internally - in
    * .fez sources, scope comes from <style> vs <style global>.)
    */
   globalCss(cssClass: string | Function, opts?: { name?: string; wrap?: boolean }): string;
@@ -576,10 +587,34 @@ interface FezStatic {
    * components are preserved and get onRefresh. Target's own attributes are
    * left alone. A string or element whose root tag matches target is used as is.
    */
-  nodeMorph(target: Element, src: string | Element | DocumentFragment): void;
+  nodeMorph(
+    target: Element,
+    src: string | Element | DocumentFragment,
+    opts?: {
+      beforeRemove?(node: Element): void;
+      removeNode?(parent: Node, node: Node): void;
+      onPreserve?(oldNode: Element, newNode: Element): void;
+      skipNode?(node: Element): boolean;
+      shouldPreserve?(oldNode: Element, newNode: Element): boolean;
+      describeOld?(node: Node): unknown;
+      describeNew?(node: Node): string | null;
+    },
+  ): void;
 
-  /** Create template render function */
-  createTemplate(text: string, opts?: { name: string }): Function;
+  /** Compile Fez template source; strict throws compile and render errors instead of logging them */
+  createTemplate(text: string, opts?: { name?: string; strict?: boolean }): (ctx: FezBase) => string | null;
+
+  /** CSP nonce of the script that loaded fez ('' when none) */
+  nonce(): string;
+
+  /** Run JS code as an inline script (carries Fez.nonce()) */
+  runScript(code: string): void;
+
+  /** Component name from a file path or URL */
+  nameFromPath(url: string): string;
+
+  /** Functions handed out by Fez.pointer(fn), by uid */
+  POINTER: Record<number, Function>;
 
   /**
    * Load resources into document.head: { js }, { css }, { script }, { fez } (a
@@ -727,8 +762,8 @@ interface FezStatic {
   // COMPONENT COMPILATION
   // ===================================================================
 
-  /** Compile Fez component from template/xmp/script */
-  compile(tagName?: string | Node, html?: string): void;
+  /** Compile Fez components from template/xmp in the page, one node, or name + source (returns the class) */
+  compile(tagName?: string | Node, html?: string): Function | undefined;
 
   // ===================================================================
   // LOGGING & ERROR HANDLING
@@ -737,14 +772,14 @@ interface FezStatic {
   /** Enable framework logging */
   LOG?: boolean;
 
-  /** Enable development mode */
+  /** true forces the Ctrl/Cmd+E component overlay on, false turns it off (default: on for ports above 2999) */
   DEV?: boolean;
 
   /** Log message (only if LOG enabled) */
   consoleLog(text: string): void;
 
   /** Error message */
-  consoleError(text: string, show?: boolean): string;
+  consoleError(text: string, show?: boolean): string | undefined;
 
   /** Error handler - can be overridden */
   onError(kind: string, message: string | Error, context?: Record<string, any>): string;
@@ -793,6 +828,8 @@ interface FezStatic {
 
   /** The pjax navigation class: config, hooks (before/after/confirm/error), start() */
   pjax: PjaxStatic;
+  /** Run node's inline scripts by pjax response rules, remove them and return node; csp is the response's Content-Security-Policy header */
+  runScripts(node: Element, csp?: string | null): Element;
   /** Fetch a URL and swap it into the page. Same as Fez.pjax.load */
   load: PjaxStatic['load'];
   /** Fresh re-fetch (no-cache, no debounce, keeps scroll). Same as Fez.pjax.refresh */
@@ -920,7 +957,7 @@ interface PjaxStartDetail {
 interface PjaxStatic {
   config: PjaxConfig;
   /** Full-swap responses by path, restored on Back/Forward without a fetch (config.history_max entries) */
-  historyData: Record<string, { html: string; scrollY: number }>;
+  historyData: Record<string, { html: string; nonce: string; scrollY: number }>;
   /** In-flight requests by swap key: 'full', or the target / .ajax region id */
   requests: Map<string, AbortController>;
   /** Force console logging regardless of config.is_silent */

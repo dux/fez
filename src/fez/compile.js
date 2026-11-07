@@ -64,8 +64,8 @@ function hasTopLevelFezElements(html) {
  * @param {string} [html] - Component HTML source
  */
 export default function compile(tagName, html) {
-  // Single argument: compile node or all templates
-  if (arguments.length === 1) {
+  // One or no argument: compile a node, or every template in the document
+  if (arguments.length <= 1) {
     return compileBulk(tagName);
   }
 

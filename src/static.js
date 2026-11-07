@@ -235,7 +235,7 @@ export function initStaticSite(options = {}) {
       '<h2>Blog</h2>',
       '<ul>',
       '{#each collections.blogs as post}',
-      '  <li><a href={post.href}>{post.title}</a></li>',
+      '  <li><a href={url(post.url)}>{post.title}</a></li>',
       '{/each}',
       '</ul>',
       '',

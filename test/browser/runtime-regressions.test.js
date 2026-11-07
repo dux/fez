@@ -48,6 +48,18 @@ async function run(setup, check, wait = 150, arg) {
   }
 }
 
+test('Fez.compile() with no argument compiles every template[fez] in the page', async () => {
+  const { result, errors } = await run(
+    () => {
+      app.innerHTML = '<template fez="late-x">\n<script>\nclass { init() { this.state.n = 7 } }\n</script>\n<p class="late">{state.n}</p>\n</template><late-x></late-x>';
+      Fez.compile();
+    },
+    () => document.querySelector('.late')?.textContent,
+  );
+  expect(errors).toEqual([]);
+  expect(result).toBe('7');
+});
+
 test('a throwing render does not freeze later renders', async () => {
   const { result } = await run(
     () => {

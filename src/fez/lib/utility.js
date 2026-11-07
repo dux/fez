@@ -126,13 +126,8 @@ export default (Fez) => {
             // Load each component; one failure must not stop the others nor
             // leave the callback waiting forever.
             const loads = lines.map((line) => {
-              let componentPath;
-              if (line.startsWith('/')) {
-                componentPath = line;
-              } else {
-                const path = line.endsWith('.fez') ? line : line + '.fez';
-                componentPath = basePath + path;
-              }
+              const path = line.endsWith('.fez') ? line : line + '.fez';
+              const componentPath = path.startsWith('/') ? path : basePath + path;
 
               const name = Fez.nameFromPath(componentPath);
               return Fez.fetch(componentPath)

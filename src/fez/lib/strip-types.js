@@ -30,7 +30,7 @@ function transpile(code) {
       esbuild = require('esbuild');
     } catch {
       throw new Error(
-        'Fez <script lang="ts"> needs esbuild. Vite includes it; for Rollup add esbuild as a dependency.',
+        'Fez <script lang="ts"> needs esbuild. Vite 7 and older include it; with Vite 8 or Rollup add esbuild as a dependency.',
       );
     }
   }

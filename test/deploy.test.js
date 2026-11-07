@@ -1,4 +1,4 @@
-import { afterEach, expect, test } from 'bun:test';
+import { afterEach, expect, setDefaultTimeout, test } from 'bun:test';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -6,6 +6,10 @@ import path from 'node:path';
 const deployScript = path.resolve(import.meta.dir, '../bin/deploy');
 const temporaryRoot = path.resolve(import.meta.dir, '../tmp');
 const fixtures = [];
+
+// Each test builds real git repos and runs the deploy script; under a loaded
+// full-suite run that regularly passes bun's 5s default.
+setDefaultTimeout(30000);
 
 afterEach(() => {
   for (const directory of fixtures.splice(0))
