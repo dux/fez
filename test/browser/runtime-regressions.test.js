@@ -11,6 +11,7 @@ import { chromium } from 'playwright';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFileSync } from 'fs';
+import { compileFileToModule } from '../../src/fez/compile-module.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fezCode = readFileSync(join(__dirname, '../../dist/fez.js'), 'utf-8');
@@ -453,6 +454,52 @@ test('fez:bind binds a radio group by value', async () => {
     await page.check('input[value=l]');
     await page.waitForFunction(() => document.querySelector('b').textContent === 'l');
     expect(await page.$$eval('input', (ns) => ns.map((n) => n.checked))).toEqual([false, false, true]);
+  } finally {
+    await context.close();
+  }
+});
+
+// Precompiled handlers are numbered per render; a kept child component after a list that
+// grew must run its own handler, not the slot it had before.
+test('a kept child keeps its own precompiled handler when a list before it grows', async () => {
+  const module = compileFileToModule(
+    'x-slots.fez',
+    `<xmp fez="x-slots">
+<script>
+  class {
+    init() { this.state.items = ['a']; this.state.log = [] }
+    add() { this.state.items = [...this.state.items, 'b'] }
+    drop(item) { this.state.log = [...this.state.log, 'drop ' + item] }
+    tag() { this.state.log = [...this.state.log, 'tag'] }
+  }
+</script>
+<div>
+  {#each state.items as item}
+    <button class="drop" onclick="fez.drop('{item}')">{item}</button>
+  {/each}
+  <x-slot-btn onclick="fez.tag()"></x-slot-btn>
+  <p class="log">{state.log.join(',')}</p>
+</div>
+</xmp>
+<xmp fez="x-slot-btn">
+<script>
+  class {
+    NAME = 'button'
+  }
+</script>
+<b>tag</b>
+</xmp>`,
+  ).replace('export default', 'window.XSlots =');
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  try {
+    await page.setContent(`<script>${fezCode}</script><x-slots></x-slots><script type="module">${module}</script>`);
+    await page.waitForSelector('.x-slot-btn-fez');
+    await page.evaluate(() => Fez('x-slots').add());
+    await page.waitForFunction(() => document.querySelectorAll('.drop').length === 2);
+    await page.click('.x-slot-btn-fez');
+    await page.waitForFunction(() => document.querySelector('.log').textContent !== '');
+    expect(await page.textContent('.log')).toBe('tag');
   } finally {
     await context.close();
   }

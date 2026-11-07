@@ -177,6 +177,16 @@ function refreshPreservedComponent(oldNode, newNode) {
     return;
   }
 
+  // The parent's handler slots are numbered per render, so a list before this child
+  // shifts its slot: take the new fez-on (dispatchFezOn reads it when the event fires,
+  // and the parent's bind pass adds listeners for new event types).
+  const on = newNode?.getAttribute?.('fez-on');
+  if (on) {
+    oldNode.setAttribute('fez-on', on);
+  } else if (newNode) {
+    oldNode.removeAttribute('fez-on');
+  }
+
   // _propsRaw, not fez.props - see fezApplyProps
   let nextProps = fez._propsRaw || {};
   if (newNode && fez.class?.getProps) {
