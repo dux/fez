@@ -180,12 +180,13 @@ describe('precompiled templates', () => {
     expect(code).not.toMatch(/\bwith \(|new Function/);
   });
 
-  test('the module marks live and unwrap slots, and an aria-live slot is neither', () => {
+  test('a slot is live unless rebuild or unwrap, and only those attributes count', () => {
     const flags = (slot) => compile(`<div>${slot}</div>`).match(/slotUnwrap: (\w+), slotLive: (\w+)/).slice(1);
-    expect(flags('<slot live />')).toEqual(['false', 'true']);
+    expect(flags('<slot />')).toEqual(['false', 'true']);
+    expect(flags('<slot rebuild />')).toEqual(['false', 'false']);
     expect(flags('<slot unwrap />')).toEqual(['true', 'false']);
-    expect(flags('<slot aria-live="polite" />')).toEqual(['false', 'false']);
-    expect(flags('<slot />')).toEqual(['false', 'false']);
+    expect(flags('<slot aria-live="polite" data-rebuild="1" />')).toEqual(['false', 'true']);
+    expect(flags('<p>no slot</p>')).toEqual(['false', 'false']);
   });
 
   test('the template does not see the script module names', () => {

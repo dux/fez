@@ -170,14 +170,14 @@ describe('fez refactor', () => {
       '<script>',
       '  class {',
       '    onInit() { this.onWindowResize(this.fit) }',
-      "    pick() { this.addClass('on'); this.fezRefresh(); Fez.log(this.prop('x')) }",
+      "    pick() { this.addClass('on'); this.fezRefresh(); Fez.log(this.prop('x')); this.local.n = 1 }",
       '  }',
       '</script>',
       '<style>',
       '  // old note',
       '  b { color: red }',
       '</style>',
-      '<b onclick="{() => pick()}">x</b>',
+      '<b onclick="{() => pick()}">x</b><slot live />',
       '',
     ].join('\n');
     fs.writeFileSync(path.join(dir, 'ui-old.fez'), source);
@@ -192,8 +192,10 @@ describe('fez refactor', () => {
       'ui-old.fez:4: Removed fezRefresh',
       'ui-old.fez:4: Renamed Fez.log',
       'ui-old.fez:4: Removed this.prop()',
+      'ui-old.fez:4: Removed this.local',
       'ui-old.fez:8: // comment in <style>',
       'ui-old.fez:11: Quoted arrow handler is a no-op',
+      'ui-old.fez:11: Removed <slot live />',
     ]) {
       expect(result.stdout).toContain(message);
     }

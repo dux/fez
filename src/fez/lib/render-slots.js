@@ -14,26 +14,33 @@
 //              parent's next render: children deferred to rAF during page load
 //              (connect.js) may read them after the render has committed.
 //              `valuesChanged` tells fezRender whether any slot holds a
-//              different object than the previous render did - identical HTML
-//              with changed slot values must still morph so preserved children
-//              receive the new props and re-render.
+//              different object than the previous render did, or the same
+//              store object written to in place (lib/store-version.js) -
+//              identical HTML with changed slot values must still morph so
+//              preserved children receive the new props and re-render.
 // * handlers - arrow handlers in loops that close over loop items. The DOM
 //              calls them later, so a slot survives as long as the next render
 //              claims the same key; stale keys are dropped in commitRender.
+
+import { storeVersion } from './store-version.js';
 
 export default class RenderSlots {
   constructor() {
     this.values = new Map();
     this.handlers = new Map();
     this.renderValues = [];
+    this.renderVersions = [];
     this.prevValues = [];
+    this.prevVersions = [];
     this.handlerCount = 0;
     this.liveHandlers = null;
   }
 
   beginRender() {
     this.prevValues = this.renderValues;
+    this.prevVersions = this.renderVersions;
     this.renderValues = [];
+    this.renderVersions = [];
     this.values.clear();
     this.handlerCount = 0;
     this.liveHandlers = new Set();
@@ -51,8 +58,8 @@ export default class RenderSlots {
     this.liveHandlers = null;
   }
 
-  // True when any value slot holds a different reference than it did in the
-  // previous render (or the count changed).
+  // True when any value slot holds a different reference, or a different
+  // store version, than it did in the previous render (or the count changed).
   get valuesChanged() {
     const prev = this.prevValues;
     const next = this.renderValues;
@@ -60,7 +67,7 @@ export default class RenderSlots {
       return true;
     }
     for (let i = 0; i < next.length; i++) {
-      if (prev[i] !== next[i]) {
+      if (prev[i] !== next[i] || this.prevVersions[i] !== this.renderVersions[i]) {
         return true;
       }
     }
@@ -72,6 +79,7 @@ export default class RenderSlots {
   set(value) {
     const key = this.renderValues.length;
     this.renderValues.push(value);
+    this.renderVersions.push(storeVersion(value));
     this.values.set(key, value);
     return key;
   }
@@ -99,7 +107,9 @@ export default class RenderSlots {
     this.values.clear();
     this.handlers.clear();
     this.renderValues = [];
+    this.renderVersions = [];
     this.prevValues = [];
+    this.prevVersions = [];
     this.liveHandlers = null;
   }
 }

@@ -54,7 +54,9 @@ export default function connect(name, klass) {
   // there is nothing for the differ to match, so the content gets removed on
   // the next render - which is why unwrap disables this.state. unwrap exists
   // for layout transparency (flex/grid/ul/table), at the cost of reactivity;
-  // the two modes are a trade, not redundancy.
+  // the two modes are a trade, not redundancy. A slot is live by default: a
+  // parent render morphs its new children into the kept slot (lib/fez-morph.js);
+  // <slot rebuild /> and <slot unwrap /> rebuild the component instead.
   const precompiled = klass.FEZ_TEMPLATE;
   if (precompiled) {
     // the bundler plugin compiled the template into the module (no eval)
@@ -70,12 +72,6 @@ export default function connect(name, klass) {
     // code (the CSP build cannot, see lib/evaluate.js)
     let render;
     klass.fezHtmlFunc = (ctx) => (render ||= createTemplate(klass.html, { name }))(ctx);
-  }
-  // <slot live />: a parent render morphs its new children into the kept slot
-  // (lib/fez-morph.js). An unwrapped slot has no wrapper to morph into.
-  if (klass.fezSlotLive && klass.fezSlotUnwrap) {
-    Fez.onError('slot', `<${name}>: <slot live unwrap /> cannot combine; live is ignored`);
-    klass.fezSlotLive = false;
   }
 
   // Register CSS. Scoped block gets the component name so :fez resolves;

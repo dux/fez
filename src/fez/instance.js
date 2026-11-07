@@ -14,6 +14,7 @@ import parseNode from './lib/n.js';
 import createTemplate from './lib/template.js';
 import evaluate from './lib/evaluate.js';
 import RenderSlots from './lib/render-slots.js';
+import { storeTargets, unwrapStore, bumpStoreVersions, storeVersion } from './lib/store-version.js';
 import { BOOLEAN_ATTRS } from './lib/attrs.js';
 import { componentSubscribe, componentPublish } from './lib/pubsub.js';
 import {
@@ -107,11 +108,6 @@ export const WINDOW_EVENTS = new Set([
 export const PROPS_ATTR = 'fez-props';
 const PROPS_ATTR_MAX_STRING = 60;
 
-// Store proxy -> its target, so a value read out of a store and written back
-// (state.list = [...state.list, x]) lands raw instead of stacking wrappers
-const storeTargets = new WeakMap();
-const unwrapStore = (value) => storeTargets.get(value) || value;
-
 // Writes unwrap the value and its direct children - what spreading or
 // copying a store value (`[...state.list]`, `{ ...state.user }`) leaves behind
 function unwrapStoreValue(value) {
@@ -123,7 +119,11 @@ function unwrapStoreValue(value) {
         value[i] = raw;
       }
     }
-  } else if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+  } else if (
+    value &&
+    typeof value === 'object' &&
+    Object.getPrototypeOf(value) === Object.prototype
+  ) {
     for (const key in value) {
       const raw = storeTargets.get(value[key]);
       if (raw) {
@@ -579,9 +579,9 @@ export default class FezBase {
    * from the template instead of copying it into state first.
    *
    * Assigning the whole object (connect, parent re-render) re-wraps it. The raw
-   * object stays on _propsRaw - the proxy hands out a fresh wrapper on every
-   * object read, so proxied values never compare equal by identity and prop
-   * change detection has to run against the raw object.
+   * object stays on _propsRaw, and the store version of every value on
+   * _propsVersions: a value the parent wrote to in place keeps its identity,
+   * so prop change detection compares both (lib/store-version.js).
    */
   get props() {
     return this._props;
@@ -589,6 +589,10 @@ export default class FezBase {
 
   set props(value) {
     this._propsRaw = value || {};
+    this._propsVersions = {};
+    for (const key in this._propsRaw) {
+      this._propsVersions[key] = storeVersion(this._propsRaw[key]);
+    }
     // shallow - nested values come back raw, so props keep the plain object
     // identity they had before they became reactive (including across
     // component boundaries). Writing a nested field does not re-render,
@@ -680,15 +684,17 @@ export default class FezBase {
    * hands them to a preserved child: re-render when a value changed, then
    * always fire onRefresh(props, changed), where changed maps every key whose
    * value differs to its new value (a removed key maps to undefined).
-   * Compares against _propsRaw - the props proxy hands out a fresh wrapper on
-   * every object read, so identity checks need the raw object.
+   * A value is changed when it is another value, or the same store object
+   * written to in place since the last props (_propsVersions).
    */
   fezApplyProps(nextProps) {
     const prevProps = this._propsRaw || {};
+    const prevVersions = this._propsVersions || {};
     const changed = {};
     for (const key of new Set([...Object.keys(prevProps), ...Object.keys(nextProps)])) {
-      if (prevProps[key] !== nextProps[key]) {
-        changed[key] = nextProps[key];
+      const next = nextProps[key];
+      if (prevProps[key] !== next || (prevVersions[key] || 0) !== storeVersion(next)) {
+        changed[key] = next;
       }
     }
 
@@ -1207,7 +1213,9 @@ export default class FezBase {
           // "input" covers typing, paste, autofill and slider drags alike;
           // select, checkbox and radio have no meaningful intermediate state
           const eventName = n.nodeName === 'SELECT' || isCb || isRadio ? 'change' : 'input';
-          n.addEventListener(eventName, () => setPath(this, n._fezBind, isCb ? n.checked : n.value));
+          n.addEventListener(eventName, () =>
+            setPath(this, n._fezBind, isCb ? n.checked : n.value),
+          );
         }
         n._fezBind = text;
         this.val(n, value);
@@ -1282,7 +1290,7 @@ export default class FezBase {
   /**
    * The .fez-slot this component's template rendered itself, not one of a
    * child component. A slot placed inside another component's slot is that
-   * component's content, so it is not found here (see <slot live />).
+   * component's content, so it is not found here (a live slot, see lib/fez-morph.js).
    */
   fezOwnSlot() {
     return (
@@ -1428,30 +1436,49 @@ export default class FezBase {
     }
 
     // `shallow` wraps only the object itself and hands nested values back raw
-    // (this.props). Deep wrapping (this.state) makes nested writes reactive,
-    // at the price of identity: a fresh wrapper per read is what lets
-    // fezRender spot an in place mutation behind an unchanged render hash
-    // (fezGlobals.valuesChanged, see lib/render-slots.js), but it also means
-    // no value read out of the store ever compares equal to anything.
+    // (this.props). Deep wrapping (this.state) makes nested writes reactive.
     // Props are values the parent owns and hands over whole, and they cross
     // component boundaries, so they keep plain identity instead.
+    // A nested object gets one wrapper per root key (`wrappers`), so a value
+    // read twice compares equal; a write bumps the store version of the written
+    // object and of every object above it, which is how render slots and prop
+    // refresh still see an in place change (lib/store-version.js). "Above" is
+    // the path of the latest read (`node.parent`), so an item moved to another
+    // list reports to the list it was last read from.
     // `rootKey` is the top-level key a nested proxy hangs off, so a nested
     // write (state.list.push) is reported against the key the template reads.
     // The top-level proxy (no rootKey) is also where render reads are tracked.
-    function createReactive(obj, handler, rootKey) {
+    const wrappers = new Map();
+
+    function createReactive(obj, handler, rootKey, parent = null) {
       obj = unwrapStore(obj);
       if (!shouldProxy(obj)) {
         return obj;
       }
       const isRoot = rootKey === undefined;
+      let byTarget;
+      if (!isRoot) {
+        byTarget = wrappers.get(rootKey);
+        if (!byTarget) {
+          wrappers.set(rootKey, (byTarget = new WeakMap()));
+        }
+        const hit = byTarget.get(obj);
+        if (hit) {
+          hit.node.parent = parent;
+          return hit.proxy;
+        }
+      }
+      const node = { target: obj, parent };
       const track = (property) => {
         if (isRoot && fez._isRendering && typeof property !== 'symbol') {
           fez._fezReads?.add(property);
         }
       };
 
-      const changed = (target, property, value, currentValue) =>
+      const changed = (target, property, value, currentValue) => {
+        bumpStoreVersions(node);
         handler(target, property, value, currentValue, isRoot ? property : rootKey);
+      };
 
       const proxy = new Proxy(obj, {
         set(target, property, value, receiver) {
@@ -1480,7 +1507,7 @@ export default class FezBase {
           track(property);
           const value = Reflect.get(target, property, receiver);
           if (!options.shallow && shouldProxy(value)) {
-            return createReactive(value, handler, isRoot ? property : rootKey);
+            return createReactive(value, handler, isRoot ? property : rootKey, node);
           }
           return value;
         },
@@ -1497,6 +1524,7 @@ export default class FezBase {
         },
       });
       storeTargets.set(proxy, obj);
+      byTarget?.set(obj, { proxy, node });
       return proxy;
     }
 

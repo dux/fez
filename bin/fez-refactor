@@ -26,6 +26,8 @@ const REMOVED_APIS = [
   [/\bFez\.log\s*\(/, 'Renamed Fez.log', 'Fez.dump(nodeOrValue)'],
   [/\bFez\.state\.subscribe\s*\(\s*\(\s*key\b/, 'Fez.state.subscribe callback order changed', 'The all-keys callback is (value, oldValue, key), like the per-key one.'],
   [/\bon[a-z]+="\{\s*\(?[\w\s,]*\)?\s*=>/, 'Quoted arrow handler is a no-op', 'Drop the quotes: onclick={() => save()}'],
+  [/\b(?:this|fez)\.local\b/, 'Removed this.local', 'Use this.state: a key the template never reads costs no render.'],
+  [/<slot\s(?:[^>]*\s)?live(?=[\s>\/=])/, 'Removed <slot live />', 'Slots are live by default: write <slot />, or <slot rebuild /> for a fresh component per change.'],
 ];
 
 let values, positionals;

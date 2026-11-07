@@ -612,8 +612,8 @@ test(':attr props - parent re-render with identical HTML still delivers new obje
     );
 
     // In-place mutation of the passed object must still reach the child:
-    // the reactive store hands out a fresh proxy per read, so the slot value
-    // differs by identity and the morph runs even though the HTML is identical
+    // the slot holds the same object, but its store version moved, so the
+    // morph runs even though the HTML is identical
     await page.evaluate(() => {
       document.querySelector('.slot-parent-fez').fez.state.users[0].name = 'Cid';
     });
@@ -624,6 +624,41 @@ test(':attr props - parent re-render with identical HTML still delivers new obje
 
     const r = await page.evaluate(() => window.testResults);
     expect(r.childInits).toBe(1);
+  } finally {
+    await closePage(page);
+  }
+});
+
+test(':attr props - a parent render hands untouched store objects on as unchanged', async () => {
+  const page = await createTestPage('<rows-parent></rows-parent>');
+
+  try {
+    await page.evaluate(() => {
+      window.testResults.refreshed = [];
+      window.Fez('row-child', class {
+        HTML = '<span class="row">{props.row.name}</span>';
+        onRefresh(props, changed) {
+          if ('row' in changed) window.testResults.refreshed.push(props.row.name);
+        }
+      });
+      window.Fez('rows-parent', class {
+        init() { this.state.rows = [{ name: 'a' }, { name: 'b' }]; this.state.title = 't1'; }
+        HTML = '<h3 class="title">{state.title}</h3>{#each state.rows as r}<row-child :row="r"></row-child>{/each}';
+      });
+    });
+    await page.waitForFunction(() => document.querySelectorAll('.row').length === 2, { timeout: 3000 });
+    await page.evaluate(() => { window.testResults.refreshed = []; });
+
+    // unrelated parent state: the rows are the same objects, no child sees a change
+    await page.evaluate(() => { document.querySelector('.rows-parent-fez').fez.state.title = 't2'; });
+    await page.waitForFunction(() => document.querySelector('.title').textContent === 't2', { timeout: 3000 });
+    await page.waitForTimeout(50);
+    expect(await page.evaluate(() => window.testResults.refreshed)).toEqual([]);
+
+    // in place write to one row: only that child sees it
+    await page.evaluate(() => { document.querySelector('.rows-parent-fez').fez.state.rows[1].name = 'B'; });
+    await page.waitForFunction(() => document.querySelectorAll('.row')[1].textContent === 'B', { timeout: 3000 });
+    expect(await page.evaluate(() => window.testResults.refreshed)).toEqual(['B']);
   } finally {
     await closePage(page);
   }

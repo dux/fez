@@ -630,7 +630,7 @@ The differ matches rows by that key, so a reorder, insert or removal moves exist
 The expression runs in template scope (loop variables and `{@const}` names included) and the value reaches the child as is, through the parent's render slots.
 Declare a `PROPS` schema (see [Typed props](#typed-props-props)) and stringified numbers, booleans and JSON are coerced back for you.
 
-**Component Isolation:** Child components in loops are automatically preserved during parent re-renders. They only re-render when their props actually change (by identity: an object read from `this.state` is a fresh proxy each render, so it always counts as changed).
+**Component Isolation:** Child components in loops are automatically preserved during parent re-renders. They only re-render when their props actually change: another value, or the same object written to in place (an object read from `this.state` is the same object on every read, and a store write bumps its version, so only the touched row's child re-renders).
 
 ### Local constants (`{@const}`)
 
@@ -1042,7 +1042,7 @@ This example showcases:
 
 - **Built-in Utilities** - Helpful methods like `formData()`, `setInterval()` (auto-cleanup), `on()`, `observeResize()`, `tick()` and `fezNextTick()`
 - **Two-Way Data Binding** - Use `fez:bind` directive for automatic form synchronization
-- **Slots** - One default `<slot />` with event listener preservation (named slots are not supported). Use `<slot unwrap />` to dissolve the wrapper div, leaving children directly in the parent, or `<slot live />` to keep the component when the parent re-renders different children: they are morphed into its slot, so typed values, focus and the components inside stay (a plain `<slot />` component is mounted again)
+- **Slots** - One default `<slot />` with event listener preservation (named slots are not supported). A slot is live: when the parent re-renders different children they are morphed into it, so the component, typed values, focus and the components inside stay. Use `<slot rebuild />` to mount the component again instead (components that read or rearrange their children), or `<slot unwrap />` to dissolve the wrapper div, leaving children directly in the parent
 - **Context and Error Boundaries** - `this.context(key, value)` hands values down the component tree; `onError(error, component)` on an ancestor catches a descendant's mount and render errors
 - **Publish/Subscribe** - Built-in pub/sub system for component communication
 - **Global State Management** - Automatic subscription-based global state with `this.globalState` proxy
@@ -1449,7 +1449,7 @@ Rules for wiring components into an app.
 3. Load data that does not depend on props in `onMount`, and set `state.loading = true` only in `init()`.
    Reloads then keep the current DOM and morph to the new data instead of flashing a spinner.
 4. Renders are batched per animation frame; the DOM does not change synchronously after a state write (`await this.tick()` when you need it).
-5. Pass anything that changes as a prop. Changed slot content mounts a `<slot />` component again; one with `<slot live />` stays and takes the new children in place.
+5. Pass anything that changes as a prop. A `<slot />` component stays when its slot content changes and takes the new children in place; one with `<slot rebuild />` is mounted again.
 6. Pages and other components chosen at runtime: `<fez-component name={state.page} :props="state.query">fallback</fez-component>`.
 7. Style another component by its wrapper class `.<name>-fez`; its tag is replaced on mount.
 8. Scoped `<style>` rules reach into descendant components: in a component that renders others, never style bare tags or generic class names, and delete unused rules.
@@ -1610,6 +1610,9 @@ a clear `fez runtime not loaded` error.
 Vite and Rollup both import the same plugin from `@dinoreic/fez/plugin`: `enforce`/`configResolved`
 are Vite-only and ignored by Rollup, so `minify` follows Vite's mode and stays `false` for Rollup.
 The runtime `<script fez="...">` loading above still works; both paths are supported.
+
+Every built file is importable by path: `@dinoreic/fez/dist/fez.js` is the classic script build,
+for a page that inlines fez into a plain `<script>` (`import fezJS from '@dinoreic/fez/dist/fez.js?raw'` in Vite).
 
 ## TypeScript
 

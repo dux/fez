@@ -126,4 +126,4 @@
   {/for}
 </div>
 
-<slot />
+<slot rebuild />

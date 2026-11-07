@@ -1,6 +1,6 @@
 /**
  * Browser regressions for the component runtime: render scheduling, the state
- * store, class fields, cleanup, slot unwrap, slot live, global state, fez-inline and
+ * store, class fields, cleanup, slot unwrap, live slots, global state, fez-inline and
  * fez:bind radios.
  *
  * Run: bun test test/browser/runtime-regressions.test.js
@@ -158,8 +158,8 @@ function liveState() {
   };
 }
 
-test('slot live keeps the component and morphs changed children into its slot', async () => {
-  const { result, errors } = await run(liveHost, liveState, 250, { slot: '<slot live />' });
+test('a slot is live by default: the component stays and changed children morph into its slot', async () => {
+  const { result, errors } = await run(liveHost, liveState, 250, { slot: '<slot />' });
   expect(errors).toEqual([]);
   expect(result).toEqual({
     sameBox: true,
@@ -174,10 +174,10 @@ test('slot live keeps the component and morphs changed children into its slot', 
   });
 });
 
-test("a fez:this ref inside a live slot is the parent's, before and after a re-render", async () => {
+test("a fez:this ref inside a slot is the parent's, before and after a re-render", async () => {
   const { result } = await run(
     () => {
-      Fez('ref-box', class { HTML = '<div class="rb"><slot live /></div>'; });
+      Fez('ref-box', class { HTML = '<div class="rb"><slot /></div>'; });
       Fez('ref-host', class {
         HTML = '<ref-box><input class="ri" fez:this="field">{#if state.n}<i>{state.n}</i>{/if}</ref-box>';
         init() { this.state.n = 0; }
@@ -195,18 +195,48 @@ test("a fez:this ref inside a live slot is the parent's, before and after a re-r
   expect(result).toEqual({ atMount: true, after: true, box: undefined });
 });
 
-test('slot live drops children the parent no longer renders', async () => {
+test('a live slot drops children the parent no longer renders', async () => {
   const { result } = await run(
     liveHost,
     () => ({ extra: document.querySelectorAll('.extra').length, sameBox: Fez('live-box').UID === window.firstBox }),
     300,
-    { slot: '<slot live />', drop: true },
+    { slot: '<slot />', drop: true },
   );
   expect(result).toEqual({ extra: 0, sameBox: true });
 });
 
-test('a plain slot still rebuilds its component when the children change', async () => {
-  const { result } = await run(liveHost, liveState, 250, { slot: '<slot />' });
+test('a live slot leaves unchanged children alone and morphs changed ones', async () => {
+  const { result, errors } = await run(
+    () => {
+      Fez('mark-box', class {
+        HTML = '<div class="mb"><slot /></div>';
+        onMount() { this.find('.pane').classList.add('active'); }
+      });
+      Fez('mark-host', class {
+        HTML = '<h3 class="mt">{state.title}</h3><mark-box><p class="pane">{state.text}</p></mark-box>';
+        init() { this.state.title = 'a'; this.state.text = 'one'; }
+      });
+      app.innerHTML = '<mark-host></mark-host>';
+      setTimeout(() => { Fez('mark-host').state.title = 'b'; }, 30);
+      setTimeout(() => {
+        window.afterTitle = document.querySelector('.pane').className;
+        Fez('mark-host').state.text = 'two';
+      }, 90);
+    },
+    () => ({
+      title: document.querySelector('.mt').textContent,
+      afterTitle: window.afterTitle,
+      afterText: document.querySelector('.pane').className,
+      text: document.querySelector('.pane').textContent,
+    }),
+    200,
+  );
+  expect(errors).toEqual([]);
+  expect(result).toEqual({ title: 'b', afterTitle: 'pane active', afterText: 'pane', text: 'two' });
+});
+
+test('<slot rebuild /> rebuilds its component when the children change', async () => {
+  const { result } = await run(liveHost, liveState, 250, { slot: '<slot rebuild />' });
   expect(result.sameBox).toBe(false);
   expect(result.typed).toBe('');
   expect(result.extra).toBe('shown');
@@ -215,7 +245,7 @@ test('a plain slot still rebuilds its component when the children change', async
 test('live slot components in a loop each keep their instance and typed value', async () => {
   const { result, errors } = await run(
     () => {
-      Fez('loop-box', class { HTML = '<div class="lb"><slot live /></div>'; });
+      Fez('loop-box', class { HTML = '<div class="lb"><slot /></div>'; });
       Fez('loop-host', class {
         HTML = `{#each state.rows as row}<loop-box><input class="li"><b class="lt">{row}{state.mark}</b></loop-box>{/each}`;
         init() { this.state.rows = ['a', 'b']; this.state.mark = ''; }
@@ -240,7 +270,7 @@ test('live slot components in a loop each keep their instance and typed value', 
 test('an unkeyed live slot component (server HTML) keeps its instance when its children change', async () => {
   const { result } = await run(
     () => {
-      Fez('server-box', class { HTML = '<div class="sb"><slot live /></div>'; });
+      Fez('server-box', class { HTML = '<div class="sb"><slot /></div>'; });
       app.innerHTML = '<server-box title="a"><input class="si"></server-box>';
       setTimeout(() => {
         window.serverUid = Fez('server-box').UID;
@@ -257,11 +287,11 @@ test('an unkeyed live slot component (server HTML) keeps its instance when its c
   expect(result).toEqual({ same: true, typed: 'kept', added: 'new' });
 });
 
-test("a live slot inside a child component's slot is rebuilt like a plain one, showing the new children", async () => {
+test("a slot inside a child component's slot is rebuilt like a rebuild one, showing the new children", async () => {
   const { result, errors } = await run(
     () => {
       Fez('outer-card', class { HTML = '<section class="oc"><slot /></section>'; });
-      Fez('nested-live', class { HTML = '<outer-card><slot live /></outer-card>'; });
+      Fez('nested-live', class { HTML = '<outer-card><slot /></outer-card>'; });
       Fez('nested-host', class {
         HTML = '<nested-live><p class="np">{state.text}</p></nested-live>';
         init() { this.state.text = 'one'; }
@@ -275,16 +305,21 @@ test("a live slot inside a child component's slot is rebuilt like a plain one, s
   expect(result).toEqual(['two']);
 });
 
-test('slot live and unwrap cannot combine', async () => {
+test('an unwrap slot is not live, a component without a slot is rebuilt', async () => {
   const { result, errors } = await run(
     () => {
-      Fez('live-unwrap', class { HTML = '<ul><slot live unwrap /></ul>'; });
-      app.innerHTML = '<live-unwrap><li class="kid">kid</li></live-unwrap>';
+      Fez('plain-unwrap', class { HTML = '<ul><slot unwrap /></ul>'; });
+      Fez('no-slot', class { HTML = '<b>none</b>'; });
+      app.innerHTML = '<plain-unwrap><li class="kid">kid</li></plain-unwrap>';
     },
-    () => ({ live: Fez.index['live-unwrap'].class.fezSlotLive, kids: document.querySelectorAll('.kid').length }),
+    () => ({
+      unwrap: Fez.index['plain-unwrap'].class.fezSlotLive,
+      none: Fez.index['no-slot'].class.fezSlotLive,
+      kids: document.querySelectorAll('.kid').length,
+    }),
   );
-  expect(result).toEqual({ live: false, kids: 1 });
-  expect(errors.some((e) => e.includes('cannot combine'))).toBe(true);
+  expect(errors).toEqual([]);
+  expect(result).toEqual({ unwrap: false, none: false, kids: 1 });
 });
 
 test('class fields are initialized per instance', async () => {

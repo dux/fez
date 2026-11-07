@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import RenderSlots from "../src/fez/lib/render-slots.js";
+import FezBase from "../src/fez/instance.js";
 
 describe("RenderSlots", () => {
   describe("values (:attr props)", () => {
@@ -72,6 +73,21 @@ describe("RenderSlots", () => {
       slots.set(3);
       slots.commitRender();
       expect(slots.valuesChanged).toBe(false);
+    });
+
+    test("the same store object written to in place counts as changed", () => {
+      const state = new FezBase().fezReactiveStore({ user: { name: "Ann" } }, () => {});
+      const slots = new RenderSlots();
+      slots.beginRender();
+      slots.set(state.user);
+      slots.beginRender();
+      slots.set(state.user);
+      expect(slots.valuesChanged).toBe(false);
+
+      state.user.name = "Bob";
+      slots.beginRender();
+      slots.set(state.user);
+      expect(slots.valuesChanged).toBe(true);
     });
   });
 

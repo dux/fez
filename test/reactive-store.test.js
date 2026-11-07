@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import FezBase from "../src/fez/instance.js";
+import { storeVersion } from "../src/fez/lib/store-version.js";
 
 // fezReactiveStore backs this.state and this.props. Only plain objects and
 // arrays are proxied - anything with internal slots (Date, Map, Set, RegExp,
@@ -115,5 +116,46 @@ describe("fezReactiveStore { shallow: true }", () => {
     expect(roots).toContain("top");
     expect(roots).not.toContain("tags");
     expect(roots).not.toContain("a");
+  });
+});
+
+// One wrapper per object: props and render slots compare by identity, and the
+// store version is what still tells them about an in place write.
+describe("fezReactiveStore identity and versions", () => {
+  test("a nested value read twice is the same value, also after the list is replaced", () => {
+    const [s] = store({ list: [{ n: 1 }, { n: 2 }] });
+    const first = s.list[0];
+    expect(s.list[0]).toBe(first);
+    s.list = [...s.list, { n: 3 }];
+    expect(s.list[0]).toBe(first);
+  });
+
+  test("an in place write bumps the object and everything above it, not its siblings", () => {
+    const [s] = store({ list: [{ n: 1 }, { n: 2 }] });
+    const [a, b, list] = [s.list[0], s.list[1], s.list];
+    const before = [storeVersion(a), storeVersion(b), storeVersion(list)];
+    s.list[0].n = 5;
+    expect(storeVersion(a)).toBe(before[0] + 1);
+    expect(storeVersion(list)).toBe(before[2] + 1);
+    expect(storeVersion(b)).toBe(before[1]);
+  });
+
+  test("an item moved to another list reports to the list it was last read from", () => {
+    const [s] = store({ cols: [{ tasks: [{ done: false }] }, { tasks: [] }] });
+    const task = s.cols[0].tasks[0];
+    s.cols[1].tasks.push(s.cols[0].tasks.shift());
+    const [from, to] = [storeVersion(s.cols[0]), storeVersion(s.cols[1])];
+    s.cols[1].tasks[0].done = true;
+    expect(s.cols[1].tasks[0]).toBe(task);
+    expect(storeVersion(s.cols[1])).toBe(to + 1);
+    expect(storeVersion(s.cols[0])).toBe(from);
+  });
+
+  test("a store that holds itself still writes", () => {
+    const obj = { n: 0 };
+    obj.self = obj;
+    const [s, writes] = store({ obj });
+    s.obj.self.self.n = 1;
+    expect(writes).toEqual([["n", 1]]);
   });
 });

@@ -225,7 +225,7 @@ Rules for wiring components into an app; the component rules are above.
    Set `state.loading = true` only in `init()`: reloads then keep the current DOM and morph to the new data instead of flashing a spinner.
 4. Renders are batched per animation frame (a timer while the tab is hidden); the DOM does not change synchronously after a state write.
    `await this.tick()` resolves once the pending render reached the DOM.
-5. Pass anything that changes as a prop. Changed slot content rebuilds a `<slot />` component (fresh `init()`); a component whose template has `<slot live />` stays and takes the new children in place.
+5. Pass anything that changes as a prop. A `<slot />` component stays when its slot content changes and takes the new children in place; one with `<slot rebuild />` is mounted again with them (fresh `init()`).
    A child whose template does not read a prop skips the re-render when only that prop changes.
 6. Pages and other components chosen at runtime: `<fez-component name={state.page} :props="state.query">fallback</fez-component>`.
    The same name keeps the child and hands it new props, a new name inserts the new tag, and an unregistered name shows the children.
@@ -1465,7 +1465,7 @@ Hook the relevant DOM event with the pattern above instead.
 
 ### Component Isolation in Loops
 
-Child components in loops are automatically preserved during parent re-renders. They only re-render when their props actually change - by identity, so an object read out of `this.state` (a fresh proxy per read) always counts as changed; that is what delivers an in-place `task.done = true` to the child:
+Child components in loops are automatically preserved during parent re-renders. They only re-render when their props actually change: another value, or the same object written to in place. An object read out of `this.state` is the same object on every read, so a row the parent did not touch counts as unchanged, while an in-place `task.done = true` still reaches that one child (each store write bumps a version on the object and on the objects it was read through):
 
 ```html
 {#each state.users as user}
@@ -1619,31 +1619,33 @@ Fez ships the former `dux-pjax` package (ported to JS) and exposes it as `Fez.pj
 - Components follow navigation via `this.on('pjax:render', () => this.refresh())`.
 - URL state: `Fez.qs()` (real query) and `Fez.hash()` (slashless fragment params) are history-only setters/getters. `Fez.hpath()`/`Fez.hqs()` address a hash route: a fragment whose path part contains a `/` is a route (`#/traffic?app=x`), the route name is the last path segment, and `hqs` reads/writes its query. A slashless fragment (`#foo`, `#tab=settings`) stays an anchor or `hash()` parameter list. Path setters canonicalize to `#/name` and clear on empty.
 
-## Slot Unwrap and Slot Live
+## Slot Unwrap and Slot Rebuild
 
 Use `<slot unwrap />` when children must be inserted without a wrapper div. By default, `<slot />` wraps children in a `<div class="fez-slot">`. With `unwrap`, the wrapper div is dissolved after filling, leaving children directly in the parent element.
 
 **Important:** Components using `<slot unwrap />` render once - a re-render would lose the unwrapped slot content. `this.state` works normally for keys the template never reads; a write to a key the render did read logs a console error and is not rendered.
 
-When a parent re-renders with different slot content for a child, a plain `<slot />` child is destroyed and mounted again with the new children (a fresh `init()`, typed values and focus inside are lost), whether it is keyed or not.
-That is right for components that read their children once (`this.childNodes()` / `this.childObjects()` in `init()`).
-A component whose template has `<slot live />` stays instead: the parent's new children are morphed into its `.fez-slot` like the parent's own template, so the component, the components in its slot, typed values and focus are kept, conditional children come and go, and the parent's handlers in the slot keep working.
-Use it for wrappers whose children are the parent's markup (a form, a card around fields); its attributes still refresh its props as usual.
-`live` and `unwrap` cannot combine (there is no wrapper to morph into): fez logs an error and keeps `unwrap`.
-The live slot must sit in the component's own markup: one inside a child component (`<ui-card><slot live /></ui-card>`) is that child's content, and the component is rebuilt like a plain `<slot />` one; the same holds while an `{#if}` leaves the slot out.
+A slot is live by default: when a parent re-renders (or a pjax / `Fez.nodeMorph` swap keeps the component) with different slot content, the component stays and the new children are morphed into its `.fez-slot` like the parent's own template.
+The component, the components in its slot, typed values and focus are kept, conditional children come and go, the parent's handlers in the slot keep working, and its attributes still refresh its props as usual.
+`fez:this`, `fez:use` and `fez:class` inside the slot belong to the parent that rendered them.
+
+`<slot rebuild />` destroys the component and mounts it again with the new children (a fresh `init()`, typed values and focus inside are lost), whether it is keyed or not.
+Use it for components that read or rearrange their children: `this.childNodes()` / `this.childObjects()` in `init()`, or DOM work that moves, wraps or hides the slotted nodes (tabs, sliders, masonry).
+`<slot unwrap />` and a template without any `<slot>` rebuild the same way.
+The live slot must sit in the component's own markup: one inside a child component (`<ui-card><slot /></ui-card>`) is that child's content, and the component is rebuilt; the same holds while an `{#if}` leaves the slot out.
 
 ```html
-<!-- Default slot: children wrapped in <div class="fez-slot"> -->
+<!-- Default slot: children wrapped in <div class="fez-slot">, changed children morphed in place -->
 <slot />
 
-<!-- Unwrap slot: wrapper dissolved after fill, children in parent -->
-<slot unwrap />
+<!-- Rebuild slot: changed children mount the component again -->
+<slot rebuild />
 
-<!-- Live slot: the parent's changed children are morphed into the kept wrapper -->
-<slot live />
+<!-- Unwrap slot: wrapper dissolved after fill, children in parent, rebuilt on change -->
+<slot unwrap />
 ```
 
-A component has one default slot. Named slots (`<slot name="header">`) are not supported: pass that markup as a prop, read the children with `this.childNodes()` / `this.childObjects()` in `init()`, or split it into child components.
+A component has one default slot. Named slots (`<slot name="header">`) are not supported: pass that markup as a prop, read the children with `this.childNodes()` / `this.childObjects()` in `init()` (with `<slot rebuild />` or no slot), or split it into child components.
 
 ## Built-in components
 

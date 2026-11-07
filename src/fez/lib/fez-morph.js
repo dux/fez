@@ -16,8 +16,9 @@ import { runTransition } from './transitions.js';
  * New placeholders hash their own outerHTML. Both sides go through the same
  * parse -> serialize pipeline, so identical source bytes hash equal.
  *
- * Unkeyed identity is strict: tag + attributes + innerHTML must all match,
- * otherwise the component is destroyed and recreated with a fresh init().
+ * Unkeyed identity is strict for a component without a live slot: tag +
+ * attributes + innerHTML must all match, otherwise the component is destroyed
+ * and recreated with a fresh init(). A live slot component hashes only its tag.
  *
  * Keyed identity (fez-key / key / id) still preserves by default for props
  * refresh, but if the source signature changed (slot text, static children),
@@ -44,7 +45,7 @@ function signatureHash(node, live = false) {
 }
 
 /**
- * The source tag without its children. A <slot live /> component stays the same
+ * The source tag without its children. A live slot component stays the same
  * one whatever its slot holds: the differ morphs the new children into its slot.
  */
 function openTagSource(node) {
@@ -83,7 +84,7 @@ function shouldPreserveFezComponent(oldNode, newNode) {
   if (!oldNode?.fez || oldNode.fez._destroyed) {
     return true;
   }
-  // <slot live /> takes changed children in place (morphLiveSlot). Without a slot
+  // A live slot takes changed children in place (morphLiveSlot). Without a slot
   // of its own in the DOM (one inside a child component, or not rendered) it is
   // compared and rebuilt like any other component.
   if (oldNode.fez.class?.fezSlotLive && oldNode.fez.fezOwnSlot?.()) {
@@ -239,17 +240,29 @@ export default function attachMorph(Fez) {
   }
 
   /**
-   * <slot live />: the parent's new children for a kept component are morphed
+   * A live slot (the default): the parent's new children for a kept component are morphed
    * into its own .fez-slot, the way the parent morphs its own template, so the
    * component, the components in its slot, typed values and focus all stay.
+   * Children the parent renders as before are left alone, so what the component
+   * or the user changed in them (a class, an open <details>) survives the parent's
+   * re-render. A :attr value can change behind the same HTML, so markup that
+   * carries one is always morphed: its components need the new props.
    */
   function morphLiveSlot(oldNode, newNode) {
     const slot = oldNode.fez.fezOwnSlot();
     if (!slot || newNode?.nodeType !== 1) {
       return;
     }
+    const html = newNode.innerHTML.trim();
+    const same =
+      oldNode._fezSignature != null &&
+      !html.includes('fezGlobals.value(') &&
+      innerFromOuterHtml(oldNode._fezSignature).trim() === html;
     oldNode._fezSignature = newNode.outerHTML;
     oldNode._fezSigHash = undefined;
+    if (same) {
+      return;
+    }
     const children = document.createElement('div');
     while (newNode.firstChild) {
       children.appendChild(newNode.firstChild);
