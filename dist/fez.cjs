@@ -1,4 +1,4 @@
-// v: 4.0.4 | AGENTS: https://raw.githubusercontent.com/dux/fez/refs/heads/main/AGENTS.md
+// v: 4.1.1 | AGENTS: https://raw.githubusercontent.com/dux/fez/refs/heads/main/AGENTS.md
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -173,7 +173,10 @@ function transformArrowToHandler(expr, loopVars = [], loopItemVars = [], maybeIt
   if (usedItemVars.length > 0) {
     return `\${${slot}}`;
   }
-  const interpolated = mapIdentifiers(body, (name) => loopVars.includes(name) ? `\${${name}}` : name);
+  const interpolated = mapIdentifiers(
+    body,
+    (name) => loopVars.includes(name) ? `\${${name}}` : name
+  );
   const usedMaybe = maybeItemVars.filter((name) => used.has(name));
   if (!usedMaybe.length) {
     return interpolated;
@@ -2335,9 +2338,12 @@ function createTemplate(text, opts = {}) {
   return fn;
 }
 function slotTemplate(html) {
+  const tag = html.match(/<slot(\s[^>]*)?>/);
+  const has = (attr) => !!tag && new RegExp(`\\s${attr}(?=[\\s>\\/=])`).test(tag[0]);
+  const slotUnwrap = has("unwrap");
   return {
-    slotUnwrap: /<slot\s[^>]*unwrap[\s>\/]/.test(html),
-    slotLive: /<slot\s[^>]*\blive[\s>\/=]/.test(html),
+    slotUnwrap,
+    slotLive: !!tag && !slotUnwrap && !has("rebuild"),
     html: html.replace(/<slot(\s[^>]*)?>/, '<div class="fez-slot" fez-keep="default-slot"$1>').replace("</slot>", "</div>")
   };
 }
@@ -2378,19 +2384,41 @@ function convertLegacySyntax(text, componentName) {
 // src/fez/instance.js
 init_evaluate();
 
+// src/fez/lib/store-version.js
+var storeTargets = /* @__PURE__ */ new WeakMap();
+var unwrapStore = (value) => storeTargets.get(value) || value;
+var versions = /* @__PURE__ */ new WeakMap();
+function bumpStoreVersions(node) {
+  const seen = /* @__PURE__ */ new Set();
+  for (; node && !seen.has(node); node = node.parent) {
+    seen.add(node);
+    versions.set(node.target, (versions.get(node.target) || 0) + 1);
+  }
+}
+function storeVersion(value) {
+  if (typeof value !== "object" || value === null) {
+    return 0;
+  }
+  return versions.get(unwrapStore(value)) || 0;
+}
+
 // src/fez/lib/render-slots.js
 var RenderSlots = class {
   constructor() {
     this.values = /* @__PURE__ */ new Map();
     this.handlers = /* @__PURE__ */ new Map();
     this.renderValues = [];
+    this.renderVersions = [];
     this.prevValues = [];
+    this.prevVersions = [];
     this.handlerCount = 0;
     this.liveHandlers = null;
   }
   beginRender() {
     this.prevValues = this.renderValues;
+    this.prevVersions = this.renderVersions;
     this.renderValues = [];
+    this.renderVersions = [];
     this.values.clear();
     this.handlerCount = 0;
     this.liveHandlers = /* @__PURE__ */ new Set();
@@ -2406,8 +2434,8 @@ var RenderSlots = class {
     }
     this.liveHandlers = null;
   }
-  // True when any value slot holds a different reference than it did in the
-  // previous render (or the count changed).
+  // True when any value slot holds a different reference, or a different
+  // store version, than it did in the previous render (or the count changed).
   get valuesChanged() {
     const prev = this.prevValues;
     const next = this.renderValues;
@@ -2415,7 +2443,7 @@ var RenderSlots = class {
       return true;
     }
     for (let i = 0; i < next.length; i++) {
-      if (prev[i] !== next[i]) {
+      if (prev[i] !== next[i] || this.prevVersions[i] !== this.renderVersions[i]) {
         return true;
       }
     }
@@ -2425,6 +2453,7 @@ var RenderSlots = class {
   set(value) {
     const key = this.renderValues.length;
     this.renderValues.push(value);
+    this.renderVersions.push(storeVersion(value));
     this.values.set(key, value);
     return key;
   }
@@ -2446,7 +2475,9 @@ var RenderSlots = class {
     this.values.clear();
     this.handlers.clear();
     this.renderValues = [];
+    this.renderVersions = [];
     this.prevValues = [];
+    this.prevVersions = [];
     this.liveHandlers = null;
   }
 };
@@ -3043,8 +3074,6 @@ var WINDOW_EVENTS = /* @__PURE__ */ new Set([
 ]);
 var PROPS_ATTR = "fez-props";
 var PROPS_ATTR_MAX_STRING = 60;
-var storeTargets = /* @__PURE__ */ new WeakMap();
-var unwrapStore = (value) => storeTargets.get(value) || value;
 function unwrapStoreValue(value) {
   value = unwrapStore(value);
   if (Array.isArray(value)) {
@@ -3423,15 +3452,19 @@ var FezBase = class _FezBase {
    * from the template instead of copying it into state first.
    *
    * Assigning the whole object (connect, parent re-render) re-wraps it. The raw
-   * object stays on _propsRaw - the proxy hands out a fresh wrapper on every
-   * object read, so proxied values never compare equal by identity and prop
-   * change detection has to run against the raw object.
+   * object stays on _propsRaw, and the store version of every value on
+   * _propsVersions: a value the parent wrote to in place keeps its identity,
+   * so prop change detection compares both (lib/store-version.js).
    */
   get props() {
     return this._props;
   }
   set props(value) {
     this._propsRaw = value || {};
+    this._propsVersions = {};
+    for (const key in this._propsRaw) {
+      this._propsVersions[key] = storeVersion(this._propsRaw[key]);
+    }
     this._props = this.fezReactiveStore(
       this._propsRaw,
       () => {
@@ -3518,15 +3551,17 @@ var FezBase = class _FezBase {
    * hands them to a preserved child: re-render when a value changed, then
    * always fire onRefresh(props, changed), where changed maps every key whose
    * value differs to its new value (a removed key maps to undefined).
-   * Compares against _propsRaw - the props proxy hands out a fresh wrapper on
-   * every object read, so identity checks need the raw object.
+   * A value is changed when it is another value, or the same store object
+   * written to in place since the last props (_propsVersions).
    */
   fezApplyProps(nextProps) {
     const prevProps = this._propsRaw || {};
+    const prevVersions = this._propsVersions || {};
     const changed = {};
     for (const key of /* @__PURE__ */ new Set([...Object.keys(prevProps), ...Object.keys(nextProps)])) {
-      if (prevProps[key] !== nextProps[key]) {
-        changed[key] = nextProps[key];
+      const next = nextProps[key];
+      if (prevProps[key] !== next || (prevVersions[key] || 0) !== storeVersion(next)) {
+        changed[key] = next;
       }
     }
     this.props = nextProps;
@@ -3846,7 +3881,7 @@ var FezBase = class _FezBase {
    * Post-render processing for fez-* attributes
    */
   fezRenderPostProcess() {
-    const liveSlot = this.class.fezSlotLive ? [...this.root.querySelectorAll(".fez-slot")].find((el) => el.parentElement?.closest(".fez") === this.root) : null;
+    const liveSlot = this.class.fezSlotLive ? this.fezOwnSlot() : null;
     const fetchAttr = (name, func) => {
       this.root.querySelectorAll(`*[${name}]`).forEach((n2) => {
         if (liveSlot?.contains(n2)) {
@@ -3932,7 +3967,10 @@ var FezBase = class _FezBase {
         const isRadio = type === "radio";
         if (n2._fezBind === void 0) {
           const eventName = n2.nodeName === "SELECT" || isCb || isRadio ? "change" : "input";
-          n2.addEventListener(eventName, () => setPath(this, n2._fezBind, isCb ? n2.checked : n2.value));
+          n2.addEventListener(
+            eventName,
+            () => setPath(this, n2._fezBind, isCb ? n2.checked : n2.value)
+          );
         }
         n2._fezBind = text;
         this.val(n2, value);
@@ -3994,6 +4032,16 @@ var FezBase = class _FezBase {
         newSlot.remove();
       }
     }
+  }
+  /**
+   * The .fez-slot this component's template rendered itself, not one of a
+   * child component. A slot placed inside another component's slot is that
+   * component's content, so it is not found here (a live slot, see lib/fez-morph.js).
+   */
+  fezOwnSlot() {
+    return [...this.root?.querySelectorAll(".fez-slot") || []].find(
+      (el) => el.parentElement?.closest(".fez") === this.root
+    ) || null;
   }
   // ===========================================================================
   // REACTIVE STATE
@@ -4096,18 +4144,35 @@ var FezBase = class _FezBase {
       const proto = Object.getPrototypeOf(obj2);
       return proto === Object.prototype || proto === null;
     }
-    function createReactive(obj2, handler2, rootKey) {
+    const wrappers = /* @__PURE__ */ new Map();
+    function createReactive(obj2, handler2, rootKey, parent = null) {
       obj2 = unwrapStore(obj2);
       if (!shouldProxy(obj2)) {
         return obj2;
       }
       const isRoot = rootKey === void 0;
+      let byTarget;
+      if (!isRoot) {
+        byTarget = wrappers.get(rootKey);
+        if (!byTarget) {
+          wrappers.set(rootKey, byTarget = /* @__PURE__ */ new WeakMap());
+        }
+        const hit = byTarget.get(obj2);
+        if (hit) {
+          hit.node.parent = parent;
+          return hit.proxy;
+        }
+      }
+      const node = { target: obj2, parent };
       const track = (property) => {
         if (isRoot && fez._isRendering && typeof property !== "symbol") {
           fez._fezReads?.add(property);
         }
       };
-      const changed = (target, property, value, currentValue) => handler2(target, property, value, currentValue, isRoot ? property : rootKey);
+      const changed = (target, property, value, currentValue) => {
+        bumpStoreVersions(node);
+        handler2(target, property, value, currentValue, isRoot ? property : rootKey);
+      };
       const proxy = new Proxy(obj2, {
         set(target, property, value, receiver) {
           value = unwrapStoreValue(value);
@@ -4132,7 +4197,7 @@ var FezBase = class _FezBase {
           track(property);
           const value = Reflect.get(target, property, receiver);
           if (!options.shallow && shouldProxy(value)) {
-            return createReactive(value, handler2, isRoot ? property : rootKey);
+            return createReactive(value, handler2, isRoot ? property : rootKey, node);
           }
           return value;
         },
@@ -4148,6 +4213,7 @@ var FezBase = class _FezBase {
         }
       });
       storeTargets.set(proxy, obj2);
+      byTarget?.set(obj2, { proxy, node });
       return proxy;
     }
     return createReactive(obj, handler);
@@ -4660,7 +4726,9 @@ function expandGlobalLists(sel) {
   const end = globalEnd(sel, start);
   const items = splitSelectors(sel.slice(start + 8, end - 1));
   const rest = expandGlobalLists(sel.slice(end));
-  return items.flatMap((item) => rest.map((tail) => `${sel.slice(0, start)}:global(${item})${tail}`));
+  return items.flatMap(
+    (item) => rest.map((tail) => `${sel.slice(0, start)}:global(${item})${tail}`)
+  );
 }
 function unwrapGlobal(sel) {
   let out = "";
@@ -5064,7 +5132,10 @@ function readFormDefaults(node) {
   };
 }
 function templateSelection(select) {
-  return Array.from(select.options, (option) => booleanAttrEnabled(option, "selected") ? 1 : 0).join("");
+  return Array.from(
+    select.options,
+    (option) => booleanAttrEnabled(option, "selected") ? 1 : 0
+  ).join("");
 }
 function syncDomProperties(oldNode, newNode, before) {
   if (oldNode.nodeType !== 1 || newNode.nodeType !== 1) {
@@ -5218,7 +5289,7 @@ function shouldPreserveFezComponent(oldNode, newNode) {
   if (!oldNode?.fez || oldNode.fez._destroyed) {
     return true;
   }
-  if (oldNode.fez.class?.fezSlotLive) {
+  if (oldNode.fez.class?.fezSlotLive && oldNode.fez.fezOwnSlot?.()) {
     return true;
   }
   if (oldNode._fezSignature == null) {
@@ -5285,6 +5356,12 @@ function refreshPreservedComponent(oldNode, newNode) {
   if (!fez || fez._destroyed) {
     return;
   }
+  const on = newNode?.getAttribute?.("fez-on");
+  if (on) {
+    oldNode.setAttribute("fez-on", on);
+  } else if (newNode) {
+    oldNode.removeAttribute("fez-on");
+  }
   let nextProps = fez._propsRaw || {};
   if (newNode && fez.class?.getProps) {
     nextProps = fez.class.getProps(newNode, oldNode);
@@ -5315,14 +5392,17 @@ function attachMorph(Fez3) {
     return null;
   }
   function morphLiveSlot(oldNode, newNode) {
-    const slot = [...oldNode.querySelectorAll(".fez-slot")].find(
-      (el) => el.parentElement?.closest(".fez") === oldNode
-    );
+    const slot = oldNode.fez.fezOwnSlot();
     if (!slot || newNode?.nodeType !== 1) {
       return;
     }
+    const html = newNode.innerHTML.trim();
+    const same = oldNode._fezSignature != null && !html.includes("fezGlobals.value(") && innerFromOuterHtml(oldNode._fezSignature).trim() === html;
     oldNode._fezSignature = newNode.outerHTML;
     oldNode._fezSigHash = void 0;
+    if (same) {
+      return;
+    }
     const children = document.createElement("div");
     while (newNode.firstChild) {
       children.appendChild(newNode.firstChild);
@@ -5691,10 +5771,6 @@ function connect(name, klass) {
     klass.html = slot.html;
     let render;
     klass.fezHtmlFunc = (ctx) => (render ||= createTemplate(klass.html, { name }))(ctx);
-  }
-  if (klass.fezSlotLive && klass.fezSlotUnwrap) {
-    Fez3.onError("slot", `<${name}>: <slot live unwrap /> cannot combine; live is ignored`);
-    klass.fezSlotLive = false;
   }
   if (klass.css) {
     Fez3.globalCss(klass.css, { name });
@@ -6526,7 +6602,10 @@ function hasMarkup(text) {
   return !!withoutComments(stripGeneratedNotice(text)).trim();
 }
 function withoutBlocks(text) {
-  return text.replace(/(^|\n)[ \t]*<(demo|info|script|head|style|slim)(?=[\s/>])[^>]*>[\s\S]*?<\/\2\s*>/gi, "$1");
+  return text.replace(
+    /(^|\n)[ \t]*<(demo|info|script|head|style|slim)(?=[\s/>])[^>]*>[\s\S]*?<\/\2\s*>/gi,
+    "$1"
+  );
 }
 function withoutComments(html) {
   return html.replace(/<!--[\s\S]*?-->/g, "");
@@ -6883,7 +6962,7 @@ function hasTopLevelFezElements(html) {
   return !!html && hasFezDefinitions(html);
 }
 function compile(tagName, html) {
-  if (arguments.length === 1) {
+  if (arguments.length <= 1) {
     return compileBulk(tagName);
   }
   html = stripGeneratedNotice(html);
@@ -7319,7 +7398,11 @@ function awaitHelper(component, awaitId, promiseOrValue, hasCatch = false) {
     current[key] = result;
     current.justSettled = true;
     if (status === "rejected" && !hasCatch) {
-      component.fezError?.("await", `{#await} rejected and has no {:catch}: ${result?.message || result}`, result instanceof Error ? result : void 0);
+      component.fezError?.(
+        "await",
+        `{#await} rejected and has no {:catch}: ${result?.message || result}`,
+        result instanceof Error ? result : void 0
+      );
     }
     component.fezNextTick?.(component.fezRender, "fezRender");
   };
@@ -7443,7 +7526,7 @@ entryKey = (name) => reservedNames.has(name) ? ENTRY_PREFIX + name : name;
 var lib_default = index;
 
 // package.json
-var version = "4.0.4";
+var version = "4.1.1";
 
 // src/fez/lib/utility.js
 init_evaluate();
@@ -7517,13 +7600,8 @@ ${code}
           const basePath = fezPath.substring(0, fezPath.lastIndexOf("/") + 1);
           const lines = content.split("\n").map((line) => line.trim()).filter((line) => line && !line.startsWith("#"));
           const loads = lines.map((line) => {
-            let componentPath;
-            if (line.startsWith("/")) {
-              componentPath = line;
-            } else {
-              const path = line.endsWith(".fez") ? line : line + ".fez";
-              componentPath = basePath + path;
-            }
+            const path = line.endsWith(".fez") ? line : line + ".fez";
+            const componentPath = path.startsWith("/") ? path : basePath + path;
             const name2 = Fez3.nameFromPath(componentPath);
             return Fez3.fetch(componentPath).then((componentContent) => Fez3.compile(name2, componentContent)).catch(
               (error) => Fez3.onError("compile", `Load error for "${componentPath}": ${error.message}`)

@@ -339,7 +339,7 @@ layout: default
 &lt;ul&gt;
   {#each collections.blogs as post}
     &lt;li&gt;
-      &lt;a href={post.href}&gt;{post.title}&lt;/a&gt;
+      &lt;a href={url(post.url)}&gt;{post.title}&lt;/a&gt;
       {#if post.date}&lt;time&gt;{post.date}&lt;/time&gt;{/if}
     &lt;/li&gt;
   {/each}

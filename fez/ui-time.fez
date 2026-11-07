@@ -84,4 +84,4 @@
 <button onclick="fez.fezRender()">refresh &amp; preserve slot</button>
 <hr />
 
-<slot></slot>
+<slot rebuild></slot>

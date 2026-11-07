@@ -204,7 +204,7 @@
 
 <div class="slider-container">
   <div class="slot-parent">
-    <slot />
+    <slot rebuild />
   </div>
 
   {#if props.arrows}
