@@ -5,13 +5,15 @@
 //   bun test/browser/run.js
 import { readdirSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname, join, relative } from 'path';
+import { dirname, join } from 'path';
 
+// absolute paths: a bare `test/browser/x.test.js` is a name filter for bun
+// test and also runs a stray copy of the file elsewhere in the tree
 const dir = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(dir)
   .filter((name) => name.endsWith('.test.js'))
   .sort()
-  .map((name) => relative(process.cwd(), join(dir, name)));
+  .map((name) => join(dir, name));
 
 let failed = 0;
 for (const file of files) {

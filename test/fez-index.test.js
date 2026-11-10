@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach } from "bun:test";
 import { $ } from "bun";
+import { Window } from "happy-dom";
 
 // Get Fez from global scope (set up by test preload)
 const getFez = () => globalThis.window.Fez;
@@ -212,24 +213,11 @@ describe("component compilation with index", () => {
 
   test("processes head blocks after script blocks", () => {
     const Fez = getFez();
-    const appended = [];
-    const oldAppendChild = document.head.appendChild;
-    const oldDomRoot = Fez.domRoot;
-    const oldGlobalFez = globalThis.Fez;
+    const saved = { document: global.document, Fez: globalThis.Fez };
 
+    // <head> blocks are parsed and appended through the DOM
+    global.document = new Window().document;
     globalThis.Fez = Fez;
-    document.head.appendChild = (node) => {
-      appended.push(node);
-      return node;
-    };
-    Fez.domRoot = () => ({
-      children: [
-        {
-          tagName: "LINK",
-          cloneNode: () => ({ tagName: "LINK", href: "/after-script.css" }),
-        },
-      ],
-    });
 
     try {
       Fez.compile(
@@ -242,15 +230,13 @@ value = "ok"
 </head>
 <div>Body</div>`,
       );
+      expect(document.head.querySelector("link")?.getAttribute("href")).toBe(
+        "/after-script.css",
+      );
     } finally {
-      document.head.appendChild = oldAppendChild;
-      Fez.domRoot = oldDomRoot;
-      globalThis.Fez = oldGlobalFez;
+      global.document = saved.document;
+      globalThis.Fez = saved.Fez;
     }
-
-    expect(appended.some((node) => node.href === "/after-script.css")).toBe(
-      true,
-    );
   });
 
   test("Fez.index source omits the static build notice", () => {

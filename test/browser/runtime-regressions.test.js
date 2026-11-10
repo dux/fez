@@ -6,47 +6,11 @@
  * Run: bun test test/browser/runtime-regressions.test.js
  */
 
-import { test, expect, setDefaultTimeout, beforeAll, afterAll } from 'bun:test';
-import { chromium } from 'playwright';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import { readFileSync } from 'fs';
+import { test, expect } from 'bun:test';
+import { fezCode, useBrowser } from './browser-env.js';
 import { compileFileToModule } from '../../src/fez/compile-module.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const fezCode = readFileSync(join(__dirname, '../../dist/fez.js'), 'utf-8');
-
-setDefaultTimeout(30000);
-
-let browser;
-
-beforeAll(async () => {
-  browser = await chromium.launch();
-});
-
-afterAll(async () => {
-  await browser?.close();
-});
-
-// Runs `setup(arg)` in a fresh page, waits, then returns `check()` plus page errors
-async function run(setup, check, wait = 150, arg) {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  const errors = [];
-  page.on('pageerror', (e) => errors.push(e.message));
-  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
-  try {
-    await page.setContent(
-      `<!DOCTYPE html><html><head><script>${fezCode}</script></head><body><div id="app"></div></body></html>`,
-    );
-    await page.waitForFunction(() => window.Fez && document.readyState === 'complete');
-    await page.evaluate(setup, arg);
-    await page.waitForTimeout(wait);
-    return { result: await page.evaluate(check), errors };
-  } finally {
-    await context.close();
-  }
-}
+const { run, newContext } = useBrowser();
 
 test('Fez.compile() with no argument compiles every template[fez] in the page', async () => {
   const { result, errors } = await run(
@@ -485,7 +449,7 @@ test('fez-inline inserted late compiles its source, not mounted children', async
 });
 
 test('fez:bind binds a radio group by value', async () => {
-  const context = await browser.newContext();
+  const context = await newContext();
   const page = await context.newPage();
   try {
     await page.setContent(`<script>${fezCode}</script><div id="app"></div>`);
@@ -537,7 +501,7 @@ test('a kept child keeps its own precompiled handler when a list before it grows
 <b>tag</b>
 </xmp>`,
   ).replace('export default', 'window.XSlots =');
-  const context = await browser.newContext();
+  const context = await newContext();
   const page = await context.newPage();
   try {
     await page.setContent(`<script>${fezCode}</script><x-slots></x-slots><script type="module">${module}</script>`);

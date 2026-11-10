@@ -29,6 +29,8 @@ const REMOVED_APIS = [
   [/\b(?:this|fez)\.local\b/, 'Removed this.local', 'Use this.state: a key the template never reads costs no render.'],
   [/<slot\s(?:[^>]*\s)?live(?=[\s>\/=])/, 'Removed <slot live />', 'Slots are live by default: write <slot />, or <slot rebuild /> for a fresh component per change.'],
 ];
+// `var` where a statement can start; after a word it is prose ("so the var drops")
+const VAR_DECLARATION = /(?:(?:^|[;{}()>"'`])\s*|\bexport\s+)var\s+[A-Za-z_$]/;
 
 let values, positionals;
 try {
@@ -140,7 +142,8 @@ function auditFile(file) {
   for (let index = 0; index < lines.length; index++) {
     const line = lines[index];
     if (isFez && /^\s*<style\b/.test(line)) {
-      inStyle = true;
+      // a one-line <style>...</style> closes right here
+      inStyle = !/<\/style>/.test(line);
     } else if (isFez && /<\/style>/.test(line)) {
       inStyle = false;
     } else if (inStyle && /^\s*\/\//.test(line)) {
@@ -161,7 +164,7 @@ function auditFile(file) {
         'Migrate this expression or block to the documented single-brace syntax.',
       );
     }
-    if (/\bvar\s+[A-Za-z_$]/.test(stripLineComment(line))) {
+    if (VAR_DECLARATION.test(stripLineComment(line))) {
       report(index + 1, 'Legacy var declaration', 'Review assignments and choose const or let manually.');
     }
   }

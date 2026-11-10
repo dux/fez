@@ -155,6 +155,7 @@ export default function createPjax() {
 
     static console(msg) {
       if (Pjax.DEV || !Pjax.config.is_silent) {
+        // eslint-disable-next-line no-console
         console.log(msg);
       }
     }
@@ -168,6 +169,7 @@ export default function createPjax() {
     }
 
     static confirm(message, _node) {
+      // eslint-disable-next-line no-alert
       return window.confirm(message);
     }
 

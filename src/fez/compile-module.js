@@ -35,6 +35,8 @@ function assertScriptSyntax(name, script) {
   }
   const withoutImports = script.replace(IMPORT_RE, '');
   const { preamble, body, hasClass } = splitScript(withoutImports);
+  // parsed for syntax errors only, never called
+  /* eslint-disable no-new-func */
   try {
     if (hasClass) {
       if (preamble.trim()) {
@@ -47,6 +49,7 @@ function assertScriptSyntax(name, script) {
   } catch (error) {
     throw new Error(`<${name}> script error: ${error.message}`);
   }
+  /* eslint-enable no-new-func */
 }
 
 // The template as module code (see lib/template-precompile.js), or null

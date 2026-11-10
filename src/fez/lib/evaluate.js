@@ -6,5 +6,6 @@
 // components only (the bundler plugin) and gets a clear error otherwise.
 
 export default function evaluate(what, ...args) {
+  // eslint-disable-next-line no-new-func
   return new Function(...args);
 }

@@ -197,6 +197,7 @@ With `-s`, later edits rebuild and reload the preview but are not committed or p
 - `fez index` prints a JSON array of `{ "file": { "base", "path", "size", "modified", "created" } }` (times in Unix seconds, `base` without extension).
   A directory argument lists only its direct files; pass a glob such as `'src/**/*.js'` to recurse.
 - The `fez debug` REPL exposes Playwright's `page`, `browser` and `context`, accepts `await`, and exits on `.exit` or Ctrl+D; it opens `http:`, `https:` and `file:` URLs.
+  It needs Playwright's Chromium, which is not downloaded with the package; when it is missing, `fez debug` prints the `bunx playwright@<version> install chromium` command to run.
 
 ## Static Site Builder
 

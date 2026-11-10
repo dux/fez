@@ -48,7 +48,7 @@ bun run format        # Format all source files
 
 #### Run Tests
 ```bash
-bun test test/*.test.js                    # All unit tests
+bun test ./test/*.test.js                  # All unit tests
 bun test test/browser/integration.test.js  # Browser tests (slow)
 bun test --coverage                        # With coverage
 ```

@@ -327,6 +327,7 @@ function executeClassCode(tagName, code) {
       evaluate('a runtime .fez compile', code)();
     } catch (e) {
       Fez.consoleError(`Template "${tagName}" compile error: ${e.message}`);
+      // eslint-disable-next-line no-console
       console.log(code);
     }
   }

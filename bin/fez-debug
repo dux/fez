@@ -76,10 +76,20 @@ try {
   console.log('Globals: page, browser, context');
   await startRepl({ page, browser, context });
 } catch (error) {
-  console.error(`fez debug: ${firstLine(error.message)}`);
+  console.error(`fez debug: ${await failureMessage(error)}`);
   process.exitCode = 1;
 } finally {
   await browser?.close();
+}
+
+// Playwright ships without browsers and puts its install hint below the first line
+async function failureMessage(error) {
+  if (!/Executable doesn't exist/.test(error.message)) {
+    return firstLine(error.message);
+  }
+  // pinned: a newer playwright would download another browser revision
+  const { default: pkg } = await import('playwright/package.json', { with: { type: 'json' } });
+  return `Chromium is not installed for Playwright. Run: bunx playwright@${pkg.version} install chromium`;
 }
 
 function firstLine(message) {

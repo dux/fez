@@ -140,6 +140,7 @@ const index = {
    * Print registered components to console
    */
   info() {
+    // eslint-disable-next-line no-console
     console.log('Fez components:', this.names());
   },
 };

@@ -1,11 +1,12 @@
-import { test, expect, beforeEach } from "bun:test";
+import { test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { Window } from "happy-dom";
 import FezBase from "../src/fez/instance.js";
 
 // this.state schedules a render only for keys the last render read.
 // The render itself is simulated: _isRendering (the read-collection window)
 // on, read some keys, off.
 
-let fez, scheduled;
+let fez, scheduled, savedDocument;
 
 const render = (read) => {
   fez._isRendering = true;
@@ -14,6 +15,16 @@ const render = (read) => {
   read();
   fez._isRendering = false;
 };
+
+// fez.root is a real element: the props setter syncs attributes on it
+beforeAll(() => {
+  savedDocument = global.document;
+  global.document = new Window().document;
+});
+
+afterAll(() => {
+  global.document = savedDocument;
+});
 
 beforeEach(() => {
   fez = new FezBase();

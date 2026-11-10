@@ -292,6 +292,7 @@ Fez.consoleError = (text, show) => {
 
 Fez.consoleLog = (text) => {
   if (Fez.LOG) {
+    // eslint-disable-next-line no-console
     console.log(`Fez: ${String(text).substring(0, 180)}`);
   }
 };

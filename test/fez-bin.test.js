@@ -94,6 +94,18 @@ describe('fez debug', () => {
     expect(result.stderr).not.toContain('Bun v');
   });
 
+  test('prints the browser install command when Playwright has no Chromium', async () => {
+    const url = `file://${path.join(root, 'dev.html')}`;
+    const result = await $`${FEZ} debug --headless ${url}`
+      .cwd(root)
+      .env({ ...process.env, PLAYWRIGHT_BROWSERS_PATH: tempDir() })
+      .quiet()
+      .nothrow();
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr.toString()).toMatch(/Run: bunx playwright@[\d.]+ install chromium/);
+  });
+
   test('opens a real page and exits its async REPL cleanly', async () => {
     const child = Bun.spawn({
       cmd: [FEZ, 'debug', '--headless', `file://${path.join(root, 'dev.html')}`],
@@ -199,6 +211,31 @@ describe('fez refactor', () => {
     ]) {
       expect(result.stdout).toContain(message);
     }
+  });
+
+  test('reports var declarations, not the word var in prose or after a one-line <style>', async () => {
+    const dir = tempDir();
+    const source = [
+      '<script>',
+      '  class {',
+      '    go() { var a = 1; for (var i = 0; i < a; i++) {} }',
+      '    // var commented = 1',
+      '  }',
+      '</script>',
+      '<style>b { color: var(--x) }</style>',
+      '// text after a one-line style block',
+      '<p>so the var drops in</p>',
+      '',
+    ].join('\n');
+    fs.writeFileSync(path.join(dir, 'ui-var.fez'), source);
+    fs.writeFileSync(path.join(dir, 'legacy.js'), 'export var shared = 1\n/* the var name stays */\n');
+
+    const result = await run(['refactor', dir]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain('legacy.js:1: Legacy var declaration');
+    expect(result.stdout).toContain('ui-var.fez:3: Legacy var declaration');
+    expect(result.stdout).toContain('Found 2 refactor candidates in 2 files');
   });
 
   test('leaves files that bind their own Pjax alone', async () => {

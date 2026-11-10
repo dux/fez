@@ -99,6 +99,7 @@ A directory argument lists only its direct files; pass a glob such as `'src/**/*
 
 The `fez debug` REPL exposes `page`, `browser` and `context` (Playwright), accepts `await`, and exits on `.exit` or Ctrl+D.
 It accepts `http:`, `https:` and `file:` URLs and opens a visible browser unless `--headless` is given.
+It needs Playwright's Chromium, which is not downloaded with the package; when it is missing, `fez debug` prints the `bunx playwright@<version> install chromium` command to run.
 
 ## Repository development and deployment
 
