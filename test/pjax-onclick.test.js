@@ -1,7 +1,7 @@
 // Ported from dux-pjax test/pjax.test.coffee - "PjaxOnClick" describe block.
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
-import { setupPjaxEnv, teardownPjaxEnv, resetDOM, installMockFetch, settle } from './pjax-env.js';
+import { setupPjaxEnv, teardownPjaxEnv, resetDOM, installMockXHR, settle } from './pjax-env.js';
 import createPjax from '../src/fez/pjax/pjax.js';
 
 let Pjax;
@@ -503,7 +503,7 @@ describe('PjaxOnClick', () => {
   });
 
   test('a data-pjax="true" submit raises no unknown-option error', () => {
-    const mock = installMockFetch();
+    const mock = installMockXHR();
     const errs = [];
     Pjax.error = (msg) => errs.push(msg);
     try {

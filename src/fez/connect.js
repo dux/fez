@@ -16,6 +16,7 @@ import createTemplate, { slotTemplate } from './lib/template.js';
 import { wrapRender } from './lib/template-compiler.js';
 import closeCustomTags from './lib/close-custom-tags.js';
 import FezBase from './instance.js';
+import { $ } from './lib/dollar.js';
 
 // =============================================================================
 // MAIN CONNECT FUNCTION
@@ -277,10 +278,7 @@ function connectNode(name, node) {
     window[klass.GLOBAL] = fez;
   }
 
-  // jQuery compatibility
-  if (window.$) {
-    fez.$root = $(newNode);
-  }
+  fez.$root = $(newNode);
 
   if (fez.props.id) {
     newNode.setAttribute('id', fez.props.id);

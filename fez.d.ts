@@ -29,6 +29,189 @@ type ComponentProps = Record<string, any>;
 type EvaluatedProps = Record<string, any>;
 
 // =============================================================================
+// REMOTE REQUESTS (Fez.request) AND THE Fez.$ DOM LAYER
+// =============================================================================
+
+/** Request data: plain objects are bracket-encoded (a[]=1, u[name]=x); a Blob anywhere switches to multipart */
+type FezRequestData = Record<string, unknown> | FormData | URLSearchParams | Blob | ArrayBuffer | string;
+
+interface FezProgress {
+  loaded: number;
+  /** 0 when the size is unknown */
+  total: number;
+  /** null when the size is unknown */
+  percent: number | null;
+}
+
+interface FezRequestOptions {
+  url?: string;
+  /** default 'GET' */
+  method?: string;
+  /** query string for GET/HEAD, body otherwise */
+  data?: FezRequestData;
+  /** send data as a JSON body */
+  json?: boolean;
+  /** per-call headers; null drops a default header */
+  headers?: Record<string, string | null>;
+  /** ms; ends with error 'timeout' */
+  timeout?: number;
+  /** GET only: seconds a successful response is reused; identical in-flight cached GETs share one request */
+  cache?: number;
+  signal?: AbortSignal;
+  responseType?: XMLHttpRequestResponseType;
+  /** send cookies cross-origin (xhr.withCredentials) */
+  credentials?: boolean;
+  onUpload?: (progress: FezProgress) => void;
+  onProgress?: (progress: FezProgress) => void;
+}
+
+interface FezResponse<T = unknown> {
+  /** 2xx and no transport error */
+  ok: boolean;
+  /** 0 on a transport error */
+  status: number;
+  statusText: string;
+  /** final URL after redirects ('' on a transport error) */
+  url: string;
+  headers: Headers;
+  text: string;
+  /** parsed JSON for a JSON content-type, else the text (or xhr.response for a binary responseType) */
+  data: T;
+  /** set when no HTTP response arrived */
+  error?: 'network' | 'timeout' | 'abort';
+  xhr: XMLHttpRequest;
+}
+
+/** Never rejects: every outcome resolves a FezResponse */
+interface FezRequest<T = unknown> extends Promise<FezResponse<T>> {
+  abort(): void;
+  xhr: XMLHttpRequest;
+}
+
+interface FezRequestFunction {
+  <T = unknown>(options: FezRequestOptions & { url: string }): FezRequest<T>;
+  <T = unknown>(url: string, options?: FezRequestOptions): FezRequest<T>;
+  /** default headers, sent to the same origin only (e.g. a CSRF token) */
+  headers: Record<string, string>;
+  /** drop cached and in-flight cached GETs */
+  clearCache(): void;
+}
+
+interface FezAjaxRequest<T = unknown> extends FezRequest<T> {
+  /** runs on a 2xx response, also when attached after it arrived */
+  done(fn: (data: T, res: FezResponse<T>) => void): FezAjaxRequest<T>;
+  /** runs on an error status or a transport error */
+  fail(fn: (res: FezResponse<T>) => void): FezAjaxRequest<T>;
+  always(fn: (res: FezResponse<T>) => void): FezAjaxRequest<T>;
+}
+
+/** What Fez.$ accepts: a selector or HTML string, a node, a node list or set, or a ready callback */
+type FezDollarInput = string | Node | Window | ArrayLike<Node> | FezDollarSet | (() => void) | null | undefined;
+
+/** A jQuery-shaped set of DOM nodes (a real Array subclass at runtime) */
+interface FezDollarSet extends ArrayLike<HTMLElement>, Iterable<HTMLElement> {
+  readonly length: number;
+  [index: number]: HTMLElement;
+  each(fn: (this: HTMLElement, index: number, el: HTMLElement) => void): this;
+  map(fn: (this: HTMLElement, index: number, el: HTMLElement) => Node | null | undefined): FezDollarSet;
+  filter(selector: string | ((this: HTMLElement, index: number, el: HTMLElement) => boolean)): FezDollarSet;
+  get(): HTMLElement[];
+  get(index: number): HTMLElement | undefined;
+  eq(index: number): FezDollarSet;
+  first(): FezDollarSet;
+  last(): FezDollarSet;
+  add(selector: FezDollarInput): FezDollarSet;
+  not(selector: string | ((el: HTMLElement) => boolean)): FezDollarSet;
+  is(selector: string | ((el: HTMLElement) => boolean)): boolean;
+  addClass(names: string): this;
+  removeClass(names: string): this;
+  toggleClass(names: string, force?: boolean): this;
+  hasClass(name: string): boolean;
+  attr(name: string): string | null | undefined;
+  attr(name: string | Record<string, string>, value?: string): this;
+  removeAttr(name: string): this;
+  prop(name: string): unknown;
+  prop(name: string, value: unknown): this;
+  data(name: string): string | undefined;
+  data(name: string, value: string): this;
+  css(name: string): string;
+  css(name: string | Record<string, string | number>, value?: string | number): this;
+  val(): string | undefined;
+  val(value: string | number): this;
+  html(): string | undefined;
+  html(value: string): this;
+  text(): string | undefined;
+  text(value: string): this;
+  serialize(): string;
+  width(): number;
+  height(): number;
+  offset(): { top: number; left: number };
+  scrollTop(): number | undefined;
+  scrollTop(value: number): this;
+  show(): this;
+  hide(): this;
+  toggle(force?: boolean): this;
+  append(content: FezDollarInput): this;
+  prepend(content: FezDollarInput): this;
+  before(content: FezDollarInput): this;
+  after(content: FezDollarInput): this;
+  replaceWith(content: FezDollarInput): this;
+  appendTo(target: FezDollarInput): this;
+  prependTo(target: FezDollarInput): this;
+  clone(): FezDollarSet;
+  empty(): this;
+  remove(): this;
+  find(selector: string): FezDollarSet;
+  children(selector?: string): FezDollarSet;
+  closest(selector: string): FezDollarSet;
+  parent(selector?: string): FezDollarSet;
+  parents(selector?: string): FezDollarSet;
+  next(selector?: string): FezDollarSet;
+  prev(selector?: string): FezDollarSet;
+  siblings(selector?: string): FezDollarSet;
+  /** one handler per node + event + key (.namespace, else handler source); registering again replaces it */
+  on(events: string, handler: (this: HTMLElement, event: Event) => void): this;
+  on(events: string, selector: string, handler: (this: HTMLElement, event: Event) => void): this;
+  off(events: string, handler?: (event: Event) => void): this;
+  one(events: string, handler: (this: HTMLElement, event: Event) => void): this;
+  one(events: string, selector: string, handler: (this: HTMLElement, event: Event) => void): this;
+  trigger(type: string, detail?: unknown): this;
+  ready(fn: () => void): this;
+  click(handler?: (event: Event) => void): this;
+  focus(handler?: (event: Event) => void): this;
+  blur(handler?: (event: Event) => void): this;
+  submit(handler?: (event: Event) => void): this;
+  change(handler?: (event: Event) => void): this;
+  input(handler?: (event: Event) => void): this;
+  keydown(handler?: (event: KeyboardEvent) => void): this;
+  keyup(handler?: (event: KeyboardEvent) => void): this;
+}
+
+type FezAjaxOptions<T> = FezRequestOptions & {
+  url: string;
+  /** HTTP method, same as method */
+  type?: string;
+  /** 'json' (or 'application/json') sends a JSON body */
+  contentType?: string;
+  success?: (data: T, res: FezResponse<T>) => void;
+  error?: (res: FezResponse<T>) => void;
+  complete?: (res: FezResponse<T>) => void;
+};
+
+type FezAjaxSuccess<T> = (data: T, res: FezResponse<T>) => void;
+
+interface FezDollar {
+  (selector?: FezDollarInput, context?: FezDollarInput): FezDollarSet;
+  /** prototype of every set: add app methods here */
+  fn: FezDollarSet;
+  ready(fn: () => void): void;
+  ajax<T = unknown>(options: FezAjaxOptions<T>): FezAjaxRequest<T>;
+  get<T = unknown>(url: string, data?: FezRequestData | FezAjaxSuccess<T>, success?: FezAjaxSuccess<T>): FezAjaxRequest<T>;
+  post<T = unknown>(url: string, data?: FezRequestData | FezAjaxSuccess<T>, success?: FezAjaxSuccess<T>): FezAjaxRequest<T>;
+  param(data: Record<string, unknown>): string;
+}
+
+// =============================================================================
 // PROPS SCHEMA (PROPS = { ... })
 // =============================================================================
 
@@ -268,8 +451,8 @@ declare abstract class FezBase {
   /** The original source node the component replaced */
   oldRoot: HTMLElement;
 
-  /** jQuery-wrapped root, set only when window.$ exists at mount */
-  $root?: unknown;
+  /** Fez.$ set wrapping the component root */
+  $root: FezDollarSet;
 
   /** String selector for inline HTML handlers: `Fez(<UID>).` */
   readonly fezHtmlRoot: string;
@@ -632,11 +815,13 @@ interface FezStatic {
   // ===================================================================
 
   /**
-   * fetch with JSON / text handling. GET responses are cached for 5 minutes
-   * (max 100 entries) and concurrent GETs share one request; other methods
-   * always hit the network. data becomes the query string for GET and a
-   * FormData body for POST. A method must be uppercase ('POST'). With a
-   * callback nothing is returned and errors go to Fez.onError.
+   * Throwing, cached sugar over Fez.request. GET responses are cached for 5
+   * minutes (max 100 entries) and concurrent GETs share one request; other
+   * methods always hit the network. data becomes the query string for GET and
+   * the bracket-encoded body otherwise (multipart when it holds a Blob). A
+   * method must be uppercase ('POST'). An error status, network failure or
+   * timeout rejects; with a callback nothing is returned and errors go to
+   * Fez.onError.
    */
   fetch<T = any>(url: string, callback: (data: T) => void): void;
   fetch<T = any>(url: string, data: Record<string, any>, callback: (data: T) => void): void;
@@ -645,8 +830,14 @@ interface FezStatic {
   fetch<T = any>(method: string, url: string, data: Record<string, any>, callback: (data: T) => void): void;
   fetch<T = any>(method: string, url: string, data?: Record<string, any>): Promise<T>;
 
-  /** Drop cached and in-flight Fez.fetch requests */
-  clearFetchCache(): void;
+  /** The one remote-request primitive (XMLHttpRequest): upload progress, abort, timeout, opt-in GET cache */
+  request: FezRequestFunction;
+
+  /** Rails/Rack bracket encoding: { a: [1], u: { n: 'x' } } -> 'a%5B%5D=1&u%5Bn%5D=x' */
+  param(data: Record<string, unknown>): string;
+
+  /** jQuery-shaped DOM layer; Fez never assigns window.$ */
+  $: FezDollar;
 
   /** Local storage with JSON serialization */
   localStorage: {

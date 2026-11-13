@@ -161,10 +161,10 @@ Fez.instances = new Map();
 Fez.find = (onode, name) => {
   let node = typeof onode === 'string' ? document.body.querySelector(onode) : onode;
 
-  // a component instance searches from its root; a jQuery object from its first node
+  // a component instance searches from its root; a Fez.$ / jQuery set from its first node
   if (node?.root && node.UID) {
     node = node.root;
-  } else if (node?.jquery) {
+  } else if (node?.jquery || Array.isArray(node)) {
     node = node[0];
   }
 
@@ -342,9 +342,11 @@ Fez.onError = (kind, message, context) => {
 // =============================================================================
 
 import addUtilities from './lib/utility.js';
+import attachDollar from './lib/dollar.js';
 import cssMixin from './utils/css_mixin.js';
 
 addUtilities(Fez);
+attachDollar(Fez);
 cssMixin(Fez);
 
 Fez.compile = compile;

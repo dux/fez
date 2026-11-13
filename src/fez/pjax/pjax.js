@@ -302,11 +302,11 @@ export default function createPjax() {
     }
 
     static _abort(key) {
-      for (const [k, controller] of Pjax.requests) {
+      for (const [k, req] of Pjax.requests) {
         // a full swap replaces every region, so it cancels them all
         if (key === 'full' || k === key) {
           Pjax.requests.delete(k);
-          controller.abort();
+          req.abort();
         }
       }
     }
@@ -668,16 +668,13 @@ export default function createPjax() {
       }
 
       Pjax._abort(this.key);
-      const controller = new AbortController();
-      Pjax.requests.set(this.key, controller);
-      this.request(controller);
+      this.request();
       return true;
     }
 
     // Never throws: every outcome ends in emitDone, redirect or resolve(null).
-    async request(controller) {
-      const timer = setTimeout(() => controller.abort('timeout'), Pjax.config.timeout || 10000);
-      const headers = { 'x-requested-with': 'XMLHttpRequest' };
+    async request() {
+      const headers = {};
       if (this.fresh) {
         headers['cache-control'] = 'no-cache';
       }
@@ -688,45 +685,44 @@ export default function createPjax() {
         headers['x-pjax-layout'] = this.layout;
       }
 
-      let res;
-      let html;
-      try {
-        res = await fetch(this.href, {
-          method: this.method || 'GET',
-          headers,
-          body: this.body,
-          signal: controller.signal,
-        });
-        html = await res.text();
-      } catch (err) {
-        if (Pjax.requests.get(this.key) === controller) {
-          Pjax.requests.delete(this.key);
-        }
-        if (!controller.signal.aborted) {
-          Pjax.error('Net error: Server response not received (Pjax)');
-          console.error(err);
-          this.emitDone({ status: 0, error: 'network' });
-        } else if (controller.signal.reason === 'timeout') {
-          Pjax.error(`Request timeout: ${this.href}`);
-          this.emitDone({ status: 0, error: 'timeout' });
-          this.redirect();
-        } else {
-          this.emitDone({ status: 0, error: 'abort' });
-        }
-        return;
-      } finally {
-        clearTimeout(timer);
-      }
+      const req = Fez.request({
+        url: this.href,
+        method: this.method || 'GET',
+        headers,
+        data: this.body,
+        timeout: Pjax.config.timeout || 10000,
+      });
+      Pjax.requests.set(this.key, req);
+      const res = await req;
 
       // A late response from a superseded request must not swap anything.
-      if (Pjax.requests.get(this.key) !== controller) {
+      const current = Pjax.requests.get(this.key) === req;
+      if (current) {
+        Pjax.requests.delete(this.key);
+      }
+
+      if (res.error === 'network') {
+        Pjax.error('Net error: Server response not received (Pjax)');
+        this.emitDone({ status: 0, error: 'network' });
+        return;
+      }
+      if (res.error === 'timeout') {
+        Pjax.error(`Request timeout: ${this.href}`);
+        this.emitDone({ status: 0, error: 'timeout' });
+        this.redirect();
+        return;
+      }
+      if (res.error === 'abort') {
+        this.emitDone({ status: 0, error: 'abort' });
+        return;
+      }
+      if (!current) {
         this.resolve(null);
         return;
       }
-      Pjax.requests.delete(this.key);
 
       try {
-        this.handleResponse(res, html);
+        this.handleResponse(res, res.text);
       } catch (err) {
         Pjax.error(`Response failed: ${err?.message || err}`);
         console.error(err);

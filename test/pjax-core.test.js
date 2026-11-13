@@ -5,7 +5,7 @@ import {
   setupPjaxEnv,
   teardownPjaxEnv,
   resetDOM,
-  installMockFetch,
+  installMockXHR,
   respond,
   settle,
 } from './pjax-env.js';
@@ -776,7 +776,7 @@ describe('Pjax module', () => {
     let mock;
 
     beforeEach(() => {
-      mock = installMockFetch();
+      mock = installMockXHR();
     });
 
     afterEach(() => {
@@ -791,7 +791,7 @@ describe('Pjax module', () => {
         method: 'GET',
         headers: { 'x-requested-with': 'XMLHttpRequest', 'cache-control': 'no-cache' },
       });
-      expect(Pjax.requests.get('full')).toBeInstanceOf(AbortController);
+      expect(Pjax.requests.get('full').abort).toBeInstanceOf(Function);
     });
 
     test('a load sends no cache-control header', () => {
@@ -875,7 +875,7 @@ describe('Pjax module', () => {
       expect(mock.requests).toHaveLength(1);
     });
 
-    test('a timeout aborts the request and hands off to a full navigation', async () => {
+    test('a timeout ends the request and hands off to a full navigation', async () => {
       const originalError = console.error;
       console.error = () => {};
       const originalRedirect = Pjax.prototype.redirect;
@@ -886,7 +886,6 @@ describe('Pjax module', () => {
       try {
         const detail = await Pjax.load('/slow');
         expect(detail.error).toBe('timeout');
-        expect(mock.requests[0].aborted).toBe(true);
         expect(redirected).toBe(1);
       } finally {
         Pjax.prototype.redirect = originalRedirect;
@@ -1109,7 +1108,7 @@ describe('Pjax.load and Pjax.refresh', () => {
     `<main class="pjax" id="pjax"><div id="panel">${panel}</div><div id="other">${other}</div></main>`;
 
   beforeEach(() => {
-    mock = installMockFetch();
+    mock = installMockXHR();
     requests = mock.requests;
     starts = [];
     errors = [];

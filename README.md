@@ -1209,7 +1209,8 @@ This example showcases:
 - **Priority-Based Element Matching** - Keyed matching (fez-keep > fez-key > key > id for elements; fez-key > key > source signature for components) with scored soft-match fallback preserves DOM identity across renders
 - **CSS Animation Preservation** - Class syncing uses `classList.add/remove`, not `setAttribute`, so transitions and animations survive re-renders
 - **Active Input Protection** - `value` and `checked` are not synced on the focused input, preventing disruption during typing
-- **Built-in Fetch with Caching** - `Fez.fetch()` caches GET responses for 5 minutes and handles JSON/FormData
+- **One request layer** - `Fez.request()` (XMLHttpRequest: upload progress, abort, timeout, opt-in GET cache, Rails-style nested data) drives `Fez.fetch()`, pjax and the `Fez.$` ajax helpers
+- **Small jQuery-shaped `Fez.$`** - selection, traversal, classes, attributes, insertion and namespaced events, without assigning `window.$`
 - **Rich Lifecycle Hooks** - `init`, `onMount` (may return a cleanup), `beforeRender`, `afterRender`, `onDestroy`, `onRefresh(props, changed)`, `onStateChange`, `onGlobalStateChange`, `onError`
 - **Development Mode** - `Fez.LOG = true` enables framework logs; `Fez.DEV = true` enables the Cmd/Ctrl + E component overlay (`Fez.highlightAll()`) on any port
 
@@ -1231,7 +1232,7 @@ Fez('#foo')                  // find fez node with id="foo" (the element itself 
 Fez(42)                      // instance by UID (this.UID), reported when missing
 Fez('ui-tabs', this)         // find first parent node ui-tabs
 Fez('ui-tabs', (fez)=> ... ) // call for every live ui-tabs instance, returns the instances (FezBase[])
-Fez.find(node, 'ui-tabs')    // closest ui-tabs instance of a node, selector, instance or jQuery object; undefined when none (reported only when the node exists)
+Fez.find(node, 'ui-tabs')    // closest ui-tabs instance of a node, selector, instance, Fez.$ set or jQuery object; undefined when none (reported only when the node exists)
 // Fez('name') reports a lookup error when nothing is mounted; check silently with document.querySelector('.name-fez')?.fez
 // Fez('name', fn) takes fn as a callback when it is an arrow or a function that uses neither this nor new
 
@@ -1325,7 +1326,7 @@ Fez('foo-bar', class {
   // mounted DOM node root. Only in init() point to original <slot /> data, in onMount() to rendered data.
   this.root
 
-  // mounted DOM node root wrapped in $, only if jQuery is available
+  // mounted DOM node root wrapped in Fez.$
   this.$root
 
   // node attributes, converted to properties (typed by PROPS)
@@ -2337,9 +2338,47 @@ Dialog.close()
 Fez('#main-dialog').close()
 ```
 
+## Remote requests: Fez.request
+
+Every request Fez makes - `Fez.fetch`, pjax navigation, `Fez.$.ajax` - goes through `Fez.request`.
+It runs on `XMLHttpRequest`, because `fetch` still cannot report upload progress outside Chromium.
+
+```js
+const req = Fez.request({ method: 'POST', url: '/api/save', data: { refs: [1, 2] } });
+const req = Fez.request('/api/list', { data: { page: 2 }, cache: 60 }); // url first, options second
+
+const res = await req; // never rejects
+res.ok;      // 2xx and no transport error
+res.status;  // 0 when no HTTP response arrived
+res.data;    // parsed JSON for a JSON content-type, else the text
+res.error;   // 'network' | 'timeout' | 'abort', only when no HTTP response arrived
+res.headers; // Headers
+
+req.abort();
+req.xhr; // the live XMLHttpRequest
+
+// upload with progress
+Fez.request({ method: 'POST', url: '/upload', data: { file }, onUpload: (p) => (bar.value = p.percent) });
+
+// default headers, sent to the same origin only
+Fez.request.headers['x-csrf-token'] = token;
+```
+
+Options: `url`, `method` (default `GET`), `data`, `json`, `headers`, `timeout` (ms), `cache` (GET only, seconds), `signal`, `responseType`, `credentials`, `onUpload`, `onProgress`.
+
+* `data` is the query string for GET and HEAD, and the body for every other method.
+  A plain object is encoded Rails/Rack style with `Fez.param` (`refs[]=1&refs[]=2`, `user[name]=x`, `rows[0][id]=1`); when it holds a `Blob` or `File` anywhere it is sent as multipart `FormData` with the same names.
+  `FormData`, `URLSearchParams`, `Blob`, `ArrayBuffer` and strings are sent as they are; `json: true` sends a JSON body.
+* An HTTP error status resolves like any other response, so the caller can read the error body.
+* Same-origin requests send `x-requested-with: XMLHttpRequest` plus `Fez.request.headers`; cross-origin requests get only the per-call `headers`, so a presigned upload URL is not broken by app headers.
+  A per-call `null` header drops a default one.
+* `onUpload` is attached only when given, because an upload listener forces a CORS preflight.
+* `cache: seconds` reuses a successful GET and makes concurrent identical GETs share one request (aborting it aborts it for every joined caller); without `cache` every request hits the network.
+  `Fez.request.clearCache()` drops cached and in-flight cached GETs.
+
 ## Fez.fetch API
 
-Fez includes a built-in fetch wrapper with automatic JSON parsing and a short-lived GET cache:
+`Fez.fetch` is the throwing, cached sugar over `Fez.request`:
 
 ### Basic Usage
 
@@ -2355,25 +2394,54 @@ Fez.fetch('https://api.example.com/data', (data) => {
 // GET with query params (?q=fez), with or without a callback
 const found = await Fez.fetch('/api/search', { q: 'fez' });
 
-// POST request, data sent as FormData
+// POST request, data encoded like Fez.request
 const result = await Fez.fetch('POST', 'https://api.example.com/data', {
   key: 'value',
 });
 
 // drop cached responses
-Fez.clearFetchCache();
+Fez.request.clearCache();
 ```
 
 ### Features
 
 - **Automatic JSON parsing**: Response is automatically parsed if Content-Type is application/json, otherwise it is text
-- **GET caching**: only GET responses are cached, in memory, for 5 minutes, at most 100 entries (oldest dropped first); concurrent identical GETs share one request. POST always hits the network
-- **Error status rejects**: a non-2xx response rejects the promise and is never cached
+- **GET caching**: only GET responses are cached, in memory, for 5 minutes, at most 100 entries (oldest dropped first); concurrent identical GETs share one request. Other methods always hit the network
+- **Errors reject**: a non-2xx response, a network failure or a timeout rejects the promise and is never cached
 - **Flexible parameter order**: Method can be omitted (defaults to GET), callback can be last parameter (`Fez.fetch(url, data, callback)` works too)
-- **Methods**: pass the method uppercase as the first argument; `data` is the query string for GET and a FormData body for POST, and other methods (PUT, DELETE) send no body
-- **Request header**: every request sends `x-requested-with: XMLHttpRequest`
+- **Methods**: pass the method uppercase as the first argument; `data` is the query string for GET and the body for other methods (see `Fez.request`)
 - **Error handling**: When using callbacks, errors are passed to `Fez.onError` with kind 'fetch'
-- **Logging**: Enable with `Fez.LOG = true` to see cache hits and live fetches
+- **Logging**: Enable with `Fez.LOG = true` to see every fetch
+
+## Fez.$
+
+A small jQuery-shaped DOM layer: the part of jQuery page scripts actually use.
+Fez never assigns `window.$`; an app opts in with `window.$ = Fez.$`.
+
+```js
+const $ = Fez.$;
+$('#list li').addClass('on').last().text('last');
+$('<li>new</li>').appendTo('#list');
+$(document).on('click.menu', '.item', function (e) { /* this is the matched .item */ });
+$.post('/api/sort', { refs: ['a', 'b'] }).done((data) => {}).fail((res) => {});
+$.fn.shake = function () { return this.addClass('shake'); }; // app extensions
+```
+
+* Sets: `each`, `map`, `filter`, `get`, `eq`, `first`, `last`, `add`, `not`, `is`.
+* Read and write: `addClass`, `removeClass`, `toggleClass`, `hasClass`, `attr`, `removeAttr`, `prop`, `data`, `css`, `val`, `html`, `text`, `serialize`, `width`, `height`, `offset`, `scrollTop`, `show`, `hide`, `toggle`.
+* Insert and remove: `append`, `prepend`, `before`, `after`, `replaceWith`, `appendTo`, `prependTo`, `clone`, `empty`, `remove`.
+* Traverse: `find`, `children`, `closest`, `parent`, `parents`, `next`, `prev`, `siblings`.
+* Events: `on`, `off`, `one` (with `.namespace` and a delegate selector), `trigger`, `ready`, and `click`, `focus`, `blur`, `submit`, `change`, `input`, `keydown`, `keyup` (with a handler they bind, without one they fire).
+* Statics: `$.fn`, `$.ready`, `$.ajax`, `$.get`, `$.post`, `$.param`.
+
+Differences from jQuery, on purpose:
+
+* `on()` keeps one handler per node, event and key; the key is the `.namespace`, else a hash of the handler source and delegate selector.
+  Registering again replaces the handler, so a script that a pjax swap runs again does not stack handlers.
+* `$.ajax`, `$.get` and `$.post` run on `Fez.request`.
+  They return the request promise (with `abort()` and `xhr`) plus `.done(data, res)`, `.fail(res)` and `.always(res)`, which also run when attached after the response arrived.
+  `$.ajax` maps `type`, `success(data, res)`, `error(res)`, `complete(res)` and `contentType: 'json'`, and passes every other `Fez.request` option through.
+* No animations, effects queue, deferreds or `$.Callbacks`.
 
 ### Custom Error Handler
 
@@ -2629,7 +2697,7 @@ The default `error` logs `Pjax error: <msg>` with `console.error`.
 
 Inside a fez component, `this.on('pjax:render', () => this.refresh())` is the usual pattern for data that must follow navigation.
 
-Other `Fez.pjax` members: `path()` (pathname + search), `last()` (last loaded href, or the current path), `refreshed()` (`true` when the last two loads hit the same href), `node()` (the pjax container), `layout()` (the `pjax-layout` meta id or `null`), `push(href)` / `replace(href)` (history writes that keep pjax's Back/Forward tracking in sync), `historyData` (the Back/Forward cache) and `requests` (in-flight `AbortController`s by swap key).
+Other `Fez.pjax` members: `path()` (pathname + search), `last()` (last loaded href, or the current path), `refreshed()` (`true` when the last two loads hit the same href), `node()` (the pjax container), `layout()` (the `pjax-layout` meta id or `null`), `push(href)` / `replace(href)` (history writes that keep pjax's Back/Forward tracking in sync), `historyData` (the Back/Forward cache) and `requests` (in-flight `Fez.request` promises by swap key, each with `abort()`).
 
 ### Response scripts
 

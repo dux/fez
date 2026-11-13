@@ -1776,20 +1776,22 @@ Card.toBoolean('off')</code></pre></div>
 
             <article class="site-feature-row" id="fez-fetch">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">Fez.fetch · clearFetchCache</p>
-                <h3>Fetch with parsing and cache</h3>
-                <p>Promise and callback forms support GET query params and POST FormData. JSON parses automatically, GET responses cache in memory, and simultaneous identical requests share one in-flight Promise.</p>
+                <p class="site-feature-kicker">Fez.request · Fez.fetch · Fez.$</p>
+                <h3>One request layer</h3>
+                <p>Fez.request runs every request on XMLHttpRequest: upload progress, abort, timeout and Rails-style nested data, and it never rejects. Fez.fetch adds the 5-minute GET cache with in-flight de-dup, and Fez.$.ajax / $.get / $.post use the same transport.</p>
               </div>
               <site-live title="network" right-title="cache · de-dup">
                 <div class="src"><pre><code>const users = await Fez.fetch('/api/users')
 
 Fez.fetch('/api/search', { q: 'fez' }, data =&gt; {})
 
-await Fez.fetch('POST', '/api/users', {
-  name: 'Ada',
+const res = await Fez.request({
+  method: 'POST', url: '/api/users',
+  data: { user: { name: 'Ada' }, file },
+  onUpload: p =&gt; bar.value = p.percent,
 })
 
-Fez.clearFetchCache()</code></pre></div>
+Fez.request.clearCache()</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">JSON parsed</span><span class="result-chip">GET cached</span><span class="result-chip">in-flight deduped</span><span class="result-chip">errors → onError</span></div>
                 <div class="out-label">response content type decides whether the value is JSON or text</div>
               </site-live>

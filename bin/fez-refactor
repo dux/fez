@@ -28,6 +28,7 @@ const REMOVED_APIS = [
   [/\bon[a-z]+="\{\s*\(?[\w\s,]*\)?\s*=>/, 'Quoted arrow handler is a no-op', 'Drop the quotes: onclick={() => save()}'],
   [/\b(?:this|fez)\.local\b/, 'Removed this.local', 'Use this.state: a key the template never reads costs no render.'],
   [/<slot\s(?:[^>]*\s)?live(?=[\s>\/=])/, 'Removed <slot live />', 'Slots are live by default: write <slot />, or <slot rebuild /> for a fresh component per change.'],
+  [/\bFez\.clearFetchCache\s*\(/, 'Removed Fez.clearFetchCache', 'Fez.request.clearCache()'],
 ];
 // `var` where a statement can start; after a word it is prose ("so the var drops")
 const VAR_DECLARATION = /(?:(?:^|[;{}()>"'`])\s*|\bexport\s+)var\s+[A-Za-z_$]/;

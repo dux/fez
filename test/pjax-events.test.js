@@ -6,7 +6,7 @@ import {
   setupPjaxEnv,
   teardownPjaxEnv,
   resetDOM,
-  installMockFetch,
+  installMockXHR,
   fakeResponse,
   respond,
   settle,
@@ -168,13 +168,13 @@ describe('Pjax lifecycle events', () => {
     }
   });
 
-  describe('with a mock fetch', () => {
+  describe('with a mock request', () => {
     let mock;
     let captured;
     const onRender = (e) => (captured = e.detail);
 
     beforeEach(() => {
-      mock = installMockFetch();
+      mock = installMockXHR();
       captured = null;
       document.addEventListener('pjax:render', onRender);
     });
@@ -203,7 +203,7 @@ describe('Pjax lifecycle events', () => {
       }
     });
 
-    test('pjax:render carries error:network when fetch rejects', async () => {
+    test('pjax:render carries error:network when the request fails', async () => {
       const originalError = console.error;
       console.error = () => {};
       Pjax.error = () => {};
@@ -327,7 +327,7 @@ describe('promise result', () => {
   const page = '<main class="pjax" id="pjax"><p>ok</p></main>';
 
   beforeEach(() => {
-    mock = installMockFetch();
+    mock = installMockXHR();
     errors = [];
     Pjax.error = (msg) => errors.push(msg);
     Pjax.PjaxOnClick.leave = () => {};
@@ -507,7 +507,7 @@ describe('fez boot gating', () => {
 
 describe('Back/Forward and async swaps', () => {
   test('a cache restore aborts the in-flight request and fires pjax:render', async () => {
-    const mock = installMockFetch();
+    const mock = installMockXHR();
     const renders = [];
     const onRender = (e) => renders.push(e.detail);
     document.addEventListener('pjax:render', onRender);
@@ -531,7 +531,7 @@ describe('Back/Forward and async swaps', () => {
   });
 
   test('with a view transition, pjax:render fires after the swap', async () => {
-    const mock = installMockFetch();
+    const mock = installMockXHR();
     const original = document.startViewTransition;
     document.startViewTransition = (cb) => ({
       updateCallbackDone: new Promise((resolve) => setTimeout(() => resolve(cb()), 5)),

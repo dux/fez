@@ -65,47 +65,20 @@ export function teardownPjaxEnv() {
   }
 }
 
-// Swaps fetch for a recorder. Every call lands in `requests` and stays pending
-// until respond(); aborting its signal rejects it with an AbortError, like the
-// real fetch. Call restore() in teardown.
-export function installMockFetch() {
-  const requests = [];
-  const original = globalThis.fetch;
+// Fez.request (and so pjax) runs on XMLHttpRequest; see mock-xhr.js.
+export { installMockXHR } from './mock-xhr.js';
 
-  globalThis.fetch = (url, init = {}) =>
-    new Promise((resolve, reject) => {
-      const request = {
-        url,
-        method: init.method,
-        headers: init.headers || {},
-        body: init.body,
-        resolve,
-        reject,
-      };
-      init.signal?.addEventListener('abort', () => {
-        request.aborted = true;
-        reject(new DOMException('The operation was aborted.', 'AbortError'));
-      });
-      requests.push(request);
-    });
-
-  return {
-    requests,
-    restore: () => (globalThis.fetch = original),
-  };
-}
-
-// A fetch Response stand-in for handleResponse / the mock fetch.
+// A response stand-in for calling handleResponse directly.
 export function fakeResponse(status = 200, headers = {}, url = '') {
   return { status, url, headers: new Headers(headers) };
 }
 
-// Lets the awaited fetch continuations run.
+// Lets the awaited request continuations run.
 export const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 // Completes a mock request as if the server answered, then lets pjax process it.
 export async function respond(request, html, status = 200, headers = {}) {
-  request.resolve({ ...fakeResponse(status, headers), text: async () => html });
+  request.respond(status, html, headers);
   await settle();
 }
 

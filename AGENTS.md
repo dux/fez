@@ -1771,7 +1771,7 @@ Fez ships the former `dux-pjax` package (ported to JS) and exposes it as `Fez.pj
 - Boot gating: `Fez.pjax` is always set, but handlers (link hijack, popstate, `data-pjax` forms) bind only when the page has a `<pjax>` tag or `.pjax` class container; `Fez.pjax.start()` for late-injected containers.
   The container must not be `<body>`; a `<pjax>` tag wins over a `.pjax` element.
   A full swap sets `document.title` from the response `<title>`, so every full-page response should include one.
-- `load` / `refresh` share `(what?, opts?)` and one path: `getOpts` validates and copies, the constructor resolves the region, href and form and fills defaults. They differ only in the internal `fresh` mode: `refresh` sends no-cache, skips the 2s debounce and does not scroll. `what` is a URL, or a `#selector` / element that becomes `target` for the current URL. Options (see above) are checked against `Pjax.LOAD_OPTIONS`; unknown keys go to `Pjax.error`. Requests go through `fetch` with an `AbortController` per request (a `'timeout'` abort reason tells a timeout from a superseded request). Request state (`region`, `fragment`, `method`, `body`, `startedAt`, `redirects`, `key`) lives on the instance, never on `opts` - `opts` is what `pjax:start` / `pjax:render` publish.
+- `load` / `refresh` share `(what?, opts?)` and one path: `getOpts` validates and copies, the constructor resolves the region, href and form and fills defaults. They differ only in the internal `fresh` mode: `refresh` sends no-cache, skips the 2s debounce and does not scroll. `what` is a URL, or a `#selector` / element that becomes `target` for the current URL. Options (see above) are checked against `Pjax.LOAD_OPTIONS`; unknown keys go to `Pjax.error`. Requests go through `Fez.request` (so `Fez.request.headers` reach pjax too); its result's `error` (`network`, `timeout`, `abort`) tells the failure modes apart, and a response whose request is no longer the current one for its key is dropped. Request state (`region`, `fragment`, `method`, `body`, `startedAt`, `redirects`, `key`) lives on the instance, never on `opts` - `opts` is what `pjax:start` / `pjax:render` publish.
 - The promise never rejects: `run()` resolves the `pjax:render` detail (`emitDone`) or `null`. `load()` returns true only when a request went out; every other exit resolves `null`. Keep new exit paths on that contract.
 - Debounce (`Pjax._lastLoad`) and in-flight requests (`Pjax.requests`, a Map) are keyed per swap node: the target id, the `.ajax` region id, or `'full'`. A new request aborts only the same key; a `'full'` request aborts all.
 - `morphInto` hands `Fez.nodeMorph` a DocumentFragment - the parsed response node's children, moved (no string round trip), or a string via `createContextualFragment`. Never pass nodeMorph a raw string: its "unwrap single matching-tag root" heuristic would swallow a legitimate lone wrapper child. `runScripts` executes a response's inline scripts and removes them before the morph, so they are never carried into the page.
@@ -1932,16 +1932,34 @@ this.dissolve(); // replace the wrapper with its slot children and return them
 // a boolean attribute (disabled, checked, ...) only when truthy; other values are stringified
 this.n('.card.big', { onclick: this.save }, [child]);
 
-// Fetch: GET responses are cached for 5 minutes (max 100 entries) and concurrent
-// identical GETs share one request; POST is never cached. JSON responses are parsed.
-// Every request sends x-requested-with: XMLHttpRequest; the method is an uppercase first argument.
-// data is the query string for GET and a FormData body for POST; other methods (PUT, DELETE) send no body.
-// A non-2xx response rejects (callback form: reported to Fez.onError('fetch', ...)) and is never cached.
+// Remote requests: everything (Fez.fetch, pjax, Fez.$.ajax) runs on Fez.request (XMLHttpRequest).
+// It never rejects: res = { ok, status, statusText, url, headers, text, data, error?, xhr }; error is
+// 'network' | 'timeout' | 'abort' when no HTTP response arrived. data: GET/HEAD query string, else the body;
+// plain objects are bracket-encoded (Fez.param: a[]=1, u[name]=x, rows[0][id]=1), multipart when they hold a Blob.
+// Same-origin requests send x-requested-with plus Fez.request.headers; cross-origin only the per-call headers.
+const req = Fez.request({ method: 'POST', url: '/save', data: { refs: [1, 2] }, onUpload: (p) => p.percent });
+Fez.request('/list', { data: { page: 2 }, cache: 60, timeout: 5000, signal });
+req.abort();
+Fez.request.headers['x-csrf-token'] = token;
+Fez.request.clearCache();
+
+// Fetch: throwing sugar over Fez.request. GET responses are cached for 5 minutes (max 100 entries) and
+// concurrent identical GETs share one request; other methods are never cached. JSON responses are parsed.
+// The method is an uppercase first argument. An error status, network failure or timeout rejects
+// (callback form: reported to Fez.onError('fetch', ...)) and is never cached.
 Fez.fetch('/data'); // Promise
 Fez.fetch('/data', { page: 2 }); // GET with query params
 Fez.fetch('/data', (data) => {}); // callback form
-Fez.fetch('POST', '/save', { name: 'x' }); // POST as FormData
-Fez.clearFetchCache();
+Fez.fetch('POST', '/save', { name: 'x' }); // POST, encoded like Fez.request
+
+// Fez.$: small jQuery-shaped DOM layer (Fez never sets window.$; apps opt in with window.$ = Fez.$).
+// on() keeps ONE handler per node + event + key (.namespace, else handler source): registering again replaces it.
+// $.ajax/$.get/$.post run on Fez.request and return its promise plus .done(data, res) / .fail(res) / .always(res).
+// No animations, deferreds or $.Callbacks. this.$root is Fez.$(this.root).
+Fez.$('#list li').addClass('on').find('a').attr('href');
+Fez.$(document).on('click.menu', '.item', function (e) {});
+Fez.$.post('/api/sort', { refs: ['a'] }).done((data) => {});
+Fez.$.fn.shake = function () { return this; }; // app extension
 
 // Lookup
 Fez('ui-btn'); // first instance (by name, '#id' selector, DOM node or UID)
@@ -1949,7 +1967,7 @@ Fez('ui-btn', (fez) => fez.refresh()); // run for every live instance, returns t
 Fez(42); // instance by UID (this.UID)
 // Fez('name') reports a lookup error when nothing is mounted; check silently with document.querySelector('.name-fez')?.fez
 // Fez('name', fn) takes fn as a callback when it is an arrow or a function that uses neither this nor new
-Fez.find(node, 'ui-btn'); // closest instance of a node, selector, instance or jQuery object; undefined when none (reported only when the node exists)
+Fez.find(node, 'ui-btn'); // closest instance of a node, selector, instance, Fez.$ set or jQuery object; undefined when none (reported only when the node exists)
 Fez.instances; // Map of live instances by UID
 
 // Morph target's children to new content (DOM node, fragment or HTML string) with the component-aware differ;

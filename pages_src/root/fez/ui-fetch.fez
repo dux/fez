@@ -45,7 +45,7 @@
   }
 
   clearCache() {
-    Fez.clearFetchCache()
+    Fez.request.clearCache()
     this.state.results = {
       promise: '',
       callback: '',
