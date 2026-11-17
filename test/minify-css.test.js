@@ -8,12 +8,12 @@ import flattenCss from '../src/fez/utils/flatten_css.js';
 import { extractFezDefinitions, parseFezSource } from '../src/fez/lib/source-parser.js';
 import { compileFileToModule } from '../src/fez/compile-module.js';
 
-const Fez = {};
+const Fez = { css: () => {} };
 cssMixin(Fez);
-Fez.cssMixin('card', 'padding: 4px; border: 1px solid');
+Fez.css.mixin('card', 'padding: 4px; border: 1px solid');
 
-// what Fez.globalCss serves for a scoped block (wrapped) or a global one
-const served = (css, wrap) => flattenCss(Fez.cssMixin(wrap ? `:fez { ${css} }` : css));
+// what Fez.css.global serves for a scoped block (wrapped) or a global one
+const served = (css, wrap) => flattenCss(Fez.css.mixin(wrap ? `:fez { ${css} }` : css));
 
 // formatting-only differences: whitespace runs, and whitespace next to `{ } ; ,` or after `:`
 // (a space before `:` is a descendant combinator, so it stays significant)

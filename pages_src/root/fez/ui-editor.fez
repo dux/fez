@@ -91,14 +91,15 @@ anywhere in HTML code
       if (props.src) {
         // src loads async, so onMount usually runs before source is ready -
         // whichever of the two lands last does the (single) render
-        Fez.fetch(props.src, (r)=>{
-          this.state.source = Fez.htmlEscape(r.replace(NOTICE, ''))
+        Fez.req(props.src, { cache: 300 }).then((res) => {
+          if (!res.ok) return Fez.onError('request', `${res.status} ${props.src}`)
+          this.state.source = Fez.util.htmlEscape(res.data.replace(NOTICE, ''))
           this.renderSource()
         })
       } else {
         const child = this.root.firstElementChild
         if (child?.nodeName == 'TEMPLATE' || child?.nodeName == 'XMP') {
-          this.state.source = Fez.htmlEscape(this.root.firstElementChild.innerHTML)
+          this.state.source = Fez.util.htmlEscape(this.root.firstElementChild.innerHTML)
         } else {
           this.state.source = this.root.innerHTML
         }

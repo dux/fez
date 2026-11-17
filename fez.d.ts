@@ -29,7 +29,7 @@ type ComponentProps = Record<string, any>;
 type EvaluatedProps = Record<string, any>;
 
 // =============================================================================
-// REMOTE REQUESTS (Fez.request) AND THE Fez.$ DOM LAYER
+// REMOTE REQUESTS (Fez.req) AND THE Fez.$ DOM LAYER
 // =============================================================================
 
 /** Request data: plain objects are bracket-encoded (a[]=1, u[name]=x); a Blob anywhere switches to multipart */
@@ -95,6 +95,9 @@ interface FezRequestFunction {
   headers: Record<string, string>;
   /** drop cached and in-flight cached GETs */
   clearCache(): void;
+
+  /** Rails/Rack bracket encoding: { a: [1], u: { n: 'x' } } -> 'a%5B%5D=1&u%5Bn%5D=x' */
+  param(data: Record<string, unknown>): string;
 }
 
 interface FezAjaxRequest<T = unknown> extends FezRequest<T> {
@@ -683,6 +686,125 @@ interface FezHeadConfig {
 /** The FezBase class type, named outside `declare global` so the global const does not reference itself */
 type FezBaseClass = typeof FezBase;
 
+/** Fez.util: helpers for templates and app code */
+interface FezUtil {
+  /** Get unique ID for a string (32-bit FNV-1, base 36) */
+  fnv1(str: string): string;
+
+  /** Short unique id: 'fez_uid_...' */
+  uid(): string;
+
+  /** Check if value is truthy (from props): '1', 'true', 'on' */
+  isTrue(value: any): boolean;
+
+  /** Template truthiness: empty arrays and empty objects are false */
+  isTruthy(value: any): boolean;
+
+  /** Escape any value as HTML text; null / undefined render '' */
+  htmlEscape(value: any): string;
+
+  /** Rendered ` name="value"` for an unquoted name={expr} attribute, or '' to drop it */
+  htmlAttr(name: string, value: any): string;
+
+  /** One `name: value;` declaration for style:name={expr}, or '' when null / undefined / false */
+  styleProp(name: string, value: any): string;
+
+  /** Escape a value for a quoted JS string in handler code (templates use it for onclick="fez.rm('{id}')") */
+  jsEscape(value: any): string;
+
+  /** Darken a #hex color by percent (default 20) */
+  darkenColor(color: string, percent?: number): string;
+
+  /** Lighten a #hex color by percent (default 20) */
+  lightenColor(color: string, percent?: number): string;
+
+  /** Get type short identifier */
+  typeof(value: any): 'o' | 'f' | 's' | 'a' | 'i' | 'n' | 'b' | 'u';
+
+  /** Convert collection to pairs */
+  toPairs(obj: any[]): Array<[any, number]>;
+  toPairs(obj: Record<string, any>): Array<[string, any]>;
+  toPairs(obj: null | undefined): [];
+
+  /** Throttle function execution (leading call, trailing call kept; delay default 200ms) */
+  throttle<F extends (...args: any[]) => any>(func: F, delay?: number): (...args: Parameters<F>) => void;
+
+  /** Execute callback when DOM is ready */
+  onReady(callback: () => void): void;
+
+  /** Call func every pingRate ms (default 200) until it returns a truthy value */
+  untilTrue(func: () => any, pingRate?: number): void;
+
+  /** Activate node by adding class and removing from siblings */
+  activateNode(node: HTMLElement, className?: string): void;
+
+  /**
+   * Animate an element's box when its content changes - what
+   * `fez:animate="height"` does, for plain DOM outside templates.
+   * spec: "height" | "width" | "size" plus duration / delay / easing params,
+   * as a string ("height, duration=250") or a parsed { name, params }.
+   * Calling again only updates the params. Returns true when spec is a size animation.
+   */
+  animateSize(node: HTMLElement, spec: string | { name: string; params?: FezTransitionParams }): boolean;
+}
+
+/** Fez._: framework internals (pointers, nonce cache, compiler runtime), not public API */
+interface FezInternals {
+  /** Functions handed out by Fez.pointer(fn), by uid */
+  POINTER: Record<number, Function>;
+  /** Counter for unique instance IDs */
+  instanceCount: number;
+  /** Active component instances by UID */
+  instances: Map<number, FezBase>;
+  /** Get DOM node containing passed HTML (a node is returned as is) */
+  domRoot(htmlData: string | Node, tagName?: string): HTMLElement;
+  /** Compile Fez template source; strict throws compile and render errors instead of logging them */
+  createTemplate(text: string, opts?: { name?: string; strict?: boolean }): (ctx: FezBase) => string | null;
+  /** Run JS code as an inline script (carries Fez.nonce()) */
+  runScript(code: string): void;
+  /** Component name from a file path or URL */
+  nameFromPath(url: string): string;
+  /** Log message (only if LOG enabled) */
+  consoleLog(text: string): void;
+  /** Error message; with show it returns a red HTML badge */
+  consoleError(text: string, show?: boolean): string | undefined;
+  [key: string]: unknown;
+}
+
+/** Fez.css: wrap rules in a generated class; the namespace holds the global, mixin and extract helpers */
+interface FezCss {
+  /** Wrap rules in a generated class, inject them, return the class name */
+  (text: string): string;
+
+  /** All CSS injected so far, in injection order */
+  extract(): string;
+
+  /**
+   * Inject a stylesheet, deduped on its text. Without opts it goes in verbatim.
+   * opts.name rewrites every :fez to .fez.<name>-fez; opts.wrap wraps the whole
+   * sheet in :fez { } first. Without :fez (or wrap) nothing is scoped. (Compiled components use this internally - in
+   * .fez sources, scope comes from <style> vs <style global>.)
+   */
+  global(cssClass: string | Function, opts?: { name?: string; wrap?: boolean }): string;
+
+  /**
+   * Define a CSS shortcut. The usage site picks the form: `:name {` expands the
+   * value as a selector / at-rule prelude, `:name;` inlines it as declarations.
+   */
+  mixin(name: string, value: string): void;
+  /** Expand every registered mixin in a CSS string */
+  mixin(css: string): string;
+}
+
+/** Fez.dev: development tools */
+interface FezDev {
+  /** Show a value in the dump dialog (ESC closes, arrows page through earlier dumps) */
+  dump(value: any): void;
+
+  /** Toggle overlays naming every mounted component */
+  highlightAll(): void;
+}
+
 interface FezStatic {
   // ===================================================================
   // COMPONENT REGISTRATION & LOOKUP
@@ -720,12 +842,6 @@ interface FezStatic {
   /** Event names this.on('event', fn) binds on window; the rest go to document. Mutate to customize. */
   WINDOW_EVENTS: Set<string>;
 
-  /** Counter for unique instance IDs */
-  instanceCount: number;
-
-  /** Active component instances by UID */
-  instances: Map<number, FezBase>;
-
   /** Closest component instance of a node, selector or instance; undefined when nothing matches */
   find(onode: Node | string | FezBase, name?: string): FezBase | undefined;
 
@@ -733,37 +849,12 @@ interface FezStatic {
   // CSS UTILITIES
   // ===================================================================
 
-  /** Wrap rules in a generated class, inject them, return the class name */
-  cssClass(text: string): string;
-
-  /** All CSS injected so far, in injection order */
-  extractCss(): string;
-
-  /**
-   * Inject a stylesheet, deduped on its text. Without opts it goes in verbatim.
-   * opts.name rewrites every :fez to .fez.<name>-fez; opts.wrap wraps the whole
-   * sheet in :fez { } first. Without :fez (or wrap) nothing is scoped. (Compiled components use this internally - in
-   * .fez sources, scope comes from <style> vs <style global>.)
-   */
-  globalCss(cssClass: string | Function, opts?: { name?: string; wrap?: boolean }): string;
-
-  /**
-   * Define a CSS shortcut. The usage site picks the form: `:name {` expands the
-   * value as a selector / at-rule prelude, `:name;` inlines it as declarations.
-   */
-  cssMixin(name: string, value: string): void;
-  /** Expand every registered mixin in a CSS string */
-  cssMixin(css: string): string;
+  /** Generated-class helper and CSS namespace: Fez.css(text), Fez.css.global(...), Fez.css.mixin(...), Fez.css.extract() */
+  css: FezCss;
 
   // ===================================================================
   // DOM UTILITIES
   // ===================================================================
-
-  /** Get DOM node containing passed HTML (a node is returned as is) */
-  domRoot(htmlData: string | Node, tagName?: string): HTMLElement;
-
-  /** Activate node by adding class and removing from siblings */
-  activateNode(node: HTMLElement, className?: string): void;
 
   /**
    * Morph target's children to src with the component-aware differ: live
@@ -784,20 +875,14 @@ interface FezStatic {
     },
   ): void;
 
-  /** Compile Fez template source; strict throws compile and render errors instead of logging them */
-  createTemplate(text: string, opts?: { name?: string; strict?: boolean }): (ctx: FezBase) => string | null;
-
   /** CSP nonce of the script that loaded fez ('' when none) */
   nonce(): string;
 
-  /** Run JS code as an inline script (carries Fez.nonce()) */
-  runScript(code: string): void;
+  /** Helpers for templates and app code: Fez.util.htmlEscape(value), Fez.util.throttle(fn, 200), ... */
+  util: FezUtil;
 
-  /** Component name from a file path or URL */
-  nameFromPath(url: string): string;
-
-  /** Functions handed out by Fez.pointer(fn), by uid */
-  POINTER: Record<number, Function>;
+  /** Framework internals, not public API */
+  _: FezInternals;
 
   /**
    * Load resources into document.head: { js }, { css }, { script }, { fez } (a
@@ -814,27 +899,8 @@ interface FezStatic {
   // FETCH & DATA
   // ===================================================================
 
-  /**
-   * Throwing, cached sugar over Fez.request. GET responses are cached for 5
-   * minutes (max 100 entries) and concurrent GETs share one request; other
-   * methods always hit the network. data becomes the query string for GET and
-   * the bracket-encoded body otherwise (multipart when it holds a Blob). A
-   * method must be uppercase ('POST'). An error status, network failure or
-   * timeout rejects; with a callback nothing is returned and errors go to
-   * Fez.onError.
-   */
-  fetch<T = any>(url: string, callback: (data: T) => void): void;
-  fetch<T = any>(url: string, data: Record<string, any>, callback: (data: T) => void): void;
-  fetch<T = any>(url: string, data?: Record<string, any>): Promise<T>;
-  fetch<T = any>(method: string, url: string, callback: (data: T) => void): void;
-  fetch<T = any>(method: string, url: string, data: Record<string, any>, callback: (data: T) => void): void;
-  fetch<T = any>(method: string, url: string, data?: Record<string, any>): Promise<T>;
-
   /** The one remote-request primitive (XMLHttpRequest): upload progress, abort, timeout, opt-in GET cache */
-  request: FezRequestFunction;
-
-  /** Rails/Rack bracket encoding: { a: [1], u: { n: 'x' } } -> 'a%5B%5D=1&u%5Bn%5D=x' */
-  param(data: Record<string, unknown>): string;
+  req: FezRequestFunction;
 
   /** jQuery-shaped DOM layer; Fez never assigns window.$ */
   $: FezDollar;
@@ -890,12 +956,6 @@ interface FezStatic {
   // UTILITIES
   // ===================================================================
 
-  /** Get unique ID for a string */
-  fnv1(str: string): string;
-
-  /** Short unique id: 'fez_uid_...' */
-  uid(): string;
-
   /**
    * Resolve a function from a function, an arrow / function source, a dotted
    * path ("this.focus") or a function body; a no-op for empty values
@@ -904,50 +964,9 @@ interface FezStatic {
 
   /**
    * Park a function on window for inline HTML and return its expression
-   * (`Fez.POINTER[n]`). One-time use unless opts.persist.
+   * (`Fez._.POINTER[n]`). One-time use unless opts.persist.
    */
   pointer(func: Function, opts?: { persist?: boolean }): string;
-
-  /** Check if value is truthy (from props): '1', 'true', 'on' */
-  isTrue(value: any): boolean;
-
-  /** Template truthiness: empty arrays and empty objects are false */
-  isTruthy(value: any): boolean;
-
-  /** Escape any value as HTML text; null / undefined render '' */
-  htmlEscape(value: any): string;
-
-  /** Rendered ` name="value"` for an unquoted name={expr} attribute, or '' to drop it */
-  htmlAttr(name: string, value: any): string;
-
-  /** One `name: value;` declaration for style:name={expr}, or '' when null / undefined / false */
-  styleProp(name: string, value: any): string;
-
-  /** Escape a value for a quoted JS string in handler code (templates use it for onclick="fez.rm('{id}')") */
-  jsEscape(value: any): string;
-
-  /** Darken a #hex color by percent (default 20) */
-  darkenColor(color: string, percent?: number): string;
-
-  /** Lighten a #hex color by percent (default 20) */
-  lightenColor(color: string, percent?: number): string;
-
-  /** Get type short identifier */
-  typeof(value: any): 'o' | 'f' | 's' | 'a' | 'i' | 'n' | 'b' | 'u';
-
-  /** Convert collection to pairs */
-  toPairs(obj: any[]): Array<[any, number]>;
-  toPairs(obj: Record<string, any>): Array<[string, any]>;
-  toPairs(obj: null | undefined): [];
-
-  /** Throttle function execution (leading call, trailing call kept; delay default 200ms) */
-  throttle<F extends (...args: any[]) => any>(func: F, delay?: number): (...args: Parameters<F>) => void;
-
-  /** Execute callback when DOM is ready */
-  onReady(callback: () => void): void;
-
-  /** Call func every pingRate ms (default 200) until it returns a truthy value */
-  untilTrue(func: () => any, pingRate?: number): void;
 
   // ===================================================================
   // COMPONENT COMPILATION
@@ -966,20 +985,11 @@ interface FezStatic {
   /** true forces the Ctrl/Cmd+E component overlay on, false turns it off (default: on for ports above 2999) */
   DEV?: boolean;
 
-  /** Log message (only if LOG enabled) */
-  consoleLog(text: string): void;
-
-  /** Error message */
-  consoleError(text: string, show?: boolean): string | undefined;
-
   /** Error handler - can be overridden */
   onError(kind: string, message: string | Error, context?: Record<string, any>): string;
 
-  /** Show a value in the dump dialog (ESC closes, arrows page through earlier dumps) */
-  dump(value: any): void;
-
-  /** Highlight all fez components */
-  highlightAll(): void;
+  /** Dev tools: Fez.dev.dump(value), Fez.dev.highlightAll() */
+  dev: FezDev;
 
   // ===================================================================
   // ELEMENT TRANSITIONS (fez:in / fez:out)
@@ -1004,15 +1014,6 @@ interface FezStatic {
    */
   transitions: Record<string, FezTransitionFn>;
 
-  /**
-   * Animate an element's box when its content changes - what
-   * `fez:animate="height"` does, for plain DOM outside templates.
-   * spec: "height" | "width" | "size" plus duration / delay / easing params,
-   * as a string ("height, duration=250") or a parsed { name, params }.
-   * Calling again only updates the params. Returns true when spec is a size animation.
-   */
-  animateSize(node: HTMLElement, spec: string | { name: string; params?: FezTransitionParams }): boolean;
-
   // ===================================================================
   // PAGE NAVIGATION (pjax)
   // ===================================================================
@@ -1025,14 +1026,8 @@ interface FezStatic {
   load: PjaxStatic['load'];
   /** Fresh re-fetch (no-cache, no debounce, keeps scroll). Same as Fez.pjax.refresh */
   refresh: PjaxStatic['refresh'];
-  /** Read or set a query-string param. Same as Fez.pjax.qs */
-  qs: PjaxStatic['qs'];
-  /** Read or set a hash param. Same as Fez.pjax.hash */
-  hash: PjaxStatic['hash'];
-  /** Read or set the hash route path. Same as Fez.pjax.hpath */
-  hpath: PjaxStatic['hpath'];
-  /** Read or set a hash route query param. Same as Fez.pjax.hqs */
-  hqs: PjaxStatic['hqs'];
+  /** Parse and build any URL; Fez.url.<method>(...) works on the current page */
+  url: FezUrlStatic;
 }
 
 // =============================================================================
@@ -1083,22 +1078,79 @@ interface PjaxLoadOptions {
  * What to load: a URL ('/path', '?query'), or a '#selector' / element that
  * becomes the target and re-fetches the current URL. Nothing means the current URL.
  */
-type PjaxLoadWhat = string | Element | null | undefined;
+type PjaxLoadWhat = string | FezUrl | Element | null | undefined;
 
 /** Resolves the pjax:render detail, or null when no request was sent. Never rejects. */
 type PjaxLoadResult = Promise<PjaxRenderDetail | null>;
 
-/** Shared options for query-string and hash state setters. Neither setter fetches a page. */
-interface PjaxUrlStateOptions {
-  /** Replace the current history entry instead of adding one. */
-  replace?: boolean;
-  /** Return the URL without changing it; takes precedence over replace. */
-  href?: boolean;
+// =============================================================================
+// URL BUILDER
+// =============================================================================
+
+/** A value for a URL key; null, false and '' remove the key */
+type FezUrlValue = string | number | boolean | null | undefined;
+
+/**
+ * A parsed URL: https://host:8443/foo/bar/baz:789?baz=123#/some/hpath?baz=455
+ * (proto, host, port, path, pqs, qs, hpath, hqs). A method reads without a value
+ * and writes with one; writes return the builder. Untouched parts keep their encoding.
+ */
+interface FezUrl {
+  proto(): string;
+  proto(value: string): FezUrl;
+  host(): string;
+  host(value: string): FezUrl;
+  /** '' for the protocol's default port */
+  port(): string;
+  port(value: string | number | null): FezUrl;
+  /** The path without its trailing /key:value params; trailing ones in a written path merge into pqs */
+  path(): string;
+  path(value: string): FezUrl;
+  /** Trailing /key:value path params; writing one drops the same query key */
+  pqs(): Record<string, string>;
+  pqs(key: string): string | undefined;
+  pqs(key: null | Record<string, FezUrlValue>): FezUrl;
+  pqs(key: string, value: FezUrlValue): FezUrl;
+  qs(): Record<string, string>;
+  qs(key: string): string | undefined;
+  qs(key: null | Record<string, FezUrlValue>): FezUrl;
+  qs(key: string, value: FezUrlValue): FezUrl;
+  /** The fragment route ('/some/hpath'), '' when the fragment is not a route; 'logs' is written as '/logs' */
+  hpath(): string;
+  hpath(value: string | null | false): FezUrl;
+  /** The fragment query, on a route (#/path?a=1) or alone (#a=1) */
+  hqs(): Record<string, string>;
+  hqs(key: string): string | undefined;
+  hqs(key: null | Record<string, FezUrlValue>): FezUrl;
+  hqs(key: string, value: FezUrlValue): FezUrl;
+  /** A plain #anchor; writing one drops the hash route and its query */
+  anchor(): string;
+  anchor(value: string | null | false): FezUrl;
+  /** Always absolute */
+  href(): string;
+  /** Relative on the page's own origin, absolute elsewhere */
+  toString(): string;
+  /** Add a history entry without fetching */
+  push(): void;
+  /** Replace the history entry without fetching */
+  replace(): void;
 }
 
-/** Options for Fez.hpath. `qs` replaces the route's query when a path is set. */
-interface PjaxHashPathOptions extends PjaxUrlStateOptions {
-  qs?: string | URLSearchParams | Record<string, string | number>;
+/** Fez.url(href?) builds; Fez.url.qs('page') is Fez.url().qs('page') on the current page */
+interface FezUrlStatic {
+  (href?: string | URL | FezUrl): FezUrl;
+  proto: FezUrl['proto'];
+  host: FezUrl['host'];
+  port: FezUrl['port'];
+  path: FezUrl['path'];
+  pqs: FezUrl['pqs'];
+  qs: FezUrl['qs'];
+  hpath: FezUrl['hpath'];
+  hqs: FezUrl['hqs'];
+  anchor: FezUrl['anchor'];
+  href: FezUrl['href'];
+  push: FezUrl['push'];
+  replace: FezUrl['replace'];
 }
 
 interface PjaxConfig {
@@ -1201,31 +1253,6 @@ interface PjaxStatic {
 
   /** Dispatch a cancelable pjax:<name> event; false when preventDefault was called */
   emit(name: string, detail?: any): boolean;
-
-  /** Read a query-string param */
-  qs(key: string): string | undefined;
-  /** Return the updated URL without changing history. */
-  qs(key: string, value: string | number | null | false, opts: PjaxUrlStateOptions & { href: true }): string;
-  /** Set (or remove with null/false) a query param, pushing history by default without fetching. */
-  qs(key: string, value: string | number | null | false, opts?: PjaxUrlStateOptions): string | void;
-  /** Read a named hash param (#key=value&other=value). */
-  hash(key: string): string | undefined;
-  /** Return the updated URL without changing history. */
-  hash(key: string, value: string | number | null | false, opts: PjaxUrlStateOptions & { href: true }): string;
-  /** Set (or remove with null/false) a hash param, pushing history by default without fetching. */
-  hash(key: string, value: string | number | null | false, opts?: PjaxUrlStateOptions): string | void;
-  /** Read the last path segment of a hash route (#/foo, #ns/foo); '' when the fragment is not a route. */
-  hpath(): string;
-  /** Return the URL for a new hash route path without changing history. */
-  hpath(value: string | null | false, opts: PjaxHashPathOptions & { href: true }): string;
-  /** Set the hash route path (#/foo), pushing history by default without fetching. */
-  hpath(value: string | null | false, opts?: PjaxHashPathOptions): string | void;
-  /** Read a query-string param from a hash route fragment (#/foo?bar=baz). */
-  hqs(key: string): string | undefined;
-  /** Return the updated URL without changing history. */
-  hqs(key: string, value: string | number | null | false, opts: PjaxUrlStateOptions & { href: true }): string;
-  /** Set (or remove with null/false) a hash route query param, preserving the path. */
-  hqs(key: string, value: string | number | null | false, opts?: PjaxUrlStateOptions): string | void;
 }
 
 // =============================================================================

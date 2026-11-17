@@ -1326,7 +1326,7 @@ test("Fez('name', node) - resolves the enclosing parent instance", async () => {
   }
 });
 
-test('Fez.instances - differ removal drops the entry', async () => {
+test('Fez._.instances - differ removal drops the entry', async () => {
   const page = await createTestPage('<x-list></x-list>');
 
   try {
@@ -1343,7 +1343,7 @@ test('Fez.instances - differ removal drops the entry', async () => {
 
     const before = await page.evaluate(() => {
       const uid = document.querySelector('.x-item-fez').fez.UID;
-      return { uid, has: window.Fez.instances.has(uid), size: window.Fez.instances.size };
+      return { uid, has: window.Fez._.instances.has(uid), size: window.Fez._.instances.size };
     });
     expect(before.has).toBe(true);
 
@@ -1352,7 +1352,7 @@ test('Fez.instances - differ removal drops the entry', async () => {
     await page.waitForTimeout(50);
 
     const after = await page.evaluate((uid) => ({
-      has: window.Fez.instances.has(uid), size: window.Fez.instances.size,
+      has: window.Fez._.instances.has(uid), size: window.Fez._.instances.size,
     }), before.uid);
     expect(after.has).toBe(false);
     expect(after.size).toBe(before.size - 1);

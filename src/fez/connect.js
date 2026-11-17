@@ -79,11 +79,11 @@ export default function connect(name, klass) {
   // the global block is injected verbatim. Injection dedupes on the text, so
   // these stay the source CSS and re-registering is a no-op.
   if (klass.css) {
-    Fez.globalCss(klass.css, { name });
+    Fez.css.global(klass.css, { name });
   }
 
   if (klass.cssGlobal) {
-    Fez.globalCss(klass.cssGlobal);
+    Fez.css.global(klass.cssGlobal);
   }
 
   // Store class in index
@@ -214,14 +214,14 @@ function ensureFezBase(Fez, name, klass) {
 
   // Skip when the page already placed the tag, so a mount is idempotent
   if (newKlass.MOUNT) {
-    Fez.onReady(() => {
+    Fez.util.onReady(() => {
       if (!document.querySelector(`${name}, .${name}-fez`)) {
         document.body.appendChild(document.createElement(name));
       }
     });
   }
 
-  Fez.consoleLog(`${name} compiled`);
+  Fez._.consoleLog(`${name} compiled`);
   return newKlass;
 }
 
@@ -253,8 +253,8 @@ function connectNode(name, node) {
 
   // Create instance
   const fez = new klass();
-  fez.UID = ++Fez.instanceCount;
-  Fez.instances.set(fez.UID, fez);
+  fez.UID = ++Fez._.instanceCount;
+  Fez._.instances.set(fez.UID, fez);
 
   fez.oldRoot = node;
   fez.fezName = name;

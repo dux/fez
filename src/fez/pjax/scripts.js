@@ -1,6 +1,6 @@
 // Script handling for a pjax response. The response is parsed with innerHTML,
 // which never runs scripts, so inline ones are run here by hand: as <script>
-// elements carrying the page's CSP nonce (Fez.runScript), never through eval.
+// elements carrying the page's CSP nonce (Fez._.runScript), never through eval.
 //
 // On a page with a CSP nonce a response script runs only when it carries the
 // nonce of its own response (named in that response's Content-Security-Policy
@@ -31,9 +31,9 @@ const execute = (script, nonce) => {
   }
   const code = script.textContent;
   if (script.hasAttribute('pjax-delay')) {
-    requestAnimationFrame(() => Fez.runScript(code));
+    requestAnimationFrame(() => Fez._.runScript(code));
   } else {
-    Fez.runScript(code);
+    Fez._.runScript(code);
   }
 };
 

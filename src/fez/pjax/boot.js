@@ -21,10 +21,6 @@ export default function bootPjax() {
   // resolved at call time, so an override on Fez.pjax also drives the shortcut
   Fez.load = (...args) => Fez.pjax.load(...args);
   Fez.refresh = (...args) => Fez.pjax.refresh(...args);
-  Fez.qs = (...args) => Fez.pjax.qs(...args);
-  Fez.hash = (...args) => Fez.pjax.hash(...args);
-  Fez.hpath = (...args) => Fez.pjax.hpath(...args);
-  Fez.hqs = (...args) => Fez.pjax.hqs(...args);
 
   // Inline scripts of HTML fetched outside pjax (an ajax region, a dialog) run by the rules of
   // a pjax response (see scripts.js); `csp` is that response's Content-Security-Policy header.

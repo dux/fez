@@ -29,7 +29,7 @@ const blockRe = (key) =>
   new RegExp(`(^|[\\s{;])(?::|@include\\s+)${escapeRe(key)}(?=\\s+\\{)`, 'g');
 
 export default (Fez) => {
-  Fez.cssMixin = (name, content) => {
+  Fez.css.mixin = (name, content) => {
     // Two-arg form registers; one-arg form expands. `content !== undefined`
     // (not truthiness) so an empty body can be registered.
     // Patterns are built once, at registration.
@@ -49,9 +49,9 @@ export default (Fez) => {
     return name;
   };
 
-  Fez.cssMixin('mobile', '@media (max-width: 767px)');
-  Fez.cssMixin('tablet', '@media (min-width: 768px) and (max-width: 1023px)');
-  Fez.cssMixin('desktop', '@media (min-width:  1200px)');
+  Fez.css.mixin('mobile', '@media (max-width: 767px)');
+  Fez.css.mixin('tablet', '@media (min-width: 768px) and (max-width: 1023px)');
+  Fez.css.mixin('desktop', '@media (min-width:  1200px)');
 
   // Dark theme, driven by a .dark class on <html>. Selector-shaped rather than
   // a media query so the app can flip themes at runtime; register
@@ -62,5 +62,5 @@ export default (Fez) => {
   // specificity, so :dark ties with the rule it overrides and wins on source
   // order alone - nested blocks always serialize after their parent's
   // declarations. Without it every dark rule would outrank plain ones.
-  Fez.cssMixin('dark', '&:where(.dark, .dark *)');
+  Fez.css.mixin('dark', '&:where(.dark, .dark *)');
 };

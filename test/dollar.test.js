@@ -97,7 +97,7 @@ describe('Fez.$ ajax proxies', () => {
 
   beforeEach(() => {
     net = installMockXHR();
-    Fez = { consoleLog: () => {}, onError: () => {} };
+    Fez = { onError: () => {} };
     utility(Fez);
     attachDollar(Fez);
   });

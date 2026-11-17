@@ -170,7 +170,7 @@ describe('fez refactor', () => {
       "Pjax.load -> Fez.load; ajax: -> source:; replace: true -> history: 'replace'",
     );
     expect(result.stdout).toContain('Pjax.reload -> Fez.refresh');
-    expect(result.stdout).toContain('Pjax.hqs -> Fez.hqs');
+    expect(result.stdout).toContain('Pjax.hqs -> Fez.url.hqs');
     // report-only
     expect(fs.readFileSync(component, 'utf8')).toBe(componentSource);
     expect(fs.readFileSync(script, 'utf8')).toBe(scriptSource);
@@ -236,6 +236,62 @@ describe('fez refactor', () => {
     expect(result.stdout).toContain('legacy.js:1: Legacy var declaration');
     expect(result.stdout).toContain('ui-var.fez:3: Legacy var declaration');
     expect(result.stdout).toContain('Found 2 refactor candidates in 2 files');
+  });
+
+  test('reports root helpers moved to Fez.util and internals moved to Fez._', async () => {
+    const dir = tempDir();
+    fs.writeFileSync(
+      path.join(dir, 'old.js'),
+      'const a = Fez.htmlEscape(x);\nconst b = Fez.onReady(go);\nconst c = Fez.POINTER[3];\nconst d = Fez.util.htmlEscape(x);\n',
+    );
+
+    const result = await run(['refactor', dir]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain('old.js:1: Moved Fez.<util> to Fez.util');
+    expect(result.stdout).toContain('Fez.util.<name>');
+    expect(result.stdout).toContain('old.js:2: Moved Fez.<util> to Fez.util');
+    expect(result.stdout).toContain('old.js:3: Moved Fez internals under Fez._');
+    expect(result.stdout).not.toContain('old.js:4:');
+  });
+
+  test('reports the root API groups that moved or were removed', async () => {
+    const dir = tempDir();
+    fs.writeFileSync(
+      path.join(dir, 'old.js'),
+      [
+        'Fez.fetch(url);',
+        'Fez.param(data);',
+        "Fez.cssMixin('a', 'b');",
+        'Fez.dump(x);',
+        "Fez.activateNode(n, 'on');",
+        'Fez.domRoot(html);',
+        'Fez.request(url);',
+        'Fez.req.param(data);',
+        "Fez.css.mixin('a', 'b');",
+        'Fez.dev.dump(x);',
+        'Fez.util.activateNode(n);',
+        'Fez._.domRoot(html);',
+        '',
+      ].join('\n'),
+    );
+
+    const result = await run(['refactor', dir]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain('old.js:1: Removed Fez.fetch');
+    expect(result.stdout).toContain('Fez.req(url, { cache: 300 })');
+    expect(result.stdout).toContain('old.js:7: Renamed Fez.request');
+    expect(result.stdout).toContain('old.js:2: Moved Fez.param');
+    expect(result.stdout).toContain('old.js:3: Moved Fez CSS helpers under Fez.css');
+    expect(result.stdout).toContain('old.js:4: Moved Fez.dump / highlightAll under Fez.dev');
+    expect(result.stdout).toContain('old.js:5: Moved Fez.<helper> to Fez.util');
+    expect(result.stdout).toContain('old.js:6: Moved Fez runtime helpers under Fez._');
+    expect(result.stdout).not.toContain('old.js:8:');
+    expect(result.stdout).not.toContain('old.js:9:');
+    expect(result.stdout).not.toContain('old.js:10:');
+    expect(result.stdout).not.toContain('old.js:11:');
+    expect(result.stdout).not.toContain('old.js:12:');
   });
 
   test('leaves files that bind their own Pjax alone', async () => {

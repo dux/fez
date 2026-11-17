@@ -65,7 +65,7 @@ export function teardownPjaxEnv() {
   }
 }
 
-// Fez.request (and so pjax) runs on XMLHttpRequest; see mock-xhr.js.
+// Fez.req (and so pjax) runs on XMLHttpRequest; see mock-xhr.js.
 export { installMockXHR } from './mock-xhr.js';
 
 // A response stand-in for calling handleResponse directly.

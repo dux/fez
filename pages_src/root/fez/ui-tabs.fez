@@ -47,7 +47,7 @@
 <script>
   // add active class to node and remove it from siblings
   activateNode(node) {
-    Fez.activateNode(node, 'active')
+    Fez.util.activateNode(node, 'active')
   }
 
   // activate header tab and body tab

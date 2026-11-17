@@ -27,6 +27,7 @@ import {
 import { assertStyleScope, splitScript } from './lib/validate.js';
 import { buildClassSource, trimTemplateLines } from './lib/class-source.js';
 import { decodeExpressionEntities } from './lib/template-compiler-lib.js';
+import { loadText } from './lib/request.js';
 
 const compileCache = new Map();
 
@@ -147,7 +148,7 @@ function compileBulk(data) {
   }
 
   // HTML string or document
-  const root = data ? Fez.domRoot(data) : document.body;
+  const root = data ? Fez._.domRoot(data) : document.body;
   root.querySelectorAll('template[fez], xmp[fez]').forEach((n) => compileBulk(n));
 }
 
@@ -156,7 +157,7 @@ function compileBulk(data) {
  * Supports .fez files and .txt files (component lists)
  */
 function compileFromUrl(url) {
-  Fez.consoleLog(`Loading from ${url}`);
+  Fez._.consoleLog(`Loading from ${url}`);
 
   // Handle .txt files as component lists
   if (url.endsWith('.txt')) {
@@ -164,14 +165,14 @@ function compileFromUrl(url) {
     return;
   }
 
-  Fez.fetch(url)
+  loadText(url)
     .then((content) => {
       const doc = new DOMParser().parseFromString(content, 'text/html');
       const fezElements = doc.querySelectorAll('template[fez], xmp[fez]');
 
       if (fezElements.length > 0) {
         // Extract top-level info/demo before the xmp elements (for multi-component files)
-        const fileName = Fez.nameFromPath(url);
+        const fileName = Fez._.nameFromPath(url);
         indexFileDocs(fileName, content);
 
         // Multiple components in file
@@ -185,7 +186,7 @@ function compileFromUrl(url) {
         });
       } else {
         // Single component, derive name from URL
-        const name = Fez.nameFromPath(url);
+        const name = Fez._.nameFromPath(url);
         compile(name, content);
       }
     })
@@ -295,7 +296,7 @@ function executeClassCode(tagName, code) {
           code = code.replace(new RegExp(`(from\\s+['"])${escaped}`, 'g'), `$1${url}`);
         }
       } catch (e) {
-        Fez.consoleError(`importmap parse error: ${e.message}`);
+        Fez._.consoleError(`importmap parse error: ${e.message}`);
       }
     }
     // Remove the Fez.head({importmap:...}) calls
@@ -312,13 +313,13 @@ function executeClassCode(tagName, code) {
     // slow CDN module chains (esm.sh, jsdelivr).
     Fez.head({ script: code }, (err) => {
       if (err) {
-        Fez.consoleError(`Template "${tagName}" module load failed: ${err.message || err}`);
+        Fez._.consoleError(`Template "${tagName}" module load failed: ${err.message || err}`);
         return;
       }
       // Give the module's top-level code a microtask to register
       queueMicrotask(() => {
         if (!Fez.index[tagName]?.class) {
-          Fez.consoleError(`Template "${tagName}" possible compile error.`);
+          Fez._.consoleError(`Template "${tagName}" possible compile error.`);
         }
       });
     });
@@ -326,7 +327,7 @@ function executeClassCode(tagName, code) {
     try {
       evaluate('a runtime .fez compile', code)();
     } catch (e) {
-      Fez.consoleError(`Template "${tagName}" compile error: ${e.message}`);
+      Fez._.consoleError(`Template "${tagName}" compile error: ${e.message}`);
       // eslint-disable-next-line no-console
       console.log(code);
     }

@@ -59,21 +59,21 @@ test('hash Back/Forward preserves the mounted page, including return to an empty
     await page.locator('#draft').fill('unsaved text');
     const before = await page.evaluate(() => history.length);
     await page.evaluate(() => {
-      Fez.hash('tab', 'overview');
-      Fez.hash('tab', 'settings');
-      Fez.hash('tab', 'users', { replace: true });
+      Fez.url.hqs('tab', 'overview').push();
+      Fez.url.hqs('tab', 'settings').push();
+      Fez.url.hqs('tab', 'users').replace();
     });
     expect(await page.evaluate(() => history.length)).toBe(before + 2);
     expect(await page.evaluate(() => window.events)).toEqual([]);
 
     await page.goBack();
-    await page.waitForFunction(() => Fez.hash('tab') === 'overview');
+    await page.waitForFunction(() => Fez.url.hqs('tab') === 'overview');
     await page.goBack();
     await page.waitForFunction(() => location.hash === '');
     await page.goForward();
-    await page.waitForFunction(() => Fez.hash('tab') === 'overview');
+    await page.waitForFunction(() => Fez.url.hqs('tab') === 'overview');
     await page.goForward();
-    await page.waitForFunction(() => Fez.hash('tab') === 'users');
+    await page.waitForFunction(() => Fez.url.hqs('tab') === 'users');
     await settleHistory(page);
 
     expect(await page.locator('#draft').inputValue()).toBe('unsaved text');
@@ -93,15 +93,15 @@ test('query state has the same history options and preserves hash state', async 
   const page = await createPage();
   try {
     const result = await page.evaluate(() => {
-      Fez.hash('tab', 'settings');
+      Fez.url.hqs('tab', 'settings').push();
       const before = history.length;
-      Fez.qs('page', 2);
-      Fez.qs('page', 3, { replace: true });
+      Fez.url.qs('page', 2).push();
+      Fez.url.qs('page', 3).replace();
       return {
         added: history.length - before,
-        value: Fez.qs('page'),
-        hash: Fez.hash('tab'),
-        preview: Fez.qs('page', 4, { href: true, replace: true }),
+        value: Fez.url.qs('page'),
+        hash: Fez.url.hqs('tab'),
+        preview: String(Fez.url.qs('page', 4)),
         href: location.pathname + location.search + location.hash,
         loads: window.loads,
         events: window.events,
@@ -125,23 +125,23 @@ test('hash route state reads and writes path and query without fetching', async 
   const page = await createPage();
   try {
     const result = await page.evaluate(() => {
-      Fez.hpath('traffic', { qs: { app: 'x', range: '24h' } });
+      Fez.url.hpath('traffic').hqs({ app: 'x', range: '24h' }).push();
       const before = history.length;
-      Fez.hqs('app', 'y');
+      Fez.url.hqs('app', 'y').push();
       return {
         added: history.length - before,
-        path: Fez.hpath(),
-        app: Fez.hqs('app'),
-        range: Fez.hqs('range'),
+        path: Fez.url.hpath(),
+        app: Fez.url.hqs('app'),
+        range: Fez.url.hqs('range'),
         href: location.pathname + location.search + location.hash,
-        preview: Fez.hpath('logs', { qs: { app: 'z' }, href: true }),
+        preview: String(Fez.url.hpath('logs').hqs(null).hqs('app', 'z')),
         loads: window.loads,
         events: window.events,
       };
     });
     expect(result).toEqual({
       added: 1,
-      path: 'traffic',
+      path: '/traffic',
       app: 'y',
       range: '24h',
       href: '/catalog?keep=query#/traffic?app=y&range=24h',
@@ -159,16 +159,16 @@ test('hash route Back/Forward keeps the mounted page', async () => {
   try {
     await page.locator('#draft').fill('unsaved route text');
     await page.evaluate(() => {
-      Fez.hpath('traffic', { qs: { app: 'x' } });
-      Fez.hpath('logs');
+      Fez.url.hpath('traffic').hqs('app', 'x').push();
+      Fez.url.hpath('logs').push();
     });
     await page.goBack();
-    await page.waitForFunction(() => Fez.hpath() === 'traffic');
-    expect(await page.evaluate(() => Fez.hqs('app'))).toBe('x');
+    await page.waitForFunction(() => Fez.url.hpath() === '/traffic');
+    expect(await page.evaluate(() => Fez.url.hqs('app'))).toBe('x');
     await page.goBack();
     await page.waitForFunction(() => location.hash === '');
     await page.goForward();
-    await page.waitForFunction(() => Fez.hpath() === 'traffic');
+    await page.waitForFunction(() => Fez.url.hpath() === '/traffic');
     await settleHistory(page);
     expect(await page.locator('#draft').inputValue()).toBe('unsaved route text');
     expect(
@@ -187,7 +187,7 @@ test('hash traversal after page navigation is skipped, but returning to another 
   try {
     await page.evaluate(() => {
       new Fez.pjax('/other').historyAddCurrent('/other');
-      Fez.hash('tab', 'settings');
+      Fez.url.hqs('tab', 'settings').push();
     });
     await page.goBack();
     await page.waitForFunction(() => location.pathname === '/other' && location.hash === '');
@@ -207,7 +207,7 @@ test('hash traversal after page navigation is skipped, but returning to another 
 test('query Back/Forward still invokes pjax page navigation', async () => {
   const page = await createPage();
   try {
-    await page.evaluate(() => Fez.qs('page', 2));
+    await page.evaluate(() => Fez.url.qs('page', 2).push());
     await page.goBack();
     await page.waitForFunction(() => window.loads.length === 1);
     expect(await page.evaluate(() => window.loads)).toEqual([

@@ -1,14 +1,14 @@
-// Fez.request - the one remote-request primitive. Built on XMLHttpRequest because
+// Fez.req - the one remote-request primitive. Built on XMLHttpRequest because
 // fetch still cannot report upload progress outside Chromium.
 //
-//   const req = Fez.request({ method: 'POST', url, data })
-//   const req = Fez.request('/path', { data })     // url first, options second
+//   const req = Fez.req({ method: 'POST', url, data })
+//   const req = Fez.req('/path', { data })     // url first, options second
 //   req.then(res => res.ok ? use(res.data) : show(res.status))
 //   req.abort()                                     // req.xhr is the live XMLHttpRequest
 //
 // The promise never rejects: an HTTP error status, a network failure, a timeout
 // and an abort all resolve with `ok: false` (the last three also set `error`).
-// Fez.fetch is the throwing, cached-GET sugar on top of it.
+// Fez.req.param(obj) builds the same bracket-style query string.
 
 const CACHE_MAX = 100;
 const cache = new Map(); // key -> { res, expires }
@@ -243,7 +243,7 @@ function request(url, opts) {
   return req;
 }
 
-// default headers for same-origin requests, e.g. Fez.request.headers['x-csrf-token'] = token
+// default headers for same-origin requests, e.g. Fez.req.headers['x-csrf-token'] = token
 request.headers = {};
 
 request.clearCache = () => {
@@ -251,4 +251,17 @@ request.clearCache = () => {
   inflight.clear();
 };
 
-export { request, param };
+request.param = param;
+
+// Cached GET of a text source (component files, includes): resolves the body,
+// rejects on an error status, network failure or timeout. Internal, not API.
+const loadText = (url) =>
+  request(url, { cache: 300 }).then((res) => {
+    if (!res.ok) {
+      const why = res.error || `${res.status} ${res.statusText}`.trim();
+      throw new Error(`${why} for GET ${url}`);
+    }
+    return res.data;
+  });
+
+export { request, loadText };

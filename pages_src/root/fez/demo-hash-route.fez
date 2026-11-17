@@ -1,10 +1,10 @@
 <info>
-  <p>Route a page in the fragment with <code>Fez.hpath('traffic')</code> and keep its state in the route query with <code>Fez.hqs('app', 'shop')</code>.</p>
+  <p>Route a page in the fragment with <code>Fez.url.hpath('traffic').push()</code> and keep its state in the route query with <code>Fez.url.hqs('app', 'shop').push()</code>.</p>
   <ul>
     <li>A fragment whose path part contains a slash is a route: <code>#/traffic?app=shop</code>.</li>
-    <li><code>Fez.hpath()</code> returns the last path segment (<code>traffic</code>); a slashless fragment like <code>#foo</code> stays a native anchor.</li>
-    <li><code>Fez.hqs()</code> reads and writes the route query and preserves the path.</li>
-    <li>Both are history-only: no fetch, no scroll, no events.</li>
+    <li><code>Fez.url.hpath()</code> returns the route path (<code>/traffic</code>); a slashless fragment like <code>#foo</code> stays a native anchor.</li>
+    <li><code>Fez.url.hqs()</code> reads and writes the route query and preserves the path.</li>
+    <li><code>push()</code> and <code>replace()</code> are history-only: no fetch, no scroll, no events.</li>
   </ul>
 </info>
 
@@ -24,18 +24,18 @@
     }
 
     syncUrl() {
-      this.state.route = Fez.hpath() || 'overview'
-      this.state.app = Fez.hqs('app') || ''
+      this.state.route = Fez.url.hpath().slice(1) || 'overview'
+      this.state.app = Fez.url.hqs('app') || ''
       this.state.url = location.pathname + location.search + location.hash
     }
 
     go(route) {
-      Fez.hpath(route, { qs: this.state.app ? { app: this.state.app } : {} })
+      Fez.url.hpath(route).push()
       this.syncUrl()
     }
 
     setApp(value) {
-      Fez.hqs('app', value || null)
+      Fez.url.hqs('app', value || null).push()
       this.syncUrl()
     }
   }

@@ -9,8 +9,8 @@ import RenderSlots from "../src/fez/lib/render-slots.js";
 let window, document;
 
 // Mock Fez for template tests
-const MockFez = {
-  htmlAttr: (name, value) => htmlAttr(name, value, MockFez.htmlEscape),
+const mockUtil = {
+  htmlAttr: (name, value) => htmlAttr(name, value, mockUtil.htmlEscape),
   styleProp,
   fnv1: (t) => String(t),
   jsEscape: (v) => (v == null ? "" : JSON.stringify(String(v)).slice(1, -1).replace(/['`$]/g, "\\$&")),
@@ -33,6 +33,7 @@ const MockFez = {
     return !!v;
   },
 };
+const MockFez = { util: mockUtil, _: {} };
 
 // Render slots for loop handlers, same class the instance uses
 const createMockFezGlobals = () => new RenderSlots();

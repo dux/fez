@@ -127,10 +127,10 @@ test('csp: precompiled components run under a nonce-only CSP', async () => {
   }
 });
 
-test('csp: Fez.runScript runs inline code with the page nonce', async () => {
+test('csp: Fez._.runScript runs inline code with the page nonce', async () => {
   const page = await createCspPage();
   try {
-    await page.evaluate(() => Fez.runScript('window.ranInline = 41 + 1'));
+    await page.evaluate(() => Fez._.runScript('window.ranInline = 41 + 1'));
     expect(await page.evaluate(() => window.ranInline)).toBe(42);
     expect(await page.evaluate(() => window.violations)).toEqual([]);
   } finally {

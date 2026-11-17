@@ -1,14 +1,14 @@
 <info>
-  <p>Share a selected tab in the URL with <code>Fez.hash('tab', 'settings')</code>.</p>
-  <p><code>Fez.qs()</code> uses the same interface for query-string values.</p>
+  <p>Share a selected tab in the URL with <code>Fez.url.hqs('tab', 'settings').push()</code>.</p>
+  <p><code>Fez.url.qs()</code> and <code>Fez.url.pqs()</code> use the same interface for the query string and <code>/key:value</code> path params.</p>
   <ul>
-    <li>Set a value to add a history entry without fetching or scrolling.</li>
-    <li>Pass <code>{ replace: true }</code> to replace the current entry.</li>
-    <li>Pass <code>{ href: true }</code> to return the URL without changing it.</li>
-    <li>Read with <code>Fez.hash('tab')</code>; remove with <code>Fez.hash('tab', null)</code>.</li>
+    <li><code>push()</code> adds a history entry without fetching or scrolling.</li>
+    <li><code>replace()</code> replaces the current entry.</li>
+    <li><code>String(Fez.url.hqs('tab', 'x'))</code> returns the URL without changing it.</li>
+    <li>Read with <code>Fez.url.hqs('tab')</code>; remove with <code>Fez.url.hqs('tab', null)</code>.</li>
     <li>Values are strings; missing keys return <code>undefined</code>.</li>
-    <li>The fragment is a parameter list, not an anchor ID or router path.</li>
-    <li>Setters do not emit browser events. Update state after writing and listen for Back/Forward.</li>
+    <li>A slashless fragment with <code>=</code> is a parameter list, not an anchor ID or router path.</li>
+    <li>Writes do not emit browser events. Update state after writing and listen for Back/Forward.</li>
     <li>Hash-only Back/Forward keeps the page mounted. Query or path changes use pjax navigation when active.</li>
   </ul>
 </info>
@@ -29,12 +29,13 @@
     }
 
     syncUrl() {
-      this.state.tab = Fez.hash('tab') || 'overview'
+      this.state.tab = Fez.url.hqs('tab') || 'overview'
       this.state.url = location.pathname + location.search + location.hash
     }
 
     select(tab, replace = false) {
-      Fez.hash('tab', tab, { replace })
+      const url = Fez.url.hqs('tab', tab)
+      replace ? url.replace() : url.push()
       this.syncUrl()
     }
   }

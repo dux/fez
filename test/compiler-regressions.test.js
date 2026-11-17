@@ -10,8 +10,8 @@ import flattenCss from "../src/fez/utils/flatten_css.js";
 
 // Regressions for the template compiler, class assembly and CSS flattening.
 
-const MockFez = {
-  htmlAttr: (name, value) => htmlAttr(name, value, MockFez.htmlEscape),
+const mockUtil = {
+  htmlAttr: (name, value) => htmlAttr(name, value, mockUtil.htmlEscape),
   styleProp,
   fnv1: (t) => String(t),
   htmlEscape: (v) =>
@@ -19,9 +19,14 @@ const MockFez = {
   jsEscape: (v) => (v == null ? "" : JSON.stringify(String(v)).slice(1, -1).replace(/['`$]/g, "\\$&")),
   toPairs: (c) => (Array.isArray(c) ? c.map((v, i) => [v, i]) : c && typeof c === "object" ? Object.entries(c) : []),
   isTruthy: (v) => (Array.isArray(v) ? v.length > 0 : v && typeof v === "object" ? Object.keys(v).length > 0 : !!v),
-  fezAwait: (fez, key, p) => {
-    fez.awaitKeys.push(key);
-    return { status: "resolved", value: p };
+};
+const MockFez = {
+  util: mockUtil,
+  _: {
+    fezAwait: (fez, key, p) => {
+      fez.awaitKeys.push(key);
+      return { status: "resolved", value: p };
+    },
   },
 };
 

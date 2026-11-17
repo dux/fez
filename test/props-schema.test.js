@@ -13,7 +13,7 @@ beforeEach(() => {
     onError: (kind, message) => {
       errors.push({ kind, message });
     },
-    isTrue: (val) => ["1", "true", "on"].includes(String(val).toLowerCase()),
+    util: { isTrue: (val) => ["1", "true", "on"].includes(String(val).toLowerCase()) },
     getFunction: (pointer) =>
       typeof pointer === "function" ? pointer : new Function(pointer),
   };
@@ -336,14 +336,17 @@ describe("FezBase.getProps - cast applied on every path", () => {
     const K = klass();
     const fn = () => "called";
     const slots = { value: (key) => (key === 3 ? [1, 2] : undefined) };
-    globalThis.Fez.instances = new Map([[9, { fezGlobals: slots }]]);
-    globalThis.Fez.POINTER = { 4: fn };
+    globalThis.Fez._ = {
+      ...globalThis.Fez._,
+      instances: new Map([[9, { fezGlobals: slots }]]),
+      POINTER: { 4: fn },
+    };
     const realFunction = globalThis.Function;
     globalThis.Function = () => {
       throw new Error("evaluated");
     };
     try {
-      const out = K.getProps(node({ ":list": "Fez(9).fezGlobals.value(3)", ":cb": "Fez.POINTER[4]" }), {});
+      const out = K.getProps(node({ ":list": "Fez(9).fezGlobals.value(3)", ":cb": "Fez._.POINTER[4]" }), {});
       expect(out.list).toEqual([1, 2]);
       expect(out.cb).toBe(fn);
     } finally {

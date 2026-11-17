@@ -42,7 +42,7 @@
   }
 
   beforeRender() {
-    this.state.fnv1 = Fez.fnv1(String(Math.random()))
+    this.state.fnv1 = Fez.util.fnv1(String(Math.random()))
   }
 
   afterRender() {

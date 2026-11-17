@@ -227,9 +227,10 @@
 
       init(props) {
         this.root.classList.add('markdown')
-        Fez.fetch(props.src, (text) => {
+        Fez.req(props.src, { cache: 300 }).then((res) => {
+          if (!res.ok) return Fez.onError('request', `${res.status} ${props.src}`)
           // Changelog files keep portable YAML frontmatter; marked should render only the entry body.
-          text = text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '')
+          let text = res.data.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '')
           // README paths are repo-root relative; the generated site is its own root
           text = text
             .replaceAll('src="pages_src/root/', 'src="./')

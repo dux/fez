@@ -56,7 +56,7 @@ import { version } from '../../package.json';
 const Fez = (name, klass) => {
   // Find by UID
   if (typeof name === 'number') {
-    const fez = Fez.instances.get(name);
+    const fez = Fez._.instances.get(name);
     if (fez) {
       return fez;
     }
@@ -146,12 +146,6 @@ Fez.version = version;
 /** Unified component index - Fez.index['name'] = { class, meta, demo, info, source } */
 Fez.index = index;
 
-/** Counter for unique instance IDs */
-Fez.instanceCount = 0;
-
-/** Active component instances by UID */
-Fez.instances = new Map();
-
 /**
  * Find a component instance from a DOM node
  * @param {Node|string} onode - DOM node or selector
@@ -195,7 +189,7 @@ Fez.find = (onode, name) => {
  * @param {string} text - CSS rules, nested or flat
  * @returns {string} Generated class name
  */
-Fez.cssClass = (text) => {
+Fez.css = (text) => {
   const name = cssHash(text);
   injectCss(flattenCss(`.${name} { ${text} }`));
   return name;
@@ -205,7 +199,7 @@ Fez.cssClass = (text) => {
  * All CSS injected so far, in injection order
  * @returns {string}
  */
-Fez.extractCss = extractCss;
+Fez.css.extract = extractCss;
 
 /**
  * Register global CSS styles
@@ -213,7 +207,7 @@ Fez.extractCss = extractCss;
  * @param {Object} opts - { name, wrap }
  * @returns {string} Generated class name
  */
-Fez.globalCss = (cssClass, opts = {}) => {
+Fez.css.global = (cssClass, opts = {}) => {
   if (typeof cssClass === 'function') {
     cssClass = cssClass();
   }
@@ -226,7 +220,7 @@ Fez.globalCss = (cssClass, opts = {}) => {
 
   // Expand style macros here rather than at compile time - user mixins are
   // registered at runtime, so a build-time pass could never see them.
-  text = Fez.cssMixin(text);
+  text = Fez.css.mixin(text);
 
   // /g matters: a block with more than one :fez rule used to keep every
   // occurrence past the first as a literal (invalid) pseudo-class.
@@ -265,37 +259,9 @@ Fez.localStorage = fezLocalStorage;
 
 Fez.transitions = transitions;
 
-/**
- * Animate an element's box when its content changes - what fez:animate="height"
- * does, for plain DOM outside templates:
- *   Fez.animateSize(node, 'height, duration=250, easing=cubicOut')
- */
-Fez.animateSize = animateSize;
-
 // =============================================================================
-// ASYNC AWAIT HELPER (see lib/await-helper.js)
+// ERROR HANDLING
 // =============================================================================
-
-Fez.fezAwait = fezAwait;
-
-// =============================================================================
-// ERROR HANDLING & LOGGING
-// =============================================================================
-
-Fez.consoleError = (text, show) => {
-  text = `Fez: ${text}`;
-  console.error(text);
-  if (show) {
-    return `<span style="border: 1px solid red; font-size: 14px; padding: 3px 7px; background: #fee; border-radius: 4px;">${text}</span>`;
-  }
-};
-
-Fez.consoleLog = (text) => {
-  if (Fez.LOG) {
-    // eslint-disable-next-line no-console
-    console.log(`Fez: ${String(text).substring(0, 180)}`);
-  }
-};
 
 /**
  * Enhanced error handler with component context
@@ -343,19 +309,44 @@ Fez.onError = (kind, message, context) => {
 
 import addUtilities from './lib/utility.js';
 import attachDollar from './lib/dollar.js';
+import attachUrl from './lib/url.js';
 import cssMixin from './utils/css_mixin.js';
 
 addUtilities(Fez);
 attachDollar(Fez);
+attachUrl(Fez);
 cssMixin(Fez);
 
 Fez.compile = compile;
-Fez.stripGeneratedNotice = stripGeneratedNotice;
-Fez.createTemplate = createTemplate;
 Fez.state = state;
-Fez.dump = objectDump;
-Fez.highlightAll = highlightAll;
+Fez.dev = { dump: objectDump, highlightAll };
+Fez.util.animateSize = animateSize;
 
-Fez.onReady(() => Fez.consoleLog('Fez.LOG === true, logging enabled.'));
+Fez._.stripGeneratedNotice = stripGeneratedNotice;
+Fez._.fezAwait = fezAwait;
+Fez._.createTemplate = createTemplate;
+
+/** Counter for unique instance IDs */
+Fez._.instanceCount = 0;
+
+/** Active component instances by UID */
+Fez._.instances = new Map();
+
+Fez._.consoleError = (text, show) => {
+  text = `Fez: ${text}`;
+  console.error(text);
+  if (show) {
+    return `<span style="border: 1px solid red; font-size: 14px; padding: 3px 7px; background: #fee; border-radius: 4px;">${text}</span>`;
+  }
+};
+
+Fez._.consoleLog = (text) => {
+  if (Fez.LOG) {
+    // eslint-disable-next-line no-console
+    console.log(`Fez: ${String(text).substring(0, 180)}`);
+  }
+};
+
+Fez.util.onReady(() => Fez._.consoleLog('Fez.LOG === true, logging enabled.'));
 
 export default Fez;

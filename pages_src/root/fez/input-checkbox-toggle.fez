@@ -27,7 +27,7 @@
   //   onchange="..." />
 
   init() {
-    this.state.checked = Fez.isTrue(this.props.checked)
+    this.state.checked = Fez.util.isTrue(this.props.checked)
     this.state.value = this.state.checked ? "1" : "0"
     this.state.name = this.props.name || ""
     this.state.disabled = this.props.disabled !== undefined

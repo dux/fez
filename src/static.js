@@ -18,7 +18,7 @@ const RAW_REGION_PATTERN =
 const STATIC_CONTENT_MARKER = '\uE002FEZ_STATIC_CONTENT\uE003';
 const STATIC_INCLUDE_MARKER_PATTERN = /<template data-fez-static-include="(\d+)"><\/template>/g;
 
-const STATIC_FEZ = {
+const STATIC_UTIL = {
   htmlEscape(value) {
     return String(value == null ? '' : value).replace(
       /[&<>"']/g,
@@ -34,7 +34,7 @@ const STATIC_FEZ = {
   },
 
   htmlAttr(name, value) {
-    return htmlAttr(name, value, STATIC_FEZ.htmlEscape);
+    return htmlAttr(name, value, STATIC_UTIL.htmlEscape);
   },
 
   styleProp,
@@ -1346,7 +1346,7 @@ function createRenderContext(site, collections, page) {
     return rootRelativeUrl(value);
   };
   const staticFez = {
-    ...STATIC_FEZ,
+    util: STATIC_UTIL,
     staticInclude(partPath, values = {}) {
       if (typeof partPath !== 'string' || !partPath) {
         throw new Error('Static include path must be a non-empty string');

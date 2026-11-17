@@ -57,7 +57,7 @@
         this.sourceView = this.editor(this.find('.ed.source'), () => this.changed('source'))
         this.demoView = this.editor(this.find('.ed.demo'), () => this.changed('demo'))
 
-        Fez.fetch('./fez.txt', (text) => {
+        Fez.req('./fez.txt', { cache: 300 }).then(({ data: text }) => {
           this.state.list = text.trim().split('\n')
             .filter(l => l.trim() && !l.startsWith('#'))
             .map(p => p.split('/').pop().replace('.fez', ''))
@@ -123,13 +123,13 @@
       load(name) {
         this.loading = true
         const url = name ? `./fez/${name}.fez` : STARTER
-        // plain fetch: Fez.fetch resolves a 404 page as text, we want the failure
+        // plain fetch: a 404 page must count as a failure, not as component text
         fetch(url)
           .then(res => { if (!res.ok) throw new Error(`${res.status} ${res.statusText}`); return res.text() })
-          .then(text => this.start(name || STARTER_NAME, Fez.stripGeneratedNotice(text)))
+          .then(text => this.start(name || STARTER_NAME, Fez._.stripGeneratedNotice(text)))
           .catch(e => {
             this.capture('error', `Could not load ${url} (${e.message}) - starting with the blank component`)
-            fetch(STARTER).then(res => res.text()).then(text => this.start(STARTER_NAME, Fez.stripGeneratedNotice(text)))
+            fetch(STARTER).then(res => res.text()).then(text => this.start(STARTER_NAME, Fez._.stripGeneratedNotice(text)))
           })
       }
 

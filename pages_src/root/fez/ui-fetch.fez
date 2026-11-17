@@ -1,8 +1,8 @@
 <info>
   <ul>
-    <li>Global fetch wrapper with caching and auto JSON parsing</li>
+    <li>Global request helper with opt-in GET caching and auto JSON parsing</li>
     <li>Pure Fez, no external dependencies</li>
-    <li>Use <code>Fez.fetch()</code> anywhere - responses cached per session</li>
+    <li>Use <code>Fez.req()</code> anywhere - pass <code>cache: seconds</code> to reuse GET responses</li>
   </ul>
 </info>
 
@@ -25,27 +25,30 @@
     this.state.loading = true
     const url = 'https://jsonplaceholder.typicode.com/users/1'
 
-    // Promise-based fetch
-    const data = await Fez.fetch(url)
+    // Promise-based request
+    const { data } = await Fez.req(url, { cache: 300 })
     this.state.results.promise = JSON.stringify(data, null, 2)
 
-    // Callback-based fetch (will hit cache)
-    Fez.fetch(url, (data) => {
-      this.state.results.callback = JSON.stringify(data, null, 2)
+    // Second request (will hit cache)
+    Fez.req(url, { cache: 300 }).then((res) => {
+      this.state.results.callback = JSON.stringify(res.data, null, 2)
     })
 
     // POST request
-    const postData = await Fez.fetch('POST', 'https://jsonplaceholder.typicode.com/posts', {
-      title: 'Test Post',
-      body: 'This is a test post',
-      userId: 1
+    const post = await Fez.req('https://jsonplaceholder.typicode.com/posts', {
+      method: 'POST',
+      data: {
+        title: 'Test Post',
+        body: 'This is a test post',
+        userId: 1
+      }
     })
-    this.state.results.post = JSON.stringify(postData, null, 2)
+    this.state.results.post = JSON.stringify(post.data, null, 2)
     this.state.loading = false
   }
 
   clearCache() {
-    Fez.request.clearCache()
+    Fez.req.clearCache()
     this.state.results = {
       promise: '',
       callback: '',
@@ -126,7 +129,7 @@
   }
 </style>
 
-<h2>Fez.fetch Demo</h2>
+<h2>Fez.req Demo</h2>
 
 <div class="status">
   Logging: <strong>{state.logEnabled ? 'Enabled' : 'Disabled'}</strong>

@@ -2,28 +2,28 @@ import { describe, test, expect, afterEach } from "bun:test";
 import cssMixin from "../src/fez/utils/css_mixin.js";
 import flattenCss from "../src/fez/utils/flatten_css.js";
 
-const Fez = {};
+const Fez = { css: () => {} };
 cssMixin(Fez);
 
 const DARK_DEFAULT = "&:where(.dark, .dark *)";
 
 // restore the built-in after any test that swaps the strategy - CssMixins is
 // module-level state shared by every test in this file
-afterEach(() => Fez.cssMixin("dark", DARK_DEFAULT));
+afterEach(() => Fez.css.mixin("dark", DARK_DEFAULT));
 
 const squash = (css) => css.replace(/\s+/g, " ").trim();
 
-// what Fez.globalCss does to a scoped <style> block: wrap, expand mixins,
+// what Fez.css.global does to a scoped <style> block: wrap, expand mixins,
 // resolve :fez to the component selector, flatten
 const scoped = (css, name = "demo") =>
   squash(
     flattenCss(
-      Fez.cssMixin(`:fez {\n${css}\n}`).replace(/:fez\b/g, `.fez.${name}-fez`),
+      Fez.css.mixin(`:fez {\n${css}\n}`).replace(/:fez\b/g, `.fez.${name}-fez`),
     ),
   );
 
 // what it does to <style global> - mixins still expand, nothing is wrapped
-const global = (css) => squash(flattenCss(Fez.cssMixin(css)));
+const global = (css) => squash(flattenCss(Fez.css.mixin(css)));
 
 describe("cssMixin", () => {
   test("expands a registered macro to its at-rule", () => {
@@ -50,9 +50,9 @@ describe("cssMixin", () => {
 });
 
 describe("cssMixin declarations", () => {
-  Fez.cssMixin("card", "padding: 16px; border-radius: 8px;");
-  Fez.cssMixin("lift", "box-shadow: 0 2px 8px #0002; &:hover { box-shadow: 0 6px 16px #0003; }");
-  Fez.cssMixin("none", "display: none");
+  Fez.css.mixin("card", "padding: 16px; border-radius: 8px;");
+  Fez.css.mixin("lift", "box-shadow: 0 2px 8px #0002; &:hover { box-shadow: 0 6px 16px #0003; }");
+  Fez.css.mixin("none", "display: none");
 
   test("inlines the body at the usage site, in place", () => {
     expect(scoped(".item { color: red; :card; margin: 0; }")).toBe(
@@ -129,7 +129,7 @@ describe("cssMixin :dark", () => {
 
   test("swaps to the OS strategy without touching component CSS", () => {
     const css = ".btn { background: #eee; :dark { background: #222; } }";
-    Fez.cssMixin("dark", "@media (prefers-color-scheme: dark)");
+    Fez.css.mixin("dark", "@media (prefers-color-scheme: dark)");
     expect(scoped(css)).toBe(
       ".fez.demo-fez .btn{background: #eee;} " +
         "@media (prefers-color-scheme: dark){.fez.demo-fez .btn{background: #222;}}",

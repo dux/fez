@@ -1,0 +1,94 @@
+<info>
+  <p><code>Fez.url(href)</code> parses and builds any URL, part by part. With no href it reads the current page.</p>
+  <pre><code>https://host:8443/foo/bar/baz:789?baz=123#/some/hpath?baz=455
+proto  host  port path    pqs     qs      hpath       hqs</code></pre>
+  <ul>
+    <li>Parts: <code>proto</code>, <code>host</code>, <code>port</code>, <code>path</code>, <code>pqs</code> (trailing <code>/key:value</code> segments), <code>qs</code>, <code>hpath</code>, <code>hqs</code>, <code>anchor</code>.</li>
+    <li>A method reads with a key (<code>qs('page')</code>) and writes with a value (<code>qs('page', 2)</code>); writes return the builder, so they chain.</li>
+    <li><code>null</code>, <code>false</code> and <code>''</code> remove a key; <code>qs(null)</code> clears the whole query; <code>qs()</code> returns all values as an object.</li>
+    <li>The fragment is a route (<code>#/logs?app=x</code>), a param list (<code>#tab=x</code>, read with <code>hqs</code>) or an <code>anchor</code>; writing one form replaces the other.</li>
+    <li><code>toString()</code> is relative on the page origin, absolute elsewhere; <code>href()</code> is always absolute.</li>
+    <li><code>push()</code> / <code>replace()</code> write to history without fetching; <code>Fez.load(builder)</code> navigates.</li>
+    <li><code>Fez.url.qs('page')</code> is <code>Fez.url().qs('page')</code> on the current page, read at call time.</li>
+  </ul>
+</info>
+
+<demo>
+  <demo-url />
+</demo>
+
+<script>
+  class {
+    init() {
+      this.state.href = 'https://example.com:8443/foo/bar/baz:789?baz=123#/some/hpath?baz=455'
+    }
+
+    // a half-typed URL may not parse; show why instead of breaking the render
+    url() {
+      try {
+        return Fez.url(this.state.href)
+      } catch (error) {
+        return null
+      }
+    }
+
+    parts() {
+      const url = this.url()
+      if (!url) return [['error', 'not a valid URL']]
+      return [
+        ['proto()', url.proto()],
+        ['host()', url.host()],
+        ['port()', url.port()],
+        ['path()', url.path()],
+        ['pqs()', JSON.stringify(url.pqs())],
+        ['qs()', JSON.stringify(url.qs())],
+        ['hpath()', url.hpath()],
+        ['hqs()', JSON.stringify(url.hqs())],
+        ['anchor()', url.anchor()],
+      ]
+    }
+
+    built() {
+      return this.url()?.pqs('baz', null).qs('page', 2).hpath('logs').hqs('app', 'shop').href() || ''
+    }
+  }
+</script>
+
+<style>
+  display: block;
+  padding: 20px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+
+  input {
+    width: 100%;
+    padding: 8px;
+    font: inherit;
+  }
+
+  table {
+    margin: 16px 0;
+    border-collapse: collapse;
+  }
+
+  td {
+    padding: 4px 12px 4px 0;
+    vertical-align: top;
+  }
+
+  code {
+    overflow-wrap: anywhere;
+  }
+</style>
+
+<input type="text" fez:bind="state.href" aria-label="URL to parse" />
+<table>
+  {#each parts() as part}
+    <tr>
+      <td><code>{part[0]}</code></td>
+      <td><code>{part[1]}</code></td>
+    </tr>
+  {/each}
+</table>
+<p><code>.pqs('baz', null).qs('page', 2).hpath('logs').hqs('app', 'shop').href()</code></p>
+<p><code>{built()}</code></p>

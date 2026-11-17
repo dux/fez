@@ -6,12 +6,12 @@
 // preserved and refreshed instead of destroyed.
 //
 // The class is created per call so tests get fresh static state. The browser
-// singleton is created by boot.js and exposed as Fez.pjax, with Fez.load,
-// Fez.refresh and the URL state helpers delegating to it.
+// singleton is created by boot.js and exposed as Fez.pjax, with Fez.load and
+// Fez.refresh delegating to it. URL state lives in Fez.url (lib/url.js).
 
 import Fez from '../root.js';
 import createOnClick from './onclick.js';
-import attachUrlState from './url-state.js';
+import { isFezUrl } from '../lib/url.js';
 import { runScripts, runHeadScripts, responseNonce } from './scripts.js';
 
 export default function createPjax() {
@@ -229,7 +229,7 @@ export default function createPjax() {
         }
       }
 
-      let href = what || null;
+      let href = isFezUrl(what) ? String(what) : what || null;
       if (href?.nodeType === 1 || (typeof href === 'string' && href[0] === '#')) {
         if (opts.target) {
           Pjax.error('target given twice - pass a #selector/element or opts.target, not both');
@@ -685,7 +685,7 @@ export default function createPjax() {
         headers['x-pjax-layout'] = this.layout;
       }
 
-      const req = Fez.request({
+      const req = Fez.req({
         url: this.href,
         method: this.method || 'GET',
         headers,
@@ -872,7 +872,6 @@ export default function createPjax() {
     }
   }
 
-  attachUrlState(Pjax);
   Pjax.PjaxOnClick = createOnClick(Pjax);
 
   return Pjax;

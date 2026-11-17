@@ -1,5 +1,6 @@
 import { decodeExpressionEntities } from './lib/template-compiler-lib.js';
 import evaluate from './lib/evaluate.js';
+import { loadText } from './lib/request.js';
 
 // Wrap defaults in a function to avoid immediate execution
 const loadDefaults = () => {
@@ -54,15 +55,17 @@ const loadDefaults = () => {
     'fez-include',
     class {
       init(props) {
-        Fez.fetch(props.src, (data) => {
-          // the response can land after the include was removed
-          if (!this.root) {
-            return;
-          }
-          const dom = Fez.domRoot(data);
-          Fez.head(dom); // include scripts and load fez components
-          this.root.innerHTML = dom.innerHTML;
-        });
+        loadText(props.src)
+          .then((data) => {
+            // the response can land after the include was removed
+            if (!this.root) {
+              return;
+            }
+            const dom = Fez._.domRoot(data);
+            Fez.head(dom); // include scripts and load fez components
+            this.root.innerHTML = dom.innerHTML;
+          })
+          .catch((error) => Fez.onError('fetch', error));
       }
     },
   );
@@ -107,7 +110,7 @@ const loadDefaults = () => {
         this._fezSlotNodes = this._fezChildNodes = undefined;
 
         if (template) {
-          this.fezHtmlFunc = Fez.createTemplate(template, {
+          this.fezHtmlFunc = Fez._.createTemplate(template, {
             name: 'fez-inline',
           });
         }
@@ -756,11 +759,11 @@ const loadDefaults = () => {
 
       showHtml(name) {
         const html = Fez.index[name]?.demo || 'No demo HTML';
-        Fez.dump('Demo HTML: ' + name + '\n\n' + html);
+        Fez.dev.dump('Demo HTML: ' + name + '\n\n' + html);
       }
 
       showFez(name) {
-        Fez.dump(
+        Fez.dev.dump(
           'Fez source: ' +
             name +
             '\n\n' +

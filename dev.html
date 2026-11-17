@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="./docs/css/full.css" />
     <script>
       function loadFez(name) {
-        Fez.onReady(()=>{
+        Fez.util.onReady(()=>{
           document.body.innerHTML += `
             <template fez="./docs/fez/${name}.fez"></template>
             <xfez-include src="./docs/fez/${name}.html"></xfez-include>

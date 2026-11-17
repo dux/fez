@@ -11,8 +11,8 @@ globalThis.DocumentFragment = window.DocumentFragment;
 globalThis.Node = window.Node;
 
 // Mock Fez
-globalThis.Fez = {
-  htmlAttr: (name, value) => htmlAttr(name, value, globalThis.Fez.htmlEscape),
+const mockUtil = {
+  htmlAttr: (name, value) => htmlAttr(name, value, mockUtil.htmlEscape),
   styleProp,
   fnv1: (t) => String(t),
   jsEscape: (v) => (v == null ? "" : JSON.stringify(String(v)).slice(1, -1).replace(/['`$]/g, "\\$&")),
@@ -38,7 +38,10 @@ globalThis.Fez = {
     if (v && typeof v === "object") return Object.keys(v).length > 0;
     return !!v;
   },
-  // Mock Fez.fezAwait for template tests
+};
+
+// Mock Fez._.fezAwait for template tests
+const mockInternals = {
   fezAwait: (component, awaitId, promiseOrValue) => {
     component._awaitStates ||= new Map();
 
@@ -82,6 +85,8 @@ globalThis.Fez = {
     return state;
   },
 };
+
+globalThis.Fez = { util: mockUtil, _: mockInternals };
 
 // Render slots for :attr values, same class the instance uses
 const createFezGlobals = () => new RenderSlots();

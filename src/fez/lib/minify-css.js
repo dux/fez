@@ -1,7 +1,7 @@
 // Build-time CSS minifier for component <style> blocks (compile-module, `minify`).
 //
 // Whitespace and comments only: the output is the same nested CSS, so the
-// runtime pipeline (Fez.cssMixin, flattenCss) reads it exactly as it read the
+// runtime pipeline (Fez.css.mixin, flattenCss) reads it exactly as it read the
 // source. Strings and url() are copied verbatim; whitespace runs collapse to one
 // space and go away next to `{ } ; , :` where CSS never needs them.
 //

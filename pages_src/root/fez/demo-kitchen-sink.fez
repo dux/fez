@@ -20,8 +20,8 @@
   <script>
     // declaration mixins used by the components below; registered before any
     // of their styles are injected
-    Fez.cssMixin('kitchen-card', 'padding: 8px 10px; border: 1px solid var(--kitchen-line, #ccc); border-radius: 6px;')
-    Fez.cssMixin('kitchen-lift', 'transition: transform .15s; &:hover { transform: translateY(-1px); }')
+    Fez.css.mixin('kitchen-card', 'padding: 8px 10px; border: 1px solid var(--kitchen-line, #ccc); border-radius: 6px;')
+    Fez.css.mixin('kitchen-lift', 'transition: transform .15s; &:hover { transform: translateY(-1px); }')
 
     class {
       MOUNT = true

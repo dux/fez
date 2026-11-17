@@ -636,7 +636,7 @@ Text expressions are HTML-escaped as text, whatever the value type (arrays and o
 <!-- busy false, open false, tip null: <button aria-expanded="false">Save</button> -->
 ```
 
-The boolean list is `BOOLEAN_ATTRS` in `src/fez/lib/attrs.js`; the same rule is available at runtime as `Fez.htmlAttr(name, value)`.
+The boolean list is `BOOLEAN_ATTRS` in `src/fez/lib/attrs.js`; the same rule is available at runtime as `Fez.util.htmlAttr(name, value)`.
 A quoted `name="{expr}"` is always written as text, and a boolean attribute whose text is `false`, `null` or `undefined` is turned off after the render.
 
 **Raw text.** A backtick in text content is a plain character (`` `code` `` in prose is fine).
@@ -680,7 +680,7 @@ Avoid `{{` / `}}` in new templates (write `:cfg="{a: 1}"`, not `:cfg={{a: 1}}`).
 - `{}` (empty object) -> **falsy**
 - Any object without own enumerable keys counts as empty, so a `Date`, `Map` or `Set` is **falsy**: test it explicitly (`{#if state.date != null}`)
 - Non-empty arrays, non-empty objects, and other truthy values -> **truthy**
-- The same rule is available as `Fez.isTruthy(value)`
+- The same rule is available as `Fez.util.isTruthy(value)`
 
 `{:elseif}`, `{:elsif}` and the colonless `{else if}`, `{elseif}`, `{elsif}` and `{else}` are aliases of `{:else if}` / `{:else}`.
 
@@ -953,7 +953,7 @@ Arrow functions in event attributes are automatically transformed:
 - Other bare names are not rewritten: write `state.count++` or `fez.count++`, never `count++`
 
 For scalar values, a plain string handler is just as good: `onclick="fez.remove('{item.id}')"`.
-Inside a quoted handler, `{value}` is escaped for a JavaScript string (`Fez.jsEscape`), so an id that contains a quote cannot break out of `'{item.id}'`.
+Inside a quoted handler, `{value}` is escaped for a JavaScript string (`Fez.util.jsEscape`), so an id that contains a quote cannot break out of `'{item.id}'`.
 
 ### Strict Event Handlers (`on<event>!=`)
 
@@ -1018,7 +1018,7 @@ Use `style:property={value}` to set one CSS property, custom properties included
 ```
 
 Directives are merged into the `style` attribute after its own declarations.
-A `null`, `undefined` or `false` value leaves that property out; the runtime helper is `Fez.styleProp(name, value)`.
+A `null`, `undefined` or `false` value leaves that property out; the runtime helper is `Fez.util.styleProp(name, value)`.
 
 ### Whitespace between nodes
 
@@ -1186,7 +1186,7 @@ This example showcases:
 - **Preserve DOM Elements** - Use `fez:keep="unique-key"` attribute to preserve DOM elements across re-renders (useful for child components, animations, form inputs, or stateful elements)
 - **Auto-ID for Form Inputs** - Elements with `fez:this` automatically get stable IDs, helping the differ preserve input state across re-renders
 - **Import Maps** - Use `Fez.head({importmap: {...}})` in a component `<script>` to map bare import specifiers to full URLs, avoiding duplicate library instances
-- **Style Macros** - Define custom CSS shortcuts like `Fez.cssMixin('print', '@media print')` and use as `:print { ... }` or `@include print { ... }`. A macro expands to a selector or an at-rule, so it can also encode a theme. End the usage with `;` instead (`.item { :card; }`) and the body is inlined as declarations, SCSS `@include` / Tailwind `@apply` style
+- **Style Macros** - Define custom CSS shortcuts like `Fez.css.mixin('print', '@media print')` and use as `:print { ... }` or `@include print { ... }`. A macro expands to a selector or an at-rule, so it can also encode a theme. End the usage with `;` instead (`.item { :card; }`) and the body is inlined as declarations, SCSS `@include` / Tailwind `@apply` style
 - **Dark Theme** - Built-in `:dark { ... }` macro expands to `&:where(.dark, .dark *)`, styling any component under a `dark` class on `<html>`. Zero added specificity; re-register it as `@media (prefers-color-scheme: dark)` to follow the OS instead, with no component changes
 - **Scoped Styles** - `<style>` is always scoped to the component, `<style global>` is always document-wide. Scope is declared on the tag, never inferred from the CSS. `:global(...)` hoists a single rule out of a scoped block (using it inside `<style global>` is a compile error - those rules are already global)
 
@@ -1209,10 +1209,10 @@ This example showcases:
 - **Priority-Based Element Matching** - Keyed matching (fez-keep > fez-key > key > id for elements; fez-key > key > source signature for components) with scored soft-match fallback preserves DOM identity across renders
 - **CSS Animation Preservation** - Class syncing uses `classList.add/remove`, not `setAttribute`, so transitions and animations survive re-renders
 - **Active Input Protection** - `value` and `checked` are not synced on the focused input, preventing disruption during typing
-- **One request layer** - `Fez.request()` (XMLHttpRequest: upload progress, abort, timeout, opt-in GET cache, Rails-style nested data) drives `Fez.fetch()`, pjax and the `Fez.$` ajax helpers
+- **One request layer** - `Fez.req()` (XMLHttpRequest: upload progress, abort, timeout, opt-in GET cache, Rails-style nested data) drives pjax and the `Fez.$` ajax helpers
 - **Small jQuery-shaped `Fez.$`** - selection, traversal, classes, attributes, insertion and namespaced events, without assigning `window.$`
 - **Rich Lifecycle Hooks** - `init`, `onMount` (may return a cleanup), `beforeRender`, `afterRender`, `onDestroy`, `onRefresh(props, changed)`, `onStateChange`, `onGlobalStateChange`, `onError`
-- **Development Mode** - `Fez.LOG = true` enables framework logs; `Fez.DEV = true` enables the Cmd/Ctrl + E component overlay (`Fez.highlightAll()`) on any port
+- **Development Mode** - `Fez.LOG = true` enables framework logs; `Fez.DEV = true` enables the Cmd/Ctrl + E component overlay (`Fez.dev.highlightAll()`) on any port
 
 ### Why It's Great
 
@@ -1435,13 +1435,13 @@ Fez('foo-bar', class {
 /* Utility methods */
 
 // define custom style macro - expands to a selector or an at-rule prelude
-// Fez.cssMixin('print', '@media print')
+// Fez.css.mixin('print', '@media print')
 // :print { ... } -> @media print { ... }
 // @include print { ... } -> same thing, both spellings work
 // note: the trailing space is required, `:print{` is not expanded
 //
 // end the usage with `;` and the body is inlined as declarations instead
-// Fez.cssMixin('card', 'padding: 16px; border-radius: 8px')
+// Fez.css.mixin('card', 'padding: 16px; border-radius: 8px')
 // .item { :card; color: red; } -> .item { padding: 16px; border-radius: 8px; color: red; }
 //
 // built in: mobile (max-width: 767px), tablet (768px - 1023px), desktop (min-width: 1200px), dark
@@ -1449,18 +1449,18 @@ Fez('foo-bar', class {
 // styles the component when <html> carries a `dark` class:
 //   document.documentElement.classList.toggle('dark', isDark)
 // to follow the OS instead, re-register it (no component CSS changes):
-//   Fez.cssMixin('dark', '@media (prefers-color-scheme: dark)')
+//   Fez.css.mixin('dark', '@media (prefers-color-scheme: dark)')
 //
 // Component CSS is injected once, when the component is defined, so register custom macros
 // before the components that use them. With bundler imports, register them in a module imported
 // before the .fez modules (ES imports run before the importing file's own code).
-Fez.cssMixin(name, value)
+Fez.css.mixin(name, value)
 // one argument: returns css with every registered macro expanded
-Fez.cssMixin(css)
+Fez.css.mixin(css)
 
 // inject a stylesheet (string or function returning one); macros expand, nesting is flattened,
 // identical text is injected once; returns a stable 'fez-<hash>' key
-Fez.globalCss(`
+Fez.css.global(`
   .some-class {
     color: red;
     &.foo { ... }
@@ -1468,9 +1468,9 @@ Fez.globalCss(`
   }
 `)
 // scope it to a component: every :fez becomes .fez.ui-card-fez (without :fez nothing is scoped)
-Fez.globalCss(':fez { .title { font-weight: 600; } }', { name: 'ui-card' })
+Fez.css.global(':fez { .title { font-weight: 600; } }', { name: 'ui-card' })
 // wrap: true wraps the whole text in :fez { } first, so bare declarations style the wrapper
-Fez.globalCss('outline: 1px dotted;', { name: 'ui-card', wrap: true })
+Fez.css.global('outline: 1px dotted;', { name: 'ui-card', wrap: true })
 
 // localStorage with automatic JSON serialization (preserves types)
 Fez.localStorage.set('count', 42)
@@ -1485,31 +1485,24 @@ Fez.localStorage.clear()
 // storage errors and unparsable values are logged, never thrown; get then returns the default
 
 // internal, get unique ID for a string, poor mans MD5 / SHA1
-Fez.fnv1('some string')
-
-// get dom node containing passed html; the second argument picks the wrapper tag (default div)
-Fez.domRoot(htmlData || htmlNode)
-Fez.domRoot(html, 'ul')
-
-// activates node by adding class to node, and removing it from siblings
-Fez.activateNode(node, className = 'active')
+Fez.util.fnv1('some string')
 
 // wrap rules in a generated class, inject them, return the class name (flattens nesting, does not expand macros)
-Fez.cssClass(text)
+Fez.css(text)
 
 // everything Fez has injected so far, in order (SSR, debugging)
-Fez.extractCss()
+Fez.css.extract()
 
 // show any value in the dump dialog (objects as JSON, DOM nodes as HTML, functions as source).
 // Every call adds an entry; Esc closes / reopens the dialog, Left/Right step one entry,
 // Up/Down step five, "clear all" empties it; a closed dialog leaves a LOG button top-right.
 // Also available as window.LOG(value) unless the page defines LOG.
-Fez.dump(value)
+Fez.dev.dump(value)
 
-// toggle red overlays naming every mounted component; click a label to Fez.dump that element.
+// toggle red overlays naming every mounted component; click a label to Fez.dev.dump that element.
 // Cmd/Ctrl + E does the same (not while focus is inside a <form>).
 // Active when Fez.DEV === true, or on a port above 2999 unless Fez.DEV === false.
-Fez.highlightAll()
+Fez.dev.highlightAll()
 
 // component-aware DOM morph; source is an HTML string, an Element or a DocumentFragment
 // opts may add differ hooks, see "DOM Diffing Engine"
@@ -1517,50 +1510,44 @@ Fez.nodeMorph(target, newNodeOrHtml, opts)
 
 // escape any value as text (null / undefined -> ''), and the runtime helpers behind
 // name={expr} and style:name={expr}
-Fez.htmlEscape(value)
-Fez.htmlAttr(name, value)
-Fez.styleProp(name, value)
+Fez.util.htmlEscape(value)
+Fez.util.htmlAttr(name, value)
+Fez.util.styleProp(name, value)
 
 // create HTML tags with encoded props
 Fez.tag(tag, opts, html)
 
 // execute function until it returns true
-Fez.untilTrue(func, pingRate)
+Fez.util.untilTrue(func, pingRate)
 
 // animate a plain node from its old to its new size whenever its content changes
-Fez.animateSize(node, 'height, duration=250')
+Fez.util.animateSize(node, 'height, duration=250')
+
+// activates node by adding class to node, and removing it from siblings
+Fez.util.activateNode(node, className = 'active')
 
 // short type code: 'o' object, 'f' function, 's' string, 'a' array,
 // 'i' integer, 'n' float, 'b' boolean, 'u' undefined/null
-Fez.typeof(value)
+Fez.util.typeof(value)
 
-// park a function for inline HTML, returns the string 'Fez.POINTER[n]'; one call, then dropped
+// park a function for inline HTML, returns the string 'Fez._.POINTER[n]'; one call, then dropped
 // (unused ones are swept after 5 minutes)
 Fez.pointer(fn)
 Fez.pointer(fn, { persist: true })   // kept until the page unloads
 
-Fez.throttle(fn, 200)        // leading call plus one trailing call per window
-Fez.onReady(fn)              // after DOMContentLoaded, or right away
-Fez.uid()                    // 'fez_uid_...' unique string
-Fez.isTruthy(value)          // template truthiness: [] and keyless objects are false
-Fez.jsEscape(value)          // value escaped for a quoted JS string in handler code, '' for null/undefined
-Fez.darkenColor('#336699', 20); Fez.lightenColor('#336699', 20)
-Fez.nameFromPath('/c/ui-card.fez?v=2')   // 'ui-card'
-Fez.instances                // Map of live instances by UID
+Fez.util.throttle(fn, 200)        // leading call plus one trailing call per window
+Fez.util.onReady(fn)              // after DOMContentLoaded, or right away
+Fez.util.uid()                    // 'fez_uid_...' unique string
+Fez.util.isTruthy(value)          // template truthiness: [] and keyless objects are false
+Fez.util.jsEscape(value)          // value escaped for a quoted JS string in handler code, '' for null/undefined
+Fez.util.darkenColor('#336699', 20); Fez.util.lightenColor('#336699', 20)
 Fez.nonce()                  // CSP nonce Fez uses for the scripts it inserts ('' without one)
-Fez.runScript(code)          // run code in a nonced <script>, in a function scope
-Fez.consoleLog(text)         // logs only when Fez.LOG is on (truncated to 180 chars)
-Fez.consoleError(text, true) // error log; with show = true it also returns a red HTML badge to render
 
 // compile .fez source at runtime: all template[fez] / xmp[fez] in the page, one node, or name + source.
 // The name form returns the class and reuses it while the source is unchanged.
 Fez.compile()
 Fez.compile(templateNode)
 Fez.compile('ui-foo', fezSource)
-
-// compile Fez template source to a render function: render(component) -> HTML string
-// strict: true throws compile and render errors instead of logging them
-Fez.createTemplate(text, { name: 'my-tag', strict: false })
 
 // library version, from package.json at build time (the `fez version` CLI reads .version; both match after a deploy)
 Fez.version
@@ -1940,7 +1927,7 @@ import './components/ui-button.fez'
 - That covers runtime compiling (`<script fez>`, `<template fez>`, `<xmp fez>`, `Fez.compile`, a string `HTML` field), `<fez-inline>`, `<fez-if>`, `Fez.getFunction('code')` and string handler props, `:attr="expr"` on server-rendered tags, and `<demo>` scripts.
 - Precompiled templates put no inline handler in the DOM: every `on<event>` becomes a closure listed in one `fez-on` attribute and bound after the render, so the DOM shows `fez-on="..."` instead of `onclick`.
 - A quoted handler still runs as a function body with `this` as the element, so `return false` cancels the default.
-- Scripts that fez inserts (`<head>` blocks, `Fez.runScript(code)`, pjax response scripts) carry the page nonce, read from the script that loaded fez (`Fez.nonce()`).
+- Scripts that fez inserts (`<head>` blocks, pjax response scripts) carry the page nonce, read from the script that loaded fez (`Fez.nonce()`).
 
 ## Template scope
 
@@ -2174,7 +2161,7 @@ Inside a scoped block, `:global(...)` works the Svelte way - the part inside it 
 * `<style global>` is not wrapped, so a declaration at its top level has no selector and is dropped; put it under `:root`, `html` or a class.
 * Component CSS lands in one `<style id="fez-css">` in `<head>`; a page may ship that node pre-filled (SSR), and if a navigation removes it Fez recreates it with every rule injected so far.
 * Injected CSS is never removed; a component's rules stay after its last instance is destroyed.
-* Custom style macros must be registered before the component that uses them is defined (see `Fez.cssMixin`).
+* Custom style macros must be registered before the component that uses them is defined (see `Fez.css.mixin`).
 
 ### state and props
 
@@ -2338,14 +2325,14 @@ Dialog.close()
 Fez('#main-dialog').close()
 ```
 
-## Remote requests: Fez.request
+## Remote requests: Fez.req
 
-Every request Fez makes - `Fez.fetch`, pjax navigation, `Fez.$.ajax` - goes through `Fez.request`.
+Every request Fez makes - pjax navigation, `Fez.$.ajax` - goes through `Fez.req`.
 It runs on `XMLHttpRequest`, because `fetch` still cannot report upload progress outside Chromium.
 
 ```js
-const req = Fez.request({ method: 'POST', url: '/api/save', data: { refs: [1, 2] } });
-const req = Fez.request('/api/list', { data: { page: 2 }, cache: 60 }); // url first, options second
+const req = Fez.req({ method: 'POST', url: '/api/save', data: { refs: [1, 2] } });
+const req = Fez.req('/api/list', { data: { page: 2 }, cache: 60 }); // url first, options second
 
 const res = await req; // never rejects
 res.ok;      // 2xx and no transport error
@@ -2358,60 +2345,23 @@ req.abort();
 req.xhr; // the live XMLHttpRequest
 
 // upload with progress
-Fez.request({ method: 'POST', url: '/upload', data: { file }, onUpload: (p) => (bar.value = p.percent) });
+Fez.req({ method: 'POST', url: '/upload', data: { file }, onUpload: (p) => (bar.value = p.percent) });
 
 // default headers, sent to the same origin only
-Fez.request.headers['x-csrf-token'] = token;
+Fez.req.headers['x-csrf-token'] = token;
 ```
 
 Options: `url`, `method` (default `GET`), `data`, `json`, `headers`, `timeout` (ms), `cache` (GET only, seconds), `signal`, `responseType`, `credentials`, `onUpload`, `onProgress`.
 
 * `data` is the query string for GET and HEAD, and the body for every other method.
-  A plain object is encoded Rails/Rack style with `Fez.param` (`refs[]=1&refs[]=2`, `user[name]=x`, `rows[0][id]=1`); when it holds a `Blob` or `File` anywhere it is sent as multipart `FormData` with the same names.
+  A plain object is encoded Rails/Rack style with `Fez.req.param` (`refs[]=1&refs[]=2`, `user[name]=x`, `rows[0][id]=1`); when it holds a `Blob` or `File` anywhere it is sent as multipart `FormData` with the same names.
   `FormData`, `URLSearchParams`, `Blob`, `ArrayBuffer` and strings are sent as they are; `json: true` sends a JSON body.
 * An HTTP error status resolves like any other response, so the caller can read the error body.
-* Same-origin requests send `x-requested-with: XMLHttpRequest` plus `Fez.request.headers`; cross-origin requests get only the per-call `headers`, so a presigned upload URL is not broken by app headers.
+* Same-origin requests send `x-requested-with: XMLHttpRequest` plus `Fez.req.headers`; cross-origin requests get only the per-call `headers`, so a presigned upload URL is not broken by app headers.
   A per-call `null` header drops a default one.
 * `onUpload` is attached only when given, because an upload listener forces a CORS preflight.
 * `cache: seconds` reuses a successful GET and makes concurrent identical GETs share one request (aborting it aborts it for every joined caller); without `cache` every request hits the network.
-  `Fez.request.clearCache()` drops cached and in-flight cached GETs.
-
-## Fez.fetch API
-
-`Fez.fetch` is the throwing, cached sugar over `Fez.request`:
-
-### Basic Usage
-
-```js
-// GET request with promise
-const data = await Fez.fetch('https://api.example.com/data');
-
-// GET request with callback, does not create promise
-Fez.fetch('https://api.example.com/data', (data) => {
-  console.log(data);
-});
-
-// GET with query params (?q=fez), with or without a callback
-const found = await Fez.fetch('/api/search', { q: 'fez' });
-
-// POST request, data encoded like Fez.request
-const result = await Fez.fetch('POST', 'https://api.example.com/data', {
-  key: 'value',
-});
-
-// drop cached responses
-Fez.request.clearCache();
-```
-
-### Features
-
-- **Automatic JSON parsing**: Response is automatically parsed if Content-Type is application/json, otherwise it is text
-- **GET caching**: only GET responses are cached, in memory, for 5 minutes, at most 100 entries (oldest dropped first); concurrent identical GETs share one request. Other methods always hit the network
-- **Errors reject**: a non-2xx response, a network failure or a timeout rejects the promise and is never cached
-- **Flexible parameter order**: Method can be omitted (defaults to GET), callback can be last parameter (`Fez.fetch(url, data, callback)` works too)
-- **Methods**: pass the method uppercase as the first argument; `data` is the query string for GET and the body for other methods (see `Fez.request`)
-- **Error handling**: When using callbacks, errors are passed to `Fez.onError` with kind 'fetch'
-- **Logging**: Enable with `Fez.LOG = true` to see every fetch
+  `Fez.req.clearCache()` drops cached and in-flight cached GETs.
 
 ## Fez.$
 
@@ -2438,9 +2388,9 @@ Differences from jQuery, on purpose:
 
 * `on()` keeps one handler per node, event and key; the key is the `.namespace`, else a hash of the handler source and delegate selector.
   Registering again replaces the handler, so a script that a pjax swap runs again does not stack handlers.
-* `$.ajax`, `$.get` and `$.post` run on `Fez.request`.
+* `$.ajax`, `$.get` and `$.post` run on `Fez.req`.
   They return the request promise (with `abort()` and `xhr`) plus `.done(data, res)`, `.fail(res)` and `.always(res)`, which also run when attached after the response arrived.
-  `$.ajax` maps `type`, `success(data, res)`, `error(res)`, `complete(res)` and `contentType: 'json'`, and passes every other `Fez.request` option through.
+  `$.ajax` maps `type`, `success(data, res)`, `error(res)`, `complete(res)` and `contentType: 'json'`, and passes every other `Fez.req` option through.
 * No animations, effects queue, deferreds or `$.Callbacks`.
 
 ### Custom Error Handler
@@ -2466,7 +2416,7 @@ Fez.onError = (kind, message, context) => {
 Fez bundles Pjax (PushState + AJAX) navigation, formerly the standalone `dux-pjax` package.
 It renders a server HTML response into the current page instead of performing a hard navigation: browser history is preserved, assets are not re-parsed, and page swaps go through `Fez.nodeMorph`, so fez components on the page survive navigation (see "Component Identity" above).
 
-The public API is `Fez.load` and `Fez.refresh`, plus the URL state helpers `Fez.qs`, `Fez.hash`, `Fez.hpath` and `Fez.hqs`.
+The public API is `Fez.load` and `Fez.refresh`; URL state is read and written with `Fez.url` (below).
 Configuration and hooks live on `Fez.pjax`, the navigation class the shortcuts delegate to.
 There is no `window.Pjax` global.
 
@@ -2588,49 +2538,58 @@ Every pjax request is a `fetch` with `x-requested-with: XMLHttpRequest`, so the 
 Each swap node has its own debounce and its own in-flight request, so `Fez.load('#a')` and `Fez.load('#b')` run side by side.
 A new request for the same node aborts the older one, and a full page load aborts every pending node load.
 
-### Query-string and hash state
+### URL state (Fez.url)
 
-`Fez.qs()` stores named values in `?key=value`, and `Fez.hash()` stores them in `#key=value`.
-Both use the same options and preserve the pathname, the other URL section, and unrelated parameters.
-Values are URL-encoded when written and decoded to strings when read; missing keys return `undefined`.
-`Fez.hash()` treats a slashless fragment as a parameter list, never as an element ID; hash routes use `Fez.hpath()`/`Fez.hqs()` below.
+`Fez.url(href)` parses and builds any URL, part by part; with no href it reads the current page.
 
-```js
-Fez.qs('page', 2)                            // push a history entry, without fetching
-Fez.hash('tab', 'settings')                  // push a history entry, without fetching
-Fez.qs('page')                               // '2'
-Fez.hash('tab')                              // 'settings'
-Fez.qs('page', 3, { replace: true })          // replace the current history entry
-Fez.hash('tab', 'users', { replace: true })   // same option for hash state
-Fez.qs('page', 4, { href: true })             // return the URL without changing it
-Fez.hash('tab', 'users', { href: true })      // same option for hash state
-Fez.qs('page', null)                         // remove a parameter (false also removes)
-Fez.hash('tab', null)                        // remove a hash parameter
+```
+https :// app.example.com : 8443 /foo/bar /baz:789 ?baz=123 # /some/hpath ?baz=455
+proto     host              port  path     pqs      qs        hpath        hqs
 ```
 
-### Hash routes
+| Method | On the URL above |
+|---|---|
+| `proto()` | `'https'` |
+| `host()` | `'app.example.com'` |
+| `port()` | `'8443'` (`''` for the protocol's default port) |
+| `path()` | `'/foo/bar'` (without the path params) |
+| `pqs('baz')` / `pqs()` | `'789'` / `{ baz: '789' }` - trailing `/key:value` segments |
+| `qs('baz')` / `qs()` | `'123'` / `{ baz: '123' }` |
+| `hpath()` | `'/some/hpath'` (`''` when the fragment is not a route) |
+| `hqs('baz')` / `hqs()` | `'455'` / `{ baz: '455' }` |
+| `anchor()` | `''` (`'section'` for `#section`) |
 
-`Fez.hpath()` and `Fez.hqs()` address a route inside the fragment.
-A fragment whose path part contains a slash is a route (`#/traffic`, `#ns/traffic?app=shop`), and the route name is its last path segment.
-A slashless fragment (`#foo`, `#tab=settings`) stays a native anchor or a `Fez.hash()` parameter list.
-Both helpers use the same options, are history-only, and preserve the other URL section.
+A method reads with a key and writes with a value; a write returns the builder, so writes chain.
+`null`, `false` and `''` remove a key, an object writes several keys, and `qs(null)` / `pqs(null)` / `hqs(null)` clear the whole list.
+Values are encoded when written and decoded to strings when read; missing keys return `undefined`.
+Writing a path param drops the same key from the query, and `path(value)` merges trailing `/key:value` segments of the new path into the path params.
+Untouched parts keep their original encoding, so `String(Fez.url(href)) === href`.
+
+The fragment takes one of three forms, and writing one replaces the others:
+
+* A route: any fragment with a `/` before its `?` (`#/logs?app=x`, `#ns/logs`) - `hpath` and `hqs`. `hpath('logs')` writes `#/logs` and keeps the route query.
+* A parameter list: a slashless fragment with `=` (`#tab=x&y=1`) - `hqs`.
+* An anchor: anything else (`#section`) - `anchor`.
+
+`toString()` is relative on the page's own origin and absolute elsewhere; `href()` is always absolute.
+`push()` adds a history entry and `replace()` rewrites the current one, both without fetching; `Fez.load` takes a builder to navigate.
 
 ```js
-Fez.hpath()                                  // 'traffic' ('' when the fragment is not a route)
-Fez.hqs('app')                               // 'shop'
-Fez.hpath('logs')                            // push '#/logs', preserving the query
-Fez.hpath('logs', { qs: { app: 'x' } })       // push '#/logs?app=x'
-Fez.hqs('app', 'x')                          // push '#/logs?app=x', keeping the path
-Fez.hqs('app', null)                         // remove a parameter, drop an empty query
-Fez.hpath('logs', { qs: {}, href: true })     // '/catalog#/logs' without changing the URL
-Fez.hpath('')                                // clear the route
+Fez.url('/admin/users?page=2').qs('q', 'joe').toString()   // '/admin/users?page=2&q=joe'
+Fez.url('/x').pqs('pri', 3).qs({ page: 2 }).hpath('logs').hqs('app', 'shop').toString()
+                                                          // '/x/pri:3?page=2#/logs?app=shop'
+Fez.url().qs('page')                                      // the current page
+Fez.url.qs('page')                                        // the same, shorter
+Fez.url.qs('page', 2).push()                              // add a history entry, no fetch
+Fez.url.hqs('tab', 'users').replace()                     // rewrite the current entry
+Fez.load(Fez.url.qs('page', 2))                           // navigate
+`<a href="${Fez.url.pqs('pri', 3)}">`                      // a link off the current page
 ```
 
-`href: true` takes precedence over `replace: true` and never changes history.
-Setters do not fetch, scroll, fire `popstate` or `hashchange`, or automatically bind to component state.
-Update component state after a setter and use `this.on('popstate', ...)` to read values again on Back/Forward; use `this.on('hashchange', ...)` for native fragment edits too.
+`Fez.url.<method>(...)` is `Fez.url().<method>(...)` on the current page, read at call time, for `proto`, `host`, `port`, `path`, `pqs`, `qs`, `hpath`, `hqs`, `anchor`, `href`, `push` and `replace`.
+Writes do not fetch, scroll, fire `popstate` or `hashchange`, or automatically bind to component state.
+Update component state after a write and use `this.on('popstate', ...)` to read values again on Back/Forward; use `this.on('hashchange', ...)` for native fragment edits too.
 Hash-only Back/Forward leaves the page mounted; path or query changes still use normal page restoration/navigation when pjax is active.
-To change a query parameter and navigate, call `Fez.load(Fez.qs('page', 2, { href: true }))`.
 
 ### Link and form attributes
 
@@ -2697,7 +2656,7 @@ The default `error` logs `Pjax error: <msg>` with `console.error`.
 
 Inside a fez component, `this.on('pjax:render', () => this.refresh())` is the usual pattern for data that must follow navigation.
 
-Other `Fez.pjax` members: `path()` (pathname + search), `last()` (last loaded href, or the current path), `refreshed()` (`true` when the last two loads hit the same href), `node()` (the pjax container), `layout()` (the `pjax-layout` meta id or `null`), `push(href)` / `replace(href)` (history writes that keep pjax's Back/Forward tracking in sync), `historyData` (the Back/Forward cache) and `requests` (in-flight `Fez.request` promises by swap key, each with `abort()`).
+Other `Fez.pjax` members: `path()` (pathname + search), `last()` (last loaded href, or the current path), `refreshed()` (`true` when the last two loads hit the same href), `node()` (the pjax container), `layout()` (the `pjax-layout` meta id or `null`), `push(href)` / `replace(href)` (history writes that keep pjax's Back/Forward tracking in sync), `historyData` (the Back/Forward cache) and `requests` (in-flight `Fez.req` promises by swap key, each with `abort()`).
 
 ### Response scripts
 
@@ -2743,7 +2702,7 @@ Files that declare their own `Pjax` (`class Pjax`, `let`/`const`/`var Pjax`, or 
 
 | Old | New |
 |---|---|
-| `Pjax.load`, `Pjax.qs`, `Pjax.hash`, `Pjax.hpath`, `Pjax.hqs` | `Fez.load`, `Fez.qs`, `Fez.hash`, `Fez.hpath`, `Fez.hqs` |
+| `Pjax.load`, `Pjax.qs`, `Pjax.hash`, `Pjax.hpath`, `Pjax.hqs` | `Fez.load`, `Fez.url.qs`, `Fez.url.hqs`, `Fez.url.hpath`, `Fez.url.hqs` |
 | `Pjax.refresh(path)` | `Fez.refresh(path)` |
 | `Pjax.reload()` / `Pjax.reload('#x')` | `Fez.refresh()` / `Fez.refresh('#x')` |
 | `Pjax.refresh(this)` (an element in a `.ajax` region) | `Fez.refresh(null, { source: this })` |
@@ -2779,7 +2738,7 @@ Loads remote HTML content via URL:
 <fez-include src="./fez/ui-slider.html"></fez-include>
 ```
 
-The HTML is fetched through `Fez.fetch` (so the 5-minute GET cache applies), its inline `<script>` blocks run and its `<template fez>` / `<xmp fez>` definitions compile before it is inserted; a `<script src>` or `<script fez>` in the included HTML is not supported.
+The HTML is fetched with a GET cached for 5 minutes, its inline `<script>` blocks run and its `<template fez>` / `<xmp fez>` definitions compile before it is inserted; a `<script src>` or `<script fez>` in the included HTML is not supported.
 `src` is read once at mount; changing it later does not reload.
 
 ### fez-if
@@ -2826,7 +2785,7 @@ The component lists each registered component that ships a demo and displays:
 
 - Component name with an "open" link (single view via `?fez=name`; "show all" goes back)
 - Live demo (left side) and the `<info>` block (right side)
-- "Demo HTML" and "Fez Component" buttons that open the source in the `Fez.dump` dialog, and a "CodePen" button that opens the component in a new pen
+- "Demo HTML" and "Fez Component" buttons that open the source in the `Fez.dev.dump` dialog, and a "CodePen" button that opens the component in a new pen
 - An "Undocumented" list of loaded components without a demo (`fez-*` built-ins are skipped)
 
 Each section has the anchor `#fez-demo-<name>`.

@@ -71,7 +71,7 @@ describe('Pjax module', () => {
     let inserted;
     let append;
     beforeEach(() => {
-      Fez._nonce = 'page-nonce';
+      Fez._.nonce = 'page-nonce';
       inserted = [];
       append = document.head.appendChild;
       document.head.appendChild = function (node) {
@@ -80,7 +80,7 @@ describe('Pjax module', () => {
       };
     });
     afterEach(() => {
-      Fez._nonce = undefined;
+      Fez._.nonce = undefined;
       document.head.appendChild = append;
     });
 
@@ -397,185 +397,6 @@ describe('Pjax module', () => {
       '<script fez="ui-x.fez"></script>',
     ]);
     expect(node.querySelector('p').textContent).toBe('a');
-  });
-
-  for (const method of ['qs', 'hash']) {
-    describe(`${method} URL state`, () => {
-      beforeEach(() => {
-        window.history.replaceState({}, '', '/catalog?keep=query#keep=hash');
-        Pjax.load = () => {
-          throw new Error('URL state must not fetch');
-        };
-      });
-
-      afterEach(() => {
-        window.history.replaceState({}, '', '/');
-      });
-
-      test('reads without changing the URL or history', () => {
-        const length = window.history.length;
-        expect(Pjax[method]('keep')).toBe(method === 'qs' ? 'query' : 'hash');
-        expect(Pjax[method]('missing')).toBeUndefined();
-        expect(location.href).toBe('http://localhost/catalog?keep=query#keep=hash');
-        expect(window.history.length).toBe(length);
-      });
-
-      test('pushes by default and preserves the other URL section and parameters', () => {
-        const length = window.history.length;
-        Pjax[method]('tab', 'settings');
-        expect(location.href).toBe(
-          method === 'qs'
-            ? 'http://localhost/catalog?keep=query&tab=settings#keep=hash'
-            : 'http://localhost/catalog?keep=query#keep=hash&tab=settings',
-        );
-        expect(window.history.length).toBe(length + 1);
-        expect(Pjax[method]('tab')).toBe('settings');
-      });
-
-      test('replace updates the URL without adding history', () => {
-        const length = window.history.length;
-        Pjax[method]('keep', 'updated', { replace: true });
-        expect(Pjax[method]('keep')).toBe('updated');
-        expect(window.history.length).toBe(length);
-      });
-
-      test('href returns a URL without writing, even with replace', () => {
-        const length = window.history.length;
-        for (const opts of [{ href: true }, { href: true, replace: true }]) {
-          expect(Pjax[method]('keep', 'preview', opts)).toBe(
-            method === 'qs'
-              ? '/catalog?keep=preview#keep=hash'
-              : '/catalog?keep=query#keep=preview',
-          );
-        }
-        expect(location.href).toBe('http://localhost/catalog?keep=query#keep=hash');
-        expect(window.history.length).toBe(length);
-      });
-
-      test('round-trips reserved characters, Unicode, empty strings and zero', () => {
-        for (const value of ['a b+c&d=e#f?%/\u017e', '', 0]) {
-          Pjax[method]('a &+=#', value);
-          expect(Pjax[method]('a &+=#')).toBe(String(value));
-        }
-      });
-
-      test('decodes encoded keys, plus spaces, and values containing equals', () => {
-        window.history.replaceState({}, '', '/?a+b=c+d=e#a+b=c+d=e');
-        expect(Pjax[method]('a b')).toBe('c d=e');
-      });
-
-      test('updating a repeated key keeps one value and preserves unrelated duplicates', () => {
-        window.history.replaceState({}, '', '/?k=1&k=2&x=a&x=b#k=1&k=2&x=a&x=b');
-        Pjax[method]('k', '3');
-        expect(location[method === 'qs' ? 'search' : 'hash'].slice(1)).toBe('k=3&x=a&x=b');
-      });
-
-      for (const value of [null, false]) {
-        test(`removes an existing key with ${value}, including the last delimiter`, () => {
-          Pjax[method]('keep', value);
-          expect(Pjax[method]('keep')).toBeUndefined();
-          expect(location.href).toBe(
-            method === 'qs'
-              ? 'http://localhost/catalog#keep=hash'
-              : 'http://localhost/catalog?keep=query',
-          );
-        });
-      }
-    });
-  }
-
-  describe('hash route state', () => {
-    beforeEach(() => {
-      window.history.replaceState({}, '', '/catalog#/traffic?app=x&range=24h');
-      Pjax.load = () => {
-        throw new Error('URL state must not fetch');
-      };
-    });
-
-    afterEach(() => {
-      window.history.replaceState({}, '', '/');
-    });
-
-    test('hpath reads the last path segment without changing the URL', () => {
-      const length = window.history.length;
-      expect(Pjax.hpath()).toBe('traffic');
-      expect(location.href).toBe('http://localhost/catalog#/traffic?app=x&range=24h');
-      expect(window.history.length).toBe(length);
-    });
-
-    test('hpath reads nested segments and treats slashless fragments as non-routes', () => {
-      for (const [fragment, expected] of [
-        ['#/foo', 'foo'],
-        ['#foo/bar', 'bar'],
-        ['#/foo/bar', 'bar'],
-        ['#/', ''],
-        ['#foo', ''],
-        ['#a=b', ''],
-      ]) {
-        window.history.replaceState({}, '', `/catalog${fragment}`);
-        expect(Pjax.hpath()).toBe(expected);
-      }
-    });
-
-    test('hqs reads a route query param only on a route fragment', () => {
-      expect(Pjax.hqs('app')).toBe('x');
-      expect(Pjax.hqs('missing')).toBeUndefined();
-      window.history.replaceState({}, '', '/catalog#anchor');
-      expect(Pjax.hqs('app')).toBeUndefined();
-      window.history.replaceState({}, '', '/catalog#app=x');
-      expect(Pjax.hqs('app')).toBeUndefined();
-    });
-
-    test('hpath pushes a canonical route and preserves the query', () => {
-      const length = window.history.length;
-      Pjax.hpath('logs');
-      expect(location.href).toBe('http://localhost/catalog#/logs?app=x&range=24h');
-      expect(window.history.length).toBe(length + 1);
-      expect(Pjax.hpath()).toBe('logs');
-    });
-
-    test('hpath replaces the query and accepts href', () => {
-      expect(Pjax.hpath('logs', { qs: { app: 'y' }, href: true })).toBe('/catalog#/logs?app=y');
-      expect(location.hash).toBe('#/traffic?app=x&range=24h');
-      Pjax.hpath('logs', { qs: { app: 'y' } });
-      expect(location.hash).toBe('#/logs?app=y');
-    });
-
-    test('hpath clears the route', () => {
-      Pjax.hpath('');
-      expect(location.hash).toBe('');
-    });
-
-    test('hqs pushes and preserves the route path', () => {
-      const length = window.history.length;
-      Pjax.hqs('app', 'z');
-      expect(location.href).toBe('http://localhost/catalog#/traffic?app=z&range=24h');
-      expect(window.history.length).toBe(length + 1);
-    });
-
-    test('hqs keeps a nested path prefix verbatim', () => {
-      window.history.replaceState({}, '', '/catalog#ns/traffic?app=x');
-      Pjax.hqs('app', 'y');
-      expect(location.hash).toBe('#ns/traffic?app=y');
-    });
-
-    test('hqs removes a param and drops the empty query', () => {
-      window.history.replaceState({}, '', '/catalog#/traffic?app=x');
-      Pjax.hqs('app', null);
-      expect(location.hash).toBe('#/traffic');
-    });
-
-    test('hqs is a no-op on a non-route fragment', () => {
-      window.history.replaceState({}, '', '/catalog#anchor');
-      expect(Pjax.hqs('app', 'y')).toBeUndefined();
-      expect(location.hash).toBe('#anchor');
-    });
-
-    test('hash() is unchanged for parameter fragments', () => {
-      window.history.replaceState({}, '', '/catalog#tab=settings');
-      expect(Pjax.hash('tab')).toBe('settings');
-      expect(Pjax.hpath()).toBe('');
-    });
   });
 
   // --- applyLoadedData ---

@@ -480,7 +480,7 @@ describe('fez boot gating', () => {
   test('the Fez shortcuts delegate to the current Fez.pjax', () => {
     bootPjax();
     const calls = [];
-    const names = ['load', 'refresh', 'qs', 'hash', 'hpath', 'hqs'];
+    const names = ['load', 'refresh'];
     const stub = Object.fromEntries(names.map((name) => [name, (...args) => (calls.push([name, ...args]), name)]));
     const original = Fez.pjax;
     Fez.pjax = stub;

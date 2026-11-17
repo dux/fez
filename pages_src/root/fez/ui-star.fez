@@ -109,7 +109,7 @@
 
     strokeColor(props, color) {
       if (props.stroke_color) return props.stroke_color
-      return color.startsWith('#') ? Fez.darkenColor(color) : color
+      return color.startsWith('#') ? Fez.util.darkenColor(color) : color
     }
 
     parseFill(fill) {

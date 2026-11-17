@@ -62,7 +62,7 @@ const GlobalState = {
   },
 
   notify(key, value, oldValue, writer) {
-    Fez.consoleLog(`Global state change for ${key}: ${value} (from ${oldValue})`);
+    Fez._.consoleLog(`Global state change for ${key}: ${value} (from ${oldValue})`);
 
     const subs = this.subs.get(key);
     if (subs) {

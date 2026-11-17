@@ -4,7 +4,7 @@
       const src = './fez.txt'
 
       // Get component names for rendering
-      Fez.fetch(src, (text) => {
+      Fez.req(src, { cache: 300 }).then(({ data: text }) => {
         const paths = text.trim().split('\n').filter(n => n.trim() && !n.startsWith('#'))
         // Extract component names (last part of path, without extension)
         const names = paths.map(p => p.split('/').pop().replace('.fez', ''))
@@ -143,7 +143,7 @@
     init(props) {
       if (!props.name) return
       this.name = props.name
-      Fez.fetch(`./fez/${props.name}.fez`, (res) => {
+      Fez.req(`./fez/${props.name}.fez`, { cache: 300 }).then(({ data: res }) => {
         Fez.compile(props.name, res)
         this.state.code = Fez.index[props.name].source
           .replaceAll('fez.', 'fez․') // hack to hide dot

@@ -5,12 +5,12 @@ const getFez = () => globalThis.window.Fez;
 // Return just the CSS this call added to the shared stylesheet.
 const rewrite = (css, opts) => {
   const Fez = getFez();
-  const before = Fez.extractCss().length;
-  Fez.globalCss(css, opts);
-  return Fez.extractCss().slice(before);
+  const before = Fez.css.extract().length;
+  Fez.css.global(css, opts);
+  return Fez.css.extract().slice(before);
 };
 
-describe("Fez.globalCss", () => {
+describe("Fez.css.global", () => {
   test("rewrites :fez to the component root selector", () => {
     const out = rewrite(":fez { color: red; }", { name: "ui-btn" });
     expect(out).toContain(".fez.ui-btn-fez");
@@ -79,10 +79,10 @@ describe("Fez.globalCss", () => {
 });
 
 describe("statement at-rules", () => {
-  test("@import from a scoped style leads extractCss instead of landing mid-sheet", () => {
+  test("@import from a scoped style leads css.extract instead of landing mid-sheet", () => {
     const Fez = getFez();
-    Fez.globalCss(":fez { .a { x: 1; } @import url(late.css); }", { name: "ui-imp" });
-    const css = Fez.extractCss();
+    Fez.css.global(":fez { .a { x: 1; } @import url(late.css); }", { name: "ui-imp" });
+    const css = Fez.css.extract();
     expect(css.startsWith("@import url(late.css);")).toBe(true);
     expect(css).toContain(".fez.ui-imp-fez .a{x: 1;}");
   });

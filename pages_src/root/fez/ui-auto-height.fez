@@ -1,7 +1,7 @@
 <info>
   <ul>
     <li><code>fez:animate="height"</code> - the element animates from its old to its new height whenever its content changes</li>
-    <li>Built in, no wrapper component: put the attribute on any element in a template, or call <code>Fez.animateSize(node, 'height, duration=250')</code> on plain DOM</li>
+    <li>Built in, no wrapper component: put the attribute on any element in a template, or call <code>Fez.util.animateSize(node, 'height, duration=250')</code> on plain DOM</li>
     <li>Catches state re-renders, nested component renders and outside DOM changes (ResizeObserver, animates before paint, no flicker, no inline height left behind)</li>
     <li>Params: <code>duration</code>, <code>delay</code>, <code>easing</code>. <code>width</code> / <code>size</code> animate the other axis, <code>fez:animate="flip, height"</code> combines with list reorder</li>
   </ul>

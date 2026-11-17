@@ -557,7 +557,7 @@ state.results = null</code></pre></div>
               </div>
               <site-live title="async template" right-title="three states">
                 <div class="src"><pre><code>init() {
-  this.state.user = Fez.fetch('/api/user')
+  this.state.user = Fez.req('/api/user').then(res =&gt; res.data)
 }
 
 {#await state.user}
@@ -637,7 +637,7 @@ state.results = null</code></pre></div>
   &lt;span&gt;{index}: {value}&lt;/span&gt;
 {/for}</code></pre></div>
                 <div class="out feature-result"><span class="result-stack"><span>theme: dark</span><span>density: compact</span></span></div>
-                <div class="out-label">Fez.toPairs() supplies the same pair model to both loop forms</div>
+                <div class="out-label">Fez.util.toPairs() supplies the same pair model to both loop forms</div>
               </site-live>
             </article>
 
@@ -710,7 +710,7 @@ state.results = null</code></pre></div>
   aria-label={state.active ? 'Deactivate' : 'Activate'}
 &gt;Save&lt;/button&gt;</code></pre></div>
                 <div class="out feature-result"><button type="button" class="site-btn" style="padding: 10px 16px;">Save</button><span class="result-chip">class="btn active"</span><span class="result-chip">aria-expanded="false"</span><span class="result-chip">no title, not disabled</span></div>
-                <div class="out-label">control-flow blocks are never placed inside an attribute; Fez.htmlAttr(name, value) is the runtime rule</div>
+                <div class="out-label">control-flow blocks are never placed inside an attribute; Fez.util.htmlAttr(name, value) is the runtime rule</div>
               </site-live>
             </article>
 
@@ -728,7 +728,7 @@ state.results = null</code></pre></div>
   style:--accent={props.accent}
 &gt;...&lt;/div&gt;</code></pre></div>
                 <div class="out feature-result"><code>style="padding: 4px;color: red;width: 120px;"</code></div>
-                <div class="out-label">accent unset, so --accent is left out; Fez.styleProp is the runtime helper</div>
+                <div class="out-label">accent unset, so --accent is left out; Fez.util.styleProp is the runtime helper</div>
               </site-live>
             </article>
 
@@ -1115,7 +1115,7 @@ saveDraft() {
 document.documentElement.classList.toggle('dark', true)
 
 // optional OS-driven behavior
-Fez.cssMixin('dark',
+Fez.css.mixin('dark',
   '@media (prefers-color-scheme: dark)')</code></pre></div>
                 <div class="out feature-result"><span class="result-demo" style="background: #17181c; color: #eee;">Dark card</span></div>
                 <div class="out-label">put the class on html so root tokens and overscroll match too</div>
@@ -1124,25 +1124,25 @@ Fez.cssMixin('dark',
 
             <article class="site-feature-row" id="custom-css-mixins">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">cssMixin · globalCss · cssClass · extractCss · color helpers</p>
+                <p class="site-feature-kicker">css.mixin · css.global · css · css.extract · color helpers</p>
                 <h3>Programmable CSS utilities</h3>
                 <p>Register selector, at-rule or declaration macros, inject deduplicated global nested CSS, create a generated utility class, and extract every injected rule in order for debugging or server rendering.</p>
               </div>
               <site-live title="CSS runtime" right-title="four APIs">
-                <div class="src"><pre><code>Fez.cssMixin('motion-ok',
+                <div class="src"><pre><code>Fez.css.mixin('motion-ok',
   '@media (prefers-reduced-motion: no-preference)')
 
 // `;` instead of `{` inlines the body as declarations
-Fez.cssMixin('card', 'padding: 16px; border-radius: 8px')
+Fez.css.mixin('card', 'padding: 16px; border-radius: 8px')
 // .item { :card; color: red; }
 
-Fez.globalCss('.toast { &amp;.error { color: red } }')
+Fez.css.global('.toast { &amp;.error { color: red } }')
 
-const klass = Fez.cssClass('display: grid; gap: 12px;')
-const allCss = Fez.extractCss()
+const klass = Fez.css('display: grid; gap: 12px;')
+const allCss = Fez.css.extract()
 
-Fez.darkenColor('#c8102e', 15)
-Fez.lightenColor('#c8102e', 15)</code></pre></div>
+Fez.util.darkenColor('#c8102e', 15)
+Fez.util.lightenColor('#c8102e', 15)</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">:motion-ok</span><span class="result-chip">deduped sheet</span><span class="result-chip">generated class</span><span class="result-chip">color shades</span></div>
                 <div class="out-label">the same flattener handles component and runtime CSS</div>
               </site-live>
@@ -1234,7 +1234,7 @@ Fez.lightenColor('#c8102e', 15)</code></pre></div>
 
             <article class="site-feature-row" id="size-animation">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">height · width · size · Fez.animateSize</p>
+                <p class="site-feature-kicker">height · width · size · Fez.util.animateSize</p>
                 <h3>Animate content size</h3>
                 <p>A ResizeObserver animates a kept element from its old box to its new one, including changes caused by nested components or outside DOM code. Combine size and FLIP specs when both change.</p>
               </div>
@@ -1247,7 +1247,7 @@ Fez.lightenColor('#c8102e', 15)</code></pre></div>
 
 &lt;li fez:animate="flip, height"&gt;...&lt;/li&gt;
 
-Fez.animateSize(node, 'width, duration=180')</code></pre></div>
+Fez.util.animateSize(node, 'width, duration=180')</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">height</span><span class="result-chip">width</span><span class="result-chip">both axes</span></div>
                 <div class="out-label">inline dimensions and overflow are restored after animation</div>
               </site-live>
@@ -1738,7 +1738,7 @@ const all = Fez('ui-tabs', tabs =&gt; tabs.refresh())
 Fez.find(node, 'ui-tabs')
 Fez.version // from package.json</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">register</span><span class="result-chip">one instance</span><span class="result-chip">all instances</span><span class="result-chip">parent context</span></div>
-                <div class="out-label">Fez.instances and Fez.instanceCount expose the live registry directly</div>
+                <div class="out-label">Fez(uid) and Fez.find reach any live instance</div>
               </site-live>
             </article>
 
@@ -1776,23 +1776,23 @@ Card.toBoolean('off')</code></pre></div>
 
             <article class="site-feature-row" id="fez-fetch">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">Fez.request · Fez.fetch · Fez.$</p>
+                <p class="site-feature-kicker">Fez.req · Fez.$</p>
                 <h3>One request layer</h3>
-                <p>Fez.request runs every request on XMLHttpRequest: upload progress, abort, timeout and Rails-style nested data, and it never rejects. Fez.fetch adds the 5-minute GET cache with in-flight de-dup, and Fez.$.ajax / $.get / $.post use the same transport.</p>
+                <p>Fez.req runs every request on XMLHttpRequest: upload progress, abort, timeout and Rails-style nested data, and it never rejects. Pass cache: seconds for the GET cache with in-flight de-dup, and Fez.$.ajax / $.get / $.post use the same transport.</p>
               </div>
               <site-live title="network" right-title="cache · de-dup">
-                <div class="src"><pre><code>const users = await Fez.fetch('/api/users')
+                <div class="src"><pre><code>const users = await Fez.req('/api/users', { cache: 300 })
 
-Fez.fetch('/api/search', { q: 'fez' }, data =&gt; {})
+Fez.req('/api/search', { data: { q: 'fez' } }).then(res =&gt; {})
 
-const res = await Fez.request({
+const res = await Fez.req({
   method: 'POST', url: '/api/users',
   data: { user: { name: 'Ada' }, file },
   onUpload: p =&gt; bar.value = p.percent,
 })
 
-Fez.request.clearCache()</code></pre></div>
-                <div class="out feature-result"><span class="result-chip">JSON parsed</span><span class="result-chip">GET cached</span><span class="result-chip">in-flight deduped</span><span class="result-chip">errors → onError</span></div>
+Fez.req.clearCache()</code></pre></div>
+                <div class="out feature-result"><span class="result-chip">JSON parsed</span><span class="result-chip">GET cached</span><span class="result-chip">in-flight deduped</span><span class="result-chip">never rejects</span></div>
                 <div class="out-label">response content type decides whether the value is JSON or text</div>
               </site-live>
             </article>
@@ -1841,18 +1841,17 @@ off()</code></pre></div>
 
             <article class="site-feature-row" id="fez-dom-utilities">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">domRoot · tag · htmlEscape · htmlAttr · styleProp · activateNode · nodeMorph</p>
+                <p class="site-feature-kicker">tag · htmlEscape · htmlAttr · styleProp · activateNode · nodeMorph</p>
                 <h3>Low-level DOM utilities</h3>
-                <p>Create a root from HTML, build encoded tags, escape any value as text, render one attribute or style declaration by the template rules, activate one sibling, or invoke the component-aware DOM differ directly. <code>nodeMorph</code> accepts an HTML string, an element or a fragment, plus advanced matching options.</p>
+                <p>Build encoded tags, escape any value as text, render one attribute or style declaration by the template rules, activate one sibling, or invoke the component-aware DOM differ directly. <code>nodeMorph</code> accepts an HTML string, an element or a fragment, plus advanced matching options.</p>
               </div>
-              <site-live title="DOM runtime" right-title="eight utilities">
-                <div class="src"><pre><code>const root = Fez.domRoot('&lt;section&gt;Hello&lt;/section&gt;')
-const html = Fez.tag('button', { disabled: true }, 'Save')
-const safe = Fez.htmlEscape('&lt;b&gt;unsafe&lt;/b&gt;')
-Fez.htmlAttr('hidden', false)        // ''
-Fez.styleProp('color', 'red')        // 'color: red;'
+              <site-live title="DOM runtime" right-title="six utilities">
+                <div class="src"><pre><code>const html = Fez.tag('button', { disabled: true }, 'Save')
+const safe = Fez.util.htmlEscape('&lt;b&gt;unsafe&lt;/b&gt;')
+Fez.util.htmlAttr('hidden', false)        // ''
+Fez.util.styleProp('color', 'red')        // 'color: red;'
 
-Fez.activateNode(tab, 'active')
+Fez.util.activateNode(tab, 'active')
 Fez.nodeMorph(target, '&lt;p&gt;new HTML&lt;/p&gt;')
 Fez.nodeMorph(target, fragment, {
   skipNode: node =&gt; node.matches('.external')
@@ -1871,15 +1870,15 @@ Fez.nodeMorph(target, fragment, {
               <site-live title="value helpers" right-title="template semantics">
                 <div class="src"><pre><code>Fez.getFunction(props.onclick)
 
-Fez.isTrue('false')       // false
-Fez.isTruthy([])          // false
-Fez.typeof({})            // 'o'
-Fez.typeof(1.5)           // 'n'
-Fez.typeof(true)          // 'b'
+Fez.util.isTrue('false')       // false
+Fez.util.isTruthy([])          // false
+Fez.util.typeof({})            // 'o'
+Fez.util.typeof(1.5)           // 'n'
+Fez.util.typeof(true)          // 'b'
 
-Fez.toPairs(['a', 'b'])   // [['a',0], ['b',1]]
-Fez.toPairs({ a: 1 })     // [['a',1]]
-Fez.toPairs(null)         // []</code></pre></div>
+Fez.util.toPairs(['a', 'b'])   // [['a',0], ['b',1]]
+Fez.util.toPairs({ a: 1 })     // [['a',1]]
+Fez.util.toPairs(null)         // []</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">function</span><span class="result-chip">boolean</span><span class="result-chip">type code</span><span class="result-chip">pairs</span></div>
                 <div class="out-label">getFunction returns a safe empty function for missing handlers</div>
               </site-live>
@@ -1892,15 +1891,13 @@ Fez.toPairs(null)         // []</code></pre></div>
                 <p>Throttle noisy functions, poll until a condition succeeds, wait for DOM readiness, hash text, generate IDs, park callbacks for HTML, and extend the global Fez namespace with project utilities.</p>
               </div>
               <site-live title="utility belt" right-title="small primitives">
-                <div class="src"><pre><code>const onMove = Fez.throttle(move, 50)
-Fez.untilTrue(() =&gt; document.querySelector('#ready'), 100)
-Fez.onReady(boot)
+                <div class="src"><pre><code>const onMove = Fez.util.throttle(move, 50)
+Fez.util.untilTrue(() =&gt; document.querySelector('#ready'), 100)
+Fez.util.onReady(boot)
 
-Fez.fnv1('same input')
-Fez.uid()
-Fez.pointer(callback, { persist: true })
-
-Fez.sweepPointers()</code></pre></div>
+Fez.util.fnv1('same input')
+Fez.util.uid()
+Fez.pointer(callback, { persist: true })</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">rate limited</span><span class="result-chip">DOM ready</span><span class="result-chip">stable hash</span><span class="result-chip">safe callback pointer</span></div>
                 <div class="out-label">pointer entries are swept automatically unless marked persistent</div>
               </site-live>
@@ -1908,24 +1905,19 @@ Fez.sweepPointers()</code></pre></div>
 
             <article class="site-feature-row" id="fez-compiler-diagnostics">
               <div class="site-feature-copy">
-                <p class="site-feature-kicker">compile · createTemplate · LOG · DEV · onError · dump · highlightAll</p>
+                <p class="site-feature-kicker">compile · LOG · DEV · onError · dev.dump · dev.highlightAll</p>
                 <h3>Compilation and diagnostics</h3>
-                <p>Compile source or create a template function at runtime. Enable logs and component overlays, inspect a component dump, customize errors, or use the low-level console helpers.</p>
+                <p>Compile source at runtime. Enable logs and component overlays, inspect a component dump or customize errors.</p>
               </div>
               <site-live title="runtime diagnostics" right-title="inspectable">
                 <div class="src"><pre><code>Fez.compile('status-pill', source)
-const render = Fez.createTemplate('&lt;b&gt;{state.name}&lt;/b&gt;', {
-  name: 'status-pill',
-})
 
 Fez.LOG = true
 Fez.DEV = true
 Fez.onError = (kind, error, context) =&gt; report(error)
-Fez.consoleLog('rendered')
-Fez.consoleError('invalid prop')
 this.fezError('editor', 'Could not mount', { node: this.root })
-Fez.dump(this.state)
-Fez.highlightAll()</code></pre></div>
+Fez.dev.dump(this.state)
+Fez.dev.highlightAll()</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">compiled</span><span class="result-chip">logged</span><span class="result-chip">inspected</span><span class="result-chip">highlighted</span></div>
                 <div class="out-label">development overlays can be toggled with Cmd/Ctrl + E</div>
               </site-live>
@@ -2108,8 +2100,8 @@ const detail = await Fez.load('/users')
 detail?.status   // 200
 detail?.error    // null | 'status' | 'network' | ...
 
-Fez.qs('page', 4)
-Fez.hash('tab', 'settings')</code></pre></div>
+Fez.url.qs('page', 4).push()
+Fez.url.hqs('tab', 'settings').push()</code></pre></div>
                 <div class="out feature-result"><span class="result-chip">load: cached, debounced, scrolls on a full swap</span><span class="result-chip">refresh: no-cache, never debounced, keeps scroll</span></div>
                 <div class="out-label">loads into different nodes run side by side; a full load cancels them</div>
               </site-live>

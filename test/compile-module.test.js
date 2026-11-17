@@ -146,7 +146,7 @@ describe('fez plugin', () => {
   test('compiles a <slim> template', () => {
     const code = compile('<script>\nclass {}\n</script>\n<slim>\n  div.p-0.5\n    p= state.name\n</slim>');
     expect(code).toContain(
-      '<div class="p-0.5" fez-key="0"><p fez-key="1">${Fez.htmlEscape(fez.state.name)}</p></div>',
+      '<div class="p-0.5" fez-key="0"><p fez-key="1">${Fez.util.htmlEscape(fez.state.name)}</p></div>',
     );
   });
 

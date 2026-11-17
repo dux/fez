@@ -29,8 +29,8 @@ const BOOLEAN_ATTR_SELECTOR = [...BOOLEAN_ATTRS].map((name) => `[${name}]`).join
 
 // `Fez(<uid>).fezGlobals.value(<key>)`, what the compiler writes for :attr
 const SLOT_VALUE_RE = /^\s*Fez\((\d+)\)\.fezGlobals\.value\((\d+)\)\s*$/;
-// `Fez.POINTER[<uid>]`, what Fez.pointer(fn) hands out
-const POINTER_RE = /^\s*Fez\.POINTER\[(\d+)\]\s*$/;
+// `Fez._.POINTER[<uid>]`, what Fez.pointer(fn) hands out
+const POINTER_RE = /^\s*Fez\._\.POINTER\[(\d+)\]\s*$/;
 
 // fez-this / fez-bind paths: `name`, `state.form.email`, `refs[2]`
 const pathKeys = (path) => path.match(/[^.[\]'"\s]+/g) || [];
@@ -69,7 +69,8 @@ function dispatchFezOn(event) {
   const prefix = `${event.type}:`;
   const entry = entries.find((e) => e.startsWith(prefix));
   const handler =
-    entry && Fez.instances.get(Number(uid))?.fezGlobals.handler(Number(entry.slice(prefix.length)));
+    entry &&
+    Fez._.instances.get(Number(uid))?.fezGlobals.handler(Number(entry.slice(prefix.length)));
   if (handler && handler.call(this, event) === false) {
     event.preventDefault();
   }
@@ -193,7 +194,7 @@ export default class FezBase {
     }
 
     // Evaluate :attr expressions. A template's :attr is a render slot reference
-    // (see lib/render-slots.js) and a Fez.pointer() is a `Fez.POINTER[<uid>]`
+    // (see lib/render-slots.js) and a Fez.pointer() is a `Fez._.POINTER[<uid>]`
     // reference: both are read without evaluating code.
     for (const [key, val] of Object.entries(attrs)) {
       if ([':'].includes(key[0])) {
@@ -202,9 +203,9 @@ export default class FezBase {
         const pointer = val.match(POINTER_RE);
         try {
           const newVal = slot
-            ? Fez.instances.get(Number(slot[1]))?.fezGlobals.value(Number(slot[2]))
+            ? Fez._.instances.get(Number(slot[1]))?.fezGlobals.value(Number(slot[2]))
             : pointer
-              ? Fez.POINTER[pointer[1]]
+              ? Fez._.POINTER[pointer[1]]
               : evaluate(`${key}="${val}"`, `return (${val})`).bind(newNode)();
           attrs[key.replace(/^:/, '')] = newVal;
         } catch (e) {
@@ -494,7 +495,7 @@ export default class FezBase {
   /**
    * HTML-ish boolean parsing for attribute values. Presence ("") and the
    * attribute's own name (`disabled="disabled"`) are true; the usual
-   * negative words are false; anything else falls back to Fez.isTrue.
+   * negative words are false; anything else falls back to Fez.util.isTrue.
    */
   static toBoolean(value, name) {
     if (typeof value === 'boolean') {
@@ -510,7 +511,7 @@ export default class FezBase {
     if (['false', '0', 'off', 'no', 'null', 'undefined'].includes(s)) {
       return false;
     }
-    return Fez.isTrue ? Fez.isTrue(s) : ['1', 'true', 'on'].includes(s);
+    return Fez.util.isTrue(s);
   }
 
   /**
@@ -519,7 +520,7 @@ export default class FezBase {
   static formData(node) {
     const formNode = node.closest('form') || node.querySelector('form');
     if (!formNode) {
-      Fez.consoleLog('No form found for formData()');
+      Fez._.consoleLog('No form found for formData()');
       return {};
     }
     const formData = new FormData(formNode);
@@ -751,7 +752,7 @@ export default class FezBase {
     if (handle && window[handle] === this) {
       delete window[handle];
     }
-    Fez.instances?.delete(this.UID);
+    Fez._.instances?.delete(this.UID);
 
     // Clean up root references
     if (this.root) {
@@ -958,7 +959,7 @@ export default class FezBase {
         // a :attr slot now holds a different object - the HTML only carries
         // the slot key, so preserved children need the morph to receive the
         // new props and re-render.
-        const newHash = Fez.fnv1(parsedHtml);
+        const newHash = Fez.util.fnv1(parsedHtml);
         if (newHash === this._fezHash && !this.fezGlobals.valuesChanged) {
           this.fezGlobals.commitRender();
           this.afterRender();
@@ -1067,7 +1068,7 @@ export default class FezBase {
     // fez:use={fn} in a precompiled template: @<uid>:<handler slot>
     const slot = value.match(/^@(\d+):(\d+)$/);
     if (slot) {
-      return Fez.instances.get(Number(slot[1]))?.fezGlobals.handler(Number(slot[2]))?.(n);
+      return Fez._.instances.get(Number(slot[1]))?.fezGlobals.handler(Number(slot[2]))?.(n);
     }
     if (value.includes('=>')) {
       return Fez.getFunction(value)(n);
@@ -1758,7 +1759,7 @@ export default class FezBase {
         call(e);
       }
     };
-    const fn = opts?.throttle ? Fez.throttle(guarded, opts.throttle) : guarded;
+    const fn = opts?.throttle ? Fez.util.throttle(guarded, opts.throttle) : guarded;
     target.addEventListener(eventName, fn, opts);
     const dispose = () => {
       target.removeEventListener(eventName, fn, opts);
@@ -1773,7 +1774,7 @@ export default class FezBase {
    * Window resize and scroll go through this.on('resize' | 'scroll', fn, { throttle }).
    */
   observeResize(el, func, delay = 200) {
-    const throttledFunc = Fez.throttle(() => {
+    const throttledFunc = Fez.util.throttle(() => {
       if (this.isConnected) {
         func.call(this, el.getBoundingClientRect(), el);
       }

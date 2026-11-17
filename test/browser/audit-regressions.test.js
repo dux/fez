@@ -55,7 +55,7 @@ test('a throwing init is reported and leaves no live instance behind', async () 
       app.innerHTML = '<init-err></init-err><init-ok></init-ok>';
     },
     () => ({
-      instances: [...Fez.instances.values()].map((f) => f.fezName),
+      instances: [...Fez._.instances.values()].map((f) => f.fezName),
       ticks: window.ticks || 0,
       ok: document.querySelector('.init-ok-fez p')?.textContent,
     }),
@@ -75,7 +75,7 @@ test('a throwing onDestroy still releases the GLOBAL handle and the instance', a
       app.innerHTML = '<destroy-err></destroy-err>';
       setTimeout(() => (app.innerHTML = ''), 30);
     },
-    () => ({ global: 'DestroyErr' in window, instances: Fez.instances.size }),
+    () => ({ global: 'DestroyErr' in window, instances: Fez._.instances.size }),
   );
   expect(result).toEqual({ global: false, instances: 0 });
 });

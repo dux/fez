@@ -39,7 +39,8 @@ const uniq = (base) => `${base}_${++keyCounter}`;
 
 beforeEach(() => {
   globalThis.Fez ||= {};
-  globalThis.Fez.consoleLog ||= () => {};
+  globalThis.Fez._ ||= {};
+  globalThis.Fez._.consoleLog ||= () => {};
 });
 
 describe("GlobalState", () => {

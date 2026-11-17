@@ -1,6 +1,6 @@
 import { htmlAttr, styleProp } from './attrs.js';
 import evaluate from './evaluate.js';
-import { request, param } from './request.js';
+import { request, loadText } from './request.js';
 
 // Append <head> block HTML to document.head. Scripts are recreated so they run.
 function appendHeadHtml(html) {
@@ -32,22 +32,28 @@ function appendHeadHtml(html) {
 
 // Utility functions that extend Fez
 export default (Fez) => {
+  // Helpers for templates and app code: Fez.util.htmlEscape(...)
+  const util = (Fez.util = {});
+
+  // framework internals (pointers, nonce cache, compiler runtime), not public API
+  Fez._ = {};
+
   // Nonce of the page's Content-Security-Policy ('' without one), for the
   // scripts fez inserts. Browsers hide the nonce attribute once the page is
   // loaded, the nonce property keeps it: src/fez.js reads it from the script
   // that loaded fez, else any nonced script on the page.
   Fez.nonce = () => {
-    if (Fez._nonce === undefined && typeof document !== 'undefined') {
-      Fez._nonce = document.querySelector('script[nonce]')?.nonce || undefined;
+    if (Fez._.nonce === undefined && typeof document !== 'undefined') {
+      Fez._.nonce = document.querySelector('script[nonce]')?.nonce || undefined;
     }
-    return Fez._nonce || '';
+    return Fez._.nonce || '';
   };
 
   // Run inline JS without eval: a <script> carrying the page nonce, so a
   // Content-Security-Policy without 'unsafe-inline' / 'unsafe-eval' allows it.
   // The code runs in a function scope, like the new Function it replaces:
   // top-level declarations stay local and `return` works.
-  Fez.runScript = (code) => {
+  Fez._.runScript = (code) => {
     const script = document.createElement('script');
     if (Fez.nonce()) {
       script.nonce = Fez.nonce();
@@ -113,7 +119,7 @@ export default (Fez) => {
 
       // If it's a txt file, load it as a component list
       if (fezPath.endsWith('.txt')) {
-        Fez.fetch(fezPath)
+        loadText(fezPath)
           .then((content) => {
             // Get base path from txt file location
             const basePath = fezPath.substring(0, fezPath.lastIndexOf('/') + 1);
@@ -130,8 +136,8 @@ export default (Fez) => {
               const path = line.endsWith('.fez') ? line : line + '.fez';
               const componentPath = path.startsWith('/') ? path : basePath + path;
 
-              const name = Fez.nameFromPath(componentPath);
-              return Fez.fetch(componentPath)
+              const name = Fez._.nameFromPath(componentPath);
+              return loadText(componentPath)
                 .then((componentContent) => Fez.compile(name, componentContent))
                 .catch((error) =>
                   Fez.onError('compile', `Load error for "${componentPath}": ${error.message}`),
@@ -154,8 +160,8 @@ export default (Fez) => {
       }
 
       // Single .fez component
-      const name = Fez.nameFromPath(fezPath);
-      Fez.fetch(fezPath)
+      const name = Fez._.nameFromPath(fezPath);
+      loadText(fezPath)
         .then((content) => {
           Fez.compile(name, content);
           if (callback) {
@@ -191,7 +197,7 @@ export default (Fez) => {
             }
           });
       } else {
-        Fez.runScript(config.script);
+        Fez._.runScript(config.script);
         if (callback) {
           callback();
         }
@@ -279,38 +285,9 @@ export default (Fez) => {
     return element;
   };
 
-  Fez.request = request;
-  Fez.param = param;
+  Fez.req = request;
 
-  // Throwing, cached sugar over Fez.request (see lib/request.js):
-  //   Fez.fetch(url)                          GET, cached 5 minutes, resolves the parsed body
-  //   Fez.fetch(url, data)                    GET with query params (?foo=bar&baz=qux)
-  //   Fez.fetch(url, data?, callback)         callback form; errors go to Fez.onError
-  //   Fez.fetch('POST', url, data, callback?) POST, never cached
-  // An error status, network failure or timeout rejects (or reports through Fez.onError).
-  Fez.fetch = function (...args) {
-    const method = typeof args[0] === 'string' && /^[A-Z]+$/.test(args[0]) ? args.shift() : 'GET';
-    const url = args.shift();
-    const data = typeof args[0] === 'object' ? args.shift() : undefined;
-    const callback = typeof args[0] === 'function' ? args[0] : null;
-
-    Fez.consoleLog(`fetch ${method} ${url}`);
-    const result = Fez.request({ method, url, data, cache: method === 'GET' ? 300 : 0 }).then((res) => {
-      if (!res.ok) {
-        const why = res.error || `${res.status} ${res.statusText}`.trim();
-        throw new Error(`${why} for ${method} ${url}`);
-      }
-      return res.data;
-    });
-
-    if (callback) {
-      result.then(callback).catch((error) => Fez.onError('fetch', error));
-      return;
-    }
-    return result;
-  };
-
-  Fez.darkenColor = (color, percent = 20) => {
+  util.darkenColor = (color, percent = 20) => {
     // Convert hex to RGB
     const num = parseInt(color.replace('#', ''), 16);
     const amt = Math.round(2.55 * percent);
@@ -330,7 +307,7 @@ export default (Fez) => {
     );
   };
 
-  Fez.lightenColor = (color, percent = 20) => {
+  util.lightenColor = (color, percent = 20) => {
     // Convert hex to RGB
     const num = parseInt(color.replace('#', ''), 16);
     const amt = Math.round(2.55 * percent);
@@ -354,7 +331,7 @@ export default (Fez) => {
    * Escapes HTML special characters of any value as text; null and
    * undefined render nothing
    */
-  Fez.htmlEscape = (text) => {
+  util.htmlEscape = (text) => {
     if (text == null) {
       return '';
     }
@@ -367,12 +344,12 @@ export default (Fez) => {
   };
 
   // `name={expr}` in a template: the whole attribute, or '' to drop it
-  Fez.htmlAttr = (name, value) => htmlAttr(name, value, Fez.htmlEscape);
-  Fez.styleProp = styleProp;
+  util.htmlAttr = (name, value) => htmlAttr(name, value, util.htmlEscape);
+  util.styleProp = styleProp;
 
   // Escape a value for a quoted JS string inside handler code, so a quote in
   // the data cannot end the string: onclick="fez.rm('{id}')"
-  Fez.jsEscape = (value) => {
+  util.jsEscape = (value) => {
     if (value == null) {
       return '';
     }
@@ -380,7 +357,7 @@ export default (Fez) => {
   };
 
   // create dom root and return it
-  Fez.domRoot = (data, name = 'div') => {
+  Fez._.domRoot = (data, name = 'div') => {
     if (data instanceof Node) {
       return data;
     } else {
@@ -391,7 +368,7 @@ export default (Fez) => {
   };
 
   // add class by name to node and remove it from siblings
-  Fez.activateNode = (node, klass = 'active') => {
+  util.activateNode = (node, klass = 'active') => {
     if (!node || !node.parentElement) {
       return;
     }
@@ -401,12 +378,12 @@ export default (Fez) => {
     node.classList.add(klass);
   };
 
-  Fez.isTrue = (val) => {
+  util.isTrue = (val) => {
     return ['1', 'true', 'on'].includes(String(val).toLowerCase());
   };
 
   // public utility - do not remove
-  Fez.uid = (() => {
+  util.uid = (() => {
     let seq = 111;
     return () => 'fez_uid_' + (++seq).toString(32);
   })();
@@ -415,41 +392,41 @@ export default (Fez) => {
   // <some-node :callback="${Fez.pointer(opts.callback)}" ...>
   // Pointers are automatically cleaned up after first use (one-time use by default)
   // Use Fez.pointer(func, { persist: true }) to keep the pointer
-  Fez.POINTER_SEQ = 0;
-  Fez.POINTER = {};
-  Fez.POINTER_CREATED = {};
+  Fez._.POINTER_SEQ = 0;
+  Fez._.POINTER = {};
+  Fez._.POINTER_CREATED = {};
   Fez.pointer = (func, opts = {}) => {
     if (typeof func === 'function') {
-      const uid = ++Fez.POINTER_SEQ;
+      const uid = ++Fez._.POINTER_SEQ;
 
       if (opts.persist) {
-        Fez.POINTER[uid] = func;
+        Fez._.POINTER[uid] = func;
       } else {
-        Fez.POINTER_CREATED[uid] = Date.now();
-        Fez.POINTER[uid] = (...args) => {
+        Fez._.POINTER_CREATED[uid] = Date.now();
+        Fez._.POINTER[uid] = (...args) => {
           const result = func(...args);
-          delete Fez.POINTER[uid];
-          delete Fez.POINTER_CREATED[uid];
+          delete Fez._.POINTER[uid];
+          delete Fez._.POINTER_CREATED[uid];
           return result;
         };
       }
 
-      return `Fez.POINTER[${uid}]`;
+      return `Fez._.POINTER[${uid}]`;
     }
   };
 
   // Sweep stale one-time pointers older than 5 minutes
-  Fez.sweepPointers = () => {
+  Fez._.sweepPointers = () => {
     const cutoff = Date.now() - 5 * 60 * 1000;
-    for (const uid of Object.keys(Fez.POINTER_CREATED)) {
-      if (Fez.POINTER_CREATED[uid] < cutoff) {
-        delete Fez.POINTER[uid];
-        delete Fez.POINTER_CREATED[uid];
+    for (const uid of Object.keys(Fez._.POINTER_CREATED)) {
+      if (Fez._.POINTER_CREATED[uid] < cutoff) {
+        delete Fez._.POINTER[uid];
+        delete Fez._.POINTER_CREATED[uid];
       }
     }
   };
   if (typeof document !== 'undefined') {
-    setInterval(Fez.sweepPointers, 60 * 1000);
+    setInterval(Fez._.sweepPointers, 60 * 1000);
   }
 
   // Resolve a function from a string or function reference
@@ -480,7 +457,7 @@ export default (Fez) => {
 
   // Execute a function when DOM is ready, or immediately if already loaded or
   // if there is no DOM at all (Node/SSR import)
-  Fez.onReady = (callback) => {
+  util.onReady = (callback) => {
     if (typeof document === 'undefined') {
       callback();
     } else if (document.readyState === 'loading') {
@@ -498,7 +475,7 @@ export default (Fez) => {
 
   // get unique id from string (32-bit FNV-1; Math.imul keeps the multiply in
   // 32-bit range so the hash does not lose precision as a float)
-  Fez.fnv1 = (str) => {
+  util.fnv1 = (str) => {
     let hash = 2166136261;
     for (let i = 0; i < str.length; i++) {
       hash ^= str.charCodeAt(i);
@@ -510,19 +487,19 @@ export default (Fez) => {
   // Component name from a URL/path: drop query/hash, directory and the final
   // extension. `my.component.fez` -> `my.component` (split('.')[0] would give
   // `my`).
-  Fez.nameFromPath = (url) => {
+  Fez._.nameFromPath = (url) => {
     const clean = String(url).split(/[?#]/)[0];
     const base = clean.split('/').pop() || '';
     return base.replace(/\.[^.]*$/, '');
   };
 
   // execute function until it returns true
-  Fez.untilTrue = (func, pingRate) => {
+  util.untilTrue = (func, pingRate) => {
     pingRate ||= 200;
 
     if (!func()) {
       setTimeout(() => {
-        Fez.untilTrue(func, pingRate);
+        util.untilTrue(func, pingRate);
       }, pingRate);
     }
   };
@@ -531,7 +508,7 @@ export default (Fez) => {
   const DEFAULT_THROTTLE_DELAY = 200;
 
   // throttle function calls
-  Fez.throttle = (func, delay = DEFAULT_THROTTLE_DELAY) => {
+  util.throttle = (func, delay = DEFAULT_THROTTLE_DELAY) => {
     let lastRun = 0;
     let timeout;
 
@@ -556,7 +533,7 @@ export default (Fez) => {
 
   // Enhanced truthiness check for template conditionals (#if, #unless)
   // Empty arrays and empty objects are falsy, everything else uses standard JS truthiness
-  Fez.isTruthy = (v) => {
+  util.isTruthy = (v) => {
     if (Array.isArray(v)) {
       return v.length > 0;
     }
@@ -569,7 +546,7 @@ export default (Fez) => {
   // Convert any collection to pairs for loop destructuring
   // Array: ['a', 'b'] → [['a', 0], ['b', 1]] (value, index)
   // Object: {x: 1} → [['x', 1]] (key, value)
-  Fez.toPairs = (c) => {
+  util.toPairs = (c) => {
     if (Array.isArray(c)) {
       return c.map((v, i) => [v, i]);
     }
@@ -586,7 +563,7 @@ export default (Fez) => {
   };
 
   // public utility - do not remove
-  Fez.typeof = (data) => {
+  util.typeof = (data) => {
     if (data === null || data === undefined) {
       return 'u';
     }

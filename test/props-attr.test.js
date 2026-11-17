@@ -25,7 +25,7 @@ beforeAll(() => {
     ...(global.Fez || {}),
     onError: () => {},
     state: { createProxy: () => ({}) },
-    globalCss: () => {},
+    css: { global: () => {} },
   };
 });
 
@@ -112,7 +112,7 @@ describe("fez-props on the root", () => {
     globalThis.Fez.nodeMorph = (target, newNode) => {
       target.innerHTML = newNode.innerHTML;
     };
-    globalThis.Fez.fnv1 = (s) => s;
+    globalThis.Fez.util.fnv1 = (s) => s;
     fez.fezRender("<p>new {props.count}</p>");
     expect(fez.root.innerHTML).toBe("<p>new 3</p>");
     expect(fez.root.getAttribute(PROPS_ATTR)).toBe("count: 3");

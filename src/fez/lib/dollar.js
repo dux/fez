@@ -11,9 +11,9 @@
 // - on() keeps ONE handler per node + event + key; the key is the .namespace,
 //   else a hash of the handler source (and delegate selector). Registering
 //   again replaces it, so a script re-run by a pjax swap does not stack handlers.
-// - $.ajax / $.get / $.post run on Fez.request: no jqXHR, no global ajax events.
+// - $.ajax / $.get / $.post run on Fez.req: no jqXHR, no global ajax events.
 //   They return the request promise (with .abort() and .xhr) plus .done(data, res),
-//   .fail(res) and .always(res); res is the Fez.request result.
+//   .fail(res) and .always(res); res is the Fez.req result.
 // - no animations, effects queue, deferreds or $.Callbacks.
 
 const HTML = /^\s*</;
@@ -449,11 +449,11 @@ export default function attachDollar(Fez) {
     return success ? req.done(success) : req;
   };
 
-  // $.ajax({ type, url, data, headers, success(data, res), error(res), complete(res), ...Fez.request options })
+  // $.ajax({ type, url, data, headers, success(data, res), error(res), complete(res), ...Fez.req options })
   $.ajax = (o) => {
     const { type, success, error, complete, contentType, ...rest } = o;
     const json = rest.json || contentType === 'json' || contentType === 'application/json';
-    const req = chain(Fez.request({ ...rest, method: type || rest.method, json }), success);
+    const req = chain(Fez.req({ ...rest, method: type || rest.method, json }), success);
     if (error) {
       req.fail(error);
     }
@@ -468,11 +468,11 @@ export default function attachDollar(Fez) {
       success = data;
       data = undefined;
     }
-    return chain(Fez.request({ method, url, data }), success);
+    return chain(Fez.req({ method, url, data }), success);
   };
   $.get = shorthand('GET');
   $.post = shorthand('POST');
-  $.param = Fez.param;
+  $.param = Fez.req.param;
 
   Fez.$ = $;
 }

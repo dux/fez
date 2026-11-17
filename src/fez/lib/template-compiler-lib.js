@@ -226,11 +226,11 @@ export function getLoopItemVars(binding, objectPairs = false) {
 export function buildCollectionExpr(collection, binding) {
   const parsed = parseLoopBinding(binding);
 
-  // 2-param destructuring uses Fez.toPairs for unified array/object handling
+  // 2-param destructuring uses Fez.util.toPairs for unified array/object handling
   // Array: ['a', 'b'] → [['a', 0], ['b', 1]] (value, index)
   // Object: {x: 1} → [['x', 1]] (key, value)
   if (parsed.isDestructured && parsed.params.length === 2) {
-    return `Fez.toPairs(${collection})`;
+    return `Fez.util.toPairs(${collection})`;
   }
 
   // 3+ params: object iteration with explicit index

@@ -1,4 +1,4 @@
-// Swaps XMLHttpRequest (the transport behind Fez.request) for a recorder. Every
+// Swaps XMLHttpRequest (the transport behind Fez.req) for a recorder. Every
 // send lands in `requests` and stays pending until respond() / reject(); abort()
 // and an elapsed xhr.timeout fire the matching handler like the real thing.
 // Call restore() in teardown.

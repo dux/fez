@@ -12,7 +12,9 @@ const DEFAULT_PATHS = ['pages_src/root/fez', 'src', 'test'];
 // copy of an old component reports every issue a second time.
 const IGNORED_DIRS = ['node_modules', 'dist', 'build', 'tmp', '.next', '.git', 'coverage', 'vendor'];
 // Pjax statics that moved to Fez itself; everything else lives on Fez.pjax
-const PJAX_SHORTCUTS = ['load', 'refresh', 'qs', 'hash', 'hpath', 'hqs'];
+const PJAX_SHORTCUTS = ['load', 'refresh'];
+// Pjax URL state helpers that moved to Fez.url
+const URL_HELPERS = { qs: 'qs', hash: 'hqs', hpath: 'hpath', hqs: 'hqs' };
 // Removed component and Fez APIs: [pattern, message, suggestion]
 const REMOVED_APIS = [
   [/\b(?:onInit|created)\s*\(\s*(?:props)?\s*\)\s*\{/, 'Removed init alias', 'Rename the hook to init(props).'],
@@ -23,12 +25,22 @@ const REMOVED_APIS = [
   [/\bthis\.fezRefresh\s*\(/, 'Removed fezRefresh', 'this.refresh()'],
   [/\bthis\.prop\s*\(/, 'Removed this.prop()', 'Read this.props.name (declare PROPS for typed values).'],
   [/\bFez\.morphdom\s*\(/, 'Removed Fez.morphdom', 'Fez.nodeMorph(target, newNode)'],
-  [/\bFez\.log\s*\(/, 'Renamed Fez.log', 'Fez.dump(nodeOrValue)'],
+  [/\bFez\.log\s*\(/, 'Renamed Fez.log', 'Fez.dev.dump(nodeOrValue)'],
   [/\bFez\.state\.subscribe\s*\(\s*\(\s*key\b/, 'Fez.state.subscribe callback order changed', 'The all-keys callback is (value, oldValue, key), like the per-key one.'],
   [/\bon[a-z]+="\{\s*\(?[\w\s,]*\)?\s*=>/, 'Quoted arrow handler is a no-op', 'Drop the quotes: onclick={() => save()}'],
   [/\b(?:this|fez)\.local\b/, 'Removed this.local', 'Use this.state: a key the template never reads costs no render.'],
   [/<slot\s(?:[^>]*\s)?live(?=[\s>\/=])/, 'Removed <slot live />', 'Slots are live by default: write <slot />, or <slot rebuild /> for a fresh component per change.'],
-  [/\bFez\.clearFetchCache\s*\(/, 'Removed Fez.clearFetchCache', 'Fez.request.clearCache()'],
+  [/\bFez\.clearFetchCache\s*\(/, 'Removed Fez.clearFetchCache', 'Fez.req.clearCache()'],
+  [/\bFez\.(?:pjax\.)?(?:qs|hash|hpath|hqs)\s*\(/, 'Removed Fez.qs / hash / hpath / hqs', "Fez.url.qs('k') reads; Fez.url.qs('k', v) builds - finish with .push(), .replace() or String(...). Fez.hash -> Fez.url.hqs; Fez.url.hpath() is the full route path ('/logs')."],
+  [/\bFez\.(?:htmlEscape|htmlAttr|jsEscape|styleProp|isTrue|isTruthy|typeof|toPairs|throttle|fnv1|uid|darkenColor|lightenColor|untilTrue|onReady)\b/, 'Moved Fez.<util> to Fez.util', 'Fez.util.<name>, for example Fez.util.htmlEscape(value).'],
+  [/\bFez\.(?:POINTER(?:_SEQ|_CREATED)?|sweepPointers|fezAwait|stripGeneratedNotice|_nonce)\b/, 'Moved Fez internals under Fez._', 'Framework internals live on Fez._ (Fez._.POINTER, Fez._.fezAwait, ...); use Fez.pointer(fn) and Fez.nonce() instead.'],
+  [/\bFez\.fetch\s*\(/, 'Removed Fez.fetch', "Fez.req(url, { cache: 300 }) resolves { ok, status, data } and never rejects: check res.ok. POST: Fez.req(url, { method: 'POST', data })."],
+  [/\bFez\.param\s*\(/, 'Moved Fez.param', 'Fez.req.param(obj)'],
+  [/\bFez\.request\b/, 'Renamed Fez.request', 'Fez.req (Fez.req(url, opts), Fez.req.headers, Fez.req.clearCache(), Fez.req.param(obj)).'],
+  [/\bFez\.(?:cssClass|globalCss|cssMixin|extractCss)\b/, 'Moved Fez CSS helpers under Fez.css', 'Fez.css(text) (was cssClass), Fez.css.global(css, opts), Fez.css.mixin(name, body), Fez.css.extract().'],
+  [/\bFez\.(?:dump|highlightAll)\b/, 'Moved Fez.dump / highlightAll under Fez.dev', 'Fez.dev.dump(nodeOrValue), Fez.dev.highlightAll().'],
+  [/\bFez\.(?:activateNode|animateSize)\b/, 'Moved Fez.<helper> to Fez.util', 'Fez.util.activateNode(node, klass), Fez.util.animateSize(node, spec).'],
+  [/\bFez\.(?:instances|instanceCount|nameFromPath|createTemplate|consoleLog|consoleError|runScript|domRoot)\b/, 'Moved Fez runtime helpers under Fez._', 'Framework internals live on Fez._ (Fez._.instances, Fez._.createTemplate, ...); prefer Fez(uid), Fez.find, Fez.compile and Fez.head.'],
 ];
 // `var` where a statement can start; after a word it is prose ("so the var drops")
 const VAR_DECLARATION = /(?:(?:^|[;{}()>"'`])\s*|\bexport\s+)var\s+[A-Za-z_$]/;
@@ -178,6 +190,8 @@ function pjaxSuggestion(line) {
   for (const [, name] of line.matchAll(/\bPjax\.(\w+)/g)) {
     if (name === 'reload') {
       hints.push('Pjax.reload -> Fez.refresh');
+    } else if (URL_HELPERS[name]) {
+      hints.push(`Pjax.${name} -> Fez.url.${URL_HELPERS[name]}`);
     } else if (PJAX_SHORTCUTS.includes(name)) {
       hints.push(`Pjax.${name} -> Fez.${name}`);
     } else {

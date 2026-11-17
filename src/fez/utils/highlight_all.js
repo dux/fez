@@ -70,7 +70,7 @@ const highlightAll = () => {
       // Add click handler to dump the node
       label.addEventListener('click', (e) => {
         e.stopPropagation();
-        Fez.dump(el);
+        Fez.dev.dump(el);
       });
 
       overlay.appendChild(label);

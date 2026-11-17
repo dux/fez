@@ -335,12 +335,12 @@ export function compileTemplateLiteral(text, opts = {}) {
       const elseIf = expr.match(ELSE_IF_RE);
       if (expr.startsWith('#if ')) {
         const cond = expr.slice(4);
-        result += '${Fez.isTruthy(' + cond + ') ? `';
+        result += '${Fez.util.isTruthy(' + cond + ') ? `';
         ifStack.push(false); // No else yet
         openBlock('if', '#if');
       } else if (expr.startsWith('#unless ')) {
         const cond = expr.slice(8);
-        result += '${!Fez.isTruthy(' + cond + ') ? `';
+        result += '${!Fez.util.isTruthy(' + cond + ') ? `';
         ifStack.push(false); // No else yet
         openBlock('if', '#unless');
       } else if (expr === ':else' || expr === 'else') {
@@ -360,7 +360,7 @@ export function compileTemplateLiteral(text, opts = {}) {
           throw new Error(`{${expr}} without matching {#if}`);
         }
         closeBranch();
-        result += '` : Fez.isTruthy(' + expr.slice(elseIf[0].length) + ') ? `';
+        result += '` : Fez.util.isTruthy(' + expr.slice(elseIf[0].length) + ') ? `';
         // Keep hasElse as false - still need final else
       } else if (expr === '/if' || expr === '/unless') {
         closeBlock('if', expr);
@@ -490,7 +490,7 @@ export function compileTemplateLiteral(text, opts = {}) {
             : '`';
         result +=
           tail +
-          ' : ``)(Fez.fezAwait(fez, ' +
+          ' : ``)(Fez._.fezAwait(fez, ' +
           awaitInfo.awaitKey +
           ', ' +
           awaitInfo.promiseExpr +
@@ -502,7 +502,7 @@ export function compileTemplateLiteral(text, opts = {}) {
       } else if (expr.startsWith('@json ')) {
         const content = expr.slice(6);
         result +=
-          '${`<pre class="json">${Fez.htmlEscape(JSON.stringify(' +
+          '${`<pre class="json">${Fez.util.htmlEscape(JSON.stringify(' +
           content +
           ', null, 2))}</pre>`}';
       } else if (/^[#@/]/.test(expr) || /^:[a-z]/.test(expr)) {
@@ -534,20 +534,20 @@ export function compileTemplateLiteral(text, opts = {}) {
         const attrContext = getAttributeContext(text, i);
         const written = attrContext && result.match(/\s([^\s=]+)\s*=\s*$/);
         if (written?.[1].toLowerCase() === attrContext) {
-          // name={expr}: the whole attribute comes from Fez.htmlAttr, so null
+          // name={expr}: the whole attribute comes from Fez.util.htmlAttr, so null
           // and a false boolean attribute leave it out
           result = result.slice(0, written.index);
-          result += '${Fez.htmlAttr(' + JSON.stringify(written[1]) + ', ' + expr + ')}';
+          result += '${Fez.util.htmlAttr(' + JSON.stringify(written[1]) + ', ' + expr + ')}';
         } else if (attrContext) {
           // Inside attribute - wrap with quotes and escape
-          result += '"${Fez.htmlEscape(' + expr + ')}"';
+          result += '"${Fez.util.htmlEscape(' + expr + ')}"';
         } else if (/^on[a-z]+$/i.test(quotedAttrContext(text, i)?.name || '')) {
           // Inside quoted handler code (onclick="fez.rm('{id}')"): the value
           // lands in a JS string, so it is escaped for JS and then for HTML
-          result += '${Fez.htmlEscape(Fez.jsEscape(' + expr + '))}';
+          result += '${Fez.util.htmlEscape(Fez.util.jsEscape(' + expr + '))}';
         } else {
           // Regular content - just escape HTML
-          result += '${Fez.htmlEscape(' + expr + ')}';
+          result += '${Fez.util.htmlEscape(' + expr + ')}';
         }
       }
 
@@ -893,7 +893,7 @@ function rewriteStyleDirectives(tag) {
     base += ';';
   }
   const props = directives
-    .map((d) => `{Fez.styleProp('${d.name.slice(6)}', (${d.value}))}`)
+    .map((d) => `{Fez.util.styleProp('${d.name.slice(6)}', (${d.value}))}`)
     .join('');
   return out.replace(/\s*(\/?>)$/, ` style="${base}${props}"$1`);
 }
@@ -983,7 +983,7 @@ function autoInjectKeys(text) {
         if (s.type === 'loop' && !s.inElse) {
           return `-{_fezI${s.depth}}`;
         }
-        return s.type === 'key' ? `-k{Fez.fnv1(String(${s.expr}))}` : '';
+        return s.type === 'key' ? `-k{Fez.util.fnv1(String(${s.expr}))}` : '';
       })
       .join('');
 

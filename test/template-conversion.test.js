@@ -2,7 +2,7 @@ import { describe, test, expect } from "bun:test";
 import createTemplate, { clearTemplateCache } from "../src/fez/lib/template.js";
 
 // Local mock - reassigning the global would break the preloaded runtime
-const Fez = {
+const util = {
   jsEscape: (v) => (v == null ? "" : JSON.stringify(String(v)).slice(1, -1).replace(/['`$]/g, "\\$&")),
   htmlEscape: (s) =>
     String(s == null ? "" : s).replace(
@@ -22,6 +22,7 @@ const Fez = {
     return !!v;
   },
 };
+const Fez = { util };
 
 // Helper to render template (strips auto-generated internal keys)
 const render = (template, ctx, name) => {
