@@ -91,6 +91,11 @@
       },
       "contentName": "source.css.scss",
       "patterns": [
+        {
+          "begin": "^\\s*(?=-{0,2}[a-zA-Z][-\\w]*\\s*:(?![^{]*\\{))",
+          "end": "(?<=;)|$",
+          "patterns": [{ "include": "source.css.scss#properties" }]
+        },
         { "include": "source.css.scss" }
       ]
     },
